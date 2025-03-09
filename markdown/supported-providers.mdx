@@ -17,10 +17,6 @@ This page details each supported provider, their configuration, and usage exampl
     - [Groq](#groq)
     - [Cloudflare](#cloudflare)
     - [Ollama](#ollama)
-  - [Advanced Features](#advanced-features)
-    - [Streaming Responses](#streaming-responses)
-    - [Tool Use](#tool-use)
-    - [Direct API Proxy](#direct-api-proxy)
 
 ## Available Providers
 
@@ -29,44 +25,44 @@ The following LLM providers are currently supported:
 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
   <div className="border p-4 rounded-md">
     <h3>OpenAI</h3>
-    Access GPT models including GPT-3.5, GPT-4, and more.
-    <strong>Authentication:</strong> Bearer Token
-    <strong>Default URL:</strong> https://api.openai.com
+    <p>Access GPT models including GPT-3.5, GPT-4, and more.</p>
+    <p><strong>Authentication:</strong> Bearer Token</p>
+    <p><strong>Default URL:</strong> https://api.openai.com</p>
   </div>
   
   <div className="border p-4 rounded-md">
     <h3>Anthropic</h3>
-    Connect to Claude models for high-quality conversational AI.
-    <strong>Authentication:</strong> X-Header
-    <strong>Default URL:</strong> https://api.anthropic.com
+    <p>Connect to Claude models for high-quality conversational AI.</p>
+    <p><strong>Authentication:</strong> X-Header</p>
+    <p><strong>Default URL:</strong> https://api.anthropic.com</p>
   </div>
   
   <div className="border p-4 rounded-md">
     <h3>Cohere</h3>
-    Use Cohere's models for various natural language tasks.
-    <strong>Authentication:</strong> Bearer Token
-    <strong>Default URL:</strong> https://api.cohere.com
+    <p>Use Cohere's models for various natural language tasks.</p>
+    <p><strong>Authentication:</strong> Bearer Token</p>
+    <p><strong>Default URL:</strong> https://api.cohere.com</p>
   </div>
   
   <div className="border p-4 rounded-md">
     <h3>Groq</h3>
-    Access high-performance inference with Groq's LPU-accelerated models.
-    <strong>Authentication:</strong> Bearer Token
-    <strong>Default URL:</strong> https://api.groq.com
+    <p>Access high-performance inference with Groq's LPU-accelerated models.</p>
+    <p><strong>Authentication:</strong> Bearer Token</p>
+    <p><strong>Default URL:</strong> https://api.groq.com</p>
   </div>
   
   <div className="border p-4 rounded-md">
     <h3>Cloudflare</h3>
-    Connect to Cloudflare Workers AI for inference on various models.
-    <strong>Authentication:</strong> Bearer Token
-    <strong>Default URL:</strong> https://api.cloudflare.com/client/v4/accounts/{'{ACCOUNT_ID}'}
+    <p>Connect to Cloudflare Workers AI for inference on various models.</p>
+    <p><strong>Authentication:</strong> Bearer Token</p>
+    <p><strong>Default URL:</strong> https://api.cloudflare.com/client/v4/accounts/{'{ACCOUNT_ID}'}</p>
   </div>
   
   <div className="border p-4 rounded-md">
     <h3>Ollama</h3>
-    Run open-source models locally or on a self-hosted server.
-    <strong>Authentication:</strong> None (optional API key)
-    <strong>Default URL:</strong> http://ollama:8080
+    <p>Run open-source models locally or on a self-hosted server.</p>
+    <p><strong>Authentication:</strong> None (optional API key)</p>
+    <p><strong>Default URL:</strong> http://ollama:8080</p>
   </div>
 </div>
 
@@ -241,78 +237,6 @@ curl -X POST http://localhost:8080/llms/ollama/generate \
         "role": "user",
         "content": "Write a function to calculate Fibonacci numbers in Python."
       }
-    ]
-  }'
-```
-
-## Advanced Features
-      
-### Streaming Responses
-
-You can stream responses from supported providers by adding the `stream` or `ssevents` parameter:
-
-```bash
-curl -X POST http://localhost:8080/llms/openai/generate \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "gpt-4",
-    "messages": [
-      {
-        "role": "user",
-        "content": "Write a story about a space explorer."
-      }
-    ],
-    "stream": true
-  }'
-```
-
-### Tool Use
-
-For providers that support function calling (like OpenAI and Anthropic), you can use the `tools` parameter:
-
-```bash
-curl -X POST http://localhost:8080/llms/openai/generate \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "gpt-4",
-    "messages": [
-      {
-        "role": "user",
-        "content": "What is the weather in Paris?"
-      }
-    ],
-    "tools": [
-      {
-        "type": "function",
-        "name": "get_weather",
-        "description": "Get the current weather in a location",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "location": {
-              "type": "string",
-              "description": "The city and state, e.g. San Francisco, CA"
-            }
-          },
-          "required": ["location"]
-        }
-      }
-    ]
-  }'
-```
-
-### Direct API Proxy
-
-For more advanced use cases, you can proxy requests directly to the provider's API:
-
-```bash
-curl -X POST http://localhost:8080/proxy/openai/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "gpt-4",
-    "messages": [
-      {"role": "system", "content": "You are a helpful assistant."},
-      {"role": "user", "content": "Hello!"}
     ]
   }'
 ```

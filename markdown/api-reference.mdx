@@ -19,6 +19,10 @@ This reference documents all available endpoints, request formats, and response 
       - [Example: OpenAI Chat Completion](#example-openai-chat-completion)
     - [Health Check](#health-check)
   - [Error Responses](#error-responses)
+  - [Advanced Features](#advanced-features)
+    - [Streaming Responses](#streaming-responses)
+    - [Tool Use](#tool-use)
+    - [Direct API Proxy](#direct-api-proxy)
   - [OpenAPI Specification](#openapi-specification)
 
 ## Base URL
@@ -277,6 +281,78 @@ Common error status codes
 - `400 Bad Request` - Invalid request parameters
 - `401 Unauthorized` - Missing or invalid authentication
 - `500 Internal Server Error` - Server-side error
+
+## Advanced Features
+      
+### Streaming Responses
+
+You can stream responses from supported providers by adding the `stream` or `ssevents` parameter:
+
+```bash
+curl -X POST http://localhost:8080/llms/openai/generate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-4",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Write a story about a space explorer."
+      }
+    ],
+    "stream": true
+  }'
+```
+
+### Tool Use
+
+For providers that support function calling (like OpenAI and Anthropic), you can use the `tools` parameter:
+
+```bash
+curl -X POST http://localhost:8080/llms/openai/generate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-4",
+    "messages": [
+      {
+        "role": "user",
+        "content": "What is the weather in Paris?"
+      }
+    ],
+    "tools": [
+      {
+        "type": "function",
+        "name": "get_weather",
+        "description": "Get the current weather in a location",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "location": {
+              "type": "string",
+              "description": "The city and state, e.g. San Francisco, CA"
+            }
+          },
+          "required": ["location"]
+        }
+      }
+    ]
+  }'
+```
+
+### Direct API Proxy
+
+For more advanced use cases, you can proxy requests directly to the provider's API:
+
+```bash
+curl -X POST http://localhost:8080/proxy/openai/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-4",
+    "messages": [
+      {"role": "system", "content": "You are a helpful assistant."},
+      {"role": "user", "content": "Hello!"}
+    ]
+  }'
+```
 
 ## OpenAPI Specification
 
