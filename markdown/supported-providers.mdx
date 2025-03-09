@@ -179,7 +179,7 @@ Generate content with Cohere models:
 
 ```bash
 curl -X POST http://localhost:8080/llms/cohere/generate \
-  -H "Content-Type: application/json" \\
+  -H "Content-Type: application/json" \
   -d '{
     "model": "command",
     "messages": [
@@ -196,8 +196,8 @@ curl -X POST http://localhost:8080/llms/cohere/generate \
 Generate content with Groq's high-performance models:
 
 ```bash
-curl -X POST http://localhost:8080/llms/groq/generate \\
-  -H "Content-Type: application/json" \\
+curl -X POST http://localhost:8080/llms/groq/generate \
+  -H "Content-Type: application/json" \
   -d '{
     "model": "llama2-70b-4096",
     "messages": [
@@ -232,8 +232,8 @@ curl -X POST http://localhost:8080/llms/cloudflare/generate \
 Generate content with locally-hosted Ollama models:
 
 ```bash
-curl -X POST http://localhost:8080/llms/ollama/generate \\
-  -H "Content-Type: application/json" \\
+curl -X POST http://localhost:8080/llms/ollama/generate \
+  -H "Content-Type: application/json" \
   -d '{
     "model": "llama2",
     "messages": [
@@ -252,8 +252,8 @@ curl -X POST http://localhost:8080/llms/ollama/generate \\
 You can stream responses from supported providers by adding the `stream` or `ssevents` parameter:
 
 ```bash
-curl -X POST http://localhost:8080/llms/openai/generate \\
-  -H "Content-Type: application/json" \\
+curl -X POST http://localhost:8080/llms/openai/generate \
+  -H "Content-Type: application/json" \
   -d '{
     "model": "gpt-4",
     "messages": [
@@ -271,8 +271,8 @@ curl -X POST http://localhost:8080/llms/openai/generate \\
 For providers that support function calling (like OpenAI and Anthropic), you can use the `tools` parameter:
 
 ```bash
-curl -X POST http://localhost:8080/llms/openai/generate \\
-  -H "Content-Type: application/json" \\
+curl -X POST http://localhost:8080/llms/openai/generate \
+  -H "Content-Type: application/json" \
   -d '{
     "model": "gpt-4",
     "messages": [
@@ -306,8 +306,8 @@ curl -X POST http://localhost:8080/llms/openai/generate \\
 For more advanced use cases, you can proxy requests directly to the provider's API:
 
 ```bash
-curl -X POST http://localhost:8080/proxy/openai/v1/chat/completions \\
-  -H "Content-Type: application/json" \\
+curl -X POST http://localhost:8080/proxy/openai/v1/chat/completions \
+  -H "Content-Type: application/json" \
   -d '{
     "model": "gpt-4",
     "messages": [
