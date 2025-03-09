@@ -1,0 +1,112 @@
+
+# Configuration
+
+Inference Gateway provides flexible configuration options to adapt to your specific needs.
+This page covers the key configuration methods and options available.
+
+## Table of Contents
+- [Configuration](#configuration)
+  - [Table of Contents](#table-of-contents)
+  - [Environment Variables](#environment-variables)
+    - [General Settings](#general-settings)
+    - [OpenID Connect](#openid-connect)
+    - [Server Settings](#server-settings)
+    - [Client Settings](#client-settings)
+    - [Provider Settings](#provider-settings)
+  - [Kubernetes ConfigMaps and Secrets](#kubernetes-configmaps-and-secrets)
+    - [Example ConfigMap](#example-configmap)
+    - [Example Secret](#example-secret)
+
+
+## Environment Variables
+
+Inference Gateway can be configured using environment variables, which is the recommended
+approach for deployment in different environments.
+
+### General Settings
+
+- `APPLICATION_NAME`: The name of the application (default: inference-gateway)
+- `ENVIRONMENT`: The environment (default: production)
+- `ENABLE_TELEMETRY`: Enable telemetry (default: false)
+- `ENABLE_AUTH`: Enable authentication (default: false)
+
+### OpenID Connect
+
+Configure OpenID Connect for authentication:
+
+- `OIDC_ISSUER_URL`: OIDC issuer URL (default: http://keycloak:8080/realms/inference-gateway-realm)
+- `OIDC_CLIENT_ID`: OIDC client ID (default: inference-gateway-client)
+- `OIDC_CLIENT_SECRET`: OIDC client secret (default: "")
+
+### Server Settings
+
+- `SERVER_HOST`: Server host (default: 0.0.0.0)
+- `SERVER_PORT`: Server port (default: 8080)
+- `SERVER_READ_TIMEOUT`: Read timeout (default: 30s)
+- `SERVER_WRITE_TIMEOUT`: Write timeout (default: 30s)
+- `SERVER_IDLE_TIMEOUT`: Idle timeout (default: 120s)
+- `SERVER_TLS_CERT_PATH`: TLS certificate path (default: "")
+- `SERVER_TLS_KEY_PATH`: TLS key path (default: "")
+
+### Client Settings
+
+- `CLIENT_TIMEOUT`: Client timeout (default: 30s)
+- `CLIENT_MAX_IDLE_CONNS`: Maximum idle connections (default: 20)
+- `CLIENT_MAX_IDLE_CONNS_PER_HOST`: Maximum idle connections per host (default: 20)
+- `CLIENT_IDLE_CONN_TIMEOUT`: Idle connection timeout (default: 30s)
+- `CLIENT_TLS_MIN_VERSION`: Minimum TLS version (default: TLS12)
+
+### Provider Settings
+
+Configure access to different LLM providers:
+
+- `ANTHROPIC_API_URL`: Anthropic API URL (default: https://api.anthropic.com)
+- `ANTHROPIC_API_KEY`: Anthropic API Key (default: "")
+- `CLOUDFLARE_API_URL`: Cloudflare API URL (default: https://api.cloudflare.com/client/v4/accounts/ACCOUNT_ID)
+- `CLOUDFLARE_API_KEY`: Cloudflare API Key (default: "")
+- `COHERE_API_URL`: Cohere API URL (default: https://api.cohere.com)
+- `COHERE_API_KEY`: Cohere API Key (default: "")
+- `GROQ_API_URL`: Groq API URL (default: https://api.groq.com)
+- `GROQ_API_KEY`: Groq API Key (default: "")
+- `OLLAMA_API_URL`: Ollama API URL (default: http://ollama:8080)
+- `OLLAMA_API_KEY`: Ollama API Key (default: "")
+- `OPENAI_API_URL`: OpenAI API URL (default: https://api.openai.com)
+- `OPENAI_API_KEY`: OpenAI API Key (default: "")
+
+## Kubernetes ConfigMaps and Secrets
+
+When deploying in Kubernetes, use ConfigMaps for non-sensitive configuration 
+and Secrets for API keys and other sensitive information.
+
+### Example ConfigMap
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: inference-gateway-config
+data:
+  APPLICATION_NAME: "inference-gateway"
+  ENVIRONMENT: "production"
+  ENABLE_TELEMETRY: "false"
+  SERVER_HOST: "0.0.0.0"
+  SERVER_PORT: "8080"
+  SERVER_READ_TIMEOUT: "30s"
+  SERVER_WRITE_TIMEOUT: "30s"
+  SERVER_IDLE_TIMEOUT: "120s"
+```
+
+### Example Secret
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: inference-gateway-secrets
+type: Opaque
+data:
+  ANTHROPIC_API_KEY: "<base64-encoded-key>"
+  COHERE_API_KEY: "<base64-encoded-key>"
+  OPENAI_API_KEY: "<base64-encoded-key>"
+  OIDC_CLIENT_SECRET: "<base64-encoded-key>"
+```

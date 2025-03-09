@@ -1,0 +1,289 @@
+# API Reference
+
+Inference Gateway provides a RESTful API for interacting with language models from various providers.
+This reference documents all available endpoints, request formats, and response structures.
+
+## Table of Contents
+- [API Reference](#api-reference)
+  - [Table of Contents](#table-of-contents)
+  - [Base URL](#base-url)
+  - [Authentication](#authentication)
+  - [API Endpoints](#api-endpoints)
+    - [List All Models](#list-all-models)
+      - [Response](#response)
+    - [List All Models](#list-all-models-1)
+      - [Response](#response-1)
+    - [List Provider Models](#list-provider-models)
+      - [Response](#response-2)
+    - [Generate Content](#generate-content)
+    - [Request Body](#request-body)
+      - [Response](#response-3)
+    - [Streaming Response](#streaming-response)
+    - [Proxy Requests](#proxy-requests)
+      - [Example: OpenAI Chat Completion](#example-openai-chat-completion)
+    - [Health Check](#health-check)
+      - [Response](#response-4)
+  - [Error Responses](#error-responses)
+  - [OpenAPI Specification](#openapi-specification)
+
+## Base URL
+
+All API endpoints are relative to your Inference Gateway installation URL.
+By default, this is `http://localhost:8080` when running locally.
+
+## Authentication
+
+If authentication is enabled (`ENABLE_AUTH=true`), all requests must include a bearer token:
+
+```http
+Authorization: Bearer YOUR_JWT_TOKEN
+```
+
+The JWT token is issued by the configured Identity Provider (IdP) as specified in the OpenID Connect settings 
+(`OIDC_ISSUER_URL`, `OIDC_CLIENT_ID`, etc.). Inference Gateway validates these tokens 
+against the IdP to authenticate requests.
+
+## API Endpoints
+
+### List All Models
+
+Get a list of all available language models across all configured providers.
+
+```http
+GET /llms
+```
+
+#### Response
+
+```http
+Status: 200 OK
+Content-Type: application/json
+
+[
+  {
+    "provider": "openai",
+    "models": [
+      { "name": "gpt-4" },
+      { "name": "gpt-3.5-turbo" }
+    ]
+  },
+  {
+    "provider": "anthropic",
+    "models": [
+      { "name": "claude-3-opus-20240229" },
+      { "name": "claude-3-sonnet-20240229" }
+    ]
+  }
+]
+```
+
+### List All Models
+
+Get a list of all available language models across all configured providers.
+
+```http
+GET /llms
+```
+
+#### Response
+
+```http
+Status: 200 OK
+Content-Type: application/json
+
+[
+  {
+    "provider": "openai",
+    "models": [
+      { "name": "gpt-4" },
+      { "name": "gpt-3.5-turbo" }
+    ]
+  },
+  {
+    "provider": "anthropic",
+    "models": [
+      { "name": "claude-3-opus-20240229" },
+      { "name": "claude-3-sonnet-20240229" }
+    ]
+  }
+]
+```
+
+### List Provider Models
+
+Get a list of available models for a specific provider.
+
+```http
+GET /llms/{provider}
+```
+
+where `{provider}` is one of: `openai`, `anthropic`, `cohere`, `groq`, `cloudflare`, `ollama`.
+
+#### Response
+
+```http
+Status: 200 OK
+Content-Type: application/json
+
+{
+  "provider": "openai",
+  "models": [
+    { "name": "gpt-4" },
+    { "name": "gpt-3.5-turbo" }
+  ]
+}
+```
+
+### Generate Content
+
+Generate content using a specific provider's language model.
+
+```http
+POST /llms/{provider}/generate
+```
+### Request Body
+
+```json
+{
+  "model": "string",   // Model name (e.g., "gpt-4", "claude-3-opus-20240229")
+  "messages": [        // Array of messages in the conversation
+    {
+      "role": "system" | "user" | "assistant" | "tool", // Role of the message sender
+      "content": "string"                              // Message content
+    }
+  ],
+  "stream": false,     // Optional: Stream tokens as they're generated (default: false) 
+  "ssevents": false,   // Optional: Use Server-Sent Events for streaming (default: false)
+  "max_tokens": 1000,  // Optional: Maximum number of tokens to generate
+  "tools": [           // Optional: Tools the model can use
+    {
+      "type": "function",
+      "name": "string",
+      "description": "string",
+      "parameters": {
+        // JSON Schema object defining function parameters
+      }
+    }
+  ]
+}
+```
+#### Response
+
+```http
+Status: 200 OK
+Content-Type: application/json
+
+{
+  "provider": "openai",
+  "response": {
+    "role": "assistant",
+    "model": "gpt-4",
+    "content": "This is the generated response text."
+  }
+}
+```
+
+### Streaming Response
+
+When `stream: true` is specified, responses are streamed as JSON objects:
+
+```http
+{"role":"assistant","content":"This "}
+{"role":"assistant","content":"is "}
+{"role":"assistant","content":"the "}
+{"role":"assistant","content":"streamed "}
+{"role":"assistant","content":"response."}
+```
+
+When `ssevents: true` is specified, responses are streamed as Server-Sent Events:
+
+```http
+event: message-start
+data: {"role":"assistant"}
+
+event: content-start
+data: {}
+
+event: content-delta
+data: {"content":"This "}
+
+event: content-delta
+data: {"content":"is "}
+
+event: content-delta
+data: {"content":"the "}
+
+event: content-end
+data: {}
+
+event: message-end
+data: {}
+```
+
+### Proxy Requests
+
+Pass requests directly through to provider APIs.
+
+```http
+{METHOD} /proxy/{provider}/{path}
+```
+
+Where:
+
+- `{METHOD}` is any HTTP method (GET, POST, PUT, DELETE, PATCH)
+- `{provider}` is one of the supported providers
+- `{path}` is the path to proxy to the provider API
+
+
+#### Example: OpenAI Chat Completion
+
+```http
+POST /proxy/openai/v1/chat/completions
+Content-Type: application/json
+
+{
+  "model": "gpt-3.5-turbo",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Hello! How can I assist you today?"
+    }
+  ],
+  "temperature": 0.7
+}
+```
+
+### Health Check
+
+Check if the Inference Gateway service is running.
+
+```http
+GET /health
+```
+
+#### Response
+
+```http
+Status: 200 OK
+```
+
+## Error Responses
+
+When an error occurs, the API returns an appropriate HTTP status code with an error message:
+
+```http
+{
+  "error": "Error message description"
+}
+```
+
+Common error status codes
+
+- `400 Bad Request` - Invalid request parameters
+- `401 Unauthorized` - Missing or invalid authentication
+- `500 Internal Server Error` - Server-side error
+
+## OpenAPI Specification
+
+For a complete API reference in OpenAPI format, you can view the 
+<a href="https://github.com/inference-gateway/inference-gateway/blob/main/openapi.yaml" target="_blank" rel="noopener noreferrer"> OpenAPI specification file</a>

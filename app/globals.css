@@ -1,62 +1,242 @@
+/* Base styles and variables */
 @import "tailwindcss";
 
 :root {
-  --foreground-rgb: 0, 0, 0;
-  --background-rgb: 255, 255, 255;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --foreground: #1a202c;
+  --background: #ffffff;
+  --primary: #3182ce;
+  --primary-hover: #2b6cb0;
+  --gray-100: #f7fafc;
+  --gray-200: #edf2f7;
+  --gray-300: #e2e8f0;
+  --gray-600: #718096;
+  --gray-700: #4a5568;
+  --code-bg: #f8f8f8;
+  --code-border: #e2e8f0;
+  --border-color: #e2e8f0;
+  --sidebar-bg: #2c3e50;
+  --sidebar-text: rgba(255, 255, 255, 0.8);
+  --sidebar-hover-bg: rgba(255, 255, 255, 0.1);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #e8e3e3;
-    --foreground: #ededed;
+    --foreground: #f7fafc;
+    --background: #1a202c;
+    --primary: #63b3ed;
+    --primary-hover: #90cdf4;
+    --gray-100: #2d3748;
+    --gray-200: #4a5568;
+    --gray-300: #718096;
+    --gray-600: #cbd5e0;
+    --gray-700: #e2e8f0;
+    --code-bg: #2d3748;
+    --code-border: #4a5568;
+    --border-color: #4a5568;
   }
 }
 
 body {
-  color: rgb(var(--foreground-rgb));
-  background: rgb(var(--background-rgb));
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--foreground);
+  background: var(--background);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  @apply antialiased;
 }
 
+/* Typography */
 h1 {
-  @apply text-3xl font-bold mb-6;
+  @apply text-4xl font-extrabold tracking-tight mb-8 pb-2 border-b border-gray-200;
+  color: var(--foreground);
 }
 
 h2 {
-  @apply text-2xl font-bold mt-8 mb-4;
+  @apply text-2xl font-bold mt-10 mb-6 pb-1 border-b border-gray-200;
+  color: var(--foreground);
 }
 
 h3 {
-  @apply text-xl font-bold mt-6 mb-3;
+  @apply text-xl font-semibold mt-8 mb-4;
+  color: var(--foreground);
+}
+
+h4 {
+  @apply text-lg font-medium mt-6 mb-3;
+  color: var(--foreground);
 }
 
 p {
-  @apply my-4;
+  @apply my-5 leading-relaxed;
 }
 
 a {
-  @apply text-blue-600 hover:text-blue-800 underline;
+  color: var(--primary);
+  @apply no-underline font-medium;
+  transition: color 0.15s ease;
 }
 
+a:hover {
+  color: var(--primary-hover);
+  @apply underline;
+}
+
+/* Code blocks */
 code {
-  @apply bg-gray-100 px-1 py-0.5 rounded;
+  font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace;
+  @apply text-sm px-1.5 py-0.5 rounded;
+  background-color: var(--code-bg);
+  border: 1px solid var(--code-border);
 }
 
 pre {
-  @apply bg-gray-100 p-4 rounded my-4 overflow-auto;
+  font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace;
+  @apply text-sm p-4 rounded-lg my-6 overflow-auto;
+  background-color: var(--code-bg);
+  border: 1px solid var(--code-border);
 }
 
+pre code {
+  @apply p-0 border-0 bg-transparent;
+}
+
+/* Lists */
 ul {
-  @apply list-disc pl-5 my-4;
+  @apply list-disc pl-6 my-5 space-y-2;
 }
 
 ol {
-  @apply list-decimal pl-5 my-4;
+  @apply list-decimal pl-6 my-5 space-y-2;
+}
+
+li {
+  @apply leading-relaxed;
+  padding-left: 0.5rem;
+}
+
+li > ul, li > ol {
+  @apply mt-2 mb-0;
+}
+
+/* Tables */
+table {
+  @apply w-full my-8 border-collapse;
+}
+
+th {
+  @apply text-left py-3 px-4 font-semibold;
+  background-color: var(--gray-100);
+  border-bottom: 2px solid var(--gray-300);
+}
+
+td {
+  @apply py-3 px-4;
+  border-bottom: 1px solid var(--gray-300);
+}
+
+/* Other content elements */
+blockquote {
+  @apply pl-4 italic border-l-4 my-6;
+  border-color: var(--gray-300);
+  color: var(--gray-700);
+}
+
+hr {
+  @apply my-8 border-t border-gray-300;
+}
+
+section {
+  @apply my-12;
+}
+
+/* Table of contents */
+.toc {
+  @apply bg-gray-50 rounded-lg p-5 mb-8 border border-gray-200;
+}
+
+.toc ul {
+  @apply list-none pl-4 space-y-2;
+}
+
+.toc li a {
+  @apply hover:text-[var(--primary)];
+}
+
+/* Sidebar styling */
+.w-64.bg-gray-100 {
+  background-color: var(--sidebar-bg);
+}
+
+.w-64 h2 {
+  color: white;
+  @apply px-6 py-4 text-xl font-bold;
+}
+
+.w-64 nav ul {
+  @apply list-none p-0 m-0;
+}
+
+.w-64 nav li {
+  @apply p-0 m-0;
+}
+
+.w-64 nav li + li {
+  @apply mt-1;
+}
+
+.w-64 nav a {
+  display: block;
+  width: 100%;
+  @apply py-2 px-4 rounded-md transition-colors;
+  color: var(--sidebar-text);
+}
+
+.w-64 nav li:hover a {
+  background-color: var(--sidebar-hover-bg);
+  color: white;
+  @apply no-underline;
+}
+
+.w-64 nav a.active {
+  @apply font-medium;
+  color: white;
+  background-color: var(--primary);
+}
+
+/* Mobile styles */
+@media (max-width: 768px) {
+  body.sidebar-open {
+    overflow: hidden;
+  }
+  
+  .sidebar-overlay {
+    @apply fixed inset-0 z-20;
+    background-color: rgba(0, 0, 0, 0.5);
+  }
+
+  /* Add smooth transitions for mobile menu */
+  .w-64 {
+    transition: transform 0.3s ease-in-out;
+  }
+}
+
+/* Anchor link styles */
+.anchor-link {
+  color: inherit;
+  text-decoration: none;
+  position: relative;
+}
+
+.anchor-link:hover::before {
+  content: "#";
+  position: absolute;
+  left: -1em;
+  color: var(--primary);
+  opacity: 0.6;
+}
+
+/* For proper scrolling with fixed header */
+html {
+  scroll-padding-top: 80px;
+  scroll-behavior: smooth;
 }

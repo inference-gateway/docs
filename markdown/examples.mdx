@@ -1,0 +1,109 @@
+# Examples
+
+This page provides examples of how to use Inference Gateway in various scenarios and environments.
+
+## Table of Contents
+- [Examples](#examples)
+  - [Table of Contents](#table-of-contents)
+  - [Docker Compose Examples](#docker-compose-examples)
+    - [Basic Setup](#basic-setup)
+  - [Kubernetes Examples](#kubernetes-examples)
+  - [API Usage Examples](#api-usage-examples)
+    - [Generate Content with OpenAI](#generate-content-with-openai)
+    - [Generate Content with Anthropic](#generate-content-with-anthropic)
+
+## Docker Compose Examples
+
+Docker Compose provides a simple way to set up Inference Gateway with various configurations.
+
+### Basic Setup
+
+A minimal setup with OpenAI integration:
+
+```yaml
+version: '3'
+services:
+  inference-gateway:
+    image: ghcr.io/inference-gateway/inference-gateway:latest
+    environment:
+      - OPENAI_API_KEY=your-api-key
+    ports:
+      - "8080:8080"
+```
+
+For more [Docker Compose examples](https://github.com/inference-gateway/inference-gateway/tree/main/examples/docker-compose), check the official examples repository.
+
+## Kubernetes Examples
+
+Deploy Inference Gateway on Kubernetes with these example configurations.
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inference-gateway
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: inference-gateway
+  template:
+    metadata:
+      labels:
+        app: inference-gateway
+    spec:
+      containers:
+      - name: inference-gateway
+        image: ghcr.io/inference-gateway/inference-gateway:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: llm-secrets
+              key: openai-api-key
+```
+
+For complete Kubernetes deployment examples including Services, ConfigMaps, and Secrets, visit the [Kubernetes examples](https://github.com/inference-gateway/inference-gateway/tree/main/examples/kubernetes) in the GitHub repository.
+
+## API Usage Examples
+
+### Generate Content with OpenAI
+
+```bash
+curl -X POST http://localhost:8080/llms/openai/generate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-4",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a helpful assistant."
+      },
+      {
+        "role": "user",
+        "content": "Explain how Inference Gateway works."
+      }
+    ]
+  }'
+```
+
+### Generate Content with Anthropic
+
+```bash
+curl -X POST http://localhost:8080/llms/anthropic/generate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "claude-3-opus-20240229",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Compare and contrast different LLM providers."
+      }
+    ]
+  }'
+```
+
+
+For more detailed examples and use cases, check out the full [examples directory](https://github.com/inference-gateway/inference-gateway/tree/main/examples) in the GitHub repository.

@@ -1,0 +1,40 @@
+# Getting Started
+Learn how to install and set up Inference Gateway.
+
+## Installation
+
+### Using Docker
+
+```bash
+docker pull ghcr.io/inference-gateway/inference-gateway:latest
+```
+
+### Using Docker Compose
+
+Checkout the examples in the [Docker Compose examples](https://github.com/inference-gateway/inference-gateway/tree/main/examples/docker-compose).
+    
+
+### Using Kubernetes
+
+Checkout the examples in the [Kubernetes examples](https://github.com/inference-gateway/inference-gateway/tree/main/examples/kubernetes).
+
+## Basic Usage
+Send a request to the Inference Gateway:
+
+
+```bash
+curl -X POST http://localhost:8080/llms/openai/generate \
+-d '{
+"model": "gpt-3.5-turbo",
+"messages": [
+        {
+            "role": "system",
+            "content": "You are a helpful assistant."
+        },
+        {
+            "role": "user",
+            "content": "Hello, world!"
+        }
+    ]
+}
+```
