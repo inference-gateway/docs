@@ -85,7 +85,7 @@ Inference Gateway offers two main approaches to interact with providers:
 
 The unified API allows you to generate content with a consistent interface across all providers:
 
-```bash
+```http
 POST /llms/{provider}/generate
 Content-Type: application/json
 
@@ -156,6 +156,10 @@ curl -X POST http://localhost:8080/llms/anthropic/generate \
     "model": "claude-3-opus-20240229",
     "messages": [
       {
+        "role": "system",
+        "content": "You are a helpful assistant."
+      },
+      {
         "role": "user",
         "content": "Explain quantum computing in simple terms."
       }
@@ -180,6 +184,10 @@ curl -X POST http://localhost:8080/llms/cohere/generate \
     "model": "command",
     "messages": [
       {
+        "role": "system",
+        "content": "You are a helpful assistant."
+      },
+      {
         "role": "user",
         "content": "Write a short poem about AI."
       }
@@ -197,6 +205,10 @@ curl -X POST http://localhost:8080/llms/groq/generate \
   -d '{
     "model": "llama2-70b-4096",
     "messages": [
+      {
+        "role": "system",
+        "content": "You are a helpful assistant."
+      },
       {
         "role": "user",
         "content": "What are the benefits of quantum computing?"
@@ -216,6 +228,10 @@ curl -X POST http://localhost:8080/llms/cloudflare/generate \
     "model": "@cf/meta/llama-2-7b-chat-fp16",
     "messages": [
       {
+        "role": "system",
+        "content": "You are a helpful assistant."
+      },
+      {
         "role": "user",
         "content": "Explain how neural networks work."
       }
@@ -233,6 +249,10 @@ curl -X POST http://localhost:8080/llms/ollama/generate \
   -d '{
     "model": "llama2",
     "messages": [
+      {
+        "role": "system",
+        "content": "You are a helpful assistant."
+      },
       {
         "role": "user",
         "content": "Write a function to calculate Fibonacci numbers in Python."
