@@ -62,7 +62,14 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
           </a>
         );
       }
-      return <a href={href} target="_blank" {...props}>{children}</a>;
+      return <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        {...props}
+      >
+        {children}
+      </a>;
     },
     ...components,
   }

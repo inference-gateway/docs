@@ -10,9 +10,6 @@ const nextConfig: NextConfig = {
   },
 };
 
-const withMDX = createMDX({
-  // Add markdown plugins here, as desired
-})
+const withMDX = createMDX({})
  
-// Merge MDX config with Next.js config
 export default withMDX(nextConfig);
