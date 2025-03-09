@@ -10,19 +10,14 @@ This reference documents all available endpoints, request formats, and response 
   - [Authentication](#authentication)
   - [API Endpoints](#api-endpoints)
     - [List All Models](#list-all-models)
-      - [Response](#response)
     - [List All Models](#list-all-models-1)
-      - [Response](#response-1)
     - [List Provider Models](#list-provider-models)
-      - [Response](#response-2)
     - [Generate Content](#generate-content)
     - [Request Body](#request-body)
-      - [Response](#response-3)
     - [Streaming Response](#streaming-response)
     - [Proxy Requests](#proxy-requests)
       - [Example: OpenAI Chat Completion](#example-openai-chat-completion)
     - [Health Check](#health-check)
-      - [Response](#response-4)
   - [Error Responses](#error-responses)
   - [OpenAPI Specification](#openapi-specification)
 
@@ -53,7 +48,7 @@ Get a list of all available language models across all configured providers.
 GET /llms
 ```
 
-#### Response
+**Response**:
 
 ```http
 Status: 200 OK
@@ -85,7 +80,7 @@ Get a list of all available language models across all configured providers.
 GET /llms
 ```
 
-#### Response
+**Response**:
 
 ```http
 Status: 200 OK
@@ -119,7 +114,7 @@ GET /llms/{provider}
 
 where `{provider}` is one of: `openai`, `anthropic`, `cohere`, `groq`, `cloudflare`, `ollama`.
 
-#### Response
+**Response**:
 
 ```http
 Status: 200 OK
@@ -167,7 +162,7 @@ POST /llms/{provider}/generate
   ]
 }
 ```
-#### Response
+**Response**:
 
 ```http
 Status: 200 OK
@@ -261,7 +256,7 @@ Check if the Inference Gateway service is running.
 GET /health
 ```
 
-#### Response
+**Response**:
 
 ```http
 Status: 200 OK
