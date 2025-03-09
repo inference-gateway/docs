@@ -225,7 +225,7 @@ Generate content with Cloudflare Workers AI:
 curl -X POST http://localhost:8080/llms/cloudflare/generate \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "@cf/meta/llama-2-7b-chat-fp16",
+    "model": "llama-3.1-8b-instruct",
     "messages": [
       {
         "role": "system",
