@@ -98,6 +98,10 @@ curl -X POST http://localhost:8080/llms/anthropic/generate \
     "model": "claude-3-opus-20240229",
     "messages": [
       {
+        "role": "system",
+        "content": "You are a helpful assistant."
+      },
+      {
         "role": "user",
         "content": "Compare and contrast different LLM providers."
       }

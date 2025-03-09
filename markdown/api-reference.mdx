@@ -295,6 +295,10 @@ curl -X POST http://localhost:8080/llms/openai/generate \
     "model": "gpt-4",
     "messages": [
       {
+        "role": "system",
+        "content": "You are a helpful assistant."
+      },
+      {
         "role": "user",
         "content": "Write a story about a space explorer."
       }
@@ -313,6 +317,10 @@ curl -X POST http://localhost:8080/llms/openai/generate \
   -d '{
     "model": "gpt-4",
     "messages": [
+      {
+        "role": "system",
+        "content": "You are a helpful assistant."
+      },
       {
         "role": "user",
         "content": "What is the weather in Paris?"
