@@ -1,6 +1,19 @@
-# Inference Gateway Documentation
-[![Documentation Status](https://github.com/inference-gateway/docs/workflows/release/badge.svg)](https://github.com/inference-gateway/docs/actions)
+<h1 align="center">Inference Gateway Documentation</h1>
 
+<p align="center">
+  <!-- Release Status Badge -->
+  <a href="https://github.com/inference-gateway/docs/actions/workflows/ci.yml?query=branch%3Amain">
+    <img src="https://github.com/inference-gateway/docs/actions/workflows/release.yml/badge.svg?branch=main" alt="CI Status"/>
+  </a>
+  <!-- Version Badge -->
+  <a href="https://github.com/inference-gateway/docs/releases">
+    <img src="https://img.shields.io/github/v/release/inference-gateway/docs?color=blue&style=flat-square" alt="Version"/>
+  </a>
+  <!-- License Badge -->
+  <a href="https://github.com/inference-gateway/docs/blob/main/LICENSE">
+    <img src="https://img.shields.io/github/license/inference-gateway/docs?color=blue&style=flat-square" alt="License"/>
+  </a>
+</p>
 
 This repository contains the documentation website for [Inference Gateway](https://github.com/inference-gateway/inference-gateway), an open-source API gateway for Large Language Models (LLMs) that provides a unified interface for accessing multiple AI providers.
 
