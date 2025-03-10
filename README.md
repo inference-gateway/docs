@@ -1,36 +1,35 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Inference Gateway Documentation
+[![Documentation Status](https://github.com/inference-gateway/docs/workflows/release/badge.svg)](https://github.com/inference-gateway/docs/actions)
 
-## Getting Started
 
-First, run the development server:
+This repository contains the documentation website for [Inference Gateway](https://github.com/inference-gateway/inference-gateway), an open-source API gateway for Large Language Models (LLMs) that provides a unified interface for accessing multiple AI providers.
+
+## About Inference Gateway
+
+Inference Gateway offers a unified API layer to interact with multiple LLM providers including OpenAI, Anthropic, Groq, Cohere, Ollama, and more. Key 
+
+## Development
+
+This documentation site is built with Next.js.
 
 ```bash
+# Install dependencies
+npm install
+
+# Start development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+You can use the devcontainer for a consistent development environment. The devcontainer is configured with all the necessary tools and extensions for development.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Contributing
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Contributions to improve the documentation are welcome! You can:
 
-## Learn More
+1. Edit existing MDX files in the markdown directory
+2. Add new documentation pages
+3. Improve the site's design and functionality
 
-To learn more about Next.js, take a look at the following resources:
+## License
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+This project is licensed under the MIT License.
