@@ -1,6 +1,7 @@
 import './globals.css'
 import Sidebar from '@/components/Sidebar'
 
+
 export const metadata = {
   title: 'Inference Gateway Documentation',
   description: 'Documentation for the Inference Gateway project',

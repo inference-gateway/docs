@@ -60,6 +60,11 @@ export default function Sidebar() {
                 </Link>
               </li>
               <li>
+                <Link href="/architecture-overview" className={`sidebar-link ${pathname === '/architecture-overview' ? 'active' : ''}`}>
+                  Architecture Overview
+                </Link>
+              </li>
+              <li>
                 <Link href="/getting-started" className={`sidebar-link ${pathname === '/getting-started' ? 'active' : ''}`}>
                   Getting Started
                 </Link>
