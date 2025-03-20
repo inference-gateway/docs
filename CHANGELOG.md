@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.2](https://github.com/inference-gateway/docs/compare/0.1.1...0.1.2) (2025-03-10)
+
+### 📚 Documentation
+
+* Update Inference Gateway documentation with key features ([506e914](https://github.com/inference-gateway/docs/commit/506e91473e41c83d4427a1b46bceefb80c0e2b18))
+
 ## [0.1.1](https://github.com/inference-gateway/docs/compare/0.1.0...0.1.1) (2025-03-10)
 
 ### 📚 Documentation
