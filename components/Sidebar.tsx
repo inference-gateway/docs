@@ -90,6 +90,11 @@ export default function Sidebar() {
                 </Link>
               </li>
               <li>
+                <Link href="/ides" className={`sidebar-link ${pathname === '/ides' ? 'active' : ''}`}>
+                  IDEs
+                </Link>
+              </li>
+              <li>
                 <Link href="/sdks" className={`sidebar-link ${pathname === '/sdks' ? 'active' : ''}`}>
                   SDKs
                 </Link>
