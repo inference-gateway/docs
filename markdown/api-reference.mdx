@@ -10,9 +10,8 @@ This reference documents all available endpoints, request formats, and response 
   - [Authentication](#authentication)
   - [API Endpoints](#api-endpoints)
     - [List All Models](#list-all-models)
-    - [List All Models](#list-all-models-1)
     - [List Provider Models](#list-provider-models)
-    - [Generate Content](#generate-content)
+    - [Chat Completions](#chat-completions)
     - [Request Body](#request-body)
     - [Streaming Response](#streaming-response)
     - [Proxy Requests](#proxy-requests)
@@ -49,7 +48,7 @@ against the IdP to authenticate requests.
 Get a list of all available language models across all configured providers.
 
 ```http
-GET /llms
+GET /v1/models
 ```
 
 **Response**:
@@ -58,54 +57,33 @@ GET /llms
 Status: 200 OK
 Content-Type: application/json
 
-[
-  {
-    "provider": "openai",
-    "models": [
-      { "name": "gpt-4" },
-      { "name": "gpt-3.5-turbo" }
-    ]
-  },
-  {
-    "provider": "anthropic",
-    "models": [
-      { "name": "claude-3-opus-20240229" },
-      { "name": "claude-3-sonnet-20240229" }
-    ]
-  }
-]
-```
-
-### List All Models
-
-Get a list of all available language models across all configured providers.
-
-```http
-GET /llms
-```
-
-**Response**:
-
-```http
-Status: 200 OK
-Content-Type: application/json
-
-[
-  {
-    "provider": "openai",
-    "models": [
-      { "name": "gpt-4" },
-      { "name": "gpt-3.5-turbo" }
-    ]
-  },
-  {
-    "provider": "anthropic",
-    "models": [
-      { "name": "claude-3-opus-20240229" },
-      { "name": "claude-3-sonnet-20240229" }
-    ]
-  }
-]
+{
+  "object": "list",
+  "data": [
+    {
+      "id": "gpt-4",
+      "object": "model",
+      "created": 1741879542,
+      "owned_by": "openai",
+      "served_by": "openai",
+    },
+    {
+      "id": "claude-3-opus-20240229",
+      "object": "model",
+      "created": 1741879542,
+      "owned_by": "anthropic",
+      "served_by": "anthropic",
+    },
+    {
+      "id": "deepseek-r1-distill-llama-70b",
+      "object": "model",
+      "created": 1741879542,
+      "owned_by": "Meta",
+      "served_by": "groq",
+    }
+    ...
+  ]
+}
 ```
 
 ### List Provider Models
@@ -113,7 +91,7 @@ Content-Type: application/json
 Get a list of available models for a specific provider.
 
 ```http
-GET /llms/{provider}
+GET /v1/models?provider={provider}
 ```
 
 where `{provider}` is one of: `openai`, `anthropic`, `cohere`, `groq`, `cloudflare`, `ollama`.
@@ -126,33 +104,45 @@ Content-Type: application/json
 
 {
   "provider": "openai",
-  "models": [
-    { "name": "gpt-4" },
-    { "name": "gpt-3.5-turbo" }
+  "object": "list",
+  "data": [
+    {
+      "id": "gpt-4",
+      "object": "model",
+      "created": 1741879542,
+      "owned_by": "openai",
+      "served_by": "openai",
+    },
+    {
+      "id": "gpt-3.5-turbo",
+      "object": "model",
+      "created": 1741879542,
+      "owned_by": "openai",
+      "served_by": "openai",
+    }
   ]
 }
 ```
 
-### Generate Content
+### Chat Completions
 
-Generate content using a specific provider's language model.
+Chat Completions using a specific provider's language model.
 
 ```http
-POST /llms/{provider}/generate
+POST /v1/chat/completions?provider={provider}
 ```
 ### Request Body
 
 ```json
 {
-  "model": "string",   // Model name (e.g., "gpt-4", "claude-3-opus-20240229")
+  "model": "ollama/deepseek-r1:1.5b",   // Model name (e.g., "gpt-4", "claude-3-opus-20240229")
   "messages": [        // Array of messages in the conversation
     {
       "role": "system" | "user" | "assistant" | "tool", // Role of the message sender
-      "content": "string"                              // Message content
+      "content": "Hi, how are you doing today?"         // Message content
     }
   ],
   "stream": false,     // Optional: Stream tokens as they're generated (default: false) 
-  "ssevents": false,   // Optional: Use Server-Sent Events for streaming (default: false)
   "max_tokens": 1000,  // Optional: Maximum number of tokens to generate
   "tools": [           // Optional: Tools the model can use
     {
@@ -173,51 +163,47 @@ Status: 200 OK
 Content-Type: application/json
 
 {
-  "provider": "openai",
-  "response": {
-    "role": "assistant",
-    "model": "gpt-4",
-    "content": "This is the generated response text."
+  "id": "chatcmpl-753",
+  "object": "chat.completion",
+  "created": 1741879542,
+  "model": "deepseek-r1:1.5b",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "content": "<think>\nOkay, so the user greeted me and said \"Hi, how are you doing today?\" They're just starting to say that. I should respond in a friendly way.\n\nMaybe I can acknowledge their greeting and offer my help with something. Since they mentioned working on math problems or solving puzzles, I'll stick to that.\n\nI want to make sure I'm approaching it the right way. It's not a question yet, but if I see more of them, maybe I can offer more assistance. So responding with an emoji like 😊 would be nice.\n</think>\n\nHello! How are you doing today? 😊",
+        "role": "assistant"
+      },
+      "finish_reason": "length"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 40,
+    "completion_tokens": 40,
+    "total_tokens": 80
   }
 }
 ```
 
 ### Streaming Response
 
-When `stream: true` is specified, responses are streamed as JSON objects:
+When `stream: true` is specified, responses are streamed as [Server Sent Events(SSE)](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events) objects:
 
 ```http
-{"role":"assistant","content":"This "}
-{"role":"assistant","content":"is "}
-{"role":"assistant","content":"the "}
-{"role":"assistant","content":"streamed "}
-{"role":"assistant","content":"response."}
-```
-
-When `ssevents: true` is specified, responses are streamed as Server-Sent Events:
-
-```http
-event: message-start
 data: {"role":"assistant"}
 
-event: content-start
 data: {}
 
-event: content-delta
 data: {"content":"This "}
 
-event: content-delta
 data: {"content":"is "}
 
-event: content-delta
 data: {"content":"the "}
 
-event: content-end
-data: {}
-
-event: message-end
 data: {}
 ```
+
+On the final message the usage metrics of the completion are sent.
 
 ### Proxy Requests
 
@@ -286,13 +272,13 @@ Common error status codes
       
 ### Streaming Responses
 
-You can stream responses from supported providers by adding the `stream` or `ssevents` parameter:
+You can stream responses from supported providers by setting the `stream` parameter to `true`:
 
 ```bash
-curl -X POST http://localhost:8080/llms/openai/generate \
+curl -X POST http://localhost:8080/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "gpt-4",
+    "model": "openai/gpt-4",
     "messages": [
       {
         "role": "system",
@@ -312,10 +298,10 @@ curl -X POST http://localhost:8080/llms/openai/generate \
 For providers that support function calling (like OpenAI and Anthropic), you can use the `tools` parameter:
 
 ```bash
-curl -X POST http://localhost:8080/llms/openai/generate \
+curl -X POST http://localhost:8080/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "gpt-4",
+    "model": "openai/gpt-4",
     "messages": [
       {
         "role": "system",

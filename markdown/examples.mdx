@@ -9,8 +9,8 @@ This page provides examples of how to use Inference Gateway in various scenarios
     - [Basic Setup](#basic-setup)
   - [Kubernetes Examples](#kubernetes-examples)
   - [API Usage Examples](#api-usage-examples)
-    - [Generate Content with OpenAI](#generate-content-with-openai)
-    - [Generate Content with Anthropic](#generate-content-with-anthropic)
+    - [Create Chat Completions with OpenAI](#create-chat-completions-with-openai)
+    - [Create Chat Completions with Anthropic](#create-chat-completions-with-anthropic)
 
 ## Docker Compose Examples
 
@@ -69,13 +69,13 @@ For complete Kubernetes deployment examples including Services, ConfigMaps, and 
 
 ## API Usage Examples
 
-### Generate Content with OpenAI
+### Create Chat Completions with OpenAI
 
 ```bash
-curl -X POST http://localhost:8080/llms/openai/generate \
+curl -X POST http://localhost:8080/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "gpt-4",
+    "model": "openai/gpt-4",
     "messages": [
       {
         "role": "system",
@@ -89,13 +89,13 @@ curl -X POST http://localhost:8080/llms/openai/generate \
   }'
 ```
 
-### Generate Content with Anthropic
+### Create Chat Completions with Anthropic
 
 ```bash
-curl -X POST http://localhost:8080/llms/anthropic/generate \
+curl -X POST http://localhost:8080/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "claude-3-opus-20240229",
+    "model": "anthropic/claude-3-opus-20240229",
     "messages": [
       {
         "role": "system",

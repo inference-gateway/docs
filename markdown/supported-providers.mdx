@@ -86,7 +86,7 @@ Inference Gateway offers two main approaches to interact with providers:
 The unified API allows you to generate content with a consistent interface across all providers:
 
 ```http
-POST /llms/{provider}/generate
+POST /v1/chat/completions
 Content-Type: application/json
 
 {
@@ -122,7 +122,7 @@ Content-Type: application/json
 Generate content with OpenAI models:
 
 ```bash
-curl -X POST http://localhost:8080/llms/openai/generate \
+curl -X POST http://localhost:8080/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
     "model": "gpt-3.5-turbo",
@@ -139,10 +139,10 @@ curl -X POST http://localhost:8080/llms/openai/generate \
   }'
 ```
 
-List available models:
+List all available models:
 
 ```bash
-curl http://localhost:8080/llms/openai
+curl http://localhost:8080/v1/models
 ```
 
 ### Anthropic
@@ -150,7 +150,7 @@ curl http://localhost:8080/llms/openai
 Generate content with Anthropic Claude models:
 
 ```bash
-curl -X POST http://localhost:8080/llms/anthropic/generate \
+curl -X POST http://localhost:8080/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
     "model": "claude-3-opus-20240229",
@@ -170,7 +170,7 @@ curl -X POST http://localhost:8080/llms/anthropic/generate \
 List available models:
 
 ```bash
-curl http://localhost:8080/llms/anthropic
+curl http://localhost:8080/v1/models?provider=anthropic
 ```
 
 ### Cohere
@@ -178,7 +178,7 @@ curl http://localhost:8080/llms/anthropic
 Generate content with Cohere models:
 
 ```bash
-curl -X POST http://localhost:8080/llms/cohere/generate \
+curl -X POST http://localhost:8080/v1/chat/completions?provider=cohere \
   -H "Content-Type: application/json" \
   -d '{
     "model": "command",
@@ -200,7 +200,7 @@ curl -X POST http://localhost:8080/llms/cohere/generate \
 Generate content with Groq's high-performance models:
 
 ```bash
-curl -X POST http://localhost:8080/llms/groq/generate \
+curl -X POST http://localhost:8080/v1/chat/completions?provider=groq \
   -H "Content-Type: application/json" \
   -d '{
     "model": "llama2-70b-4096",
@@ -222,7 +222,7 @@ curl -X POST http://localhost:8080/llms/groq/generate \
 Generate content with Cloudflare Workers AI:
 
 ```bash
-curl -X POST http://localhost:8080/llms/cloudflare/generate \
+curl -X POST http://localhost:8080/v1/chat/completions?provider=cloudflare \
   -H "Content-Type: application/json" \
   -d '{
     "model": "llama-3.1-8b-instruct",
@@ -244,7 +244,7 @@ curl -X POST http://localhost:8080/llms/cloudflare/generate \
 Generate content with locally-hosted Ollama models:
 
 ```bash
-curl -X POST http://localhost:8080/llms/ollama/generate \
+curl -X POST http://localhost:8080/v1/chat/completions?provider=ollama \
   -H "Content-Type: application/json" \
   -d '{
     "model": "llama2",
