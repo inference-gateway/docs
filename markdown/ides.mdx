@@ -1,0 +1,53 @@
+# Integrated Development Environments (IDEs)
+
+Inference Gateway is fully OpenAI-compatible, allowing you to configure it with your favorite IDEs and extensions using standard OpenAI integration settings. The following sections provide instructions for configuring popular IDEs and extensions.
+
+- [Integrated Development Environments (IDEs)](#integrated-development-environments-ides)
+  - [VSCode](#vscode)
+  - [Cursor](#cursor)
+
+## VSCode
+
+[Continue.dev](https://continue.dev) is a VSCode extension that supports OpenAI-compatible APIs. You can configure it to use Inference Gateway as follows:
+
+1. Install the Continue.dev extension from the [VSCode Marketplace](https://marketplace.visualstudio.com/items?itemName=continue-dev.continuedev).
+
+2. Open the Continue.dev configuration file by running the `Continue: Open Configuration` command in VSCode.
+
+3. Add a new model configuration with the Inference Gateway endpoint:
+
+```json
+"models": [
+  {
+    "title": "Inference Gateway",
+    "provider": "openai",
+    "model": "your-model-name", // e.g., groq/deepseek-r1-distill-llama-70b
+    "apiBase": "http://localhost:8080/v1",
+    "apiKey": "your-api-key",
+    "useLegacyCompletionsEndpoint": false
+  }
+]
+```
+
+4. Save the configuration file and restart VSCode.
+
+## Cursor
+
+[Cursor](https://cursor.sh/) is an AI-first code editor that supports OpenAI-compatible APIs. To configure Cursor to use Inference Gateway:
+
+1. Open Cursor and go to **Settings** by clicking on the gear icon in the bottom left corner or using the keyboard shortcut `Cmd+,` (Mac) or `Ctrl+,` (Windows/Linux).
+
+2. In the settings sidebar, select **AI**.
+
+3. Scroll down to find the **Custom Endpoint** section.
+
+4. Enable the **Use Custom Endpoint** toggle.
+
+5. Configure the following settings:
+   - **API Endpoint**: Enter your Inference Gateway URL (e.g., `http://localhost:8080/v1`)
+   - **API Key**: Enter your Inference Gateway API key
+   - **Model**: Enter the model name you want to use (e.g., `groq/deepseek-r1-distill-llama-70b`)
+
+6. Click **Save** to apply the changes.
+
+Now Cursor will use your Inference Gateway for all AI operations, including code completion, chat, and other AI-powered features.
