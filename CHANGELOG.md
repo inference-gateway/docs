@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.5](https://github.com/inference-gateway/docs/compare/0.1.4...0.1.5) (2025-03-20)
+
+### 📚 Documentation
+
+* Update default API URLs for LLM providers in configuration and supported providers documentation ([020fe4e](https://github.com/inference-gateway/docs/commit/020fe4ea08c90d26d7dcef0abcc766ad5932a7d3))
+
 ## [0.1.4](https://github.com/inference-gateway/docs/compare/0.1.3...0.1.4) (2025-03-20)
 
 ### 📚 Documentation
