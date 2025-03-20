@@ -27,14 +27,14 @@ The following LLM providers are currently supported:
     <h3>OpenAI</h3>
     <p>Access GPT models including GPT-3.5, GPT-4, and more.</p>
     <p><strong>Authentication:</strong> Bearer Token</p>
-    <p><strong>Default URL:</strong> https://api.openai.com</p>
+    <p><strong>Default URL:</strong> https://api.openai.com/v1</p>
   </div>
   
   <div className="border p-4 rounded-md">
     <h3>Anthropic</h3>
     <p>Connect to Claude models for high-quality conversational AI.</p>
     <p><strong>Authentication:</strong> X-Header</p>
-    <p><strong>Default URL:</strong> https://api.anthropic.com</p>
+    <p><strong>Default URL:</strong> https://api.anthropic.com/v1</p>
   </div>
   
   <div className="border p-4 rounded-md">
@@ -48,21 +48,21 @@ The following LLM providers are currently supported:
     <h3>Groq</h3>
     <p>Access high-performance inference with Groq's LPU-accelerated models.</p>
     <p><strong>Authentication:</strong> Bearer Token</p>
-    <p><strong>Default URL:</strong> https://api.groq.com</p>
+    <p><strong>Default URL:</strong> https://api.groq.com/openai/v1</p>
   </div>
   
   <div className="border p-4 rounded-md">
     <h3>Cloudflare</h3>
     <p>Connect to Cloudflare Workers AI for inference on various models.</p>
     <p><strong>Authentication:</strong> Bearer Token</p>
-    <p><strong>Default URL:</strong> https://api.cloudflare.com/client/v4/accounts/{'{ACCOUNT_ID}'}</p>
+    <p><strong>Default URL:</strong> https://api.cloudflare.com/client/v4/accounts/{'{ACCOUNT_ID}'}/ai</p>
   </div>
   
   <div className="border p-4 rounded-md">
     <h3>Ollama</h3>
     <p>Run open-source models locally or on a self-hosted server.</p>
     <p><strong>Authentication:</strong> None (optional API key)</p>
-    <p><strong>Default URL:</strong> http://ollama:8080</p>
+    <p><strong>Default URL:</strong> http://ollama:8080/v1</p>
   </div>
 </div>
 
