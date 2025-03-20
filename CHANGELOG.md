@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.3](https://github.com/inference-gateway/docs/compare/0.1.2...0.1.3) (2025-03-20)
+
+### 📚 Documentation
+
+* Add IDEs Integration Guides ([#1](https://github.com/inference-gateway/docs/issues/1)) ([fd6da9f](https://github.com/inference-gateway/docs/commit/fd6da9f365a9721dc266c8384cf6e73be2fd4a75))
+* Update API endpoints in documentation for Chat Completions ([#2](https://github.com/inference-gateway/docs/issues/2)) ([df02891](https://github.com/inference-gateway/docs/commit/df02891078d79516b438cb49502437b9fa5d1482))
+
 ## [0.1.2](https://github.com/inference-gateway/docs/compare/0.1.1...0.1.2) (2025-03-10)
 
 ### 📚 Documentation
