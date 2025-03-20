@@ -99,6 +99,11 @@ export default function Sidebar() {
                   SDKs
                 </Link>
               </li>
+              <li>
+                <Link href="/observability" className={`sidebar-link ${pathname === '/observability' ? 'active' : ''}`}>
+                  Observability
+                </Link>
+              </li>
             </ul>
           </nav>
         </div>

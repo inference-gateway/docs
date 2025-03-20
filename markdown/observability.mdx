@@ -1,0 +1,99 @@
+# Observability
+
+Inference Gateway provides robust observability features to help monitor and troubleshoot your deployment. These features include metrics collection, tracing, and logging capabilities that integrate with popular monitoring tools.
+
+- [Observability](#observability)
+  - [OpenTelemetry Integration](#opentelemetry-integration)
+  - [Metrics Collection](#metrics-collection)
+  - [Kubernetes Monitoring Setup](#kubernetes-monitoring-setup)
+    - [Components](#components)
+    - [Implementation Example](#implementation-example)
+  - [Pre-built Dashboards](#pre-built-dashboards)
+  - [Logging](#logging)
+
+## OpenTelemetry Integration
+
+Inference Gateway includes built-in support for OpenTelemetry, allowing you to collect metrics, traces, and logs that provide insights into the system's performance and behavior.
+
+To enable telemetry in your deployment, set the following environment variable:
+
+```
+ENABLE_TELEMETRY=true
+```
+
+## Metrics Collection
+
+When telemetry is enabled, Inference Gateway exposes a metrics endpoint at /metrics that can be scraped by Prometheus. Key metrics include:
+
+- Request count by provider and model
+- Request duration by provider and model
+- Error rates
+- Resource utilization (CPU, memory)
+
+## Kubernetes Monitoring Setup
+
+For Kubernetes deployments, you can implement comprehensive monitoring using Prometheus and Grafana:
+
+### Components
+
+- Inference Gateway: The main application exposing metrics
+- Prometheus: Time-series database for storing metrics
+- Grafana: Visualization platform for metrics dashboards
+
+### Implementation Example
+
+1. Enable telemetry in your ConfigMap:
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: inference-gateway
+  namespace: inference-gateway
+data:
+  # General settings
+  APPLICATION_NAME: "inference-gateway"
+  ENVIRONMENT: "production"
+  ENABLE_TELEMETRY: "true"  # Enable telemetry
+  ...
+```
+
+2. Create a ServiceMonitor resource for Prometheus to discover and scrape metrics:
+
+```yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: inference-gateway
+  namespace: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: inference-gateway
+  endpoints:
+  - port: http
+    path: /metrics
+    interval: 15s
+  namespaceSelector:
+    matchNames:
+    - inference-gateway
+```
+
+3. Install Grafana dashboards to visualize the collected metrics.
+
+## Pre-built Dashboards
+
+Inference Gateway provides pre-built Grafana dashboards that include:
+
+- Overview of request volume and latency
+- Provider-specific metrics
+- Error rates and types
+- Resource utilization
+
+These dashboards can be imported directly into your Grafana installation.
+
+## Logging
+
+Inference Gateway outputs structured logs in JSON format that can be collected and analyzed by tools like Elasticsearch, Loki, or other log management systems.
+
+For detailed information on setting up a complete monitoring stack with Inference Gateway, check out the [monitoring examples](https://github.com/inference-gateway/inference-gateway/tree/main/examples/kubernetes/monitoring) in the GitHub repository.
