@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.4](https://github.com/inference-gateway/docs/compare/0.1.3...0.1.4) (2025-03-20)
+
+### 📚 Documentation
+
+* Add Observability page and update Sidebar navigation ([e3bb794](https://github.com/inference-gateway/docs/commit/e3bb7948601bc7a899d4ff98761874f1ed81b8e6))
+
 ## [0.1.3](https://github.com/inference-gateway/docs/compare/0.1.2...0.1.3) (2025-03-20)
 
 ### 📚 Documentation
