@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.6](https://github.com/inference-gateway/docs/compare/0.1.5...0.1.6) (2025-03-21)
+
+### 🐛 Bug Fixes
+
+* Improve smooth scrolling behavior for anchor links ([713923f](https://github.com/inference-gateway/docs/commit/713923f0dab7d362fc1059657133dbf232430456))
+
 ## [0.1.5](https://github.com/inference-gateway/docs/compare/0.1.4...0.1.5) (2025-03-20)
 
 ### 📚 Documentation
