@@ -5,6 +5,9 @@ import Sidebar from '@/components/Sidebar'
 export const metadata = {
   title: 'Inference Gateway Documentation',
   description: 'Documentation for the Inference Gateway project',
+  verification: {
+    google: 'fknPIZMc0n4w4p50R-8T71SvXu6c92_R2YQewvmh8_c',
+  },
 }
 
 export default function RootLayout({
