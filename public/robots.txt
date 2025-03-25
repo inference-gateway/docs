@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://inference-gateway.github.io/docs/sitemap.xml
