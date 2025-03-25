@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.0](https://github.com/inference-gateway/docs/compare/0.2.0...0.3.0) (2025-03-25)
+
+### ✨ Features
+
+* Add Google site verification metadata to layout and remove old verification file ([9896ecb](https://github.com/inference-gateway/docs/commit/9896ecbfdc6272ce2bac173862da36d7c1229c9a))
+
+### 🔧 Miscellaneous
+
+* Add Google site verification file to be able to see if all pages are indexed correctly ([e88ff1f](https://github.com/inference-gateway/docs/commit/e88ff1fbb332fcbe9676f7a7f115e2857fbbbb26))
+
 ## [0.2.0](https://github.com/inference-gateway/docs/compare/0.1.6...0.2.0) (2025-03-25)
 
 ### ✨ Features
