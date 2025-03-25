@@ -19,7 +19,7 @@ This repository contains the documentation website for [Inference Gateway](https
 
 ## About Inference Gateway
 
-Inference Gateway offers a unified API layer to interact with multiple LLM providers including OpenAI, Anthropic, Groq, Cohere, Ollama, and more. Key 
+Inference Gateway offers a unified API layer to interact with multiple LLM providers including OpenAI, DeepSeek, Anthropic, Groq, Cohere, Ollama and more. It provides a consistent interface for interacting with different LLMs, abstracting away the differences between each provider's API.
 
 ## Development
 

@@ -12,6 +12,7 @@ This page details each supported provider, their configuration, and usage exampl
       - [2. Provider Proxy](#2-provider-proxy)
   - [Provider-Specific Examples](#provider-specific-examples)
     - [OpenAI](#openai)
+    - [DeepSeek](#deepseek)
     - [Anthropic](#anthropic)
     - [Cohere](#cohere)
     - [Groq](#groq)
@@ -28,6 +29,13 @@ The following LLM providers are currently supported:
     <p>Access GPT models including GPT-3.5, GPT-4, and more.</p>
     <p><strong>Authentication:</strong> Bearer Token</p>
     <p><strong>Default URL:</strong> https://api.openai.com/v1</p>
+  </div>
+
+  <div className="border p-4 rounded-md">
+    <h3>DeepSeek</h3>
+    <p>Use DeepSeek's models for various natural language tasks.</p>
+    <p><strong>Authentication:</strong> Bearer Token</p>
+    <p><strong>Default URL:</strong> https://api.deepseek.com</p>
   </div>
   
   <div className="border p-4 rounded-md">
@@ -143,6 +151,34 @@ List all available models:
 
 ```bash
 curl http://localhost:8080/v1/models
+```
+
+### DeepSeek
+
+Generate content with DeepSeek models:
+
+```bash
+curl -X POST http://localhost:8080/v1/chat/completions?provider=deepseek \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "deepseek-reasoner",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a helpful assistant."
+      },
+      {
+        "role": "user",
+        "content": "What is the capital of France?"
+      }
+    ]
+  }'
+```
+
+List available models:
+
+```bash
+curl http://localhost:8080/v1/models?provider=deepseek
 ```
 
 ### Anthropic
