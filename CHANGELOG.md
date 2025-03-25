@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.0](https://github.com/inference-gateway/docs/compare/0.1.6...0.2.0) (2025-03-25)
+
+### ✨ Features
+
+* Add sitemap generation script and robots.txt file ([cbe4d12](https://github.com/inference-gateway/docs/commit/cbe4d1251e2334aa5354b8561d18ac41c2ec029f))
+
+### 📚 Documentation
+
+* Add DeepSeek as a supported LLM provider in documentation ([045460c](https://github.com/inference-gateway/docs/commit/045460c65a6208bd50e976810cdb4355f900f09b))
+
 ## [0.1.6](https://github.com/inference-gateway/docs/compare/0.1.5...0.1.6) (2025-03-21)
 
 ### 🐛 Bug Fixes
