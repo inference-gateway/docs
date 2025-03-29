@@ -104,6 +104,11 @@ export default function Sidebar() {
                   Observability
                 </Link>
               </li>
+              <li>
+                <Link href="/ui" className={`sidebar-link ${pathname === '/ui' ? 'active' : ''}`}>
+                  UI
+                </Link>
+              </li>
             </ul>
           </nav>
         </div>
