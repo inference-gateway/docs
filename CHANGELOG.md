@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.1](https://github.com/inference-gateway/docs/compare/0.3.0...0.3.1) (2025-03-29)
+
+### 📚 Documentation
+
+* Add UI page and sidebar link, along with documentation for user interface ([1d92039](https://github.com/inference-gateway/docs/commit/1d920391ad5819e421505e95498be3a8995e38a6))
+
 ## [0.3.0](https://github.com/inference-gateway/docs/compare/0.2.0...0.3.0) (2025-03-25)
 
 ### ✨ Features
