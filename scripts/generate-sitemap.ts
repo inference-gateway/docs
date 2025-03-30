@@ -2,7 +2,7 @@ import fs from 'fs';
 import { glob } from 'glob';
 import path from 'path';
 
-const baseUrl = 'https://inference-gateway.github.io/docs';
+const baseUrl = 'https://docs.inference-gateway.com';
 
 async function generateSitemap() {
   const pages = await glob('app/**/page.{tsx,ts,js,jsx,mdx}', { 
