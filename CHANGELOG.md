@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.5](https://github.com/inference-gateway/docs/compare/0.3.4...0.3.5) (2025-03-30)
+
+### 🐛 Bug Fixes
+
+* Update sitemap URLs to point to the new documentation domain ([54de07b](https://github.com/inference-gateway/docs/commit/54de07bcce2387b62c0719e8d0bb04ba752f3929))
+
 ## [0.3.4](https://github.com/inference-gateway/docs/compare/0.3.3...0.3.4) (2025-03-30)
 
 ### 🐛 Bug Fixes
