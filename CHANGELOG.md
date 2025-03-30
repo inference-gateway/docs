@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.4](https://github.com/inference-gateway/docs/compare/0.3.3...0.3.4) (2025-03-30)
+
+### 🐛 Bug Fixes
+
+* Update image path for chat UI in documentation and remove basePath from config ([2917e57](https://github.com/inference-gateway/docs/commit/2917e57b99b79b47f8a6084825984324305e85a7))
+
 ## [0.3.3](https://github.com/inference-gateway/docs/compare/0.3.2...0.3.3) (2025-03-30)
 
 ### 🐛 Bug Fixes
