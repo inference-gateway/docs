@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.6](https://github.com/inference-gateway/docs/compare/0.3.5...0.3.6) (2025-03-30)
+
+### ♻️ Improvements
+
+* Remove Google verification metadata from layout ([742fbb0](https://github.com/inference-gateway/docs/commit/742fbb06e76bcf150d0a10fa77320dc3366e70d0))
+
 ## [0.3.5](https://github.com/inference-gateway/docs/compare/0.3.4...0.3.5) (2025-03-30)
 
 ### 🐛 Bug Fixes
