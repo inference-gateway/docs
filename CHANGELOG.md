@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.2](https://github.com/inference-gateway/docs/compare/0.3.1...0.3.2) (2025-03-30)
+
+### 📚 Documentation
+
+* Enhance UI documentation with new features and add chat UI screenshot ([2dee485](https://github.com/inference-gateway/docs/commit/2dee485c7c2ebf913c87988c0698d1776433bba8))
+
 ## [0.3.1](https://github.com/inference-gateway/docs/compare/0.3.0...0.3.1) (2025-03-29)
 
 ### 📚 Documentation
