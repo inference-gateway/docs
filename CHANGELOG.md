@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.3](https://github.com/inference-gateway/docs/compare/0.3.2...0.3.3) (2025-03-30)
+
+### 🐛 Bug Fixes
+
+* Correct image path for chat UI screenshot in documentation ([992233c](https://github.com/inference-gateway/docs/commit/992233c5154f51c2dcd95c920b22a2c5fb2a1a7a))
+
 ## [0.3.2](https://github.com/inference-gateway/docs/compare/0.3.1...0.3.2) (2025-03-30)
 
 ### 📚 Documentation
