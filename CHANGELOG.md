@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.7](https://github.com/inference-gateway/docs/compare/0.3.6...0.3.7) (2025-04-12)
+
+### 📚 Documentation
+
+* Add deployment page and update sidebar navigation ([d97e263](https://github.com/inference-gateway/docs/commit/d97e263a47542fba216eea89723b2814f8fcb970))
+
+### 🔧 Miscellaneous
+
+* **deps:** bump next from 15.2.1 to 15.2.3 ([#3](https://github.com/inference-gateway/docs/issues/3)) ([5c8d6c4](https://github.com/inference-gateway/docs/commit/5c8d6c40d6b018cb65b401ce02a0e3d0e2d0c660))
+
 ## [0.3.6](https://github.com/inference-gateway/docs/compare/0.3.5...0.3.6) (2025-03-30)
 
 ### ♻️ Improvements
