@@ -1,0 +1,51 @@
+# Deployment with Helm
+
+This guide explains how to deploy the Inference Gateway using the official Helm chart.
+
+## Prerequisites
+
+- Kubernetes cluster (v1.30+)
+- Helm installed (v3.8+)
+- kubectl configured to access your cluster
+
+## Installation
+
+Install the chart directly from OCI registry:
+```bash
+helm install my-release oci://ghcr.io/inference-gateway/charts/inference-gateway \
+  --namespace inference-gateway \
+  --create-namespace \
+  --version 0.5.0
+```
+
+## Configuration
+
+To see the available configurations, run:
+```bash
+helm show values oci://ghcr.io/inference-gateway/charts/inference-gateway
+```
+
+## Upgrading
+
+To upgrade an existing installation:
+
+```bash
+helm upgrade my-release oci://ghcr.io/inference-gateway/charts/inference-gateway \
+  --namespace inference-gateway \
+  -f values.yaml \
+  --version 0.5.0
+```
+
+## Uninstalling
+
+To completely remove the installation:
+
+```bash
+helm uninstall my-release --namespace inference-gateway
+kubectl delete namespace inference-gateway
+```
+
+## Chart Source
+
+The Helm chart source is available at:  
+[https://github.com/inference-gateway/inference-gateway/tree/main/charts/inference-gateway](https://github.com/inference-gateway/inference-gateway/tree/main/charts/inference-gateway)

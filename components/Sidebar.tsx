@@ -80,6 +80,11 @@ export default function Sidebar() {
                 </Link>
               </li>
               <li>
+                <Link href="/deployment" className={`sidebar-link ${pathname === '/deployment' ? 'active' : ''}`}>
+                  Deployment
+                </Link>
+              </li>
+              <li>
                 <Link href="/supported-providers" className={`sidebar-link ${pathname === '/supported-providers' ? 'active' : ''}`}>
                   Supported Providers
                 </Link>
