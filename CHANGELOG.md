@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.0](https://github.com/inference-gateway/docs/compare/0.3.7...0.4.0) (2025-04-14)
+
+### ✨ Features
+
+* Redesgin the documentation ([#5](https://github.com/inference-gateway/docs/issues/5)) ([fd831d3](https://github.com/inference-gateway/docs/commit/fd831d39f43e433d53ae738de364048eb7c88963))
+
+### 🔧 Miscellaneous
+
+* **deps:** bump next from 15.2.3 to 15.2.4 ([#4](https://github.com/inference-gateway/docs/issues/4)) ([643dbd4](https://github.com/inference-gateway/docs/commit/643dbd42f7a3f200f30c36b3c63bdc4304f82a57))
+
 ## [0.3.7](https://github.com/inference-gateway/docs/compare/0.3.6...0.3.7) (2025-04-12)
 
 ### 📚 Documentation
