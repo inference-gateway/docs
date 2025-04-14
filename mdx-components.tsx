@@ -3,8 +3,9 @@
 import type { MDXComponents } from 'mdx/types'
 import React, { useEffect, useRef, useState } from 'react'
 
-import { Check, Copy, FileCode } from 'lucide-react';
+import { Check, Copy, FileCode, ZoomIn } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ImageModal } from '@/components/ImageModal';
 
 import 'prismjs';
 import 'prismjs/components/prism-bash';
@@ -66,6 +67,7 @@ const Heading = ({ as: Component, id, children, ...props }: HeadingProps) => {
 const MermaidDiagram = ({ children }: { children: string }) => {
   const [svg, setSvg] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const mermaidRef = useRef<HTMLDivElement>(null);
   const diagramId = useRef(`mermaid-${Math.random().toString(36).substring(2, 11)}`);
 
@@ -103,6 +105,14 @@ const MermaidDiagram = ({ children }: { children: string }) => {
     renderDiagram();
   }, [children]);
 
+  const handleOpenModal = () => {
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+  };
+
   if (error) {
     return (
       <div className="mermaid-error p-4 border border-red-300 bg-red-50 text-red-800 rounded">
@@ -114,7 +124,25 @@ const MermaidDiagram = ({ children }: { children: string }) => {
   }
 
   return (
-    <div className="mermaid-diagram my-6" dangerouslySetInnerHTML={{ __html: svg }} ref={mermaidRef} />
+    <>
+      <div 
+        className="mermaid-diagram my-6 relative group cursor-zoom-in border border-transparent hover:border-gray-200 rounded-lg p-2 transition-all"
+        onClick={handleOpenModal} 
+        ref={mermaidRef}
+      >
+        <div className="absolute top-2 right-2 bg-white/80 p-1 rounded-full shadow opacity-0 group-hover:opacity-100 transition-opacity">
+          <ZoomIn className="h-4 w-4 text-gray-500" />
+        </div>
+        <div dangerouslySetInnerHTML={{ __html: svg }} />
+      </div>
+      
+      <ImageModal 
+        isOpen={isModalOpen} 
+        onClose={handleCloseModal} 
+        content={svg} 
+        title="Diagram" 
+      />
+    </>
   );
 };
 
