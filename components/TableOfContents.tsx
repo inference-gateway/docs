@@ -120,7 +120,7 @@ const TableOfContents = () => {
   if (headings.length === 0) return null;
 
   return (
-    <div className="sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto py-4">
+    <div className="sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto py-4 w-64">
       <div className="space-y-2">
         <p className="text-sm font-medium text-gray-500">On this page</p>
         <ul className="space-y-2 text-sm">

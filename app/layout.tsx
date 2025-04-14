@@ -28,7 +28,7 @@ export default function RootLayout({
             <div className="flex h-[calc(100%-64px)]">
               <Sidebar />
               <main className="flex-1 px-4 sm:px-6 lg:px-8 pt-6 pb-16 overflow-auto ml-0 lg:ml-72">
-                <div className="mx-auto max-w-4xl">
+                <div className="mx-auto max-w-6xl">
                   <div className="flex gap-12">
                     <div className="docs-content flex-1">{children}</div>
                     <aside className="hidden xl:block w-64 relative">
