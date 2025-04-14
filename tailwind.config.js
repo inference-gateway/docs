@@ -7,6 +7,16 @@ module.exports = defineConfig({
   content: [
     './app/**/*.{js,ts,jsx,tsx}',
     './components/**/*.{js,ts,jsx,tsx}',
+    './hooks/**/*.{js,ts,jsx,tsx}',
+    './lib/**/*.{js,ts,jsx,tsx}',
+    './markdown/**/*.{md,mdx}',
+  ],
+  safelist: [
+    'dark',
+    'bg-white',
+    'text-gray-900',
+    'bg-gray-900',
+    'text-gray-100',
   ],
   theme: {
     container: {

@@ -21,6 +21,9 @@ import 'prismjs/components/prism-python';
 import 'prismjs/components/prism-go';
 import 'prismjs/components/prism-rust';
 import 'prismjs/components/prism-shell-session';
+import 'prismjs/components/prism-http';
+import 'prismjs/plugins/line-numbers/prism-line-numbers.js'
+import 'prismjs/plugins/line-numbers/prism-line-numbers.css'
 
 declare global {
   interface Window {
@@ -118,7 +121,7 @@ const MermaidDiagram = ({ children }: { children: string }) => {
       <div className="mermaid-error p-4 border border-red-300 bg-red-50 text-red-800 rounded">
         <p className="font-bold">Mermaid Diagram Error:</p>
         <pre>{error}</pre>
-        <pre className="mt-2 p-2 bg-gray-100 rounded overflow-auto">{children}</pre>
+        <pre className="line-numbers mt-2 p-2 bg-gray-100 rounded overflow-auto">{children}</pre>
       </div>
     );
   }
@@ -157,12 +160,6 @@ const CodeBlock = ({ children, className, filename }: CodeBlockProps) => {
   const [copied, setCopied] = useState(false);
   const codeRef = useRef<HTMLPreElement>(null);
 
-  useEffect(() => {
-    if (typeof window !== 'undefined' && window.Prism) {
-      window.Prism.highlightElement(codeRef.current);
-    }
-  }, [children]);
-
   const copyToClipboard = async () => {
     if (!codeRef.current?.textContent) return;
     
@@ -188,6 +185,7 @@ const CodeBlock = ({ children, className, filename }: CodeBlockProps) => {
     yaml: 'YAML',
     md: 'Markdown',
     mdx: 'MDX',
+    http: 'HTTP',
   }[language] || language.toUpperCase();
 
   return (
@@ -210,10 +208,11 @@ const CodeBlock = ({ children, className, filename }: CodeBlockProps) => {
         <pre 
           ref={codeRef}
           className={cn(
-            "overflow-x-auto p-4 text-sm leading-relaxed",
-            "bg-gray-50 text-gray-800",
+            "line-numbers overflow-x-auto p-4 text-sm leading-relaxed",
+            "bg-[--color-code-bg] text-[--color-code-text]",
             className
           )}
+          tabIndex={0}
         >
           <code className={`language-${language}`}>
             {children}

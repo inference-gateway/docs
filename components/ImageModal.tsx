@@ -20,7 +20,6 @@ export function ImageModal({ isOpen, onClose, content, title }: ImageModalProps)
 
     document.addEventListener('keydown', handleKeyDown);
     
-    // Prevent scrolling when modal is open
     if (isOpen) {
       document.body.style.overflow = 'hidden';
     } else {

@@ -122,7 +122,7 @@ const TableOfContents = () => {
   return (
     <div className="sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto py-4 w-64">
       <div className="space-y-2">
-        <p className="text-sm font-medium text-gray-500">On this page</p>
+        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">On this page</p>
         <ul className="space-y-2 text-sm">
           {headings.map((heading) => (
             <li 
@@ -131,7 +131,7 @@ const TableOfContents = () => {
                 "border-l-2",
                 activeId === heading.id 
                   ? "border-primary" 
-                  : "border-gray-200"
+                  : "border-gray-200 dark:border-gray-700"
               )}
               style={{ paddingLeft: `${(heading.level - 2) * 0.75}rem` }}
             >
@@ -141,7 +141,7 @@ const TableOfContents = () => {
                   "block pl-3 py-1 text-sm",
                   activeId === heading.id 
                     ? "text-primary font-medium" 
-                    : "text-gray-600 hover:text-gray-900"
+                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
                 )}
                 onClick={(e) => handleClick(e, heading.id)}
               >

@@ -57,20 +57,20 @@ export function SearchModal() {
     <div className="fixed inset-0 z-50 overflow-y-auto p-4 sm:p-6 md:p-20" role="dialog" aria-modal="true">
       {/* Backdrop */}
       <div 
-        className="fixed inset-0 bg-gray-500/30 backdrop-blur-md transition-opacity" 
+        className="fixed inset-0 bg-[--color-search-backdrop] backdrop-blur-md transition-opacity" 
         aria-hidden="true"
         onClick={() => setIsOpen(false)}
       />
 
       {/* Modal */}
-      <div className="relative mx-auto max-w-2xl transform overflow-hidden rounded-xl bg-white/95 shadow-2xl ring-1 ring-black ring-opacity-5 transition-all">
+      <div className="relative mx-auto max-w-2xl transform overflow-hidden rounded-xl bg-[--color-search-bg] shadow-2xl ring-1 ring-[--color-search-border] transition-all">
         {/* Search input */}
         <div className="relative">
-          <Search className="pointer-events-none absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
+          <Search className="pointer-events-none absolute left-4 top-3.5 h-5 w-5 text-[--color-search-icon]" />
           <input
             ref={inputRef}
             type="text"
-            className="h-12 w-full border-0 bg-transparent pl-11 pr-11 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-0 sm:text-sm"
+            className="h-12 w-full border-0 bg-transparent pl-11 pr-11 text-[--color-search-text] placeholder:text-[--color-search-placeholder] focus:outline-none focus:ring-0 sm:text-sm"
             placeholder="Search documentation..."
             value={query}
             onChange={(e) => performSearch(e.target.value)}
@@ -81,8 +81,8 @@ export function SearchModal() {
             className="absolute right-3 top-3.5 flex items-center gap-1"
             onClick={() => setIsOpen(false)}
           >
-            <span className="text-xs text-gray-400 hidden sm:inline">ESC</span>
-            <X className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+            <span className="text-xs text-[--color-search-placeholder] hidden sm:inline">ESC</span>
+            <X className="h-5 w-5 text-[--color-search-icon] hover:text-[--color-search-text]" />
           </button>
         </div>
 
@@ -94,27 +94,27 @@ export function SearchModal() {
           {/* Loading state */}
           {isLoading && (
             <div className="flex justify-center py-6">
-              <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+              <Loader2 className="h-6 w-6 animate-spin text-[--color-search-icon]" />
             </div>
           )}
 
           {/* Index loading state */}
           {!isLoading && indexStatus === 'loading' && (
             <div className="flex flex-col items-center justify-center py-6 text-center">
-              <Loader2 className="h-6 w-6 animate-spin text-gray-400 mb-2" />
-              <p className="text-sm text-gray-600">Building search index...</p>
-              <p className="text-xs text-gray-500 mt-1">This might take a moment</p>
+              <Loader2 className="h-6 w-6 animate-spin text-[--color-search-icon] mb-2" />
+              <p className="text-sm text-[--color-search-text]">Building search index...</p>
+              <p className="text-xs text-[--color-search-placeholder] mt-1">This might take a moment</p>
             </div>
           )}
 
           {/* Index error state */}
           {!isLoading && indexStatus === 'error' && (
             <div className="flex flex-col items-center justify-center py-6 text-center">
-              <AlertCircle className="h-6 w-6 text-red-500 mb-2" />
-              <p className="text-sm text-gray-600">Error building search index</p>
+              <AlertCircle className="h-6 w-6 text-[--color-destructive] mb-2" />
+              <p className="text-sm text-[--color-search-text]">Error building search index</p>
               <button 
                 onClick={() => rebuildIndex()}
-                className="mt-2 inline-flex items-center text-xs text-blue-600 hover:text-blue-800"
+                className="mt-2 inline-flex items-center text-xs text-[--color-accent] hover:text-[--color-accent-hover]"
               >
                 <RefreshCw className="h-3 w-3 mr-1" /> Try again
               </button>
@@ -123,21 +123,21 @@ export function SearchModal() {
 
           {/* No results state */}
           {!isLoading && indexStatus === 'ready' && query && results.length === 0 && (
-            <p className="p-4 text-sm text-gray-500">
+            <p className="p-4 text-sm text-[--color-search-placeholder]">
               No results found for &quot;{query}&quot;
             </p>
           )}
 
           {/* Results list */}
           {!isLoading && results.length > 0 && (
-            <ul className="divide-y divide-gray-100">
+            <ul className="divide-y divide-[--color-search-border]">
               {results.map((result, index) => (
                 <li 
                   key={result.url} 
                   data-index={index}
                   className={cn(
                     "cursor-pointer px-4 py-3",
-                    index === selectedIndex ? "bg-blue-100" : "hover:bg-gray-50"
+                    index === selectedIndex ? "bg-[--color-search-selected]" : "hover:bg-[--color-search-button-hover]"
                   )}
                 >
                   <Link 
@@ -145,15 +145,15 @@ export function SearchModal() {
                     className="block"
                     onClick={() => setIsOpen(false)}
                   >
-                    <h3 className="truncate text-sm font-medium text-gray-900">
+                    <h3 className="truncate text-sm font-medium text-[--color-search-text]">
                       {result.title}
                     </h3>
                     {result.category && (
-                      <p className="mt-1 truncate text-xs text-gray-500">
+                      <p className="mt-1 truncate text-xs text-[--color-search-placeholder]">
                         {result.category}
                       </p>
                     )}
-                    <p className="mt-1 text-xs text-gray-500 line-clamp-2">
+                    <p className="mt-1 text-xs text-[--color-search-placeholder] line-clamp-2">
                       {result.excerpt}
                     </p>
                   </Link>
@@ -164,18 +164,18 @@ export function SearchModal() {
         </div>
 
         {/* Keyboard shortcuts */}
-        <div className="border-t border-gray-200 bg-gray-50/90 px-4 py-3 flex justify-between text-xs text-gray-500">
+        <div className="border-t border-[--color-search-border] bg-[--color-search-button] px-4 py-3 flex justify-between text-xs text-[--color-search-placeholder]">
           <div className="flex gap-2">
-            <kbd className="px-1 bg-white rounded border border-gray-300">↑</kbd>
-            <kbd className="px-1 bg-white rounded border border-gray-300">↓</kbd>
+            <kbd className="px-1 bg-[--color-bg] rounded border border-[--color-search-border]">↑</kbd>
+            <kbd className="px-1 bg-[--color-bg] rounded border border-[--color-search-border]">↓</kbd>
             <span>to navigate</span>
           </div>
           <div className="flex gap-2">
-            <kbd className="px-1 bg-white rounded border border-gray-300">Enter</kbd>
+            <kbd className="px-1 bg-[--color-bg] rounded border border-[--color-search-border]">Enter</kbd>
             <span>to select</span>
           </div>
           <div className="flex gap-2">
-            <kbd className="px-1 bg-white rounded border border-gray-300">Esc</kbd>
+            <kbd className="px-1 bg-[--color-bg] rounded border border-[--color-search-border]">Esc</kbd>
             <span>to close</span>
           </div>
         </div>
