@@ -30,7 +30,7 @@ export function Header() {
     <>
       <header className="sticky top-0 z-40 w-full border-b border-gray-200 bg-white backdrop-blur supports-[backdrop-filter]:bg-white/80">
         <div className="flex h-16 items-center px-4 sm:px-6 lg:px-8">
-          {/* Mobile layout - sidebar toggle + search bar that takes remaining space */}
+          {/* Mobile layout */}
           <div className="flex items-center gap-3 w-full lg:w-auto">
             <button 
               id="sidebar-toggle"
@@ -41,12 +41,12 @@ export function Header() {
               <Menu className="h-5 w-5" />
             </button>
             
-            {/* Logo - hidden on smallest screens except as icon */}
+            {/* Logo */}
             <Link href="/" className="flex items-center gap-2 mr-4 flex-shrink-0">
               <span className="font-medium hidden sm:inline">Inference Gateway</span>
             </Link>
             
-            {/* Search bar - takes available space on mobile */}
+            {/* Search bar */}
             <div className="flex-grow lg:hidden max-w-sm">
               <div 
                 className="flex items-center border border-gray-200 rounded-md px-3 py-1.5 focus-within:ring-2 focus-within:ring-primary w-full cursor-pointer"
@@ -60,7 +60,7 @@ export function Header() {
               </div>
             </div>
             
-            {/* Navigation - only visible on md screens and up */}
+            {/* Navigation */}
             <nav className="hidden md:flex items-center space-x-6">
               <Link href="/getting-started" className={cn(
                 "text-sm font-medium transition-colors hover:text-primary",
@@ -86,7 +86,7 @@ export function Header() {
             </nav>
           </div>
           
-          {/* Desktop search - only visible on lg screens and up */}
+          {/* Desktop search */}
           <div className="hidden lg:flex items-center ml-auto">
             <div className="relative">
               <div 

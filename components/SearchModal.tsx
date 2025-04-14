@@ -32,6 +32,17 @@ export function SearchModal() {
   }, [isOpen])
 
   useEffect(() => {
+    const handleEscapeKey = (e: KeyboardEvent) => {
+      if (isOpen && e.key === 'Escape') {
+        setIsOpen(false)
+      }
+    }
+
+    document.addEventListener('keydown', handleEscapeKey)
+    return () => document.removeEventListener('keydown', handleEscapeKey)
+  }, [isOpen, setIsOpen])
+
+  useEffect(() => {
     if (results.length > 0 && resultsContainerRef.current) {
       const selectedEl = resultsContainerRef.current.querySelector(`[data-index="${selectedIndex}"]`)
       if (selectedEl) {
@@ -46,13 +57,13 @@ export function SearchModal() {
     <div className="fixed inset-0 z-50 overflow-y-auto p-4 sm:p-6 md:p-20" role="dialog" aria-modal="true">
       {/* Backdrop */}
       <div 
-        className="fixed inset-0 bg-gray-500 bg-opacity-25 backdrop-blur-sm transition-opacity" 
+        className="fixed inset-0 bg-gray-500 bg-opacity-15 backdrop-blur-sm transition-opacity" 
         aria-hidden="true"
         onClick={() => setIsOpen(false)}
       />
 
       {/* Modal */}
-      <div className="relative mx-auto max-w-2xl transform overflow-hidden rounded-xl bg-white shadow-2xl ring-1 ring-black ring-opacity-5 transition-all">
+      <div className="relative mx-auto max-w-2xl transform overflow-hidden rounded-xl bg-white/90 backdrop-blur-sm shadow-2xl ring-1 ring-black ring-opacity-5 transition-all">
         {/* Search input */}
         <div className="relative">
           <Search className="pointer-events-none absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
@@ -67,9 +78,10 @@ export function SearchModal() {
           />
           <button 
             type="button"
-            className="absolute right-3 top-3.5"
+            className="absolute right-3 top-3.5 flex items-center gap-1"
             onClick={() => setIsOpen(false)}
           >
+            <span className="text-xs text-gray-400 hidden sm:inline">ESC</span>
             <X className="h-5 w-5 text-gray-400 hover:text-gray-600" />
           </button>
         </div>
@@ -125,7 +137,7 @@ export function SearchModal() {
                   data-index={index}
                   className={cn(
                     "cursor-pointer px-4 py-3",
-                    index === selectedIndex ? "bg-primary/10" : "hover:bg-gray-50"
+                    index === selectedIndex ? "bg-blue-100" : "hover:bg-gray-50"
                   )}
                 >
                   <Link 
@@ -152,23 +164,21 @@ export function SearchModal() {
         </div>
 
         {/* Keyboard shortcuts */}
-        {results.length > 0 && (
-          <div className="border-t border-gray-200 bg-gray-50 px-4 py-3 flex justify-between text-xs text-gray-500">
-            <div className="flex gap-2">
-              <kbd className="px-1 bg-white rounded border border-gray-300">↑</kbd>
-              <kbd className="px-1 bg-white rounded border border-gray-300">↓</kbd>
-              <span>to navigate</span>
-            </div>
-            <div className="flex gap-2">
-              <kbd className="px-1 bg-white rounded border border-gray-300">Enter</kbd>
-              <span>to select</span>
-            </div>
-            <div className="flex gap-2">
-              <kbd className="px-1 bg-white rounded border border-gray-300">Esc</kbd>
-              <span>to close</span>
-            </div>
+        <div className="border-t border-gray-200 bg-gray-50/90 px-4 py-3 flex justify-between text-xs text-gray-500">
+          <div className="flex gap-2">
+            <kbd className="px-1 bg-white rounded border border-gray-300">↑</kbd>
+            <kbd className="px-1 bg-white rounded border border-gray-300">↓</kbd>
+            <span>to navigate</span>
           </div>
-        )}
+          <div className="flex gap-2">
+            <kbd className="px-1 bg-white rounded border border-gray-300">Enter</kbd>
+            <span>to select</span>
+          </div>
+          <div className="flex gap-2">
+            <kbd className="px-1 bg-white rounded border border-gray-300">Esc</kbd>
+            <span>to close</span>
+          </div>
+        </div>
       </div>
     </div>
   )
