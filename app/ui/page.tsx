@@ -3,5 +3,9 @@
 import UI from '@/markdown/ui.mdx'
 
 export default function Page() {
-  return <UI />
+  return (
+    <div className="prose max-w-none">
+      <UI />
+    </div>
+  )
 }

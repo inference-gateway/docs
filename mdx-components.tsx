@@ -20,7 +20,6 @@ const Heading = ({ as: Component, id, children, ...props }: HeadingProps) => {
   const headingRef = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
-    // Check if there's a hash in the URL that matches this heading
     if (typeof window !== 'undefined' && headingRef.current) {
       const { hash } = window.location;
       if (hash === `#${slug}`) {
@@ -38,7 +37,6 @@ const Heading = ({ as: Component, id, children, ...props }: HeadingProps) => {
   );
 };
 
-// Mermaid diagram component
 const MermaidDiagram = ({ children }: { children: string }) => {
   const [svg, setSvg] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
@@ -50,10 +48,8 @@ const MermaidDiagram = ({ children }: { children: string }) => {
       if (typeof window === 'undefined') return;
 
       try {
-        // Dynamically import mermaid to avoid SSR issues
         const mermaid = (await import('mermaid')).default;
         
-        // Initialize mermaid with default config
         mermaid.initialize({
           startOnLoad: false,
           theme: 'neutral',
@@ -104,11 +100,9 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
     h4: (props) => <Heading as="h4" {...props} />,
     h5: (props) => <Heading as="h5" {...props} />,
     h6: (props) => <Heading as="h6" {...props} />,
-    // Support mermaid code blocks
     pre: (props) => {
       const children = props.children;
       
-      // Check if this is a mermaid code block
       if (
         children &&
         children.props &&

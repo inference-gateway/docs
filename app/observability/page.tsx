@@ -3,5 +3,9 @@
 import Observability from '@/markdown/observability.mdx'
 
 export default function Page() {
-  return <Observability />
+  return (
+    <div className="prose max-w-none">
+      <Observability />
+    </div>
+  )
 }
