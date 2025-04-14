@@ -3,22 +3,6 @@
 Inference Gateway provides a unified interface to interact with multiple LLM providers. 
 This page details each supported provider, their configuration, and usage examples.
 
-- [Supported Providers](#supported-providers)
-  - [Available Providers](#available-providers)
-  - [Using Providers](#using-providers)
-    - [Provider Configuration](#provider-configuration)
-    - [API Endpoints](#api-endpoints)
-      - [1. Unified Generate API](#1-unified-generate-api)
-      - [2. Provider Proxy](#2-provider-proxy)
-  - [Provider-Specific Examples](#provider-specific-examples)
-    - [OpenAI](#openai)
-    - [DeepSeek](#deepseek)
-    - [Anthropic](#anthropic)
-    - [Cohere](#cohere)
-    - [Groq](#groq)
-    - [Cloudflare](#cloudflare)
-    - [Ollama](#ollama)
-
 ## Available Providers
 
 The following LLM providers are currently supported:
@@ -63,7 +47,8 @@ The following LLM providers are currently supported:
     <h3>Cloudflare</h3>
     <p>Connect to Cloudflare Workers AI for inference on various models.</p>
     <p><strong>Authentication:</strong> Bearer Token</p>
-    <p><strong>Default URL:</strong> https://api.cloudflare.com/client/v4/accounts/{'{ACCOUNT_ID}'}/ai</p>
+    <p><strong>Default URL:</strong> https://api.cloudflare.com/client/v4/accounts/</p>
+    <p className="text-sm">{'{ACCOUNT_ID}'}/ai</p>
   </div>
   
   <div className="border p-4 rounded-md">
@@ -125,7 +110,7 @@ Content-Type: application/json
 
 ## Provider-Specific Examples
 
-### OpenAI
+### OpenAI Provider
 
 Generate content with OpenAI models:
 
@@ -153,7 +138,7 @@ List all available models:
 curl http://localhost:8080/v1/models
 ```
 
-### DeepSeek
+### DeepSeek Provider
 
 Generate content with DeepSeek models:
 
@@ -181,7 +166,7 @@ List available models:
 curl http://localhost:8080/v1/models?provider=deepseek
 ```
 
-### Anthropic
+### Anthropic Provider
 
 Generate content with Anthropic Claude models:
 
@@ -209,7 +194,7 @@ List available models:
 curl http://localhost:8080/v1/models?provider=anthropic
 ```
 
-### Cohere
+### Cohere Provider
 
 Generate content with Cohere models:
 
@@ -231,7 +216,7 @@ curl -X POST http://localhost:8080/v1/chat/completions?provider=cohere \
   }'
 ```
 
-### Groq
+### Groq Provider
 
 Generate content with Groq's high-performance models:
 
@@ -253,7 +238,7 @@ curl -X POST http://localhost:8080/v1/chat/completions?provider=groq \
   }'
 ```
 
-### Cloudflare
+### Cloudflare Provider
 
 Generate content with Cloudflare Workers AI:
 
@@ -275,7 +260,7 @@ curl -X POST http://localhost:8080/v1/chat/completions?provider=cloudflare \
   }'
 ```
 
-### Ollama
+### Ollama Provider
 
 Generate content with locally-hosted Ollama models:
 

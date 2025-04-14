@@ -8,17 +8,35 @@ async function generateSitemap() {
   const pages = await glob('app/**/page.{tsx,ts,js,jsx,mdx}', { 
     ignore: ['app/api/**', '**/node_modules/**'] 
   });
+  
+  const markdownFiles = await glob('markdown/**/*.mdx');
+  
+  const routeToMarkdownMap = new Map<string, string>();
+  markdownFiles.forEach(mdxFile => {
+    const baseName = path.basename(mdxFile, '.mdx');
+    routeToMarkdownMap.set(`/${baseName}`, mdxFile);
+  });
 
-  let sitemap = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`;
+  const rootMdxPath = 'markdown/main.mdx';
+  const rootLastMod = fs.existsSync(rootMdxPath)
+    ? fs.statSync(rootMdxPath).mtime.toISOString()
+    : new Date().toISOString();
 
-  sitemap += `
-  <url>
-    <loc>${baseUrl}</loc>
-    <lastmod>${new Date().toISOString()}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>1.0</priority>
-  </url>`;
+  const urlEntries: Array<{
+    url: string;
+    lastmod: string;
+    changefreq: string;
+    priority: string;
+  }> = [];
+
+  urlEntries.push({
+    url: baseUrl,
+    lastmod: rootLastMod,
+    changefreq: 'weekly',
+    priority: '1.0'
+  });
+
+  const addedUrls = new Set([baseUrl]);
 
   for (const page of pages) {
     if (page.includes('not-found') || 
@@ -37,8 +55,20 @@ async function generateSitemap() {
       continue;
     }
 
-    const stats = fs.statSync(page);
-    const lastMod = stats.mtime.toISOString();
+    const fullUrl = `${baseUrl}${route}`;
+    
+    if (addedUrls.has(fullUrl)) {
+      continue;
+    }
+    addedUrls.add(fullUrl);
+
+    let lastMod: string;
+    if (routeToMarkdownMap.has(route)) {
+      const mdxFile = routeToMarkdownMap.get(route)!;
+      lastMod = fs.statSync(mdxFile).mtime.toISOString();
+    } else {
+      lastMod = fs.statSync(page).mtime.toISOString();
+    }
 
     const segments = route.split('/').filter(Boolean).length;
     const priority = Math.max(0.1, 1.0 - (segments * 0.2)).toFixed(1);
@@ -50,12 +80,26 @@ async function generateSitemap() {
       changeFreq = 'weekly';
     }
 
+    urlEntries.push({
+      url: fullUrl,
+      lastmod: lastMod,
+      changefreq: changeFreq,
+      priority: priority
+    });
+  }
+
+  urlEntries.sort((a, b) => a.url.localeCompare(b.url));
+
+  let sitemap = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`;
+
+  for (const entry of urlEntries) {
     sitemap += `
   <url>
-    <loc>${baseUrl}${route}</loc>
-    <lastmod>${lastMod}</lastmod>
-    <changefreq>${changeFreq}</changefreq>
-    <priority>${priority}</priority>
+    <loc>${entry.url}</loc>
+    <lastmod>${entry.lastmod}</lastmod>
+    <changefreq>${entry.changefreq}</changefreq>
+    <priority>${entry.priority}</priority>
   </url>`;
   }
 
@@ -67,8 +111,14 @@ async function generateSitemap() {
     fs.mkdirSync(publicDir, { recursive: true });
   }
 
-  fs.writeFileSync(path.join(publicDir, 'sitemap.xml'), sitemap);
-  console.log('Sitemap generated successfully at public/sitemap.xml');
+  const sitemapPath = path.join(publicDir, 'sitemap.xml');
+  
+  if (!fs.existsSync(sitemapPath) || fs.readFileSync(sitemapPath, 'utf-8') !== sitemap) {
+    fs.writeFileSync(sitemapPath, sitemap);
+    console.log('Sitemap generated with changes at public/sitemap.xml');
+  } else {
+    console.log('No changes to sitemap detected, skipping write');
+  }
 }
 
 generateSitemap().catch(console.error);
