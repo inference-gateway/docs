@@ -45,7 +45,7 @@ const TableOfContents = () => {
       },
       {
         rootMargin: '-100px 0% -80% 0%',
-        threshold: 1.0,
+        threshold: 0.2,
       }
     );
 
@@ -63,7 +63,7 @@ const TableOfContents = () => {
   if (headings.length === 0) return null;
 
   return (
-    <div className="sticky top-24">
+    <div className="sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto py-4">
       <div className="space-y-2">
         <p className="text-sm font-medium text-gray-500">On this page</p>
         <ul className="space-y-2 text-sm">
@@ -86,6 +86,15 @@ const TableOfContents = () => {
                     ? "text-primary font-medium" 
                     : "text-gray-600 hover:text-gray-900"
                 )}
+                onClick={(e) => {
+                  e.preventDefault();
+                  const targetEl = document.getElementById(heading.id);
+                  if (targetEl) {
+                    targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    window.history.pushState(null, '', `#${heading.id}`);
+                    setActiveId(heading.id);
+                  }
+                }}
               >
                 {heading.text}
               </a>

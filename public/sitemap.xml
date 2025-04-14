@@ -2,7 +2,7 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://docs.inference-gateway.com</loc>
-    <lastmod>2025-03-30T23:02:49.143Z</lastmod>
+    <lastmod>2025-04-14T10:13:39.999Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
@@ -14,61 +14,67 @@
   </url>
   <url>
     <loc>https://docs.inference-gateway.com/ui</loc>
-    <lastmod>2025-03-29T20:09:05.788Z</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://docs.inference-gateway.com/observability</loc>
-    <lastmod>2025-03-20T15:00:03.331Z</lastmod>
+    <lastmod>2025-04-14T07:44:36.176Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://docs.inference-gateway.com/sdks</loc>
-    <lastmod>2025-03-09T18:35:36.682Z</lastmod>
+    <lastmod>2025-04-14T07:44:04.180Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://docs.inference-gateway.com/supported-providers</loc>
-    <lastmod>2025-03-09T18:41:08.177Z</lastmod>
+    <lastmod>2025-04-14T07:44:22.475Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://docs.inference-gateway.com/ides</loc>
-    <lastmod>2025-03-20T14:46:48.007Z</lastmod>
+    <loc>https://docs.inference-gateway.com/observability</loc>
+    <lastmod>2025-04-14T07:43:46.398Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://docs.inference-gateway.com/getting-started</loc>
-    <lastmod>2025-03-09T18:08:16.255Z</lastmod>
+    <lastmod>2025-04-14T07:43:12.938Z</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://docs.inference-gateway.com/ides</loc>
+    <lastmod>2025-04-14T07:43:31.123Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://docs.inference-gateway.com/examples</loc>
-    <lastmod>2025-03-09T18:23:15.229Z</lastmod>
+    <lastmod>2025-04-14T07:42:47.517Z</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://docs.inference-gateway.com/deployment</loc>
+    <lastmod>2025-04-14T07:38:39.926Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://docs.inference-gateway.com/configuration</loc>
-    <lastmod>2025-03-09T18:00:26.508Z</lastmod>
+    <lastmod>2025-04-14T07:41:28.492Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://docs.inference-gateway.com/architecture-overview</loc>
-    <lastmod>2025-03-10T12:41:48.658Z</lastmod>
+    <lastmod>2025-04-14T07:41:32.483Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://docs.inference-gateway.com/api-reference</loc>
-    <lastmod>2025-03-09T17:52:15.049Z</lastmod>
+    <lastmod>2025-04-14T07:41:59.283Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>

@@ -5,9 +5,13 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "next start", 
     "lint": "next lint",
-    "generate-sitemap": "tsx scripts/generate-sitemap.ts"
+    "generate-sitemap": "tsx scripts/generate-sitemap.ts",
+    "generate-search-index": "tsx scripts/generate-search-index.ts",
+    "prebuild": "npm run generate-search-index && npm run generate-sitemap",
+    "serve": "next build && npx serve out",
+    "clean": "rm -rf out && rm -rf .next"
   },
   "dependencies": {
     "@mdx-js/loader": "^3.1.0",

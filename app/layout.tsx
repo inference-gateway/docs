@@ -1,12 +1,17 @@
 import './globals.css'
+import type { Metadata } from 'next'
+import { Inter } from 'next/font/google'
+import { Header } from '@/components/Header'
 import Sidebar from '@/components/Sidebar'
 import { SidebarProvider } from '@/components/SidebarContext'
-import { Header } from '@/components/Header'
+import { SearchProvider } from '@/components/SearchContext'
 import TableOfContents from '@/components/TableOfContents'
 
-export const metadata = {
+const inter = Inter({ subsets: ['latin'] })
+
+export const metadata: Metadata = {
   title: 'Inference Gateway Documentation',
-  description: 'Documentation for the Inference Gateway project',
+  description: 'Documentation for the Inference Gateway, a proxy for multiple language model APIs',
 }
 
 export default function RootLayout({
@@ -15,31 +20,26 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className="scroll-smooth">
-      <body className="bg-white text-gray-900 min-h-screen">
-        <SidebarProvider>
-          <div className="flex flex-col min-h-screen">
+    <html lang="en" className="h-full">
+      <body className={`${inter.className} h-full`}>
+        <SearchProvider>
+          <SidebarProvider>
             <Header />
-            <div className="flex flex-1">
-              {/* Left sidebar */}
+            <div className="flex h-[calc(100%-64px)]">
               <Sidebar />
-              
-              {/* Main content area */}
-              <div className="flex w-full lg:pl-72">
-                <main className="docs-content flex-1">
-                  <div className="mx-auto w-full max-w-4xl px-4 py-10 sm:px-6 lg:px-8 lg:py-12">
-                    {children}
+              <main className="flex-1 px-4 sm:px-6 lg:px-8 pt-6 pb-16 overflow-auto ml-0 lg:ml-72">
+                <div className="mx-auto max-w-4xl">
+                  <div className="flex gap-12">
+                    <div className="docs-content flex-1">{children}</div>
+                    <aside className="hidden xl:block w-64 relative">
+                      <TableOfContents />
+                    </aside>
                   </div>
-                </main>
-                
-                {/* Right sidebar for ToC */}
-                <aside className="hidden xl:block w-64 flex-shrink-0 pr-8 pt-10">
-                  <TableOfContents />
-                </aside>
-              </div>
+                </div>
+              </main>
             </div>
-          </div>
-        </SidebarProvider>
+          </SidebarProvider>
+        </SearchProvider>
       </body>
     </html>
   )
