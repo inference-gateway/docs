@@ -325,11 +325,22 @@ html {
     transition: all var(--link-transition-duration) ease-in-out;
     position: relative;
   }
+
+  /* Remove underline from headline links */
+  .prose h1 a, .prose h2 a, .prose h3 a, .prose h4 a, .prose h5 a, .prose h6 a {
+    @apply no-underline;
+  }
   
   .prose a:hover {
     @apply text-[--color-accent-hover];
     text-shadow: 0 0 6px var(--link-glow-color);
     text-decoration-thickness: 2px;
+  }
+
+  /* Ensure headline links hover state also has no underline */
+  .prose h1 a:hover, .prose h2 a:hover, .prose h3 a:hover, .prose h4 a:hover, .prose h5 a:hover, .prose h6 a:hover {
+    text-decoration: none;
+    text-decoration-thickness: 0;
   }
   
   .prose p {
