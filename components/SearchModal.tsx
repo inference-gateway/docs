@@ -137,7 +137,7 @@ export function SearchModal() {
                   data-index={index}
                   className={cn(
                     "cursor-pointer px-4 py-3",
-                    index === selectedIndex ? "bg-[--color-search-selected]" : "hover:bg-[--color-search-button-hover]"
+                    index === selectedIndex ? "bg-[--color-search-selected] border-l-2 border-[--color-search-selected-border]" : "hover:bg-[--color-search-button-hover] border-l-2 border-transparent"
                   )}
                 >
                   <Link 

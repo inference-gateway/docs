@@ -69,7 +69,8 @@
   --color-search-text: #111827;
   --color-search-placeholder: #9ca3af;
   --color-search-highlight: #dbeafe;
-  --color-search-selected: #ecfdf5;
+  --color-search-selected: #f0f9ff; /* Changed from #ecfdf5 for better distinction */
+  --color-search-selected-border: #7c3aed; /* Added border color for selected items */
   --color-search-button: #f9fafb;
   --color-search-button-hover: #f3f4f6;
   --color-search-button-text: #6b7280;
@@ -142,7 +143,8 @@
   --color-search-text: #e0e0e0;
   --color-search-placeholder: #9ca3af;
   --color-search-highlight: #312e81;
-  --color-search-selected: #064e3b;
+  --color-search-selected: #082f49;
+  --color-search-selected-border: #8b5cf6;
   --color-search-button: #1e1e1e;
   --color-search-button-hover: #374151;
   --color-search-button-text: #9ca3af;
