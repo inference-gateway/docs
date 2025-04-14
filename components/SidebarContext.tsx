@@ -1,7 +1,6 @@
 "use client"
 
 import React, { createContext, useState, useContext, useEffect } from 'react'
-import { usePathname } from 'next/navigation'
 
 type SidebarContextType = {
   isOpen: boolean
@@ -12,12 +11,7 @@ type SidebarContextType = {
 const SidebarContext = createContext<SidebarContextType | undefined>(undefined)
 
 export function SidebarProvider({ children }: { children: React.ReactNode }) {
-  const [isOpen, setIsOpen] = useState(false)
-  const pathname = usePathname()
-
-  useEffect(() => {
-    setIsOpen(false)
-  }, [pathname])
+  const [isOpen, setIsOpen] = useState(true)
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
