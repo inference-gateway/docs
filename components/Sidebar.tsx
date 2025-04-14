@@ -103,18 +103,27 @@ export default function Sidebar() {
                 {openSections[section.title] && (
                   <div className="space-y-1 pl-2">
                     {section.items.map((item) => (
-                      <Link
+                      <div
                         key={item.href}
-                        href={item.href}
                         className={cn(
-                          "block py-1.5 text-sm transition-colors",
+                          "border-l-2",
                           pathname === item.href
-                            ? "text-primary font-medium"
-                            : "text-gray-700 hover:text-gray-900"
+                            ? "border-primary"
+                            : "border-transparent"
                         )}
                       >
-                        {item.title}
-                      </Link>
+                        <Link
+                          href={item.href}
+                          className={cn(
+                            "block py-1.5 pl-3 text-sm transition-colors",
+                            pathname === item.href
+                              ? "text-primary font-medium"
+                              : "text-gray-700 hover:text-gray-900"
+                          )}
+                        >
+                          {item.title}
+                        </Link>
+                      </div>
                     ))}
                   </div>
                 )}
