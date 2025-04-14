@@ -17,6 +17,90 @@
   }
 }
 
+/* Prism Syntax Highlighting */
+.token.comment,
+.token.prolog,
+.token.doctype,
+.token.cdata {
+  color: #999;
+}
+
+.token.punctuation {
+  color: #666;
+}
+
+.token.property,
+.token.tag,
+.token.boolean,
+.token.number,
+.token.constant,
+.token.symbol,
+.token.deleted {
+  color: #905;
+}
+
+.token.selector,
+.token.attr-name,
+.token.string,
+.token.char,
+.token.builtin,
+.token.inserted {
+  color: #690;
+}
+
+.token.operator,
+.token.entity,
+.token.url,
+.language-css .token.string,
+.style .token.string {
+  color: #9a6e3a;
+}
+
+.token.atrule,
+.token.attr-value,
+.token.keyword {
+  color: #07a;
+}
+
+.token.function,
+.token.class-name {
+  color: #dd4a68;
+}
+
+.token.regex,
+.token.important,
+.token.variable {
+  color: #e90;
+}
+
+.token.important,
+.token.bold {
+  font-weight: bold;
+}
+
+.token.italic {
+  font-style: italic;
+}
+
+.token.entity {
+  cursor: help;
+}
+
+/* Add this to fix spacing issues in code blocks */
+.prose pre {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  border-radius: 0;
+  border: none;
+  background-color: transparent;
+}
+
+/* Code block with filename doesn't need top border radius */
+.prose .code-block-with-filename {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0; 
+}
+
 @layer components {
   h1, h2, h3, h4, h5, h6 {
     @apply font-semibold text-gray-900;
@@ -136,5 +220,130 @@
   
   .prose table td {
     @apply border-b border-gray-200 px-4 py-3;
+  }
+
+  /* Enhanced Code Block Styling */
+  pre {
+    margin-top: 1.5rem !important;
+    margin-bottom: 1.5rem !important;
+    overflow-x: auto;
+    border-radius: 0.5rem;
+  }
+
+  /* Language-specific syntax highlighting */
+  .language-javascript .token.string,
+  .language-typescript .token.string,
+  .language-js .token.string,
+  .language-ts .token.string,
+  .language-jsx .token.string,
+  .language-tsx .token.string {
+    @apply text-amber-700;
+  }
+
+  .language-javascript .token.comment,
+  .language-typescript .token.comment,
+  .language-js .token.comment,
+  .language-ts .token.comment,
+  .language-jsx .token.comment,
+  .language-tsx .token.comment {
+    @apply text-slate-500;
+  }
+
+  .language-javascript .token.keyword,
+  .language-typescript .token.keyword,
+  .language-js .token.keyword,
+  .language-ts .token.keyword,
+  .language-jsx .token.keyword,
+  .language-tsx .token.keyword {
+    @apply text-purple-600;
+  }
+
+  .language-javascript .token.function,
+  .language-typescript .token.function,
+  .language-js .token.function,
+  .language-ts .token.function,
+  .language-jsx .token.function,
+  .language-tsx .token.function {
+    @apply text-indigo-600;
+  }
+
+  .language-javascript .token.boolean,
+  .language-typescript .token.boolean,
+  .language-js .token.boolean,
+  .language-ts .token.boolean,
+  .language-jsx .token.boolean,
+  .language-tsx .token.boolean,
+  .language-javascript .token.number,
+  .language-typescript .token.number,
+  .language-js .token.number,
+  .language-ts .token.number,
+  .language-jsx .token.number,
+  .language-tsx .token.number {
+    @apply text-green-600;
+  }
+
+  .language-javascript .token.operator,
+  .language-typescript .token.operator,
+  .language-js .token.operator,
+  .language-ts .token.operator,
+  .language-jsx .token.operator,
+  .language-tsx .token.operator {
+    @apply text-sky-600;
+  }
+
+  .language-bash .token.function {
+    @apply text-yellow-600;
+  }
+  
+  .language-bash .token.parameter {
+    @apply text-purple-600;
+  }
+
+  /* Command line styling */
+  .language-bash .token.operator,
+  .language-shell .token.operator {
+    @apply text-gray-500;
+  }
+
+  .language-bash .token.string,
+  .language-shell .token.string {
+    @apply text-green-600;
+  }
+
+  /* JSON styling */
+  .language-json .token.property {
+    @apply text-blue-600;
+  }
+
+  .language-json .token.string {
+    @apply text-amber-600;
+  }
+
+  .language-json .token.number,
+  .language-json .token.boolean {
+    @apply text-emerald-600;
+  }
+
+  /* YAML styling */
+  .language-yaml .token.key {
+    @apply text-blue-600;
+  }
+
+  .language-yaml .token.string {
+    @apply text-amber-600;
+  }
+
+  /* Markdown styling */
+  .language-markdown .token.title,
+  .language-markdown .token.title .token.punctuation {
+    @apply text-blue-600 font-bold;
+  }
+
+  .language-markdown .token.list.punctuation {
+    @apply text-rose-500;
+  }
+
+  .language-markdown .token.url {
+    @apply text-emerald-600;
   }
 }

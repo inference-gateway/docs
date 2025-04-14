@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect } from "react"
+import React, { useEffect, useCallback } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Menu } from "lucide-react"
@@ -14,17 +14,17 @@ export function Header() {
   const { toggleSidebar } = useSidebar()
   const { toggleSearch, setIsOpen: setSearchOpen } = useSearchContext()
 
-  const handleKeyDown = (e: KeyboardEvent) => {
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
       e.preventDefault()
       toggleSearch()
     }
-  }
+  }, [toggleSearch]);
 
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [toggleSearch, handleKeyDown])
+  }, [handleKeyDown])
 
   return (
     <>

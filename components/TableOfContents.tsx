@@ -94,7 +94,7 @@ const TableOfContents = () => {
         clearTimeout(timeoutRef.current);
       }
     };
-  }, [pathname]);
+  }, [pathname, activeId]);
 
   const handleClick = (e: React.MouseEvent, headingId: string) => {
     e.preventDefault();

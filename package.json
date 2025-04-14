@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start", 
+    "start": "next start",
     "lint": "next lint",
     "generate-sitemap": "tsx scripts/generate-sitemap.ts",
     "generate-search-index": "tsx scripts/generate-search-index.ts",
@@ -24,6 +24,7 @@
     "lucide-react": "^0.488.0",
     "mermaid": "^11.4.1",
     "next": "15.2.4",
+    "prismjs": "^1.30.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tailwind-merge": "^3.2.0",
