@@ -57,13 +57,13 @@ export function SearchModal() {
     <div className="fixed inset-0 z-50 overflow-y-auto p-4 sm:p-6 md:p-20" role="dialog" aria-modal="true">
       {/* Backdrop */}
       <div 
-        className="fixed inset-0 bg-gray-500 bg-opacity-15 backdrop-blur-sm transition-opacity" 
+        className="fixed inset-0 bg-gray-500/30 backdrop-blur-md transition-opacity" 
         aria-hidden="true"
         onClick={() => setIsOpen(false)}
       />
 
       {/* Modal */}
-      <div className="relative mx-auto max-w-2xl transform overflow-hidden rounded-xl bg-white/90 backdrop-blur-sm shadow-2xl ring-1 ring-black ring-opacity-5 transition-all">
+      <div className="relative mx-auto max-w-2xl transform overflow-hidden rounded-xl bg-white/95 shadow-2xl ring-1 ring-black ring-opacity-5 transition-all">
         {/* Search input */}
         <div className="relative">
           <Search className="pointer-events-none absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
