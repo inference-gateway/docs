@@ -97,6 +97,11 @@ export function Header() {
               </div>
             </div>
             
+            {/* Mobile theme toggle */}
+            <div className="lg:hidden flex items-center ml-2">
+              {renderThemeToggle()}
+            </div>
+            
             {/* Navigation */}
             <nav className="hidden md:flex items-center space-x-6">
               <Link href="/getting-started" className={cn(
