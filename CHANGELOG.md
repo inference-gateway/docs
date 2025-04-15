@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.2](https://github.com/inference-gateway/docs/compare/0.4.1...0.4.2) (2025-04-15)
+
+### 🐛 Bug Fixes
+
+* Clean up formatting and improve consistency across markdown files and code components ([78a0267](https://github.com/inference-gateway/docs/commit/78a02672b718108b8a1acba20c49de827758d992))
+* Enhance TableOfContents interaction and performance with improved hash handling ([633e609](https://github.com/inference-gateway/docs/commit/633e609cd05d83a9c36b8f7d136cab982382dc72))
+
+### 📚 Documentation
+
+* Add authentication page ([8ea6008](https://github.com/inference-gateway/docs/commit/8ea60084796ab784926dc1693e04496930e3a228))
+* Update deployment guide and remove roadmap section from UI documentation ([4b9ba88](https://github.com/inference-gateway/docs/commit/4b9ba8882bfbbc2868821642698eef4aa1948ed6))
+
+### 🔧 Miscellaneous
+
+* Update sitemap.xml with new lastmod dates and add authentication page ([9bebcf1](https://github.com/inference-gateway/docs/commit/9bebcf1104e299aaed311ecb55b4a41f2b470326))
+
+### 📦 Miscellaneous
+
+* Add husky and lint-staged for pre-commit hooks ([3d550ca](https://github.com/inference-gateway/docs/commit/3d550caa9993e0daa228d2f53ab9ee947aac1e5f))
+
 ## [0.4.1](https://github.com/inference-gateway/docs/compare/0.4.0...0.4.1) (2025-04-15)
 
 ### 🐛 Bug Fixes
