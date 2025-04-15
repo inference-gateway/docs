@@ -1,6 +1,6 @@
 # Deployment with Helm
 
-This guide explains how to deploy the Inference Gateway using the official Helm chart.
+This guide explains how to deploy the Inference Gateway using the official Helm charts.
 
 ## Prerequisites
 
@@ -8,29 +8,219 @@ This guide explains how to deploy the Inference Gateway using the official Helm 
 - Helm installed (v3.8+)
 - kubectl configured to access your cluster
 
-## Installation
+## Installation Options
+
+There are two primary deployment options:
+
+1. **Basic Gateway Deployment**: Only deploys the Inference Gateway service
+2. **UI with Gateway Deployment**: Deploys both the Inference Gateway UI and the Gateway service
+
+### Option 1: Basic Gateway Deployment
 
 Install the chart directly from OCI registry:
 ```bash
-helm install my-release oci://ghcr.io/inference-gateway/charts/inference-gateway \
+helm upgrade --install my-release oci://ghcr.io/inference-gateway/charts/inference-gateway \
   --namespace inference-gateway \
   --create-namespace \
   --version 0.5.0
 ```
 
+To enable ingress for the basic deployment:
+```bash
+helm upgrade --install my-release oci://ghcr.io/inference-gateway/charts/inference-gateway \
+  --namespace inference-gateway \
+  --create-namespace \
+  --set ingress.enabled=true \
+  --version 0.5.0
+```
+
+### Option 2: UI with Gateway Deployment
+
+#### Setting Up Required Secrets
+
+Before deploying the UI with Gateway, you may need to set up required secrets:
+
+```bash
+# Create namespace if it doesn't exist
+kubectl create namespace inference-gateway --dry-run=client -o yaml | kubectl apply -f -
+
+# Create secret for API keys (example for DeepSeek)
+kubectl apply -f - <<EOF
+apiVersion: v1
+kind: Secret
+metadata:
+  name: inference-gateway
+  namespace: inference-gateway
+  annotations:
+    meta.helm.sh/release-name: inference-gateway-ui
+    meta.helm.sh/release-namespace: inference-gateway
+  labels:
+    app.kubernetes.io/managed-by: Helm
+type: Opaque
+stringData:
+  DEEPSEEK_API_KEY: your-deepseek-api-key
+EOF
+```
+
+#### Basic UI Deployment
+
+```bash
+helm upgrade --install inference-gateway-ui \
+  oci://ghcr.io/inference-gateway/charts/inference-gateway-ui \
+  --version 0.5.0 \
+  --create-namespace \
+  --namespace inference-gateway \
+  --set gateway.enabled=true \
+  --set gateway.envFrom.secretRef=inference-gateway
+```
+
+#### UI Deployment with Ingress
+
+```bash
+helm upgrade --install inference-gateway-ui \
+  oci://ghcr.io/inference-gateway/charts/inference-gateway-ui \
+  --version 0.5.0 \
+  --create-namespace \
+  --namespace inference-gateway \
+  --set gateway.enabled=true \
+  --set gateway.envFrom.secretRef=inference-gateway \
+  --set ingress.enabled=true \
+  --set ingress.className=nginx \
+  --set "ingress.hosts[0].host=ui.inference-gateway.local" \
+  --set "ingress.hosts[0].paths[0].path=/" \
+  --set "ingress.hosts[0].paths[0].pathType=Prefix" \
+  --set "ingress.tls[0].secretName=inference-gateway-ui-tls" \
+  --set "ingress.tls[0].hosts[0]=ui.inference-gateway.local"
+```
+
+### TLS Certificate Management
+
+#### Option 1: Manual TLS Secret Creation
+
+For production deployments, you can manually create a TLS secret with your certificates:
+
+```bash
+kubectl create secret tls inference-gateway-ui-tls \
+  --namespace inference-gateway \
+  --cert=/path/to/tls.crt \
+  --key=/path/to/tls.key
+```
+
+#### Option 2: cert-manager (Recommended)
+
+For production deployments, we recommend using [cert-manager](https://cert-manager.io/) to automate certificate management. This approach automates certificate issuance and renewal:
+
+1. Install cert-manager if not already installed:
+
+```bash
+helm repo add jetstack https://charts.jetstack.io
+helm repo update
+helm upgrade --install cert-manager jetstack/cert-manager \
+  --namespace cert-manager \
+  --create-namespace \
+  --version v1.17.1 \
+  --set crds.enabled=true
+```
+
+2. Create an Issuer or ClusterIssuer (example with Let's Encrypt):
+
+```bash
+kubectl apply -f - <<EOF
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: your-email@example.com
+    privateKeySecretRef:
+      name: letsencrypt-prod
+    solvers:
+    - http01:
+        ingress:
+          class: nginx
+EOF
+```
+
+3. Update your Helm installation to use cert-manager annotations:
+
+```bash
+helm upgrade --install inference-gateway-ui \
+  oci://ghcr.io/inference-gateway/charts/inference-gateway-ui \
+  --version 0.5.0 \
+  --create-namespace \
+  --namespace inference-gateway \
+  --set gateway.enabled=true \
+  --set gateway.envFrom.secretRef=inference-gateway \
+  --set ingress.enabled=true \
+  --set ingress.className=nginx \
+  --set "ingress.hosts[0].host=your-domain.example.com" \
+  --set "ingress.hosts[0].paths[0].path=/" \
+  --set "ingress.hosts[0].paths[0].pathType=Prefix" \
+  --set "ingress.tls[0].secretName=inference-gateway-ui-tls" \
+  --set "ingress.tls[0].hosts[0]=your-domain.example.com" \
+  --set "ingress.annotations.cert-manager\.io/cluster-issuer=letsencrypt-prod"
+```
+
+With this setup, cert-manager will automatically request and manage TLS certificates from Let's Encrypt.
+
 ## Configuration
 
 To see the available configurations, run:
 ```bash
+# For basic gateway
 helm show values oci://ghcr.io/inference-gateway/charts/inference-gateway
+
+# For UI with gateway
+helm show values oci://ghcr.io/inference-gateway/charts/inference-gateway-ui
 ```
+
+### Common Configuration Options
+
+#### Resource Limits
+
+```bash
+--set resources.limits.cpu=500m \
+--set resources.limits.memory=512Mi \
+--set resources.requests.cpu=100m \
+--set resources.requests.memory=128Mi
+```
+
+#### Environment Variables for UI
+
+```bash
+--set-string "env[0].name=NODE_ENV" \
+--set-string "env[0].value=production" \
+--set-string "env[1].name=NEXT_TELEMETRY_DISABLED" \
+--set-string "env[1].value=1" \
+--set-string "env[2].name=INFERENCE_GATEWAY_URL" \
+--set-string "env[2].value=http://inference-gateway:8080/v1"
+```
+
+## Accessing the UI
+
+If you haven't configured ingress, you can use port forwarding:
+
+```bash
+kubectl port-forward -n inference-gateway svc/inference-gateway-ui 3000:80
+```
+
+Then access the UI at http://localhost:3000
 
 ## Upgrading
 
 To upgrade an existing installation:
 
 ```bash
-helm upgrade my-release oci://ghcr.io/inference-gateway/charts/inference-gateway \
+# For basic gateway
+helm upgrade --install my-release oci://ghcr.io/inference-gateway/charts/inference-gateway \
+  --namespace inference-gateway \
+  -f values.yaml \
+  --version 0.5.0
+
+# For UI with gateway
+helm upgrade --install inference-gateway-ui oci://ghcr.io/inference-gateway/charts/inference-gateway-ui \
   --namespace inference-gateway \
   -f values.yaml \
   --version 0.5.0
@@ -41,11 +231,31 @@ helm upgrade my-release oci://ghcr.io/inference-gateway/charts/inference-gateway
 To completely remove the installation:
 
 ```bash
+# For basic gateway
 helm uninstall my-release --namespace inference-gateway
+
+# For UI with gateway
+helm uninstall inference-gateway-ui --namespace inference-gateway
+
+# Remove the namespace
 kubectl delete namespace inference-gateway
 ```
 
-## Chart Source
+## Checking Deployment Status
 
-The Helm chart source is available at:  
-[https://github.com/inference-gateway/inference-gateway/tree/main/charts/inference-gateway](https://github.com/inference-gateway/inference-gateway/tree/main/charts/inference-gateway)
+```bash
+# Check running pods
+kubectl get pods -n inference-gateway
+
+# Check services
+kubectl get svc -n inference-gateway
+
+# Check ingress (if enabled)
+kubectl get ingress -n inference-gateway
+```
+
+## Chart Sources
+
+The Helm chart sources are available at:  
+- Gateway: [https://github.com/inference-gateway/inference-gateway/tree/main/charts/inference-gateway](https://github.com/inference-gateway/inference-gateway/tree/main/charts/inference-gateway)
+- UI with Gateway: [https://github.com/inference-gateway/ui/tree/main/charts/inference-gateway-ui](https://github.com/inference-gateway/ui/tree/main/charts/inference-gateway-ui)
