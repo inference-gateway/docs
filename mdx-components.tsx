@@ -7,7 +7,7 @@ import { Check, Copy, FileCode, ZoomIn } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ImageModal } from '@/components/ImageModal';
 
-import 'prismjs';
+import Prism from 'prismjs';
 import 'prismjs/components/prism-bash';
 import 'prismjs/components/prism-javascript';
 import 'prismjs/components/prism-typescript';
@@ -159,6 +159,10 @@ const CodeBlock = ({ children, className, filename }: CodeBlockProps) => {
   const language = className?.replace(/language-/, '') || '';
   const [copied, setCopied] = useState(false);
   const codeRef = useRef<HTMLPreElement>(null);
+
+  useEffect(() => {
+    Prism.highlightAll()
+  }, [])
 
   const copyToClipboard = async () => {
     if (!codeRef.current?.textContent) return;
