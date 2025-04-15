@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.3](https://github.com/inference-gateway/docs/compare/0.4.2...0.4.3) (2025-04-15)
+
+### 🐛 Bug Fixes
+
+* Improve pre-commit hook to check formatting and provide user feedback ([e8f9b9d](https://github.com/inference-gateway/docs/commit/e8f9b9d13788e4684ee9440e5fb84dc6122c3467))
+
+### 🔧 Miscellaneous
+
+* Remove lint-staged from dependencies in package.json and package-lock.json ([a193728](https://github.com/inference-gateway/docs/commit/a19372828ea2cd566dccfaab29bcb6f1ed55154e))
+
 ## [0.4.2](https://github.com/inference-gateway/docs/compare/0.4.1...0.4.2) (2025-04-15)
 
 ### 🐛 Bug Fixes
