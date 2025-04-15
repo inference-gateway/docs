@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 /**
  * Theme Configuration
@@ -16,15 +16,15 @@
   --color-primary: #7c3aed;
   --color-primary-light: #8b5cf6;
   --color-primary-dark: #6d28d9;
-  --color-accent: #7c3aed; 
+  --color-accent: #7c3aed;
   --color-accent-hover: #6d28d9;
-  
+
   /* Content Colors */
   --color-heading: #111827;
   --color-text: #000000;
   --color-bg: #ffffff;
   --color-border: #e5e7eb;
-  
+
   /* Code Colors */
   --color-code-bg: #f9fafb;
   --color-code-text: #1f2937;
@@ -38,7 +38,7 @@
   --syntax-keyword: #07a;
   --syntax-function: #dd4a68;
   --syntax-variable: #e90;
-  
+
   /* UI Component Colors - Light Theme */
   --color-destructive: #ef4444;
   --color-destructive-foreground: #ffffff;
@@ -48,21 +48,21 @@
   --color-input: #e5e7eb;
   --color-accent-foreground: #000000;
   --color-ring-offset: #ffffff;
-  
+
   /* Header & Navigation - Light Theme */
   --color-header-bg: rgba(255, 255, 255, 0.8);
   --color-header-border: #e5e7eb;
   --color-nav-text: #6b7280;
   --color-nav-hover: #7c3aed;
   --color-nav-active: #7c3aed;
-  
+
   /* Sidebar - Light Theme */
   --color-sidebar-section: #111827;
   --color-sidebar-link: #111827;
   --color-sidebar-link-hover: #111827;
   --color-sidebar-active: #7c3aed;
   --color-sidebar-icon: #6b7280;
-  
+
   /* Search - Light Theme */
   --color-search-bg: #ffffff;
   --color-search-border: #e5e7eb;
@@ -76,7 +76,7 @@
   --color-search-button-text: #6b7280;
   --color-search-backdrop: rgba(75, 85, 99, 0.3);
   --color-search-icon: #9ca3af;
-  
+
   /* Link Effect Variables - Light Theme */
   --link-transition-duration: 0.2s;
   --link-glow-color: rgba(168, 118, 255, 0.2);
@@ -92,14 +92,14 @@
   --color-primary-dark: #7c3aed;
   --color-accent: #3291ff;
   --color-accent-hover: #69a1ff;
-  
+
   /* Content Colors */
   --color-heading: #ffffff;
   --color-text: #e0e0e0;
   --color-text-dark: #9ca3af;
   --color-bg: #0d1117;
   --color-border: #30363d;
-  
+
   /* Code Colors */
   --color-code-bg: #1e1e1e;
   --color-code-text: #e0e0e0;
@@ -113,7 +113,7 @@
   --syntax-keyword: #ff7b72;
   --syntax-function: #d2a8ff;
   --syntax-variable: #ffa657;
-  
+
   /* UI Component Colors - Dark Theme */
   --color-destructive: #f87171;
   --color-destructive-foreground: #0d1117;
@@ -123,21 +123,21 @@
   --color-input: #374151;
   --color-accent-foreground: #f9fafb;
   --color-ring-offset: #0d1117;
-  
+
   /* Header & Navigation - Dark Theme */
   --color-header-bg: rgba(13, 17, 23, 0.8);
   --color-header-border: #30363d;
   --color-nav-text: #e0e0e0;
   --color-nav-hover: #8b5cf6;
   --color-nav-active: #8b5cf6;
-  
+
   /* Sidebar - Dark Theme */
   --color-sidebar-section: #f9fafb;
   --color-sidebar-link: #e0e0e0;
   --color-sidebar-link-hover: #f9fafb;
   --color-sidebar-active: #8b5cf6;
   --color-sidebar-icon: #9ca3af;
-  
+
   /* Search - Dark Theme */
   --color-search-bg: #1e1e1e;
   --color-search-border: #30363d;
@@ -151,7 +151,7 @@
   --color-search-button-text: #9ca3af;
   --color-search-backdrop: rgba(0, 0, 0, 0.5);
   --color-search-icon: #6b7280;
-  
+
   /* Link Effect Variables - Dark Theme */
   --link-glow-color: rgba(139, 92, 246, 0.3);
   --link-hover-bg: rgba(139, 92, 246, 0.15);
@@ -160,7 +160,9 @@
 
 /* Add smooth transition for theme change */
 html {
-  transition: color 0.3s ease, background-color 0.3s ease;
+  transition:
+    color 0.3s ease,
+    background-color 0.3s ease;
 }
 
 /* Sidebar styles */
@@ -265,64 +267,71 @@ html {
 
 .prose .code-block-with-filename {
   border-top-left-radius: 0;
-  border-top-right-radius: 0; 
+  border-top-right-radius: 0;
 }
 
 @layer components {
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     @apply font-semibold text-[--color-heading];
     scroll-margin-top: var(--scroll-mt);
   }
-  
+
   h1 {
     @apply text-4xl font-bold mt-12 mb-6 tracking-tight;
   }
-  
+
   h2 {
     @apply text-3xl font-bold mt-10 mb-5 border-b pb-2;
   }
-  
+
   h3 {
     @apply text-2xl font-semibold mt-8 mb-4;
   }
-  
+
   h4 {
     @apply text-xl font-medium mt-6 mb-3;
   }
-  
+
   h5 {
     @apply text-base font-medium mt-4 mb-2;
   }
-  
+
   h6 {
     @apply text-sm font-medium mt-4 mb-2 uppercase tracking-wider;
   }
 
   body {
     @apply bg-[--color-bg] text-[--color-text];
-    font-feature-settings: "rlig" 1, "calt" 1;
+    font-feature-settings:
+      'rlig' 1,
+      'calt' 1;
   }
 
   .prose {
     @apply max-w-3xl mx-auto;
   }
-  
+
   .prose pre {
     @apply bg-gray-50 dark:bg-gray-800 p-4 rounded-lg overflow-x-auto border border-gray-200 dark:border-gray-700;
   }
-  
+
   .prose code {
     @apply bg-[--color-code-bg] text-[--color-code-text] px-1.5 py-0.5 rounded-md text-sm font-mono;
   }
-  
+
   .prose pre code {
     @apply bg-transparent p-0 text-sm leading-relaxed;
   }
-  
+
   .prose :not(pre) > code {
     @apply bg-[--color-code-bg] text-[--color-code-text] px-1.5 py-0.5 rounded-md text-sm font-mono;
   }
-  
+
   .prose a {
     @apply text-[--color-accent] font-medium underline underline-offset-4;
     transition: all var(--link-transition-duration) ease-in-out;
@@ -330,10 +339,15 @@ html {
   }
 
   /* Remove underline from headline links */
-  .prose h1 a, .prose h2 a, .prose h3 a, .prose h4 a, .prose h5 a, .prose h6 a {
+  .prose h1 a,
+  .prose h2 a,
+  .prose h3 a,
+  .prose h4 a,
+  .prose h5 a,
+  .prose h6 a {
     @apply no-underline;
   }
-  
+
   .prose a:hover {
     @apply text-[--color-accent-hover];
     text-shadow: 0 0 6px var(--link-glow-color);
@@ -341,11 +355,16 @@ html {
   }
 
   /* Ensure headline links hover state also has no underline */
-  .prose h1 a:hover, .prose h2 a:hover, .prose h3 a:hover, .prose h4 a:hover, .prose h5 a:hover, .prose h6 a:hover {
+  .prose h1 a:hover,
+  .prose h2 a:hover,
+  .prose h3 a:hover,
+  .prose h4 a:hover,
+  .prose h5 a:hover,
+  .prose h6 a:hover {
     text-decoration: none;
     text-decoration-thickness: 0;
   }
-  
+
   .prose p {
     @apply text-base leading-7 mt-4;
   }
@@ -361,11 +380,11 @@ html {
   .prose h3 {
     @apply text-2xl font-semibold mt-8 mb-4 text-[--color-heading];
   }
-  
+
   .docs-content {
     @apply w-full pb-16;
   }
-  
+
   .docs-sidebar a {
     @apply block py-2 px-4 rounded-md hover:text-[--color-primary];
   }
@@ -373,37 +392,37 @@ html {
   .docs-sidebar a.active {
     @apply font-medium text-[--color-primary];
   }
-  
+
   /* Callout styles */
   .callout {
     @apply my-6 flex rounded-lg border border-l-4 p-4;
   }
-  
+
   .callout.info {
     @apply border-blue-500 bg-blue-50 dark:bg-blue-950/50 text-blue-900 dark:text-blue-300;
   }
-  
+
   .callout.warning {
     @apply border-yellow-500 bg-yellow-50 dark:bg-yellow-950/50 text-yellow-900 dark:text-yellow-300;
   }
-  
+
   .callout.error {
     @apply border-red-500 bg-red-50 dark:bg-red-950/50 text-red-900 dark:text-red-300;
   }
-  
+
   .callout .icon {
     @apply mr-4 text-lg;
   }
-  
+
   /* Table styles */
   .prose table {
     @apply w-full border-collapse text-sm my-6;
   }
-  
+
   .prose table th {
     @apply border-b px-4 py-3 text-left text-sm font-medium;
   }
-  
+
   .prose table td {
     @apply border-b px-4 py-3;
   }
@@ -480,7 +499,7 @@ html {
   .language-bash .token.function {
     @apply text-yellow-600 dark:text-yellow-300;
   }
-  
+
   .language-bash .token.parameter {
     @apply text-purple-600 dark:text-purple-300;
   }
@@ -538,11 +557,11 @@ html {
   .language-http .token.status-line {
     @apply text-purple-600 dark:text-purple-300 font-bold;
   }
-  
+
   .language-http .token.property {
     @apply text-blue-600 dark:text-blue-300;
   }
-  
+
   .language-http .token.string {
     @apply text-amber-600 dark:text-amber-300;
   }
@@ -550,11 +569,11 @@ html {
   .language-http .token.attr-name {
     @apply text-green-600 dark:text-green-300;
   }
-  
+
   .language-http .token.attr-value {
     @apply text-amber-600 dark:text-amber-300;
   }
-  
+
   .language-http .token.punctuation {
     @apply text-gray-500 dark:text-gray-300;
   }
@@ -612,13 +631,21 @@ html {
 
 /* Modal animation */
 @keyframes modalFadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes modalSlideIn {
-  from { transform: translateY(10px); }
-  to { transform: translateY(0); }
+  from {
+    transform: translateY(10px);
+  }
+  to {
+    transform: translateY(0);
+  }
 }
 
 /* Link hover effects for navigation */
@@ -655,11 +682,13 @@ html {
 }
 
 /* GitHub link hover effect */
-a[href^="https://github.com"] {
+a[href^="https://github.com"]
+{
   transition: all var(--link-transition-duration) ease-in-out;
 }
 
-a[href^="https://github.com"]:hover svg {
+a[href^="https://github.com"]:hover svg
+{
   transform: scale(1.1) rotate(-5deg);
 }
 

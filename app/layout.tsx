@@ -1,25 +1,21 @@
-import './globals.css'
-import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
-import { Header } from '@/components/Header'
-import Sidebar from '@/components/Sidebar'
-import { SidebarProvider } from '@/components/SidebarContext'
-import { SearchProvider } from '@/components/SearchContext'
-import { ThemeProvider as NextThemesProvider } from "next-themes"
-import TableOfContents from '@/components/TableOfContents'
+import './globals.css';
+import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
+import { Header } from '@/components/Header';
+import Sidebar from '@/components/Sidebar';
+import { SidebarProvider } from '@/components/SidebarContext';
+import { SearchProvider } from '@/components/SearchContext';
+import { ThemeProvider as NextThemesProvider } from 'next-themes';
+import TableOfContents from '@/components/TableOfContents';
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'Inference Gateway Documentation',
   description: 'Documentation for the Inference Gateway, a proxy for multiple language model APIs',
-}
+};
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode,
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
       <html lang="en" className="h-full" suppressHydrationWarning>
@@ -47,5 +43,5 @@ export default function RootLayout({
         </body>
       </html>
     </>
-  )
+  );
 }

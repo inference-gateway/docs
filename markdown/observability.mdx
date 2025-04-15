@@ -62,12 +62,12 @@ spec:
     matchLabels:
       app: inference-gateway
   endpoints:
-  - port: http
-    path: /metrics
-    interval: 15s
+    - port: http
+      path: /metrics
+      interval: 15s
   namespaceSelector:
     matchNames:
-    - inference-gateway
+      - inference-gateway
 ```
 
 3. Install Grafana dashboards to visualize the collected metrics.

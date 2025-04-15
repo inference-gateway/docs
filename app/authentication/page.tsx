@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import Authentication from "@/markdown/authentication.mdx";
+import Authentication from '@/markdown/authentication.mdx';
 
 export default function Page() {
   return (

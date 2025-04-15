@@ -44,27 +44,32 @@ This section provides a detailed guide for integrating Keycloak with Inference G
 Inference Gateway provides a complete example for setting up Keycloak authentication in a Kubernetes environment:
 
 1. Clone the repository:
+
    ```bash
    git clone https://github.com/inference-gateway/inference-gateway.git
    cd inference-gateway/examples/kubernetes/authentication
    ```
 
 2. Deploy the infrastructure (Keycloak, PostgreSQL, etc.):
+
    ```bash
    task deploy-infrastructure
    ```
 
 3. Deploy Inference Gateway with authentication enabled:
+
    ```bash
    task deploy-inference-gateway
    ```
 
 4. Get the Keycloak admin password:
+
    ```bash
    task keycloak-admin-password
    ```
 
 5. Access the Keycloak admin console:
+
    - URL: `https://keycloak.inference-gateway.local`
    - Username: `temp-admin`
    - Password: (output from the previous command)
@@ -82,12 +87,14 @@ If you're setting up Keycloak manually, follow these steps:
    Follow the [official Keycloak installation guide](https://www.keycloak.org/getting-started/getting-started-zip) for your environment.
 
 2. **Create a Realm**:
+
    - Log in to the Keycloak Admin Console
    - Click "Create Realm"
    - Enter "inference-gateway-realm" as the realm name
    - Click "Create"
 
 3. **Create a Client**:
+
    - In your realm, go to "Clients" → "Create client"
    - Client ID: `inference-gateway-client`
    - Client Authentication: Enabled
@@ -98,6 +105,7 @@ If you're setting up Keycloak manually, follow these steps:
      - Save the changes
 
 4. **Get Client Credentials**:
+
    - Go to the "Credentials" tab of your client
    - Copy the "Client Secret"
 
@@ -135,7 +143,7 @@ metadata:
   name: inference-gateway
   namespace: inference-gateway
 data:
-  ENABLE_AUTH: "true"
+  ENABLE_AUTH: 'true'
   OIDC_ISSUER_URL: https://your-keycloak-instance/realms/inference-gateway-realm
 
 ---
@@ -237,11 +245,13 @@ helm upgrade --install \
 ### Common Issues
 
 1. **401 Unauthorized Errors**:
+
    - Check that the token hasn't expired
    - Verify that OIDC_ISSUER_URL is correct
    - Ensure the client secret is valid
 
 2. **Certificate Issues**:
+
    - When using self-signed certificates, ensure Inference Gateway trusts Keycloak's certificate
    - Set `SSL_CERT_FILE` to point to the certificate location
 

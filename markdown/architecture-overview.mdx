@@ -11,17 +11,17 @@ This document provides a high-level overview of the architecture of the Inferenc
 graph TD
     %% Client nodes
     A["👥 Clients / 🤖 Agents"] --> |POST /v1/chat/completions| Auth
-    
+
     %% Auth node
     Auth["🔒 Optional OIDC"] --> |Auth?| IG1
     Auth --> |Auth?| IG2
     Auth --> |Auth?| IG3
-    
+
     %% Gateway nodes
     IG1["🖥️ Inference Gateway"] --> P
     IG2["🖥️ Inference Gateway"] --> P
     IG3["🖥️ Inference Gateway"] --> P
-    
+
     %% Proxy and providers
     P["🔌 Proxy Gateway"] --> C["🦙 Ollama"]
     P --> D["🚀 Groq"]
@@ -36,7 +36,7 @@ graph TD
     classDef auth fill:#F5A800,stroke:#333,stroke-width:1px,color:black;
     classDef gateway fill:#326CE5,stroke:#fff,stroke-width:1px,color:white;
     classDef provider fill:#32CD32,stroke:#333,stroke-width:1px,color:white;
-    
+
     %% Apply styles
     class A client;
     class Auth auth;
@@ -55,45 +55,45 @@ graph TD
     %% External Clients
     Clients["👥 External Clients"] --> Ingress
     Agents["🤖 External Agents"] --> Ingress
-    
+
     %% Define Kubernetes border
     subgraph Kubernetes["⎈ Kubernetes Cluster"]
         %% Ingress/API Gateway
         Ingress["🚪 API Gateway"] --> Service
-        
+
         %% Internal Clients
         InternalClients["💻 Internal Clients"] --> Service
         InternalAgents["🤖 Internal Agents"] --> Service
-        
+
         %% Service Discovery
         Service["🔌 Gateway Service"] --> Pod1
         Service --> Pod2
         Service --> Pod3
-        
+
         %% Pods
         subgraph Pod1["Inference Gateway Pod"]
             IG1["🖥️ Inference Gateway"]
             IG1 --> PG1["Provider Proxy"]
         end
-        
+
         subgraph Pod2["Inference Gateway Pod"]
             IG2["🖥️ Inference Gateway"]
             IG2 --> PG2["Provider Proxy"]
         end
-        
+
         subgraph Pod3["Inference Gateway Pod"]
             IG3["🖥️ Inference Gateway"]
             IG3 --> PG3["Provider Proxy"]
         end
-        
+
         %% Monitoring Stack with ServiceMonitor
         Service --> |metrics| SM["🔍 ServiceMonitor"]
         SM -.->|scrapes| Prometheus["🔥 Prometheus"]
         Prometheus --> Grafana["📊 Grafana"]
-        
+
         %% Connection to External Providers
         PG1 & PG2 & PG3 --> ExternalProviders
-        
+
         %% External Providers placed inside K8s subgraph but visually separate
         subgraph ExternalProviders["☁️ External Providers"]
             Ext1["🦙 Ollama"]
@@ -105,7 +105,7 @@ graph TD
             Ext7["🐋 DeepSeek"]
         end
     end
-    
+
     %% Define styles
     classDef k8s fill:#326CE5,stroke:#fff,stroke-width:1px,color:white;
     classDef pod fill:#FFFFFF,stroke:#326CE5,stroke-width:1px,color:black;
@@ -115,7 +115,7 @@ graph TD
     classDef monitor fill:#84a392,stroke:#333,stroke-width:1px,color:white;
     classDef internalClient fill:#9370DB,stroke:#333,stroke-width:1px,color:white;
     classDef extProviders fill:#32CD32,stroke:#333,stroke-width:2px,color:white,stroke-dasharray:5;
-    
+
     %% Apply styles
     class Kubernetes,Ingress,Service k8s;
     class Pod1,Pod2,Pod3 pod;

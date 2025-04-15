@@ -1,11 +1,11 @@
-"use client"
+'use client';
 
-import UI from '@/markdown/ui.mdx'
+import UI from '@/markdown/ui.mdx';
 
 export default function Page() {
   return (
     <div className="prose max-w-none">
       <UI />
     </div>
-  )
+  );
 }

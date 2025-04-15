@@ -18,11 +18,17 @@ Environment variables are the primary method for configuring Inference Gateway. 
 
 ### General Settings
 
-<ConfigTable rows={[
-  { variable: "ENVIRONMENT", description: "Deployment environment", defaultValue: "production" },
-  { variable: "ENABLE_TELEMETRY", description: "Enable OpenTelemetry metrics and tracing", defaultValue: "false" },
-  { variable: "ENABLE_AUTH", description: "Enable OIDC authentication", defaultValue: "false" }
-]} />
+<ConfigTable
+  rows={[
+    { variable: 'ENVIRONMENT', description: 'Deployment environment', defaultValue: 'production' },
+    {
+      variable: 'ENABLE_TELEMETRY',
+      description: 'Enable OpenTelemetry metrics and tracing',
+      defaultValue: 'false',
+    },
+    { variable: 'ENABLE_AUTH', description: 'Enable OIDC authentication', defaultValue: 'false' },
+  ]}
+/>
 
 When `ENABLE_TELEMETRY` is set to `true`, Inference Gateway exposes a `/metrics` endpoint for Prometheus scraping and generates distributed traces that can be collected by OpenTelemetry collectors.
 
@@ -30,11 +36,21 @@ When `ENABLE_TELEMETRY` is set to `true`, Inference Gateway exposes a `/metrics`
 
 If authentication is enabled (`ENABLE_AUTH=true`), configure the following OIDC settings:
 
-<ConfigTable rows={[
-  { variable: "OIDC_ISSUER_URL", description: "OIDC issuer URL", defaultValue: "http://keycloak:8080/realms/inference-gateway-realm" },
-  { variable: "OIDC_CLIENT_ID", description: "OIDC client ID", defaultValue: "inference-gateway-client" },
-  { variable: "OIDC_CLIENT_SECRET", description: "OIDC client secret", defaultValue: '""' }
-]} />
+<ConfigTable
+  rows={[
+    {
+      variable: 'OIDC_ISSUER_URL',
+      description: 'OIDC issuer URL',
+      defaultValue: 'http://keycloak:8080/realms/inference-gateway-realm',
+    },
+    {
+      variable: 'OIDC_CLIENT_ID',
+      description: 'OIDC client ID',
+      defaultValue: 'inference-gateway-client',
+    },
+    { variable: 'OIDC_CLIENT_SECRET', description: 'OIDC client secret', defaultValue: '""' },
+  ]}
+/>
 
 When authentication is enabled, all API requests must include a valid JWT token in the Authorization header:
 
@@ -46,15 +62,17 @@ Authorization: Bearer YOUR_JWT_TOKEN
 
 These settings control the core HTTP server behavior:
 
-<ConfigTable rows={[
-  { variable: "SERVER_HOST", description: "Server host", defaultValue: "0.0.0.0" },
-  { variable: "SERVER_PORT", description: "Server port", defaultValue: "8080" },
-  { variable: "SERVER_READ_TIMEOUT", description: "Read timeout", defaultValue: "30s" },
-  { variable: "SERVER_WRITE_TIMEOUT", description: "Write timeout", defaultValue: "30s" },
-  { variable: "SERVER_IDLE_TIMEOUT", description: "Idle timeout", defaultValue: "120s" },
-  { variable: "SERVER_TLS_CERT_PATH", description: "TLS certificate path", defaultValue: '""' },
-  { variable: "SERVER_TLS_KEY_PATH", description: "TLS key path", defaultValue: '""' }
-]} />
+<ConfigTable
+  rows={[
+    { variable: 'SERVER_HOST', description: 'Server host', defaultValue: '0.0.0.0' },
+    { variable: 'SERVER_PORT', description: 'Server port', defaultValue: '8080' },
+    { variable: 'SERVER_READ_TIMEOUT', description: 'Read timeout', defaultValue: '30s' },
+    { variable: 'SERVER_WRITE_TIMEOUT', description: 'Write timeout', defaultValue: '30s' },
+    { variable: 'SERVER_IDLE_TIMEOUT', description: 'Idle timeout', defaultValue: '120s' },
+    { variable: 'SERVER_TLS_CERT_PATH', description: 'TLS certificate path', defaultValue: '""' },
+    { variable: 'SERVER_TLS_KEY_PATH', description: 'TLS key path', defaultValue: '""' },
+  ]}
+/>
 
 For production deployments, it's strongly recommended to configure TLS:
 
@@ -67,13 +85,31 @@ SERVER_TLS_KEY_PATH=/path/to/private-key.pem
 
 These settings control how Inference Gateway connects to third-party APIs:
 
-<ConfigTable rows={[
-  { variable: "CLIENT_TIMEOUT", description: "Client timeout", defaultValue: "30s" },
-  { variable: "CLIENT_MAX_IDLE_CONNS", description: "Maximum idle connections", defaultValue: "20" },
-  { variable: "CLIENT_MAX_IDLE_CONNS_PER_HOST", description: "Maximum idle connections per host", defaultValue: "20" },
-  { variable: "CLIENT_IDLE_CONN_TIMEOUT", description: "Idle connection timeout", defaultValue: "30s" },
-  { variable: "CLIENT_TLS_MIN_VERSION", description: "Minimum TLS version", defaultValue: "TLS12" }
-]} />
+<ConfigTable
+  rows={[
+    { variable: 'CLIENT_TIMEOUT', description: 'Client timeout', defaultValue: '30s' },
+    {
+      variable: 'CLIENT_MAX_IDLE_CONNS',
+      description: 'Maximum idle connections',
+      defaultValue: '20',
+    },
+    {
+      variable: 'CLIENT_MAX_IDLE_CONNS_PER_HOST',
+      description: 'Maximum idle connections per host',
+      defaultValue: '20',
+    },
+    {
+      variable: 'CLIENT_IDLE_CONN_TIMEOUT',
+      description: 'Idle connection timeout',
+      defaultValue: '30s',
+    },
+    {
+      variable: 'CLIENT_TLS_MIN_VERSION',
+      description: 'Minimum TLS version',
+      defaultValue: 'TLS12',
+    },
+  ]}
+/>
 
 For high-throughput deployments, consider increasing the connection pool settings:
 
@@ -88,52 +124,94 @@ Configure access to various LLM providers. At minimum, you should configure the 
 
 #### OpenAI
 
-<ConfigTable rows={[
-  { variable: "OPENAI_API_URL", description: "OpenAI API URL", defaultValue: "https://api.openai.com/v1" },
-  { variable: "OPENAI_API_KEY", description: "OpenAI API Key", defaultValue: '""' }
-]} />
+<ConfigTable
+  rows={[
+    {
+      variable: 'OPENAI_API_URL',
+      description: 'OpenAI API URL',
+      defaultValue: 'https://api.openai.com/v1',
+    },
+    { variable: 'OPENAI_API_KEY', description: 'OpenAI API Key', defaultValue: '""' },
+  ]}
+/>
 
 #### Anthropic
 
-<ConfigTable rows={[
-  { variable: "ANTHROPIC_API_URL", description: "Anthropic API URL", defaultValue: "https://api.anthropic.com/v1" },
-  { variable: "ANTHROPIC_API_KEY", description: "Anthropic API Key", defaultValue: '""' }
-]} />
+<ConfigTable
+  rows={[
+    {
+      variable: 'ANTHROPIC_API_URL',
+      description: 'Anthropic API URL',
+      defaultValue: 'https://api.anthropic.com/v1',
+    },
+    { variable: 'ANTHROPIC_API_KEY', description: 'Anthropic API Key', defaultValue: '""' },
+  ]}
+/>
 
 #### Cohere
 
-<ConfigTable rows={[
-  { variable: "COHERE_API_URL", description: "Cohere API URL", defaultValue: "https://api.cohere.com" },
-  { variable: "COHERE_API_KEY", description: "Cohere API Key", defaultValue: '""' }
-]} />
+<ConfigTable
+  rows={[
+    {
+      variable: 'COHERE_API_URL',
+      description: 'Cohere API URL',
+      defaultValue: 'https://api.cohere.com',
+    },
+    { variable: 'COHERE_API_KEY', description: 'Cohere API Key', defaultValue: '""' },
+  ]}
+/>
 
 #### Groq
 
-<ConfigTable rows={[
-  { variable: "GROQ_API_URL", description: "Groq API URL", defaultValue: "https://api.groq.com/openai/v1" },
-  { variable: "GROQ_API_KEY", description: "Groq API Key", defaultValue: '""' }
-]} />
+<ConfigTable
+  rows={[
+    {
+      variable: 'GROQ_API_URL',
+      description: 'Groq API URL',
+      defaultValue: 'https://api.groq.com/openai/v1',
+    },
+    { variable: 'GROQ_API_KEY', description: 'Groq API Key', defaultValue: '""' },
+  ]}
+/>
 
 #### Ollama
 
-<ConfigTable rows={[
-  { variable: "OLLAMA_API_URL", description: "Ollama API URL", defaultValue: "http://ollama:8080/v1" },
-  { variable: "OLLAMA_API_KEY", description: "Ollama API Key", defaultValue: '""' }
-]} />
+<ConfigTable
+  rows={[
+    {
+      variable: 'OLLAMA_API_URL',
+      description: 'Ollama API URL',
+      defaultValue: 'http://ollama:8080/v1',
+    },
+    { variable: 'OLLAMA_API_KEY', description: 'Ollama API Key', defaultValue: '""' },
+  ]}
+/>
 
 #### Cloudflare
 
-<ConfigTable rows={[
-  { variable: "CLOUDFLARE_API_URL", description: "Cloudflare API URL", defaultValue: "https://api.cloudflare.com/client/v4/accounts/ACCOUNT_ID/ai" },
-  { variable: "CLOUDFLARE_API_KEY", description: "Cloudflare API Key", defaultValue: '""' }
-]} />
+<ConfigTable
+  rows={[
+    {
+      variable: 'CLOUDFLARE_API_URL',
+      description: 'Cloudflare API URL',
+      defaultValue: 'https://api.cloudflare.com/client/v4/accounts/ACCOUNT_ID/ai',
+    },
+    { variable: 'CLOUDFLARE_API_KEY', description: 'Cloudflare API Key', defaultValue: '""' },
+  ]}
+/>
 
 #### DeepSeek
 
-<ConfigTable rows={[
-  { variable: "DEEPSEEK_API_URL", description: "DeepSeek API URL", defaultValue: "https://api.deepseek.com" },
-  { variable: "DEEPSEEK_API_KEY", description: "DeepSeek API Key", defaultValue: '""' }
-]} />
+<ConfigTable
+  rows={[
+    {
+      variable: 'DEEPSEEK_API_URL',
+      description: 'DeepSeek API URL',
+      defaultValue: 'https://api.deepseek.com',
+    },
+    { variable: 'DEEPSEEK_API_KEY', description: 'DeepSeek API Key', defaultValue: '""' },
+  ]}
+/>
 
 ## Environment Variable File (.env)
 
@@ -149,7 +227,7 @@ ANTHROPIC_API_KEY=your-anthropic-key
 
 ## Kubernetes ConfigMaps and Secrets
 
-When deploying in Kubernetes, use ConfigMaps for non-sensitive configuration 
+When deploying in Kubernetes, use ConfigMaps for non-sensitive configuration
 and Secrets for API keys and other sensitive information.
 
 ### Example ConfigMap
@@ -160,13 +238,13 @@ kind: ConfigMap
 metadata:
   name: inference-gateway-config
 data:
-  ENVIRONMENT: "production"
-  ENABLE_TELEMETRY: "true"
-  SERVER_HOST: "0.0.0.0"
-  SERVER_PORT: "8080"
-  SERVER_READ_TIMEOUT: "30s"
-  SERVER_WRITE_TIMEOUT: "30s"
-  SERVER_IDLE_TIMEOUT: "120s"
+  ENVIRONMENT: 'production'
+  ENABLE_TELEMETRY: 'true'
+  SERVER_HOST: '0.0.0.0'
+  SERVER_PORT: '8080'
+  SERVER_READ_TIMEOUT: '30s'
+  SERVER_WRITE_TIMEOUT: '30s'
+  SERVER_IDLE_TIMEOUT: '120s'
 ```
 
 ### Example Secret
@@ -178,10 +256,10 @@ metadata:
   name: inference-gateway-secrets
 type: Opaque
 data:
-  ANTHROPIC_API_KEY: "<base64-encoded-key>"
-  COHERE_API_KEY: "<base64-encoded-key>"
-  OPENAI_API_KEY: "<base64-encoded-key>"
-  OIDC_CLIENT_SECRET: "<base64-encoded-key>"
+  ANTHROPIC_API_KEY: '<base64-encoded-key>'
+  COHERE_API_KEY: '<base64-encoded-key>'
+  OPENAI_API_KEY: '<base64-encoded-key>'
+  OIDC_CLIENT_SECRET: '<base64-encoded-key>'
 ```
 
 ## Complete Configuration Example

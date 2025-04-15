@@ -1,8 +1,8 @@
-import { type ClassValue, clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { type ClassValue, clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
 
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+  return twMerge(clsx(inputs));
 }
 
 export type SearchResult = {
@@ -10,7 +10,7 @@ export type SearchResult = {
   excerpt: string;
   url: string;
   category?: string;
-}
+};
 
 let searchIndex: Record<string, SearchResult[]> = {};
 
@@ -33,18 +33,18 @@ export function isSearchIndexLoaded(): boolean {
 export function searchDocumentation(query: string): SearchResult[] {
   if (!query || query.trim().length === 0) return [];
   if (!isSearchIndexLoaded()) return [];
-  
+
   query = query.toLowerCase().trim();
   const terms = query.split(/\s+/);
   let results: SearchResult[] = [];
 
-  terms.forEach(term => {
+  terms.forEach((term) => {
     if (term.length < 2) return;
-    
+
     if (searchIndex[term]) {
       results = [...results, ...searchIndex[term]];
     }
-    
+
     Object.entries(searchIndex).forEach(([key, entries]) => {
       if (key.includes(term)) {
         results = [...results, ...entries];
@@ -52,9 +52,9 @@ export function searchDocumentation(query: string): SearchResult[] {
     });
   });
 
-  const uniqueResults = results.filter((result, index, self) =>
-    index === self.findIndex(r => r.url === result.url)
+  const uniqueResults = results.filter(
+    (result, index, self) => index === self.findIndex((r) => r.url === result.url)
   );
-  
+
   return uniqueResults.slice(0, 10);
 }

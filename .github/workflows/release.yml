@@ -5,10 +5,10 @@ on:
     branches:
       - main
     paths:
-      - ".github/workflows/release.yml"
+      - '.github/workflows/release.yml'
   pull_request:
     paths:
-      - ".github/workflows/release.yml"
+      - '.github/workflows/release.yml'
   workflow_dispatch:
 
 permissions:
@@ -17,7 +17,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: "pages"
+  group: 'pages'
   cancel-in-progress: true
 
 jobs:
@@ -46,7 +46,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "lts/*"
+          node-version: 'lts/*'
 
       - name: Install semantic release and plugins
         run: |
@@ -63,10 +63,10 @@ jobs:
         env:
           CI: true
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GIT_AUTHOR_NAME: "GitHub Actions Bot"
-          GIT_AUTHOR_EMAIL: "eden.reich@gmail.com"
-          GIT_COMMITTER_NAME: "GitHub Actions Bot"
-          GIT_COMMITTER_EMAIL: "eden.reich@gmail.com"
+          GIT_AUTHOR_NAME: 'GitHub Actions Bot'
+          GIT_AUTHOR_EMAIL: 'eden.reich@gmail.com'
+          GIT_COMMITTER_NAME: 'GitHub Actions Bot'
+          GIT_COMMITTER_EMAIL: 'eden.reich@gmail.com'
         run: |
           # Create first release if not exists using gh cli - Initial Release Version 0.1.0
           # This is an HACK because semantic release doesn't support versions under 1.0.0
@@ -115,8 +115,8 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4.2.0
         with:
-          node-version: "22"
-          cache: "npm"
+          node-version: '22'
+          cache: 'npm'
           cache-dependency-path: package.json
 
       - name: Install dependencies

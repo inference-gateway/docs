@@ -1,0 +1,23 @@
+# Build output
+.next/
+out/
+build/
+dist/
+
+# Dependencies
+node_modules/
+
+# Generated files
+public/search-index.json
+public/sitemap.xml
+
+# Next.js files
+next-env.d.ts
+
+# Lock files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Generated files
+CHANGELOG.md

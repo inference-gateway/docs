@@ -5,14 +5,14 @@ import path from 'path';
 const baseUrl = 'https://docs.inference-gateway.com';
 
 async function generateSitemap() {
-  const pages = await glob('app/**/page.{tsx,ts,js,jsx,mdx}', { 
-    ignore: ['app/api/**', '**/node_modules/**'] 
+  const pages = await glob('app/**/page.{tsx,ts,js,jsx,mdx}', {
+    ignore: ['app/api/**', '**/node_modules/**'],
   });
-  
+
   const markdownFiles = await glob('markdown/**/*.mdx');
-  
+
   const routeToMarkdownMap = new Map<string, string>();
-  markdownFiles.forEach(mdxFile => {
+  markdownFiles.forEach((mdxFile) => {
     const baseName = path.basename(mdxFile, '.mdx');
     routeToMarkdownMap.set(`/${baseName}`, mdxFile);
   });
@@ -33,30 +33,29 @@ async function generateSitemap() {
     url: baseUrl,
     lastmod: rootLastMod,
     changefreq: 'weekly',
-    priority: '1.0'
+    priority: '1.0',
   });
 
   const addedUrls = new Set([baseUrl]);
 
   for (const page of pages) {
-    if (page.includes('not-found') || 
-        page.includes('error') || 
-        page.includes('/api/')) {
+    if (page.includes('not-found') || page.includes('error') || page.includes('/api/')) {
       continue;
     }
 
-    const route = page
-      .replace('app', '')
-      .replace(/\/page\.(tsx|ts|js|jsx|mdx)$/, '')
-      .replace(/\\/g, '/')
-      .replace(/\/index$/, '') || '/';
+    const route =
+      page
+        .replace('app', '')
+        .replace(/\/page\.(tsx|ts|js|jsx|mdx)$/, '')
+        .replace(/\\/g, '/')
+        .replace(/\/index$/, '') || '/';
 
     if (route === '/sitemap' || route === '/robots') {
       continue;
     }
 
     const fullUrl = `${baseUrl}${route}`;
-    
+
     if (addedUrls.has(fullUrl)) {
       continue;
     }
@@ -71,7 +70,7 @@ async function generateSitemap() {
     }
 
     const segments = route.split('/').filter(Boolean).length;
-    const priority = Math.max(0.1, 1.0 - (segments * 0.2)).toFixed(1);
+    const priority = Math.max(0.1, 1.0 - segments * 0.2).toFixed(1);
 
     let changeFreq = 'monthly';
     if (route === '/') {
@@ -84,7 +83,7 @@ async function generateSitemap() {
       url: fullUrl,
       lastmod: lastMod,
       changefreq: changeFreq,
-      priority: priority
+      priority: priority,
     });
   }
 
@@ -112,7 +111,7 @@ async function generateSitemap() {
   }
 
   const sitemapPath = path.join(publicDir, 'sitemap.xml');
-  
+
   if (!fs.existsSync(sitemapPath) || fs.readFileSync(sitemapPath, 'utf-8') !== sitemap) {
     fs.writeFileSync(sitemapPath, sitemap);
     console.log('Sitemap generated with changes at public/sitemap.xml');

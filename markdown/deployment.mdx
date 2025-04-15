@@ -18,6 +18,7 @@ There are two primary deployment options:
 ### Option 1: Basic Gateway Deployment
 
 Install the chart directly from OCI registry:
+
 ```bash
 helm upgrade --install my-release oci://ghcr.io/inference-gateway/charts/inference-gateway \
   --namespace inference-gateway \
@@ -26,6 +27,7 @@ helm upgrade --install my-release oci://ghcr.io/inference-gateway/charts/inferen
 ```
 
 To enable ingress for the basic deployment:
+
 ```bash
 helm upgrade --install my-release oci://ghcr.io/inference-gateway/charts/inference-gateway \
   --namespace inference-gateway \
@@ -168,6 +170,7 @@ With this setup, cert-manager will automatically request and manage TLS certific
 ## Configuration
 
 To see the available configurations, run:
+
 ```bash
 # For basic gateway
 helm show values oci://ghcr.io/inference-gateway/charts/inference-gateway
@@ -256,6 +259,7 @@ kubectl get ingress -n inference-gateway
 
 ## Chart Sources
 
-The Helm chart sources are available at:  
+The Helm chart sources are available at:
+
 - Gateway: [https://github.com/inference-gateway/inference-gateway/tree/main/charts/inference-gateway](https://github.com/inference-gateway/inference-gateway/tree/main/charts/inference-gateway)
 - UI with Gateway: [https://github.com/inference-gateway/ui/tree/main/charts/inference-gateway-ui](https://github.com/inference-gateway/ui/tree/main/charts/inference-gateway-ui)

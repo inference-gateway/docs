@@ -1,7 +1,7 @@
-"use client"
+'use client';
 
-import type { MDXComponents } from 'mdx/types'
-import React, { useEffect, useRef, useState } from 'react'
+import type { MDXComponents } from 'mdx/types';
+import React, { useEffect, useRef, useState } from 'react';
 
 import { Check, Copy, FileCode, ZoomIn } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -22,14 +22,14 @@ import 'prismjs/components/prism-go';
 import 'prismjs/components/prism-rust';
 import 'prismjs/components/prism-shell-session';
 import 'prismjs/components/prism-http';
-import 'prismjs/plugins/line-numbers/prism-line-numbers.js'
-import 'prismjs/plugins/line-numbers/prism-line-numbers.css'
+import 'prismjs/plugins/line-numbers/prism-line-numbers.js';
+import 'prismjs/plugins/line-numbers/prism-line-numbers.css';
 
 declare global {
   interface Window {
     Prism: {
       highlightElement: (element: HTMLElement | null) => void;
-    }
+    };
   }
 }
 
@@ -80,7 +80,7 @@ const MermaidDiagram = ({ children }: { children: string }) => {
 
       try {
         const mermaid = (await import('mermaid')).default;
-        
+
         mermaid.initialize({
           startOnLoad: false,
           theme: 'neutral',
@@ -92,8 +92,8 @@ const MermaidDiagram = ({ children }: { children: string }) => {
             primaryBorderColor: '#2b6cb0',
             lineColor: '#4a5568',
             secondaryColor: '#f7fafc',
-            tertiaryColor: '#edf2f7'
-          }
+            tertiaryColor: '#edf2f7',
+          },
         });
 
         const { svg } = await mermaid.render(diagramId.current, children);
@@ -128,9 +128,9 @@ const MermaidDiagram = ({ children }: { children: string }) => {
 
   return (
     <>
-      <div 
+      <div
         className="mermaid-diagram my-6 relative group cursor-zoom-in border border-transparent hover:border-gray-200 rounded-lg p-2 transition-all"
-        onClick={handleOpenModal} 
+        onClick={handleOpenModal}
         ref={mermaidRef}
       >
         <div className="absolute top-2 right-2 bg-white/80 p-1 rounded-full shadow opacity-0 group-hover:opacity-100 transition-opacity">
@@ -138,13 +138,8 @@ const MermaidDiagram = ({ children }: { children: string }) => {
         </div>
         <div dangerouslySetInnerHTML={{ __html: svg }} />
       </div>
-      
-      <ImageModal 
-        isOpen={isModalOpen} 
-        onClose={handleCloseModal} 
-        content={svg} 
-        title="Diagram" 
-      />
+
+      <ImageModal isOpen={isModalOpen} onClose={handleCloseModal} content={svg} title="Diagram" />
     </>
   );
 };
@@ -161,12 +156,12 @@ const CodeBlock = ({ children, className, filename }: CodeBlockProps) => {
   const codeRef = useRef<HTMLPreElement>(null);
 
   useEffect(() => {
-    Prism.highlightAll()
-  }, [])
+    Prism.highlightAll();
+  }, []);
 
   const copyToClipboard = async () => {
     if (!codeRef.current?.textContent) return;
-    
+
     try {
       await navigator.clipboard.writeText(codeRef.current.textContent);
       setCopied(true);
@@ -176,21 +171,22 @@ const CodeBlock = ({ children, className, filename }: CodeBlockProps) => {
     }
   };
 
-  const displayLang = {
-    js: 'JavaScript',
-    jsx: 'JSX',
-    ts: 'TypeScript',
-    tsx: 'TSX',
-    bash: 'Terminal',
-    sh: 'Shell',
-    html: 'HTML',
-    css: 'CSS',
-    json: 'JSON',
-    yaml: 'YAML',
-    md: 'Markdown',
-    mdx: 'MDX',
-    http: 'HTTP',
-  }[language] || language.toUpperCase();
+  const displayLang =
+    {
+      js: 'JavaScript',
+      jsx: 'JSX',
+      ts: 'TypeScript',
+      tsx: 'TSX',
+      bash: 'Terminal',
+      sh: 'Shell',
+      html: 'HTML',
+      css: 'CSS',
+      json: 'JSON',
+      yaml: 'YAML',
+      md: 'Markdown',
+      mdx: 'MDX',
+      http: 'HTTP',
+    }[language] || language.toUpperCase();
 
   return (
     <div className="my-6 group relative rounded-lg overflow-hidden border border-gray-200">
@@ -209,36 +205,30 @@ const CodeBlock = ({ children, className, filename }: CodeBlockProps) => {
 
       {/* Code content */}
       <div className="relative">
-        <pre 
+        <pre
           ref={codeRef}
           className={cn(
-            "line-numbers overflow-x-auto p-4 text-sm leading-relaxed",
-            "bg-[--color-code-bg] text-[--color-code-text]",
+            'line-numbers overflow-x-auto p-4 text-sm leading-relaxed',
+            'bg-[--color-code-bg] text-[--color-code-text]',
             className
           )}
           tabIndex={0}
         >
-          <code className={`language-${language}`}>
-            {children}
-          </code>
+          <code className={`language-${language}`}>{children}</code>
         </pre>
 
         {/* Copy button */}
-        <button 
+        <button
           onClick={copyToClipboard}
           className={cn(
-            "absolute right-2 top-2 rounded-md p-1.5 transition-opacity",
-            "text-gray-500 hover:text-gray-900 hover:bg-gray-200/50",
-            "focus:outline-none focus:ring-2 focus:ring-gray-400",
-            copied ? "bg-green-100" : "bg-gray-100/80"
+            'absolute right-2 top-2 rounded-md p-1.5 transition-opacity',
+            'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50',
+            'focus:outline-none focus:ring-2 focus:ring-gray-400',
+            copied ? 'bg-green-100' : 'bg-gray-100/80'
           )}
-          aria-label={copied ? "Copied!" : "Copy to clipboard"}
+          aria-label={copied ? 'Copied!' : 'Copy to clipboard'}
         >
-          {copied ? (
-            <Check className="h-4 w-4 text-green-600" />
-          ) : (
-            <Copy className="h-4 w-4" />
-          )}
+          {copied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
         </button>
       </div>
     </div>
@@ -258,7 +248,7 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
     li: (props) => <li className="pl-1" {...props} />,
     pre: (props) => {
       const children = props.children;
-      
+
       if (
         children &&
         children.props &&
@@ -267,7 +257,7 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
       ) {
         return <MermaidDiagram>{children.props.children}</MermaidDiagram>;
       }
-      
+
       if (
         children &&
         children.props &&
@@ -275,7 +265,7 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
         /language-/.test(children.props.className)
       ) {
         return (
-          <CodeBlock 
+          <CodeBlock
             className={children.props.className}
             filename={children.props.filename || children.props['data-filename']}
           >
@@ -283,45 +273,46 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
           </CodeBlock>
         );
       }
-      
+
       return <pre {...props} />;
     },
     a: ({ href, children, ...props }) => {
       if (href?.startsWith('#')) {
         return (
-          <a href={href} {...props} onClick={(e) => {
-            e.preventDefault();
-            const targetId = href.replace('#', '');
-            const targetElement = document.getElementById(targetId);
-            if (targetElement) {
-              const headerOffset = 80;
-              const elementPosition = targetElement.getBoundingClientRect().top;
-              const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-              
-              window.scrollTo({
-                top: offsetPosition,
-                behavior: 'smooth'
-              });
-              
-              window.history.pushState(null, '', href);
-            }
-          }}>
+          <a
+            href={href}
+            {...props}
+            onClick={(e) => {
+              e.preventDefault();
+              const targetId = href.replace('#', '');
+              const targetElement = document.getElementById(targetId);
+              if (targetElement) {
+                const headerOffset = 80;
+                const elementPosition = targetElement.getBoundingClientRect().top;
+                const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+
+                window.scrollTo({
+                  top: offsetPosition,
+                  behavior: 'smooth',
+                });
+
+                window.history.pushState(null, '', href);
+              }
+            }}
+          >
             {children}
           </a>
         );
       }
-      return <a
-        href={href}
-        target="_blank"
-        rel="noopener noreferrer"
-        {...props}
-      >
-        {children}
-      </a>;
+      return (
+        <a href={href} target="_blank" rel="noopener noreferrer" {...props}>
+          {children}
+        </a>
+      );
     },
     code: (props) => {
       return <code {...props} />;
     },
     ...components,
-  }
+  };
 }
