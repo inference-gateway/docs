@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.1](https://github.com/inference-gateway/docs/compare/0.4.0...0.4.1) (2025-04-15)
+
+### 🐛 Bug Fixes
+
+* Improve layout structure and styling for better responsiveness ([c8587f6](https://github.com/inference-gateway/docs/commit/c8587f663602b2090e38bff52d992f49945efc30))
+* initialize prism on the mdx-components once ([ecca6e0](https://github.com/inference-gateway/docs/commit/ecca6e0d99d2985153c648d1d0525443971139ba))
+* Remove APPLICATION_NAME from configuration settings ([83c5424](https://github.com/inference-gateway/docs/commit/83c54240d6558189a30d4d492b6ce90cc9078cc1))
+* Set initial sidebar state to closed and adjust screen size handling ([b167b93](https://github.com/inference-gateway/docs/commit/b167b933c2a37b512294a0bbb00ddeddf893ca23))
+
+### 📚 Documentation
+
+* Add ConfigTable component and enhance configuration documentation ([ae9d787](https://github.com/inference-gateway/docs/commit/ae9d7879134100720f1f6e0b0a76eb5f3838da6e))
+
 ## [0.4.0](https://github.com/inference-gateway/docs/compare/0.3.7...0.4.0) (2025-04-14)
 
 ### ✨ Features
