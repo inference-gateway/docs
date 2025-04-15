@@ -11,7 +11,18 @@ type SidebarContextType = {
 const SidebarContext = createContext<SidebarContextType | undefined>(undefined)
 
 export function SidebarProvider({ children }: { children: React.ReactNode }) {
-  const [isOpen, setIsOpen] = useState(true)
+  const [isOpen, setIsOpen] = useState(false)
+  
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsOpen(window.innerWidth >= 1024)
+    }
+    
+    checkScreenSize()
+    
+    window.addEventListener('resize', checkScreenSize)
+    return () => window.removeEventListener('resize', checkScreenSize)
+  }, [])
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
