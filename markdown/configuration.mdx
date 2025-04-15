@@ -11,7 +11,6 @@ approach for deployment in different environments.
 
 ### General Settings
 
-- `APPLICATION_NAME`: The name of the application (default: inference-gateway)
 - `ENVIRONMENT`: The environment (default: production)
 - `ENABLE_TELEMETRY`: Enable telemetry (default: false)
 - `ENABLE_AUTH`: Enable authentication (default: false)
@@ -75,7 +74,6 @@ kind: ConfigMap
 metadata:
   name: inference-gateway-config
 data:
-  APPLICATION_NAME: "inference-gateway"
   ENVIRONMENT: "production"
   ENABLE_TELEMETRY: "false"
   SERVER_HOST: "0.0.0.0"
