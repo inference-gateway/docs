@@ -20,6 +20,7 @@ const sections = [
     title: "Core Concepts",
     items: [
       { title: "Configuration", href: "/configuration" },
+      { title: "Authentication", href: "/authentication" },
       { title: "Deployment", href: "/deployment" },
       { title: "Supported Providers", href: "/supported-providers" }
     ]

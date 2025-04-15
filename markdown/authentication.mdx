@@ -1,0 +1,257 @@
+# Authentication
+
+Inference Gateway supports authentication through OpenID Connect (OIDC), allowing you to secure your API with various identity providers. This guide focuses on setting up authentication with Keycloak, a popular open-source identity and access management solution.
+
+## Overview
+
+When authentication is enabled, all requests to the Inference Gateway API must include a valid JWT token in the Authorization header. This token is issued by your configured identity provider (IdP) and is validated by Inference Gateway to authenticate requests.
+
+## Authentication Flow
+
+1. Users authenticate with the identity provider (Keycloak)
+2. The identity provider issues a JWT token
+3. Client applications include this token in requests to Inference Gateway
+4. Inference Gateway validates the token with the identity provider
+5. If valid, the request is processed; otherwise, a 401 Unauthorized response is returned
+
+## Configuration
+
+To enable authentication, set the following environment variables:
+
+```bash
+ENABLE_AUTH=true
+OIDC_ISSUER_URL=https://your-keycloak-instance/realms/your-realm
+OIDC_CLIENT_ID=your-client-id
+OIDC_CLIENT_SECRET=your-client-secret
+```
+
+## Keycloak Integration
+
+This section provides a detailed guide for integrating Keycloak with Inference Gateway.
+
+### Prerequisites
+
+- [Keycloak](https://www.keycloak.org/) server (v24.0.0 or later recommended)
+- [Inference Gateway](https://github.com/inference-gateway/inference-gateway) (v0.5.0 or later)
+- [kubectl](https://kubernetes.io/docs/tasks/tools/) for Kubernetes deployment
+- [Helm](https://helm.sh/docs/intro/install/) for chart deployment
+- [Task](https://taskfile.dev/installation/) (optional, for running example tasks)
+
+### Setting Up Keycloak
+
+#### Option 1: Using the Authentication Example
+
+Inference Gateway provides a complete example for setting up Keycloak authentication in a Kubernetes environment:
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/inference-gateway/inference-gateway.git
+   cd inference-gateway/examples/kubernetes/authentication
+   ```
+
+2. Deploy the infrastructure (Keycloak, PostgreSQL, etc.):
+   ```bash
+   task deploy-infrastructure
+   ```
+
+3. Deploy Inference Gateway with authentication enabled:
+   ```bash
+   task deploy-inference-gateway
+   ```
+
+4. Get the Keycloak admin password:
+   ```bash
+   task keycloak-admin-password
+   ```
+
+5. Access the Keycloak admin console:
+   - URL: `https://keycloak.inference-gateway.local`
+   - Username: `temp-admin`
+   - Password: (output from the previous command)
+
+6. Test the authentication:
+   ```bash
+   curl -k -v -H "Authorization: Bearer $(task fetch-access-token)" https://api.inference-gateway.local/v1/models
+   ```
+
+#### Option 2: Manual Setup
+
+If you're setting up Keycloak manually, follow these steps:
+
+1. **Install Keycloak**:
+   Follow the [official Keycloak installation guide](https://www.keycloak.org/getting-started/getting-started-zip) for your environment.
+
+2. **Create a Realm**:
+   - Log in to the Keycloak Admin Console
+   - Click "Create Realm"
+   - Enter "inference-gateway-realm" as the realm name
+   - Click "Create"
+
+3. **Create a Client**:
+   - In your realm, go to "Clients" → "Create client"
+   - Client ID: `inference-gateway-client`
+   - Client Authentication: Enabled
+   - Save the client
+   - On the client settings page:
+     - Access Type: confidential
+     - Service Account Enabled: ON
+     - Save the changes
+
+4. **Get Client Credentials**:
+   - Go to the "Credentials" tab of your client
+   - Copy the "Client Secret"
+
+5. **Create Test User** (optional):
+   - Go to "Users" → "Add user"
+   - Username: `user`
+   - Email: `user@example.com`
+   - Email Verified: ON
+   - Save
+   - Go to "Credentials" tab
+   - Set password: `password`
+   - Temporary: OFF
+   - Save
+
+### Configure Inference Gateway
+
+Update your Inference Gateway configuration to enable authentication:
+
+#### Using Environment Variables:
+
+```bash
+ENABLE_AUTH=true
+OIDC_ISSUER_URL=https://your-keycloak-instance/realms/inference-gateway-realm
+OIDC_CLIENT_ID=inference-gateway-client
+OIDC_CLIENT_SECRET=your-client-secret
+```
+
+#### Using Kubernetes ConfigMap and Secret:
+
+```yaml
+# ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: inference-gateway
+  namespace: inference-gateway
+data:
+  ENABLE_AUTH: "true"
+  OIDC_ISSUER_URL: https://your-keycloak-instance/realms/inference-gateway-realm
+
+---
+# Secret
+apiVersion: v1
+kind: Secret
+metadata:
+  name: inference-gateway
+  namespace: inference-gateway
+stringData:
+  OIDC_CLIENT_ID: inference-gateway-client
+  OIDC_CLIENT_SECRET: your-client-secret
+type: Opaque
+```
+
+#### Using Helm:
+
+```bash
+helm upgrade --install \
+  --create-namespace \
+  --namespace inference-gateway \
+  --set envFrom.configMapRef=inference-gateway \
+  --set envFrom.secretRef=inference-gateway \
+  inference-gateway oci://ghcr.io/inference-gateway/charts/inference-gateway:0.5.0
+```
+
+## Obtaining Access Tokens
+
+To access the protected API, you need to obtain a JWT token from Keycloak:
+
+### Password Grant Flow (Testing Only)
+
+```bash
+curl -k -s -X POST \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  "https://your-keycloak-instance/realms/inference-gateway-realm/protocol/openid-connect/token" \
+  -d "grant_type=password" \
+  -d "client_id=inference-gateway-client" \
+  -d "client_secret=your-client-secret" \
+  -d "username=user" \
+  -d "password=password" | jq -r .access_token
+```
+
+### Client Credentials Flow (Service-to-Service)
+
+```bash
+curl -k -s -X POST \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  "https://your-keycloak-instance/realms/inference-gateway-realm/protocol/openid-connect/token" \
+  -d "grant_type=client_credentials" \
+  -d "client_id=inference-gateway-client" \
+  -d "client_secret=your-client-secret" | jq -r .access_token
+```
+
+## Making Authenticated Requests
+
+Once you have the token, include it in the Authorization header:
+
+```bash
+curl -H "Authorization: Bearer YOUR_TOKEN" https://your-inference-gateway/v1/models
+```
+
+## Self-Signed Certificates
+
+When working with self-signed certificates (common in development environments), you need to make Inference Gateway trust the Keycloak certificate:
+
+### In Kubernetes:
+
+```yaml
+# Create a ConfigMap with Keycloak's CA certificate
+kubectl create configmap keycloak-ca \
+  -n inference-gateway \
+  --from-literal=ca.crt="$(kubectl get secret keycloak-tls -n idp -o jsonpath='{.data.ca\.crt}' | base64 -d)"
+
+# Mount the certificate and configure Inference Gateway
+helm upgrade --install \
+  --namespace inference-gateway \
+  --set extraEnv[0].name=SSL_CERT_FILE \
+  --set extraEnv[0].value=/usr/local/share/ca-certificates/keycloak-ca.crt \
+  --set volumes[0].name=keycloak-ca \
+  --set volumes[0].configMap.name=keycloak-ca \
+  --set volumeMounts[0].name=keycloak-ca \
+  --set volumeMounts[0].mountPath=/usr/local/share/ca-certificates/keycloak-ca.crt \
+  --set volumeMounts[0].subPath=ca.crt \
+  --set volumeMounts[0].readOnly=true \
+  inference-gateway oci://ghcr.io/inference-gateway/charts/inference-gateway:0.5.0
+```
+
+## Best Practices
+
+1. **Use HTTPS**: Always secure both your Keycloak and Inference Gateway instances with HTTPS.
+2. **Token Validation**: Inference Gateway validates tokens with the OIDC issuer, ensuring they are legitimate.
+3. **Secret Management**: Store sensitive information like client secrets using secure methods (e.g., Kubernetes Secrets, HashiCorp Vault).
+4. **Client Roles**: Configure client roles in Keycloak to implement fine-grained access control.
+5. **Token Expiry**: Configure appropriate token lifetimes in Keycloak based on your security requirements.
+
+## Troubleshooting
+
+### Common Issues
+
+1. **401 Unauthorized Errors**:
+   - Check that the token hasn't expired
+   - Verify that OIDC_ISSUER_URL is correct
+   - Ensure the client secret is valid
+
+2. **Certificate Issues**:
+   - When using self-signed certificates, ensure Inference Gateway trusts Keycloak's certificate
+   - Set `SSL_CERT_FILE` to point to the certificate location
+
+3. **Clock Skew**:
+   - Ensure server clocks are synchronized as JWT validation is time-sensitive
+
+## Next Steps
+
+After setting up authentication, consider:
+
+- Implementing [Role-Based Access Control (RBAC)](https://www.keycloak.org/docs/latest/server_admin/#roles) in Keycloak
+- Configuring [token exchange](https://www.keycloak.org/docs/latest/server_admin/#_token-exchange) for service-to-service communication
+- Setting up [multi-factor authentication](https://www.keycloak.org/docs/latest/server_admin/#_otp-policies) for enhanced security
