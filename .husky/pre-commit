@@ -1,1 +1,9 @@
-npm run format:check
+#!/bin/sh
+
+echo "Checking formatting..."
+if ! npm run format:check; then
+  echo "\n\033[1;31mFormatting check failed!\033[0m"
+  echo "\033[1;33mPlease run 'npm run format' to fix formatting issues before committing.\033[0m"
+  echo "You can then try to commit again.\n"
+  exit 1
+fi
