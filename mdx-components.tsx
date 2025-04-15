@@ -253,6 +253,9 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
     h4: (props) => <Heading as="h4" {...props} />,
     h5: (props) => <Heading as="h5" {...props} />,
     h6: (props) => <Heading as="h6" {...props} />,
+    ol: (props) => <ol className="list-decimal pl-8 my-4 space-y-2" {...props} />,
+    ul: (props) => <ul className="list-disc pl-8 my-4 space-y-2" {...props} />,
+    li: (props) => <li className="pl-1" {...props} />,
     pre: (props) => {
       const children = props.children;
       

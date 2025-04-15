@@ -69,8 +69,8 @@
   --color-search-text: #111827;
   --color-search-placeholder: #9ca3af;
   --color-search-highlight: #dbeafe;
-  --color-search-selected: #f0f9ff; /* Changed from #ecfdf5 for better distinction */
-  --color-search-selected-border: #7c3aed; /* Added border color for selected items */
+  --color-search-selected: #f0f9ff;
+  --color-search-selected-border: #7c3aed;
   --color-search-button: #f9fafb;
   --color-search-button-hover: #f3f4f6;
   --color-search-button-text: #6b7280;
@@ -96,6 +96,7 @@
   /* Content Colors */
   --color-heading: #ffffff;
   --color-text: #e0e0e0;
+  --color-text-dark: #9ca3af;
   --color-bg: #0d1117;
   --color-border: #30363d;
   
@@ -400,11 +401,11 @@ html {
   }
   
   .prose table th {
-    @apply border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-left text-sm font-medium;
+    @apply border-b px-4 py-3 text-left text-sm font-medium;
   }
   
   .prose table td {
-    @apply border-b border-gray-200 dark:border-gray-700 px-4 py-3;
+    @apply border-b px-4 py-3;
   }
 
   /* Enhanced Code Block Styling */

@@ -1,65 +1,151 @@
-
 # Configuration
 
-Inference Gateway provides flexible configuration options to adapt to your specific needs.
-This page covers the key configuration methods and options available.
+import ConfigTable from '../components/ConfigTable';
+
+Inference Gateway provides flexible configuration options to adapt to your specific needs. As a proxy server designed to facilitate access to various language model APIs, proper configuration is essential for optimal performance and security.
+
+## Configuration Methods
+
+Inference Gateway supports multiple configuration methods to suit different deployment scenarios:
+
+1. **Environment Variables** - Recommended for most deployments
+2. **Kubernetes ConfigMaps and Secrets** - For Kubernetes-based deployments
+3. **Configuration Files** - For local development and testing
 
 ## Environment Variables
 
-Inference Gateway can be configured using environment variables, which is the recommended
-approach for deployment in different environments.
+Environment variables are the primary method for configuring Inference Gateway. These variables control everything from basic server settings to provider-specific API configurations.
 
 ### General Settings
 
-- `ENVIRONMENT`: The environment (default: production)
-- `ENABLE_TELEMETRY`: Enable telemetry (default: false)
-- `ENABLE_AUTH`: Enable authentication (default: false)
+<ConfigTable rows={[
+  { variable: "ENVIRONMENT", description: "Deployment environment", defaultValue: "production" },
+  { variable: "ENABLE_TELEMETRY", description: "Enable OpenTelemetry metrics and tracing", defaultValue: "false" },
+  { variable: "ENABLE_AUTH", description: "Enable OIDC authentication", defaultValue: "false" }
+]} />
+
+When `ENABLE_TELEMETRY` is set to `true`, Inference Gateway exposes a `/metrics` endpoint for Prometheus scraping and generates distributed traces that can be collected by OpenTelemetry collectors.
 
 ### OpenID Connect
 
-Configure OpenID Connect for authentication:
+If authentication is enabled (`ENABLE_AUTH=true`), configure the following OIDC settings:
 
-- `OIDC_ISSUER_URL`: OIDC issuer URL (default: http://keycloak:8080/realms/inference-gateway-realm)
-- `OIDC_CLIENT_ID`: OIDC client ID (default: inference-gateway-client)
-- `OIDC_CLIENT_SECRET`: OIDC client secret (default: "")
+<ConfigTable rows={[
+  { variable: "OIDC_ISSUER_URL", description: "OIDC issuer URL", defaultValue: "http://keycloak:8080/realms/inference-gateway-realm" },
+  { variable: "OIDC_CLIENT_ID", description: "OIDC client ID", defaultValue: "inference-gateway-client" },
+  { variable: "OIDC_CLIENT_SECRET", description: "OIDC client secret", defaultValue: '""' }
+]} />
+
+When authentication is enabled, all API requests must include a valid JWT token in the Authorization header:
+
+```http
+Authorization: Bearer YOUR_JWT_TOKEN
+```
 
 ### Server Settings
 
-- `SERVER_HOST`: Server host (default: 0.0.0.0)
-- `SERVER_PORT`: Server port (default: 8080)
-- `SERVER_READ_TIMEOUT`: Read timeout (default: 30s)
-- `SERVER_WRITE_TIMEOUT`: Write timeout (default: 30s)
-- `SERVER_IDLE_TIMEOUT`: Idle timeout (default: 120s)
-- `SERVER_TLS_CERT_PATH`: TLS certificate path (default: "")
-- `SERVER_TLS_KEY_PATH`: TLS key path (default: "")
+These settings control the core HTTP server behavior:
+
+<ConfigTable rows={[
+  { variable: "SERVER_HOST", description: "Server host", defaultValue: "0.0.0.0" },
+  { variable: "SERVER_PORT", description: "Server port", defaultValue: "8080" },
+  { variable: "SERVER_READ_TIMEOUT", description: "Read timeout", defaultValue: "30s" },
+  { variable: "SERVER_WRITE_TIMEOUT", description: "Write timeout", defaultValue: "30s" },
+  { variable: "SERVER_IDLE_TIMEOUT", description: "Idle timeout", defaultValue: "120s" },
+  { variable: "SERVER_TLS_CERT_PATH", description: "TLS certificate path", defaultValue: '""' },
+  { variable: "SERVER_TLS_KEY_PATH", description: "TLS key path", defaultValue: '""' }
+]} />
+
+For production deployments, it's strongly recommended to configure TLS:
+
+```bash
+SERVER_TLS_CERT_PATH=/path/to/certificate.pem
+SERVER_TLS_KEY_PATH=/path/to/private-key.pem
+```
 
 ### Client Settings
 
-- `CLIENT_TIMEOUT`: Client timeout (default: 30s)
-- `CLIENT_MAX_IDLE_CONNS`: Maximum idle connections (default: 20)
-- `CLIENT_MAX_IDLE_CONNS_PER_HOST`: Maximum idle connections per host (default: 20)
-- `CLIENT_IDLE_CONN_TIMEOUT`: Idle connection timeout (default: 30s)
-- `CLIENT_TLS_MIN_VERSION`: Minimum TLS version (default: TLS12)
+These settings control how Inference Gateway connects to third-party APIs:
+
+<ConfigTable rows={[
+  { variable: "CLIENT_TIMEOUT", description: "Client timeout", defaultValue: "30s" },
+  { variable: "CLIENT_MAX_IDLE_CONNS", description: "Maximum idle connections", defaultValue: "20" },
+  { variable: "CLIENT_MAX_IDLE_CONNS_PER_HOST", description: "Maximum idle connections per host", defaultValue: "20" },
+  { variable: "CLIENT_IDLE_CONN_TIMEOUT", description: "Idle connection timeout", defaultValue: "30s" },
+  { variable: "CLIENT_TLS_MIN_VERSION", description: "Minimum TLS version", defaultValue: "TLS12" }
+]} />
+
+For high-throughput deployments, consider increasing the connection pool settings:
+
+```bash
+CLIENT_MAX_IDLE_CONNS=100
+CLIENT_MAX_IDLE_CONNS_PER_HOST=50
+```
 
 ### Provider Settings
 
-Configure access to different LLM providers:
+Configure access to various LLM providers. At minimum, you should configure the providers you plan to use.
 
-- `ANTHROPIC_API_URL`: Anthropic API URL (default: https://api.anthropic.com/v1)
-- `ANTHROPIC_API_KEY`: Anthropic API Key (default: "")
-- `CLOUDFLARE_API_URL`: Cloudflare API URL (default: https://api.cloudflare.com/client/v4/accounts/ACCOUNT_ID/ai)
-- `CLOUDFLARE_API_KEY`: Cloudflare API Key (default: "")
-- `COHERE_API_URL`: Cohere API URL (default: https://api.cohere.com)
-- `COHERE_API_KEY`: Cohere API Key (default: "")
-- `GROQ_API_URL`: Groq API URL (default: https://api.groq.com/openai/v1)
-- `GROQ_API_KEY`: Groq API Key (default: "")
-- `OLLAMA_API_URL`: Ollama API URL (default: http://ollama:8080/v1)
-- `OLLAMA_API_KEY`: Ollama API Key (default: "")
-- `OPENAI_API_URL`: OpenAI API URL (default: https://api.openai.com/v1)
-- `OPENAI_API_KEY`: OpenAI API Key (default: "")
-- `DEEPSEEK_API_URL`:	DeepSeek API URL (default: https://api.deepseek.com)
-- `DEEPSEEK_API_KEY`:	DeepSeek API Key (default: "")
+#### OpenAI
 
+<ConfigTable rows={[
+  { variable: "OPENAI_API_URL", description: "OpenAI API URL", defaultValue: "https://api.openai.com/v1" },
+  { variable: "OPENAI_API_KEY", description: "OpenAI API Key", defaultValue: '""' }
+]} />
+
+#### Anthropic
+
+<ConfigTable rows={[
+  { variable: "ANTHROPIC_API_URL", description: "Anthropic API URL", defaultValue: "https://api.anthropic.com/v1" },
+  { variable: "ANTHROPIC_API_KEY", description: "Anthropic API Key", defaultValue: '""' }
+]} />
+
+#### Cohere
+
+<ConfigTable rows={[
+  { variable: "COHERE_API_URL", description: "Cohere API URL", defaultValue: "https://api.cohere.com" },
+  { variable: "COHERE_API_KEY", description: "Cohere API Key", defaultValue: '""' }
+]} />
+
+#### Groq
+
+<ConfigTable rows={[
+  { variable: "GROQ_API_URL", description: "Groq API URL", defaultValue: "https://api.groq.com/openai/v1" },
+  { variable: "GROQ_API_KEY", description: "Groq API Key", defaultValue: '""' }
+]} />
+
+#### Ollama
+
+<ConfigTable rows={[
+  { variable: "OLLAMA_API_URL", description: "Ollama API URL", defaultValue: "http://ollama:8080/v1" },
+  { variable: "OLLAMA_API_KEY", description: "Ollama API Key", defaultValue: '""' }
+]} />
+
+#### Cloudflare
+
+<ConfigTable rows={[
+  { variable: "CLOUDFLARE_API_URL", description: "Cloudflare API URL", defaultValue: "https://api.cloudflare.com/client/v4/accounts/ACCOUNT_ID/ai" },
+  { variable: "CLOUDFLARE_API_KEY", description: "Cloudflare API Key", defaultValue: '""' }
+]} />
+
+#### DeepSeek
+
+<ConfigTable rows={[
+  { variable: "DEEPSEEK_API_URL", description: "DeepSeek API URL", defaultValue: "https://api.deepseek.com" },
+  { variable: "DEEPSEEK_API_KEY", description: "DeepSeek API Key", defaultValue: '""' }
+]} />
+
+## Environment Variable File (.env)
+
+For local development, you can use a `.env` file. Create a file named `.env` in your project root:
+
+```bash
+# .env file example
+ENVIRONMENT=development
+ENABLE_TELEMETRY=false
+OPENAI_API_KEY=your-openai-key
+ANTHROPIC_API_KEY=your-anthropic-key
+```
 
 ## Kubernetes ConfigMaps and Secrets
 
@@ -75,7 +161,7 @@ metadata:
   name: inference-gateway-config
 data:
   ENVIRONMENT: "production"
-  ENABLE_TELEMETRY: "false"
+  ENABLE_TELEMETRY: "true"
   SERVER_HOST: "0.0.0.0"
   SERVER_PORT: "8080"
   SERVER_READ_TIMEOUT: "30s"
@@ -97,3 +183,56 @@ data:
   OPENAI_API_KEY: "<base64-encoded-key>"
   OIDC_CLIENT_SECRET: "<base64-encoded-key>"
 ```
+
+## Complete Configuration Example
+
+Here's a comprehensive example for configuring Inference Gateway in a production environment:
+
+```bash
+# General settings
+ENVIRONMENT=production
+ENABLE_TELEMETRY=true
+ENABLE_AUTH=true
+
+# Authentication
+OIDC_ISSUER_URL=https://auth.example.com/realms/inference-gateway
+OIDC_CLIENT_ID=inference-gateway
+OIDC_CLIENT_SECRET=your-client-secret
+
+# Server settings
+SERVER_HOST=0.0.0.0
+SERVER_PORT=8080
+SERVER_READ_TIMEOUT=30s
+SERVER_WRITE_TIMEOUT=30s
+SERVER_IDLE_TIMEOUT=120s
+SERVER_TLS_CERT_PATH=/certs/tls.crt
+SERVER_TLS_KEY_PATH=/certs/tls.key
+
+# Client settings
+CLIENT_TIMEOUT=45s
+CLIENT_MAX_IDLE_CONNS=100
+CLIENT_MAX_IDLE_CONNS_PER_HOST=50
+CLIENT_IDLE_CONN_TIMEOUT=60s
+CLIENT_TLS_MIN_VERSION=TLS12
+
+# Provider settings
+OPENAI_API_KEY=your-openai-api-key
+ANTHROPIC_API_KEY=your-anthropic-api-key
+GROQ_API_KEY=your-groq-api-key
+```
+
+## Configuration Best Practices
+
+1. **API Key Security**: Never commit API keys to version control. Use environment variables or secrets management.
+2. **TLS in Production**: Always use TLS in production environments to secure data in transit.
+3. **Authentication**: Enable authentication in production environments to control access.
+4. **Timeouts**: Adjust timeouts based on your expected workloads and response times from LLM providers.
+5. **Monitoring**: Enable telemetry in production for observability and performance tracking.
+
+## Next Steps
+
+Once you've configured Inference Gateway, you might want to:
+
+- Check out the [API Reference](/api-reference) for details on available endpoints
+- Explore [SDK options](/sdks) for integrating with your application
+- Review [Observability](/observability) options for monitoring and logging
