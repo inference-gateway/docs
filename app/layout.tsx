@@ -30,11 +30,11 @@ export default function RootLayout({
                 <Header />
                 <div className="flex h-[calc(100%-64px)]">
                   <Sidebar />
-                  <main className="flex-1 px-4 sm:px-6 lg:px-8 pt-6 pb-16 overflow-auto ml-0 lg:ml-72">
-                    <div className="mx-auto max-w-6xl">
-                      <div className="flex gap-12">
-                        <div className="docs-content flex-1">{children}</div>
-                        <aside className="hidden xl:block w-64 relative">
+                  <main className="flex-1 overflow-y-auto overflow-x-hidden ml-0 lg:ml-72">
+                    <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-6">
+                      <div className="flex flex-col lg:flex-row lg:gap-12">
+                        <div className="docs-content flex-1 overflow-x-hidden">{children}</div>
+                        <aside className="hidden xl:block w-64 relative mt-8 lg:mt-0">
                           <TableOfContents />
                         </aside>
                       </div>
