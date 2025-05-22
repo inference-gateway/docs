@@ -36,7 +36,13 @@
         "typescript.suggest.completeFunctionCalls": true,
         "git.enableCommitSigning": true,
         "dev.containers.copyGitConfig": true,
-        "files.insertFinalNewline": true
+        "files.insertFinalNewline": true,
+        "github.copilot.chat.codeGeneration.useInstructionFiles": true,
+        "github.copilot.chat.commitMessageGeneration.instructions": [
+          {
+            "text": "Always use conventional commit message format."
+          }
+        ]
       }
     }
   },
