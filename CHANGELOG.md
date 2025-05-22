@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.4](https://github.com/inference-gateway/docs/compare/0.4.3...0.4.4) (2025-05-22)
+
+### 📚 Documentation
+
+* Update Inference Gateway versions ([72598ed](https://github.com/inference-gateway/docs/commit/72598ed804e32b32a5286cfa3c7d351ac5b1a2ee))
+
+### 🔧 Miscellaneous
+
+* Add Copilot instructions for using Context7 and enforce conventional commit message format ([89199a4](https://github.com/inference-gateway/docs/commit/89199a4c17ecde03066d99d16d485b8c3e463603))
+* Remove APPLICATION_NAME from ConfigMap in observability documentation ([2f375b8](https://github.com/inference-gateway/docs/commit/2f375b87bb02fd4f98d8916a34f906805ed88be8))
+
 ## [0.4.3](https://github.com/inference-gateway/docs/compare/0.4.2...0.4.3) (2025-04-15)
 
 ### 🐛 Bug Fixes
