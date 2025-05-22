@@ -20,7 +20,7 @@ There are two primary deployment options:
 Install the chart directly from OCI registry:
 
 ```bash
-helm upgrade --install my-release oci://ghcr.io/inference-gateway/charts/inference-gateway \
+helm upgrade --install inference-gateway oci://ghcr.io/inference-gateway/charts/inference-gateway \
   --namespace inference-gateway \
   --create-namespace \
   --version 0.6.2
@@ -29,7 +29,7 @@ helm upgrade --install my-release oci://ghcr.io/inference-gateway/charts/inferen
 To enable ingress for the basic deployment:
 
 ```bash
-helm upgrade --install my-release oci://ghcr.io/inference-gateway/charts/inference-gateway \
+helm upgrade --install inference-gateway oci://ghcr.io/inference-gateway/charts/inference-gateway \
   --namespace inference-gateway \
   --create-namespace \
   --set ingress.enabled=true \
@@ -203,7 +203,7 @@ To upgrade an existing installation:
 
 ```bash
 # For basic gateway
-helm upgrade --install my-release oci://ghcr.io/inference-gateway/charts/inference-gateway \
+helm upgrade --install inference-gateway oci://ghcr.io/inference-gateway/charts/inference-gateway \
   --namespace inference-gateway \
   -f values.yaml \
   --version 0.6.2
@@ -221,7 +221,7 @@ To completely remove the installation:
 
 ```bash
 # For basic gateway
-helm uninstall my-release --namespace inference-gateway
+helm uninstall inference-gateway --namespace inference-gateway
 
 # For UI with gateway
 helm uninstall inference-gateway-ui --namespace inference-gateway
