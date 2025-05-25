@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.6](https://github.com/inference-gateway/docs/compare/0.4.5...0.4.6) (2025-05-25)
+
+### 📚 Documentation
+
+* Update sitemap.xml with new lastmod dates and add new MCP URL ([20e4874](https://github.com/inference-gateway/docs/commit/20e4874fa59ed09aa4ded5bc2309770bd3f2ad7a))
+
 ## [0.4.5](https://github.com/inference-gateway/docs/compare/0.4.4...0.4.5) (2025-05-25)
 
 ### 📚 Documentation
