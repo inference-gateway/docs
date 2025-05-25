@@ -2,7 +2,7 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://docs.inference-gateway.com</loc>
-    <lastmod>2025-04-15T17:06:58.966Z</lastmod>
+    <lastmod>2025-05-25T23:05:57.605Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
@@ -26,7 +26,7 @@
   </url>
   <url>
     <loc>https://docs.inference-gateway.com/authentication</loc>
-    <lastmod>2025-04-15T17:06:58.898Z</lastmod>
+    <lastmod>2025-05-22T10:34:15.719Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -38,7 +38,7 @@
   </url>
   <url>
     <loc>https://docs.inference-gateway.com/deployment</loc>
-    <lastmod>2025-04-15T17:06:58.934Z</lastmod>
+    <lastmod>2025-05-22T10:49:53.703Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -61,8 +61,14 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://docs.inference-gateway.com/mcp</loc>
+    <lastmod>2025-05-25T23:06:55.461Z</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://docs.inference-gateway.com/observability</loc>
-    <lastmod>2025-04-15T17:06:58.974Z</lastmod>
+    <lastmod>2025-04-15T18:41:43.390Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
