@@ -14,6 +14,7 @@ of Mixture of Experts.
 - 🚀 **Unified API Access**: Proxy requests to multiple language model APIs, including OpenAI, Ollama, Groq, Cohere etc.
 - ⚙️ **Environment Configuration**: Easily configure API keys and URLs through environment variables.
 - 🔧 **Tool-use Support**: Enable function calling capabilities across supported providers with a unified API.
+- 🔌 **MCP Integration**: Seamlessly connect to Model Context Protocol servers for automatic tool discovery and execution.
 - 🌊 **Streaming Responses**: Stream tokens in real-time as they're generated from language models.
 - 🐳 **Docker Support**: Use Docker and Docker Compose for easy setup and deployment.
 - ☸️ **Kubernetes Support**: Ready for deployment in Kubernetes environments.
@@ -42,6 +43,27 @@ By standardizing the API interactions, it allows you to:
 - Switch between providers without changing application code
 - Implement sophisticated routing and fallback mechanisms
 - Centralize API key management and security policies
+
+## Model Context Protocol Integration
+
+Inference Gateway includes native support for the **Model Context Protocol (MCP)**, enabling LLMs to automatically access external tools and data sources. With MCP integration, you can:
+
+- **Automatically discover tools** from connected MCP servers
+- **Execute tool calls seamlessly** without client-side management
+- **Connect multiple data sources** like filesystems, databases, and APIs
+- **Extend LLM capabilities** with custom tools and integrations
+
+```bash
+# Enable MCP with multiple servers
+export MCP_ENABLE=true
+export MCP_SERVERS="http://filesystem-server:8081/mcp,http://search-server:8082/mcp"
+
+# LLMs automatically get access to all available tools
+curl -X POST http://localhost:8080/v1/chat/completions \
+  -d '{"model": "gpt-4", "messages": [{"role": "user", "content": "List files and search for recent AI news"}]}'
+```
+
+Learn more about <Link href="/mcp">MCP Integration</Link> and explore our comprehensive examples.
 
 ## Community
 

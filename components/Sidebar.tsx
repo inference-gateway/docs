@@ -26,6 +26,10 @@ const sections = [
     ],
   },
   {
+    title: 'Model Context Protocol',
+    items: [{ title: 'MCP Integration', href: '/mcp' }],
+  },
+  {
     title: 'API Reference',
     items: [
       { title: 'REST API', href: '/api-reference' },
