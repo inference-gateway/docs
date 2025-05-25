@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.5](https://github.com/inference-gateway/docs/compare/0.4.4...0.4.5) (2025-05-25)
+
+### 📚 Documentation
+
+* Add Model Context Protocol (MCP) integration documentation and related links ([674d9ce](https://github.com/inference-gateway/docs/commit/674d9ceeee4a5477dcba70b11c6da9a28752c724))
+* Update Helm release name in deployment instructions ([66299e4](https://github.com/inference-gateway/docs/commit/66299e4d0366325bb9fb181604b051dfedebe341))
+
 ## [0.4.4](https://github.com/inference-gateway/docs/compare/0.4.3...0.4.4) (2025-05-22)
 
 ### 📚 Documentation
