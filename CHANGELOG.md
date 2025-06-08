@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.7](https://github.com/inference-gateway/docs/compare/0.4.6...0.4.7) (2025-06-08)
+
+### 📚 Documentation
+
+* Add A2A section ([83920ff](https://github.com/inference-gateway/docs/commit/83920ffb70537114ca5b40325911259b9ebf5c9c))
+
+### 🔧 Miscellaneous
+
+* **devcontainer:** Add Docker-in-Docker feature to devcontainer configuration ([835041f](https://github.com/inference-gateway/docs/commit/835041f149c36f319ed02c6c522cd70506d15d02))
+* **devcontainer:** Add MCP server configurations for Context7 and GitHub ([5369733](https://github.com/inference-gateway/docs/commit/536973309218aab8447559ff082fd1ec35668f41))
+* **devcontainer:** Update Powerlevel10k configuration and remove unused files ([c027820](https://github.com/inference-gateway/docs/commit/c0278206c0455084122ac687c8fe695f4bee79db))
+
 ## [0.4.6](https://github.com/inference-gateway/docs/compare/0.4.5...0.4.6) (2025-05-25)
 
 ### 📚 Documentation
