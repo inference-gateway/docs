@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.8](https://github.com/inference-gateway/docs/compare/0.4.7...0.4.8) (2025-06-08)
+
+### ♻️ Improvements
+
+* **docs:** Add content components and metadata for API reference, architecture overview, authentication, configuration, deployment, examples, getting started, IDEs, MCP, observability, SDKs, supported providers, and UI ([557ca1f](https://github.com/inference-gateway/docs/commit/557ca1f2b651a478540f354c9027872206289214))
+
 ## [0.4.7](https://github.com/inference-gateway/docs/compare/0.4.6...0.4.7) (2025-06-08)
 
 ### 📚 Documentation
