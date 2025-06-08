@@ -1,11 +1,12 @@
-'use client';
+import type { Metadata } from 'next';
+import IDEsContent from './IDEsContent';
 
-import IDEs from '@/markdown/ides.mdx';
+export const metadata: Metadata = {
+  title: 'IDE Integration - Inference Gateway',
+  description:
+    'Integrate Inference Gateway with popular IDEs and development environments for enhanced developer experience.',
+};
 
 export default function Page() {
-  return (
-    <div className="prose max-w-none">
-      <IDEs />
-    </div>
-  );
+  return <IDEsContent />;
 }

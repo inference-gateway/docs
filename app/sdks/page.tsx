@@ -1,11 +1,12 @@
-'use client';
+import type { Metadata } from 'next';
+import SDKsContent from './SDKsContent';
 
-import SDKs from '@/markdown/sdks.mdx';
+export const metadata: Metadata = {
+  title: 'SDKs - Inference Gateway',
+  description:
+    'Explore official SDKs for Inference Gateway including TypeScript, Python, Go, and Rust implementations.',
+};
 
 export default function Page() {
-  return (
-    <div className="prose max-w-full">
-      <SDKs />
-    </div>
-  );
+  return <SDKsContent />;
 }

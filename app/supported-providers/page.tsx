@@ -1,11 +1,12 @@
-'use client';
+import type { Metadata } from 'next';
+import SupportedProvidersContent from './SupportedProvidersContent';
 
-import SupportedProviders from '@/markdown/supported-providers.mdx';
+export const metadata: Metadata = {
+  title: 'Supported Providers - Inference Gateway',
+  description:
+    'Discover all supported AI model providers and services that work with Inference Gateway including OpenAI, Anthropic, and more.',
+};
 
 export default function Page() {
-  return (
-    <div className="prose max-w-none">
-      <SupportedProviders />
-    </div>
-  );
+  return <SupportedProvidersContent />;
 }

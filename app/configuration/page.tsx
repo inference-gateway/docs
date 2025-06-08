@@ -1,11 +1,12 @@
-'use client';
+import type { Metadata } from 'next';
+import ConfigurationContent from './ConfigurationContent';
 
-import Configuration from '@/markdown/configuration.mdx';
+export const metadata: Metadata = {
+  title: 'Configuration - Inference Gateway',
+  description:
+    'Learn how to configure Inference Gateway settings, environment variables, and deployment options.',
+};
 
 export default function Page() {
-  return (
-    <div className="prose max-w-none">
-      <Configuration />
-    </div>
-  );
+  return <ConfigurationContent />;
 }

@@ -1,11 +1,12 @@
-'use client';
+import type { Metadata } from 'next';
+import DeploymentContent from './DeploymentContent';
 
-import Deployment from '@/markdown/deployment.mdx';
+export const metadata: Metadata = {
+  title: 'Deployment - Inference Gateway',
+  description:
+    'Deploy Inference Gateway in production environments including Docker, Kubernetes, and cloud platforms.',
+};
 
 export default function Page() {
-  return (
-    <div className="prose max-w-none">
-      <Deployment />
-    </div>
-  );
+  return <DeploymentContent />;
 }

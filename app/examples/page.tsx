@@ -1,11 +1,12 @@
-'use client';
+import type { Metadata } from 'next';
+import ExamplesContent from './ExamplesContent';
 
-import Examples from '@/markdown/examples.mdx';
+export const metadata: Metadata = {
+  title: 'Examples - Inference Gateway',
+  description:
+    'Explore practical examples and use cases for implementing Inference Gateway in various scenarios.',
+};
 
 export default function Page() {
-  return (
-    <div className="prose max-w-none">
-      <Examples />
-    </div>
-  );
+  return <ExamplesContent />;
 }

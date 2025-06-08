@@ -1,11 +1,12 @@
-'use client';
+import type { Metadata } from 'next';
+import UIContent from './UIContent';
 
-import UI from '@/markdown/ui.mdx';
+export const metadata: Metadata = {
+  title: 'User Interface - Inference Gateway',
+  description:
+    'Learn about the Inference Gateway UI, its features, and how to interact with the web-based management interface.',
+};
 
 export default function Page() {
-  return (
-    <div className="prose max-w-none">
-      <UI />
-    </div>
-  );
+  return <UIContent />;
 }

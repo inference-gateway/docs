@@ -1,11 +1,12 @@
-'use client';
+import type { Metadata } from 'next';
+import AuthenticationContent from './AuthenticationContent';
 
-import Authentication from '@/markdown/authentication.mdx';
+export const metadata: Metadata = {
+  title: 'Authentication - Inference Gateway',
+  description:
+    'Configure authentication for Inference Gateway including API keys, OAuth, and other security methods.',
+};
 
 export default function Page() {
-  return (
-    <div className="prose max-w-none">
-      <Authentication />;
-    </div>
-  );
+  return <AuthenticationContent />;
 }

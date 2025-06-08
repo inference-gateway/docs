@@ -1,11 +1,12 @@
-'use client';
+import type { Metadata } from 'next';
+import GettingStartedContent from './GettingStartedContent';
 
-import GettingStarted from '@/markdown/getting-started.mdx';
+export const metadata: Metadata = {
+  title: 'Getting Started - Inference Gateway',
+  description:
+    'Get started with Inference Gateway quickly with installation guides, quick start examples, and first steps.',
+};
 
 export default function Page() {
-  return (
-    <div className="prose max-w-none">
-      <GettingStarted />
-    </div>
-  );
+  return <GettingStartedContent />;
 }
