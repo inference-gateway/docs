@@ -37,7 +37,21 @@
         "git.enableCommitSigning": true,
         "dev.containers.copyGitConfig": true,
         "files.insertFinalNewline": true,
+        "github.copilot.enable": {
+          "*": true
+        },
+        "github.copilot.advanced": {
+          "authProvider": "github"
+        },
         "github.copilot.chat.codeGeneration.useInstructionFiles": true,
+        "github.copilot.chat.codeGeneration.instructions": [
+          {
+            "file": ".github/copilot-instructions.md"
+          },
+          {
+            "file": "../README.md"
+          }
+        ],
         "github.copilot.chat.commitMessageGeneration.instructions": [
           {
             "text": "Always use conventional commit message format."
@@ -46,10 +60,6 @@
       }
     }
   },
-  "mounts": [
-    "source=${localWorkspaceFolder}/.devcontainer/.zshrc,target=/home/node/.zshrc,type=bind,consistency=cached",
-    "source=${localWorkspaceFolder}/.devcontainer/launch.json,target=/home/node/.vscode/launch.json,type=bind,consistency=cached"
-  ],
   "remoteEnv": {
     "GITHUB_TOKEN": "${localEnv:GITHUB_TOKEN}"
   }
