@@ -30,6 +30,10 @@ const sections = [
     items: [{ title: 'MCP Integration', href: '/mcp' }],
   },
   {
+    title: 'Agent-To-Agent (A2A)',
+    items: [{ title: 'A2A Integration', href: '/a2a' }],
+  },
+  {
     title: 'API Reference',
     items: [
       { title: 'REST API', href: '/api-reference' },

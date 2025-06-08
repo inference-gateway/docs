@@ -15,6 +15,7 @@ of Mixture of Experts.
 - ⚙️ **Environment Configuration**: Easily configure API keys and URLs through environment variables.
 - 🔧 **Tool-use Support**: Enable function calling capabilities across supported providers with a unified API.
 - 🔌 **MCP Integration**: Seamlessly connect to Model Context Protocol servers for automatic tool discovery and execution.
+- 🤖 **Agent-To-Agent (A2A)**: Coordinate multiple specialized agents to extend LLM capabilities with external services.
 - 🌊 **Streaming Responses**: Stream tokens in real-time as they're generated from language models.
 - 🐳 **Docker Support**: Use Docker and Docker Compose for easy setup and deployment.
 - ☸️ **Kubernetes Support**: Ready for deployment in Kubernetes environments.
@@ -64,6 +65,27 @@ curl -X POST http://localhost:8080/v1/chat/completions \
 ```
 
 Learn more about <Link href="/mcp">MCP Integration</Link> and explore our comprehensive examples.
+
+## Agent-To-Agent (A2A) Integration
+
+Inference Gateway supports **Agent-To-Agent (A2A)** integration, enabling LLMs to coordinate with multiple specialized agents simultaneously. This powerful feature allows LLMs to:
+
+- **Coordinate multiple agents** in a single conversation
+- **Access specialized services** like calendars, calculators, and weather APIs
+- **Discover agent capabilities** automatically
+- **Scale agent ecosystems** with distributed architecture
+
+```bash
+# Enable A2A with multiple agents
+export A2A_ENABLE=true
+export A2A_AGENTS="http://calendar-agent:3001,http://calculator-agent:3002,http://weather-agent:3003"
+
+# LLMs can coordinate all agents in one request
+curl -X POST http://localhost:8080/v1/chat/completions \
+  -d '{"model": "deepseek-chat", "messages": [{"role": "user", "content": "Schedule a meeting, calculate costs, and check the weather"}]}'
+```
+
+Learn more about <Link href="/a2a">A2A Integration</Link> and see how to build your own agents.
 
 ## Community
 
