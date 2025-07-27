@@ -61,7 +61,7 @@ export MCP_SERVERS="http://filesystem-server:8081/mcp,http://search-server:8082/
 
 # LLMs automatically get access to all available tools
 curl -X POST http://localhost:8080/v1/chat/completions \
-  -d '{"model": "gpt-4", "messages": [{"role": "user", "content": "List files and search for recent AI news"}]}'
+  -d '{"model": "gpt-4o", "messages": [{"role": "user", "content": "List files and search for recent AI news"}]}'
 ```
 
 Learn more about <Link href="/mcp">MCP Integration</Link> and explore our comprehensive examples.
