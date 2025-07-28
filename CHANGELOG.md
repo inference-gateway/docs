@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.9](https://github.com/inference-gateway/docs/compare/0.4.8...0.4.9) (2025-07-28)
+
+### 👷 CI
+
+* Add Claude Code GitHub Workflow ([#6](https://github.com/inference-gateway/docs/issues/6)) ([9161a09](https://github.com/inference-gateway/docs/commit/9161a09639729765c6fcc0aec16f9fe1f3624174))
+
+### 📚 Documentation
+
+* Add CLAUDE.md for project overview, architecture, development commands, and content management ([44c454d](https://github.com/inference-gateway/docs/commit/44c454ddbd5c011b03b493cd83210cb01ca83a91))
+* Update environment variables and version references ([#8](https://github.com/inference-gateway/docs/issues/8)) ([e9a69cf](https://github.com/inference-gateway/docs/commit/e9a69cf44d2dd63fcd6322aab01a8537e7130e08))
+
 ## [0.4.8](https://github.com/inference-gateway/docs/compare/0.4.7...0.4.8) (2025-06-08)
 
 ### ♻️ Improvements
