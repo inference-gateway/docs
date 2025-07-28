@@ -213,6 +213,106 @@ Configure access to various LLM providers. At minimum, you should configure the 
   ]}
 />
 
+#### Google
+
+<ConfigTable
+  rows={[
+    {
+      variable: 'GOOGLE_API_URL',
+      description: 'Google AI API URL',
+      defaultValue: 'https://generativelanguage.googleapis.com/v1',
+    },
+    { variable: 'GOOGLE_API_KEY', description: 'Google AI API Key', defaultValue: '""' },
+  ]}
+/>
+
+### Model Context Protocol (MCP) Settings
+
+These settings control MCP integration for external tool access:
+
+<ConfigTable
+  rows={[
+    { variable: 'MCP_ENABLE', description: 'Enable MCP middleware', defaultValue: 'false' },
+    {
+      variable: 'MCP_EXPOSE',
+      description: 'Expose MCP endpoints for debugging',
+      defaultValue: 'false',
+    },
+    {
+      variable: 'MCP_SERVERS',
+      description: 'Comma-separated list of MCP server URLs',
+      defaultValue: '""',
+    },
+    { variable: 'MCP_CLIENT_TIMEOUT', description: 'MCP client timeout', defaultValue: '10s' },
+    { variable: 'MCP_DIAL_TIMEOUT', description: 'MCP dial timeout', defaultValue: '5s' },
+    {
+      variable: 'MCP_TLS_HANDSHAKE_TIMEOUT',
+      description: 'MCP TLS handshake timeout',
+      defaultValue: '5s',
+    },
+    {
+      variable: 'MCP_RESPONSE_HEADER_TIMEOUT',
+      description: 'MCP response header timeout',
+      defaultValue: '5s',
+    },
+    {
+      variable: 'MCP_EXPECT_CONTINUE_TIMEOUT',
+      description: 'MCP expect continue timeout',
+      defaultValue: '2s',
+    },
+    { variable: 'MCP_REQUEST_TIMEOUT', description: 'MCP request timeout', defaultValue: '10s' },
+  ]}
+/>
+
+### Agent-to-Agent (A2A) Settings
+
+These settings control A2A protocol integration for agent coordination:
+
+<ConfigTable
+  rows={[
+    { variable: 'A2A_ENABLE', description: 'Enable A2A protocol support', defaultValue: 'false' },
+    {
+      variable: 'A2A_EXPOSE',
+      description: 'Expose A2A endpoints for debugging',
+      defaultValue: 'false',
+    },
+    {
+      variable: 'A2A_AGENTS',
+      description: 'Comma-separated list of A2A agent URLs',
+      defaultValue: '""',
+    },
+    { variable: 'A2A_CLIENT_TIMEOUT', description: 'A2A client timeout', defaultValue: '30s' },
+  ]}
+/>
+
+### UI Settings
+
+These settings control the Inference Gateway UI:
+
+<ConfigTable
+  rows={[
+    {
+      variable: 'INFERENCE_GATEWAY_URL',
+      description: 'The URL of the Inference Gateway server',
+      defaultValue: 'http://localhost:8080/v1',
+    },
+  ]}
+/>
+
+### Logging and Debugging
+
+These settings control logging and debugging behavior:
+
+<ConfigTable
+  rows={[
+    {
+      variable: 'LOG_LEVEL',
+      description: 'Set logging level (debug, info, warn, error)',
+      defaultValue: 'info',
+    },
+  ]}
+/>
+
 ## Environment Variable File (.env)
 
 For local development, you can use a `.env` file. Create a file named `.env` in your project root:
@@ -297,6 +397,27 @@ CLIENT_TLS_MIN_VERSION=TLS12
 OPENAI_API_KEY=your-openai-api-key
 ANTHROPIC_API_KEY=your-anthropic-api-key
 GROQ_API_KEY=your-groq-api-key
+DEEPSEEK_API_KEY=your-deepseek-api-key
+GOOGLE_API_KEY=your-google-api-key
+
+# Model Context Protocol (MCP) - for external tool integration
+MCP_ENABLE=true
+MCP_EXPOSE=false  # Set to true for debugging
+MCP_SERVERS=http://time-server:8081/mcp,http://search-server:8082/mcp
+MCP_CLIENT_TIMEOUT=10s
+MCP_REQUEST_TIMEOUT=10s
+
+# Agent-to-Agent (A2A) - for agent coordination
+A2A_ENABLE=true
+A2A_EXPOSE=false  # Set to true for debugging
+A2A_AGENTS=http://google-calendar-agent:8084
+A2A_CLIENT_TIMEOUT=30s
+
+# UI settings (if using UI)
+INFERENCE_GATEWAY_URL=https://api.example.com/v1
+
+# Logging
+LOG_LEVEL=info  # Use 'debug' for troubleshooting
 ```
 
 ## Configuration Best Practices

@@ -57,6 +57,13 @@ The following LLM providers are currently supported:
     <p><strong>Authentication:</strong> None (optional API key)</p>
     <p><strong>Default URL:</strong> http://ollama:8080/v1</p>
   </div>
+  
+  <div className="border p-4 rounded-md">
+    <h3>Google</h3>
+    <p>Access Google's Gemini models for text generation and understanding.</p>
+    <p><strong>Authentication:</strong> Bearer Token</p>
+    <p><strong>Default URL:</strong> https://generativelanguage.googleapis.com/v1</p>
+  </div>
 </div>
 
 ## Using Providers
@@ -68,7 +75,7 @@ Each provider requires specific configuration through environment variables:
 - `PROVIDER_API_URL`: The base URL for the provider's API
 - `PROVIDER_API_KEY`: The authentication key for the provider
 
-Replace "PROVIDER" with the provider name (uppercase): OPENAI, ANTHROPIC, COHERE, GROQ, CLOUDFLARE, OLLAMA.
+Replace "PROVIDER" with the provider name (uppercase): OPENAI, ANTHROPIC, COHERE, GROQ, CLOUDFLARE, OLLAMA, GOOGLE, DEEPSEEK.
 
 ### API Endpoints
 
@@ -277,6 +284,28 @@ curl -X POST http://localhost:8080/v1/chat/completions?provider=ollama \
       {
         "role": "user",
         "content": "Write a function to calculate Fibonacci numbers in Python."
+      }
+    ]
+  }'
+```
+
+### Google Provider
+
+Generate content with Google's Gemini models:
+
+```bash
+curl -X POST http://localhost:8080/v1/chat/completions?provider=google \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "google/gemini-pro",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a helpful assistant."
+      },
+      {
+        "role": "user",
+        "content": "Explain the concept of machine learning in simple terms."
       }
     ]
   }'

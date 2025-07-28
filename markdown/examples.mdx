@@ -11,7 +11,6 @@ Docker Compose provides a simple way to set up Inference Gateway with various co
 A minimal setup with OpenAI integration:
 
 ```yaml
-version: '3'
 services:
   inference-gateway:
     image: ghcr.io/inference-gateway/inference-gateway:latest
@@ -65,7 +64,7 @@ For complete Kubernetes deployment examples including Services, ConfigMaps, and 
 curl -X POST http://localhost:8080/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "openai/gpt-4",
+    "model": "openai/gpt-4o",
     "messages": [
       {
         "role": "system",
@@ -85,7 +84,7 @@ curl -X POST http://localhost:8080/v1/chat/completions \
 curl -X POST http://localhost:8080/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "anthropic/claude-3-opus-20240229",
+    "model": "anthropic/claude-3-5-sonnet-20241022",
     "messages": [
       {
         "role": "system",
