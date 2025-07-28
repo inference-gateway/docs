@@ -213,6 +213,19 @@ Configure access to various LLM providers. At minimum, you should configure the 
   ]}
 />
 
+#### Google
+
+<ConfigTable
+  rows={[
+    {
+      variable: 'GOOGLE_API_URL',
+      description: 'Google AI API URL',
+      defaultValue: 'https://generativelanguage.googleapis.com/v1',
+    },
+    { variable: 'GOOGLE_API_KEY', description: 'Google AI API Key', defaultValue: '""' },
+  ]}
+/>
+
 ### Model Context Protocol (MCP) Settings
 
 These settings control MCP integration for external tool access:
@@ -385,6 +398,7 @@ OPENAI_API_KEY=your-openai-api-key
 ANTHROPIC_API_KEY=your-anthropic-api-key
 GROQ_API_KEY=your-groq-api-key
 DEEPSEEK_API_KEY=your-deepseek-api-key
+GOOGLE_API_KEY=your-google-api-key
 
 # Model Context Protocol (MCP) - for external tool integration
 MCP_ENABLE=true

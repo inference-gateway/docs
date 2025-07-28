@@ -124,7 +124,7 @@ Once configured, MCP tools are automatically available to all LLM requests:
 curl -X POST http://localhost:8080/v1/chat/completions \\
   -H "Content-Type: application/json" \\
   -d '{
-    "model": "gpt-4o",
+    "model": "openai/gpt-4o",
     "messages": [
       {
         "role": "user",
@@ -142,7 +142,7 @@ MCP works seamlessly with streaming responses:
 curl -X POST http://localhost:8080/v1/chat/completions \\
   -H "Content-Type: application/json" \\
   -d '{
-    "model": "gpt-4o",
+    "model": "openai/gpt-4o",
     "messages": [
       {
         "role": "user",
