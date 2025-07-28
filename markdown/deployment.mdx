@@ -23,7 +23,7 @@ Install the chart directly from OCI registry:
 helm upgrade --install inference-gateway oci://ghcr.io/inference-gateway/charts/inference-gateway \
   --namespace inference-gateway \
   --create-namespace \
-  --version 0.7.1
+  --version 0.16.1
 ```
 
 To enable ingress for the basic deployment:
@@ -33,7 +33,7 @@ helm upgrade --install inference-gateway oci://ghcr.io/inference-gateway/charts/
   --namespace inference-gateway \
   --create-namespace \
   --set ingress.enabled=true \
-  --version 0.7.1
+  --version 0.16.1
 ```
 
 ### Option 2: UI with Gateway Deployment
@@ -206,7 +206,7 @@ To upgrade an existing installation:
 helm upgrade --install inference-gateway oci://ghcr.io/inference-gateway/charts/inference-gateway \
   --namespace inference-gateway \
   -f values.yaml \
-  --version 0.7.1
+  --version 0.16.1
 
 # For UI with gateway
 helm upgrade --install inference-gateway-ui oci://ghcr.io/inference-gateway/charts/inference-gateway-ui \
