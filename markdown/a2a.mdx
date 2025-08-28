@@ -468,19 +468,19 @@ spec:
 
 ### Common Issues
 
-**Agents Not Discovered**
+#### Agents Not Discovered
 
 - Verify `A2A_ENABLE=true` is set
 - Check that agent URLs in `A2A_AGENTS` are accessible
 - Ensure agents expose the `/.well-known/agent.json` endpoint
 
-**Connection Timeouts**
+#### Connection Timeouts
 
 - Adjust `A2A_CLIENT_TIMEOUT` setting
 - Check network connectivity between gateway and agents
 - Verify agent health endpoints are responding
 
-**Agent Communication Failures**
+#### Agent Communication Failures
 
 - Check agent logs for errors
 - Verify A2A protocol implementation in custom agents

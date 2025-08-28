@@ -7,3 +7,11 @@ if ! npm run format:check; then
   echo "You can then try to commit again.\n"
   exit 1
 fi
+
+echo "Linting markdown files..."
+if ! npm run lint:md; then
+  echo "\n\033[1;31mMarkdown linting failed!\033[0m"
+  echo "\033[1;33mPlease run 'npm run lint:md:fix' to fix markdown issues before committing.\033[0m"
+  echo "You can then try to commit again.\n"
+  exit 1
+fi

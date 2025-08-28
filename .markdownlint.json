@@ -1,0 +1,16 @@
+{
+  "default": true,
+  "MD003": { "style": "atx" },
+  "MD004": { "style": "dash" },
+  "MD007": { "indent": 2 },
+  "MD013": false,
+  "MD024": { "siblings_only": true },
+  "MD029": false,
+  "MD033": false,
+  "MD040": false,
+  "MD041": false,
+  "no-hard-tabs": false,
+  "no-trailing-punctuation": {
+    "punctuation": ".,;:!"
+  }
+}

@@ -179,7 +179,7 @@ helm show values oci://ghcr.io/inference-gateway/charts/inference-gateway
 helm show values oci://ghcr.io/inference-gateway/charts/inference-gateway-ui
 ```
 
-#### Horizontal Pod Autoscaling
+### Horizontal Pod Autoscaling
 
 ```bash
 --set-string "env[1].value=1" \
@@ -195,7 +195,7 @@ If you haven't configured ingress, you can use port forwarding:
 kubectl port-forward -n inference-gateway svc/inference-gateway-ui 3000:80
 ```
 
-Then access the UI at http://localhost:3000
+Then access the UI at <http://localhost:3000>
 
 ## Upgrading
 

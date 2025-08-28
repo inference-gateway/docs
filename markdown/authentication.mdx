@@ -75,6 +75,7 @@ Inference Gateway provides a complete example for setting up Keycloak authentica
    - Password: (output from the previous command)
 
 6. Test the authentication:
+
    ```bash
    curl -k -v -H "Authorization: Bearer $(task fetch-access-token)" https://api.inference-gateway.local/v1/models
    ```
@@ -124,7 +125,7 @@ If you're setting up Keycloak manually, follow these steps:
 
 Update your Inference Gateway configuration to enable authentication:
 
-#### Using Environment Variables:
+#### Using Environment Variables
 
 ```bash
 ENABLE_AUTH=true
@@ -133,7 +134,7 @@ OIDC_CLIENT_ID=inference-gateway-client
 OIDC_CLIENT_SECRET=your-client-secret
 ```
 
-#### Using Kubernetes ConfigMap and Secret:
+#### Using Kubernetes ConfigMap and Secret
 
 ```yaml
 # ConfigMap
@@ -159,7 +160,7 @@ stringData:
 type: Opaque
 ```
 
-#### Using Helm:
+#### Using Helm
 
 ```bash
 helm upgrade --install \
@@ -210,7 +211,7 @@ curl -H "Authorization: Bearer YOUR_TOKEN" https://your-inference-gateway/v1/mod
 
 When working with self-signed certificates (common in development environments), you need to make Inference Gateway trust the Keycloak certificate:
 
-### In Kubernetes:
+### In Kubernetes
 
 ```yaml
 # Create a ConfigMap with Keycloak's CA certificate
