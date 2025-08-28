@@ -6,6 +6,7 @@ dist/
 
 # Dependencies
 node_modules/
+.flox/
 
 # Generated files
 public/search-index.json

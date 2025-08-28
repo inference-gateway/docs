@@ -1,0 +1,10 @@
+version = 1
+
+[install]
+nodejs_22.pkg-path = "nodejs_22"
+nodejs_22.version = "^22.18.0"
+
+[hook]
+on-activate = """
+  npm install
+"""
