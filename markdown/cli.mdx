@@ -1,0 +1,387 @@
+# Inference Gateway CLI
+
+The Inference Gateway CLI (`infer`) is a powerful Go-based command-line tool that provides comprehensive access to the Inference Gateway. It features interactive chat, autonomous agent capabilities, extensive tool integration, and advanced conversation management.
+
+**Current Version:** v0.47.0 (Breaking changes expected until stable)
+
+## Installation
+
+### Install Script (Recommended)
+
+```bash
+# Latest version
+curl -fsSL https://raw.githubusercontent.com/inference-gateway/cli/main/install.sh | bash
+
+# Specific version
+curl -fsSL https://raw.githubusercontent.com/inference-gateway/cli/main/install.sh | bash -s -- --version v0.47.0
+
+# Custom directory
+curl -fsSL https://raw.githubusercontent.com/inference-gateway/cli/main/install.sh | bash -s -- --install-dir $HOME/.local/bin
+```
+
+### Go Install
+
+If you have Go installed:
+
+```bash
+go install github.com/inference-gateway/cli@latest
+```
+
+### Manual Download
+
+Download binaries from the [GitHub releases page](https://github.com/inference-gateway/cli/releases). Binaries are signed with Cosign for verification.
+
+### Build from Source
+
+```bash
+git clone https://github.com/inference-gateway/cli.git
+cd cli
+go build -o infer
+```
+
+## Quick Start
+
+Initialize your project and start using the CLI:
+
+```bash
+# Initialize configuration
+infer init
+
+# Check gateway status
+infer status
+
+# Start interactive chat
+infer chat
+
+# Get help
+infer --help
+```
+
+## Core Commands
+
+### Essential Commands
+
+#### `infer init`
+
+Initialize your project with `.infer` directory and configuration:
+
+```bash
+infer init
+```
+
+Creates `.infer/config.yaml` with default settings and tool configurations.
+
+#### `infer status`
+
+Check gateway health and resource usage:
+
+```bash
+infer status
+```
+
+#### `infer chat`
+
+Launch interactive chat with TUI interface:
+
+```bash
+infer chat
+```
+
+Features scrolling, keyboard navigation, model selection, and tool result expansion.
+
+#### `infer agent`
+
+**Autonomous agent mode** - Execute complex tasks in the background:
+
+```bash
+infer agent "Analyze this codebase and suggest improvements"
+infer agent "Fix the failing tests in the test suite"
+infer agent "Implement a new feature based on issue #123"
+```
+
+The agent operates autonomously with task analysis, planning, execution, and validation phases.
+
+### Configuration Management
+
+#### Initialize Configuration Only
+
+```bash
+infer config init
+```
+
+#### Agent Configuration
+
+```bash
+# Set default model for chat
+infer config agent set-model openai/gpt-4
+
+# Set system prompt
+infer config agent set-system "You are a helpful coding assistant"
+```
+
+#### Tool Management
+
+```bash
+# Enable/disable tool execution
+infer config tools enable
+infer config tools disable
+
+# Manage command whitelist
+infer config tools list
+infer config tools validate
+infer config tools exec
+
+# Safety settings
+infer config tools safety enable    # Require approval prompts
+infer config tools safety disable
+infer config tools safety status
+
+# Sandbox management
+infer config tools sandbox add /protected/path
+infer config tools sandbox remove /protected/path
+infer config tools sandbox list
+```
+
+## Configuration
+
+The CLI uses a 2-layer configuration system with precedence:
+
+1. **Environment Variables** (`INFER_*` prefix) - Highest priority
+2. **Command Line Flags**
+3. **Project Config** (`.infer/config.yaml`)
+4. **User Config** (`~/.infer/config.yaml`)
+5. **Built-in Defaults** - Lowest priority
+
+### Configuration File Structure
+
+The CLI creates a comprehensive YAML configuration:
+
+```yaml
+# Gateway connection
+gateway:
+  url: 'http://localhost:3000'
+  api_key: 'your-api-key'
+  timeout: 30s
+
+# Agent behavior
+agent:
+  model: 'openai/gpt-4'
+  system_prompt: 'You are a helpful assistant'
+  max_iterations: 10
+
+# Tool execution security
+tools:
+  enabled: true
+  whitelist:
+    - 'npm*'
+    - 'git status'
+    - 'ls -la'
+  safety:
+    approval_required: true
+  sandbox:
+    protected_paths:
+      - '.git/'
+      - '*.env'
+
+# Conversation storage
+storage:
+  backend: 'sqlite' # sqlite, postgresql, redis
+  path: '.infer/conversations.db'
+
+# Display preferences
+display:
+  color: true
+  streaming: true
+  format: 'markdown'
+```
+
+### Environment Variables
+
+```bash
+export INFER_GATEWAY_URL="http://localhost:3000"
+export INFER_API_KEY="your-api-key"
+export INFER_MODEL="openai/gpt-4"
+export INFER_DEBUG="true"
+```
+
+## Advanced Features
+
+### Tool System for LLMs
+
+When enabled, LLMs have access to a comprehensive tool suite:
+
+#### File System Tools
+
+- **Bash**: Execute whitelisted shell commands
+- **Read/Write/Edit**: File operations with safety controls
+- **MultiEdit**: Batch file edits
+- **Delete/Tree**: File management and exploration
+
+#### Search Tools
+
+- **Grep**: Powered by ripgrep for fast code search
+- **WebSearch/WebFetch**: Internet research capabilities
+
+#### Development Tools
+
+- **GitHub API**: Repository integration
+- **TodoWrite**: Task management for complex workflows
+
+#### Security Features
+
+- **Command Whitelisting**: Only approved patterns allowed
+- **Approval Prompts**: Safety confirmations for dangerous operations
+- **Path Protection**: Sensitive directories automatically excluded
+- **Sandbox Controls**: Protected directory management
+
+### Conversation Management
+
+#### Storage Backends
+
+- **SQLite** (default): Local file-based storage
+- **PostgreSQL**: Shared database for teams
+- **Redis**: High-performance caching
+
+#### Features
+
+- Automatic conversation history with search
+- Intelligent title generation
+- Token optimization and compaction
+- Export/import capabilities
+
+### Interactive Interface
+
+The TUI provides:
+
+- Scrollable conversation view
+- Keyboard shortcuts for navigation
+- Tool result expansion/collapse
+- Real-time streaming responses
+- Model switching during conversation
+
+## Security & Safety
+
+### Command Whitelisting
+
+```bash
+# Add allowed commands
+infer config tools whitelist add "npm install"
+infer config tools whitelist add "git log --oneline"
+
+# Remove from whitelist
+infer config tools whitelist remove "dangerous-command"
+```
+
+### Protected Paths
+
+Sensitive directories are automatically protected:
+
+- `.git/` - Git repository data
+- `*.env` - Environment files
+- `node_modules/` - Dependencies
+- Custom paths via sandbox configuration
+
+### Approval Prompts
+
+Enable safety confirmations:
+
+```bash
+infer config tools safety enable
+```
+
+LLMs will request approval before executing potentially dangerous operations.
+
+## Integration Examples
+
+### Shell Aliases
+
+```bash
+# Add to .bashrc or .zshrc
+alias ask="infer chat"
+alias ai-agent="infer agent"
+alias ai-status="infer status"
+```
+
+### Development Workflow
+
+```bash
+# Initialize new project
+infer init
+
+# Agent-driven development
+infer agent "Implement user authentication with JWT"
+
+# Interactive problem solving
+infer chat
+> How do I optimize this database query?
+```
+
+### CI/CD Integration
+
+```bash
+#!/bin/bash
+# Automated code review
+infer agent "Review the changes in this PR and suggest improvements"
+```
+
+## Troubleshooting
+
+### Connection Issues
+
+```bash
+# Check configuration
+infer config show
+
+# Verify gateway status
+infer status
+
+# Debug mode
+infer --debug chat
+```
+
+### Permission Issues
+
+```bash
+# Check configuration directory
+ls -la ~/.infer/
+
+# Reset configuration
+infer config reset
+
+# Re-initialize
+infer init
+```
+
+### Tool Execution Problems
+
+```bash
+# Check tool status
+infer config tools status
+
+# Validate whitelist
+infer config tools validate
+
+# Enable debug logging
+export INFER_DEBUG=true
+infer agent "your task"
+```
+
+## Command Reference
+
+| Command                     | Description                      |
+| --------------------------- | -------------------------------- |
+| `infer init`                | Initialize project configuration |
+| `infer status`              | Check gateway health             |
+| `infer chat`                | Interactive chat session         |
+| `infer agent <task>`        | Autonomous task execution        |
+| `infer config <subcommand>` | Configuration management         |
+| `infer --version`           | Show version information         |
+| `infer --help`              | Display help information         |
+
+## Support and Resources
+
+- **Repository**: [github.com/inference-gateway/cli](https://github.com/inference-gateway/cli)
+- **Issues**: [GitHub Issues](https://github.com/inference-gateway/cli/issues)
+- **Releases**: [GitHub Releases](https://github.com/inference-gateway/cli/releases)
+
+The CLI is actively developed with regular updates and new features. Check the repository for the latest releases and announcements.

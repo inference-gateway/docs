@@ -41,6 +41,10 @@ const sections = [
     ],
   },
   {
+    title: 'Tools',
+    items: [{ title: 'CLI', href: '/cli' }],
+  },
+  {
     title: 'Guides',
     items: [
       { title: 'Examples', href: '/examples' },
