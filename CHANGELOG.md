@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.2](https://github.com/inference-gateway/docs/compare/0.5.1...0.5.2) (2025-08-28)
+
+### 🐛 Bug Fixes
+
+* Simplify margin styles for code blocks in prose and enhanced styling ([4c208f5](https://github.com/inference-gateway/docs/commit/4c208f5bebdf2ee4d63cfbbc355c0c5df78bf0f2))
+
+### 📚 Documentation
+
+* Correctly format installation commands in CLI documentation ([f190c98](https://github.com/inference-gateway/docs/commit/f190c9800fa46b9c71ed9a5cbd0c323d1ad024de))
+
+### 🔧 Miscellaneous
+
+* Update dependencies to latest versions ([0289cff](https://github.com/inference-gateway/docs/commit/0289cff2acffd930b4109d386dabb6024f870a21))
+
 ## [0.5.1](https://github.com/inference-gateway/docs/compare/0.5.0...0.5.1) (2025-08-28)
 
 ### 🐛 Bug Fixes
