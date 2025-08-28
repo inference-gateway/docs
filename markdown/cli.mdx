@@ -45,6 +45,8 @@ go build -o infer
 
 ## Quick Start
 
+![Inference Gateway TUI Interface](/images/tui.gif)
+
 Initialize your project and start using the CLI:
 
 ```bash
@@ -262,6 +264,41 @@ The TUI provides:
 - Tool result expansion/collapse
 - Real-time streaming responses
 - Model switching during conversation
+
+### Git Shortcuts
+
+- `/git <command> [args...]` - Execute git commands (supports commit, push, status, etc.)
+- `/git commit [flags]` - **NEW**: Commit staged changes with AI-generated message
+- `/git push [remote] [branch] [flags]` - **NEW**: Push commits to remote repository
+
+The git shortcuts provide intelligent commit message generation using AI when no message is provided with `/git commit`.
+
+## User-Defined Shortcuts
+
+You can create custom shortcuts by adding YAML configuration files in the `.infer/shortcuts/` directory.
+
+### Configuration File Format
+
+Create files named `custom-*.yaml` (e.g., `custom-1.yaml`, `custom-dev.yaml`) in `.infer/shortcuts/`:
+
+```yaml
+shortcuts:
+  - name: 'tests'
+    description: 'Run all tests in the project'
+    command: 'go'
+    args: ['test', './...']
+    working_dir: '.' # Optional: set working directory
+
+  - name: 'build'
+    description: 'Build the project'
+    command: 'go'
+    args: ['build', '-o', 'infer', '.']
+
+  - name: 'lint'
+    description: 'Run linter on the codebase'
+    command: 'golangci-lint'
+    args: ['run']
+```
 
 ## Security & Safety
 
