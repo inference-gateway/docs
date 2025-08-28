@@ -163,51 +163,137 @@ The CLI uses a 2-layer configuration system with precedence:
 The CLI creates a comprehensive YAML configuration:
 
 ```yaml
-# Gateway connection
 gateway:
-  url: 'http://localhost:3000'
-  api_key: 'your-api-key'
-  timeout: 30s
-
-# Agent behavior
-agent:
-  model: 'openai/gpt-4'
-  system_prompt: 'You are a helpful assistant'
-  max_iterations: 10
-
-# Tool execution security
+  url: http://localhost:8080
+  api_key: ""
+  timeout: 200
+client:
+  timeout: 200
+  retry:
+    enabled: true
+    max_attempts: 3
+    initial_backoff_sec: 5
+    max_backoff_sec: 60
+    backoff_multiplier: 2
+    retryable_status_codes: [400, 408, 429, 500, 502, 503, 504]
+logging:
+  debug: false
 tools:
-  enabled: true
-  whitelist:
-    - 'npm*'
-    - 'git status'
-    - 'ls -la'
-  safety:
-    approval_required: true
+  enabled: true # Tools are enabled by default with safe read-only commands
   sandbox:
-    protected_paths:
-      - '.git/'
-      - '*.env'
-
-# Conversation storage
-storage:
-  backend: 'sqlite' # sqlite, postgresql, redis
-  path: '.infer/conversations.db'
-
-# Display preferences
-display:
-  color: true
-  streaming: true
-  format: 'markdown'
+    directories: [".", "/tmp"] # Allowed directories for tool operations
+    protected_paths: # Paths excluded from tool access for security
+      - .infer/
+      - .git/
+      - *.env
+  bash:
+    enabled: true
+    whitelist:
+      commands: # Exact command matches
+        - ls
+        - pwd
+        - echo
+        - wc
+        - sort
+        - uniq
+        - gh
+        - task
+      patterns: # Regex patterns for more complex commands
+        - ^git branch( --show-current)?$
+        - ^git checkout -b [a-zA-Z0-9/_-]+( [a-zA-Z0-9/_-]+)?$
+        - ^git checkout [a-zA-Z0-9/_-]+
+        - ^git add [a-zA-Z0-9/_.-]+
+        - ^git diff+
+        - ^git remote -v$
+        - ^git status$
+        - ^git log --oneline -n [0-9]+$
+        - ^git commit -m ".+"$
+        - ^git push( --set-upstream)?( origin)?( [a-zA-Z0-9/_-]+)?$
+  read:
+    enabled: true
+    require_approval: false
+  write:
+    enabled: true
+    require_approval: true # Write operations require approval by default for security
+  edit:
+    enabled: true
+    require_approval: true # Edit operations require approval by default for security
+  delete:
+    enabled: true
+    require_approval: true # Delete operations require approval by default for security
+  grep:
+    enabled: true
+    backend: auto # "auto", "ripgrep", or "go"
+    require_approval: false
+  tree:
+    enabled: true
+    require_approval: false
+  web_fetch:
+    enabled: true
+    whitelisted_domains:
+      - golang.org
+    safety:
+      max_size: 4096 # 4KB
+      timeout: 30 # 30 seconds
+      allow_redirect: true
+    cache:
+      enabled: true
+      ttl: 3600 # 1 hour
+      max_size: 52428800 # 50MB
+  web_search:
+    enabled: true
+    default_engine: duckduckgo
+    max_results: 10
+    engines:
+      - duckduckgo
+      - google
+    timeout: 10
+  todo_write:
+    enabled: true
+    require_approval: false
+  github:
+    enabled: true
+    token: "%GITHUB_TOKEN%"
+    base_url: "https://api.github.com"
+    owner: ""
+    safety:
+      max_size: 1048576  # 1MB
+      timeout: 30        # 30 seconds
+    require_approval: false
+  safety:
+    require_approval: true
+compact:
+  output_dir: .infer # Directory for compact command exports
+  summary_model: "" # Model to use for summarization (optional)
+agent:
+  model: "" # Default model for agent operations
+  system_prompt: |
+    System prompt for the main agent
+  system_reminders:
+    enabled: true
+    interval: 4
+    reminder_text: |
+      System reminder text for maintaining context
+  verbose_tools: false
+  max_turns: 50 # Maximum number of turns for agent sessions
+  max_tokens: 4096 # The maximum number of tokens that can be generated per request
+  optimization:
+    enabled: false
+    max_history: 10
+    compact_threshold: 20
+    truncate_large_outputs: true
+    skip_redundant_confirmations: true
+chat:
+  theme: tokyo-night
 ```
 
 ### Environment Variables
 
 ```bash
 export INFER_GATEWAY_URL="http://localhost:3000"
-export INFER_API_KEY="your-api-key"
-export INFER_MODEL="openai/gpt-4"
-export INFER_DEBUG="true"
+export INFER_GATEWAY_API_KEY="your-api-key"
+export INFER_AGENT_MODEL="openai/gpt-4"
+export INFER_LOGGING_DEBUG="true"
 ```
 
 ## Advanced Features
