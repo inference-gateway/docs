@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.3](https://github.com/inference-gateway/docs/compare/0.5.2...0.5.3) (2025-08-28)
+
+### 🐛 Bug Fixes
+
+* Update caniuse-lite version in package-lock.json ([d21784a](https://github.com/inference-gateway/docs/commit/d21784a4b97176656f61c0551afd6e41af720526))
+* Update CLI configuration for improved client settings and tool security ([61792d0](https://github.com/inference-gateway/docs/commit/61792d0f9929c800a5a0e081448f07394ad7c874))
+* Update ESLint configuration and scripts for consistency ([9237e9e](https://github.com/inference-gateway/docs/commit/9237e9e26b7e83d4f80ad1883789fa46316dacb1))
+
+### 📚 Documentation
+
+* Add TUI interface image and introduce git shortcuts for AI-generated commit messages ([cd6d65c](https://github.com/inference-gateway/docs/commit/cd6d65c238866d4af51fcf6f38d161d846db8644))
+
 ## [0.5.2](https://github.com/inference-gateway/docs/compare/0.5.1...0.5.2) (2025-08-28)
 
 ### 🐛 Bug Fixes
