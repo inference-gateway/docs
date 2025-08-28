@@ -1,0 +1,356 @@
+# Inference Gateway CLI
+
+The Inference Gateway CLI (`infer`) is a command-line tool that provides a convenient interface for interacting with the Inference Gateway. It allows you to send requests to various LLM providers, manage conversations, and configure your setup directly from the terminal.
+
+## Installation
+
+You can install the Inference Gateway CLI using npm:
+
+```bash
+npm install -g @inference-gateway/cli
+```
+
+Or using Yarn:
+
+```bash
+yarn global add @inference-gateway/cli
+```
+
+## Quick Start
+
+After installation, you can start using the CLI by running:
+
+```bash
+infer --help
+```
+
+To make your first request:
+
+```bash
+infer "Hello, how are you today?"
+```
+
+## Basic Usage
+
+The CLI provides a simple interface for sending requests to LLM providers through your Inference Gateway instance.
+
+### Basic Query
+
+```bash
+infer "What is the capital of France?"
+```
+
+### Specify Provider
+
+```bash
+infer --provider openai "Explain quantum computing"
+```
+
+### Interactive Mode
+
+Launch an interactive session:
+
+```bash
+infer --interactive
+```
+
+## Configuration
+
+The CLI can be configured using a configuration file or environment variables.
+
+### Configuration File
+
+Create a configuration file at `~/.infer/config.json`:
+
+```json
+{
+  "gateway_url": "http://localhost:3000",
+  "default_provider": "openai",
+  "api_key": "your-api-key"
+}
+```
+
+### Environment Variables
+
+You can also configure the CLI using environment variables:
+
+```bash
+export INFER_GATEWAY_URL="http://localhost:3000"
+export INFER_DEFAULT_PROVIDER="openai"
+export INFER_API_KEY="your-api-key"
+```
+
+## Conversation Management
+
+The Inference Gateway CLI includes powerful conversation management features that allow you to maintain context across multiple interactions.
+
+### Conversation Storage
+
+The CLI automatically stores conversations locally, allowing you to:
+
+- Resume previous conversations
+- Search through conversation history
+- Export conversations to various formats
+- Manage conversation metadata
+
+Conversations are stored in a local database and can be accessed using:
+
+```bash
+infer conversations list
+infer conversations show <id>
+infer conversations search "keyword"
+```
+
+### Conversation Features
+
+#### Starting a New Conversation
+
+```bash
+infer --new-conversation "Let's discuss machine learning"
+```
+
+#### Continuing a Conversation
+
+```bash
+infer --continue <conversation-id> "Tell me more about neural networks"
+```
+
+#### Listing Conversations
+
+```bash
+infer conversations list
+```
+
+#### Searching Conversations
+
+```bash
+infer conversations search "machine learning"
+```
+
+## Conversation Title Generation
+
+The CLI includes intelligent conversation title generation that automatically creates meaningful titles for your conversations based on the content and context.
+
+### Automatic Title Generation
+
+- Titles are generated automatically when conversations are created
+- Uses the first few exchanges to understand the conversation topic
+- Generates concise, descriptive titles that help with organization
+
+### Manual Title Setting
+
+You can also manually set conversation titles:
+
+```bash
+infer conversations title <conversation-id> "My Custom Title"
+```
+
+### Title Generation Options
+
+Configure title generation behavior:
+
+```bash
+infer config set title-generation.enabled true
+infer config set title-generation.strategy "summary" # or "keywords"
+infer config set title-generation.max-length 50
+```
+
+## Advanced Features
+
+### Streaming Responses
+
+Enable streaming for real-time responses:
+
+```bash
+infer --stream "Write a long story about space exploration"
+```
+
+### Custom Headers
+
+Add custom headers to requests:
+
+```bash
+infer --header "X-Custom-Header: value" "Your query here"
+```
+
+### Output Formatting
+
+Control output formatting:
+
+```bash
+infer --format json "What is JSON?"
+infer --format markdown "Explain REST APIs"
+infer --format plain "Simple explanation please"
+```
+
+### Batch Processing
+
+Process multiple queries from a file:
+
+```bash
+infer --batch queries.txt
+```
+
+## Export and Import
+
+### Exporting Conversations
+
+Export conversations to various formats:
+
+```bash
+# Export as JSON
+infer export --format json --output conversations.json
+
+# Export as Markdown
+infer export --format markdown --output conversations.md
+
+# Export specific conversation
+infer export --conversation <id> --format json --output single-conversation.json
+```
+
+### Importing Conversations
+
+Import conversations from backup files:
+
+```bash
+infer import --file conversations.json
+```
+
+## Integration Examples
+
+### Shell Integration
+
+Add the CLI to your shell for quick access:
+
+```bash
+# Add to .bashrc or .zshrc
+alias ask="infer"
+alias chat="infer --interactive"
+```
+
+### Scripting
+
+Use the CLI in shell scripts:
+
+```bash
+#!/bin/bash
+RESPONSE=$(infer "Summarize the following text: $1")
+echo "Summary: $RESPONSE"
+```
+
+### IDE Integration
+
+The CLI can be integrated with various IDEs and editors:
+
+- VS Code extension available
+- Vim plugin support
+- Emacs integration
+
+## Troubleshooting
+
+### Common Issues
+
+#### Connection Issues
+
+If you're having trouble connecting to your Inference Gateway:
+
+1. Verify the gateway URL in your configuration
+2. Check that the gateway is running
+3. Ensure your API key is correct
+
+```bash
+infer config show
+infer test-connection
+```
+
+#### Permission Issues
+
+If you encounter permission errors:
+
+```bash
+# Check configuration directory permissions
+ls -la ~/.infer/
+
+# Reset configuration
+infer config reset
+```
+
+### Debugging
+
+Enable debug mode for detailed logging:
+
+```bash
+infer --debug "Your query here"
+```
+
+Or set the debug environment variable:
+
+```bash
+export INFER_DEBUG=true
+infer "Your query here"
+```
+
+## Command Reference
+
+### Core Commands
+
+| Command           | Description                 |
+| ----------------- | --------------------------- |
+| `infer <query>`   | Send a query to the gateway |
+| `infer --help`    | Show help information       |
+| `infer --version` | Show version information    |
+
+### Conversation Commands
+
+| Command                             | Description                |
+| ----------------------------------- | -------------------------- |
+| `infer conversations list`          | List all conversations     |
+| `infer conversations show <id>`     | Show specific conversation |
+| `infer conversations search <term>` | Search conversations       |
+| `infer conversations delete <id>`   | Delete a conversation      |
+
+### Configuration Commands
+
+| Command                          | Description                    |
+| -------------------------------- | ------------------------------ |
+| `infer config show`              | Show current configuration     |
+| `infer config set <key> <value>` | Set configuration value        |
+| `infer config reset`             | Reset to default configuration |
+
+### Export/Import Commands
+
+| Command        | Description               |
+| -------------- | ------------------------- |
+| `infer export` | Export conversations      |
+| `infer import` | Import conversations      |
+| `infer backup` | Create backup of all data |
+
+## Configuration Reference
+
+### Core Settings
+
+- `gateway_url`: URL of your Inference Gateway instance
+- `default_provider`: Default LLM provider to use
+- `api_key`: Your API key for authentication
+- `timeout`: Request timeout in milliseconds
+
+### Conversation Settings
+
+- `conversation_storage.enabled`: Enable conversation storage
+- `conversation_storage.path`: Custom storage path
+- `title_generation.enabled`: Enable automatic title generation
+- `title_generation.strategy`: Title generation strategy
+
+### Display Settings
+
+- `output_format`: Default output format (plain, json, markdown)
+- `color_output`: Enable colored output
+- `streaming.enabled`: Enable streaming by default
+
+## Support
+
+For additional help and support:
+
+- Visit the [GitHub repository](https://github.com/inference-gateway/cli)
+- Check the [documentation](https://docs.inference-gateway.com)
+- Report issues on [GitHub Issues](https://github.com/inference-gateway/cli/issues)
