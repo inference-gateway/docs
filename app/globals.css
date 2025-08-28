@@ -258,8 +258,7 @@ html {
 }
 
 .prose pre {
-  margin-top: 0 !important;
-  margin-bottom: 0 !important;
+  margin: 0;
   border-radius: 0;
   border: none;
   background-color: transparent;
@@ -429,8 +428,6 @@ html {
 
   /* Enhanced Code Block Styling */
   pre {
-    margin-top: 1.5rem !important;
-    margin-bottom: 1.5rem !important;
     overflow-x: auto;
     border-radius: 0.5rem;
   }
