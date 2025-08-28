@@ -313,6 +313,58 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
     code: (props) => {
       return <code {...props} />;
     },
+    table: (props) => (
+      <div className="my-6 overflow-x-auto">
+        <table
+          className="min-w-full divide-y border rounded-lg"
+          style={{
+            borderColor: 'var(--color-border)',
+            borderCollapse: 'separate',
+            borderSpacing: 0,
+          }}
+          {...props}
+        />
+      </div>
+    ),
+    thead: (props) => (
+      <thead
+        style={{
+          backgroundColor: 'var(--color-code-bg)',
+        }}
+        {...props}
+      />
+    ),
+    tbody: (props) => (
+      <tbody
+        className="divide-y"
+        style={{
+          borderColor: 'var(--color-border)',
+          backgroundColor: 'var(--color-bg)',
+        }}
+        {...props}
+      />
+    ),
+    tr: (props) => <tr style={{ borderColor: 'var(--color-border)' }} {...props} />,
+    th: (props) => (
+      <th
+        className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider"
+        style={{
+          color: 'var(--color-text)',
+          borderBottomColor: 'var(--color-border)',
+        }}
+        {...props}
+      />
+    ),
+    td: (props) => (
+      <td
+        className="px-6 py-4 whitespace-nowrap text-sm"
+        style={{
+          color: 'var(--color-text)',
+          borderBottomColor: 'var(--color-border)',
+        }}
+        {...props}
+      />
+    ),
     ...components,
   };
 }
