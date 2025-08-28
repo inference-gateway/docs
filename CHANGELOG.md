@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.0](https://github.com/inference-gateway/docs/compare/0.4.10...0.5.0) (2025-08-28)
+
+### ✨ Features
+
+* Add GFM support for markdown rendering and improve table styling ([30d2c31](https://github.com/inference-gateway/docs/commit/30d2c310da556786674850ed767c98cd6ea46fcf))
+
+### 🔧 Miscellaneous
+
+* Add initial Flox configuration files for documentation environment ([5523adb](https://github.com/inference-gateway/docs/commit/5523adb49230cf4f28efc2ba279db830b24e400c))
+* Add markdownlint for linting markdown files ([1ef3b7c](https://github.com/inference-gateway/docs/commit/1ef3b7c091d304a24759d6e5099fa57b9e4c0d51))
+
 ## [0.4.10](https://github.com/inference-gateway/docs/compare/0.4.9...0.4.10) (2025-08-28)
 
 ### 📚 Documentation
