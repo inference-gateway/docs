@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.1](https://github.com/inference-gateway/docs/compare/0.5.0...0.5.1) (2025-08-28)
+
+### 🐛 Bug Fixes
+
+* Update UI access link to use markdown formatting ([6909519](https://github.com/inference-gateway/docs/commit/690951997855fa89968bf9f0e2e844b7ddba3a1a))
+
 ## [0.5.0](https://github.com/inference-gateway/docs/compare/0.4.10...0.5.0) (2025-08-28)
 
 ### ✨ Features
