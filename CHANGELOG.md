@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.10](https://github.com/inference-gateway/docs/compare/0.4.9...0.4.10) (2025-08-28)
+
+### 📚 Documentation
+
+* Add CLI documentation ([#10](https://github.com/inference-gateway/docs/issues/10)) ([1f6badb](https://github.com/inference-gateway/docs/commit/1f6badb88b47363280d753da07155d7a2d74bf7c))
+
+### 🔧 Miscellaneous
+
+* Create refactor request issue template ([e0169dd](https://github.com/inference-gateway/docs/commit/e0169dd388b409287c263d5110494743fcce1043))
+
 ## [0.4.9](https://github.com/inference-gateway/docs/compare/0.4.8...0.4.9) (2025-07-28)
 
 ### 👷 CI
