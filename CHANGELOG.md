@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.4](https://github.com/inference-gateway/docs/compare/0.5.3...0.5.4) (2025-09-03)
+
+### 📚 Documentation
+
+* Add A2A Registry link to related resources for agent discovery ([e750190](https://github.com/inference-gateway/docs/commit/e750190f56641ae8e074d33678729f119776afa3))
+
+### 🔧 Miscellaneous
+
+* Update lastmod date for the A2A URL in sitemap.xml ([1aab049](https://github.com/inference-gateway/docs/commit/1aab049a431584e91999022f5e7a6984e3ea8e04))
+* Update sitemap.xml with new lastmod dates for various URLs and add new CLI documentation entry ([70dd70c](https://github.com/inference-gateway/docs/commit/70dd70c1ca85fbc7fdd59a4f66f123215130c5b8))
+
 ## [0.5.3](https://github.com/inference-gateway/docs/compare/0.5.2...0.5.3) (2025-08-28)
 
 ### 🐛 Bug Fixes
