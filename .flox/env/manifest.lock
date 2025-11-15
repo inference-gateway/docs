@@ -3,9 +3,13 @@
   "manifest": {
     "version": 1,
     "install": {
-      "nodejs_22": {
-        "pkg-path": "nodejs_22",
-        "version": "^22.18.0"
+      "claude-code": {
+        "pkg-path": "claude-code",
+        "version": "2.0.37"
+      },
+      "nodejs_24": {
+        "pkg-path": "nodejs_24",
+        "version": "^24.11.0"
       }
     },
     "hook": {
@@ -15,124 +19,248 @@
   },
   "packages": [
     {
-      "attr_path": "nodejs_22",
+      "attr_path": "claude-code",
       "broken": false,
-      "derivation": "/nix/store/0a9kkw6mh0f80jfq1nf9767hvg5gr71k-nodejs-22.18.0.drv",
-      "description": "Event-driven I/O framework for the V8 JavaScript engine",
-      "install_id": "nodejs_22",
-      "license": "MIT",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=8a6d5427d99ec71c64f0b93d45778c889005d9c2",
-      "name": "nodejs-22.18.0",
-      "pname": "nodejs_22",
-      "rev": "8a6d5427d99ec71c64f0b93d45778c889005d9c2",
-      "rev_count": 852432,
-      "rev_date": "2025-08-27T03:49:43Z",
-      "scrape_date": "2025-08-28T03:26:04.926143Z",
+      "derivation": "/nix/store/sz58zlpxjdjc592dbxjinpri2kniy29c-claude-code-2.0.37.drv",
+      "description": "Agentic coding tool that lives in your terminal, understands your codebase, and helps you code faster",
+      "install_id": "claude-code",
+      "license": "Unfree",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=c5ae371f1a6a7fd27823bc500d9390b38c05fa55",
+      "name": "claude-code-2.0.37",
+      "pname": "claude-code",
+      "rev": "c5ae371f1a6a7fd27823bc500d9390b38c05fa55",
+      "rev_count": 895122,
+      "rev_date": "2025-11-12T20:02:36Z",
+      "scrape_date": "2025-11-14T16:41:15.731806Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
-      "unfree": false,
-      "version": "22.18.0",
+      "unfree": true,
+      "version": "2.0.37",
       "outputs_to_install": [
         "out"
       ],
       "outputs": {
-        "dev": "/nix/store/4617bdwn34769c3bxkx9qgyzjh890qvf-nodejs-22.18.0-dev",
-        "libv8": "/nix/store/89zl005215fzsfsbq3ar5dff44c2v3f9-nodejs-22.18.0-libv8",
-        "out": "/nix/store/9yqq8szyz3qx8q6xlv1s3arhw4112wc8-nodejs-22.18.0"
+        "out": "/nix/store/ax3qwwal726crahj7y8a9prk2szc1pw1-claude-code-2.0.37"
       },
       "system": "aarch64-darwin",
       "group": "toplevel",
       "priority": 5
     },
     {
-      "attr_path": "nodejs_22",
+      "attr_path": "claude-code",
       "broken": false,
-      "derivation": "/nix/store/1si9aramx1b8n9dgnaymh4s0v73zng5h-nodejs-22.18.0.drv",
-      "description": "Event-driven I/O framework for the V8 JavaScript engine",
-      "install_id": "nodejs_22",
-      "license": "MIT",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=8a6d5427d99ec71c64f0b93d45778c889005d9c2",
-      "name": "nodejs-22.18.0",
-      "pname": "nodejs_22",
-      "rev": "8a6d5427d99ec71c64f0b93d45778c889005d9c2",
-      "rev_count": 852432,
-      "rev_date": "2025-08-27T03:49:43Z",
-      "scrape_date": "2025-08-28T03:34:39.319090Z",
+      "derivation": "/nix/store/88fhg5v0zxmyqvwkg1r266c0rfdyd407-claude-code-2.0.37.drv",
+      "description": "Agentic coding tool that lives in your terminal, understands your codebase, and helps you code faster",
+      "install_id": "claude-code",
+      "license": "Unfree",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=c5ae371f1a6a7fd27823bc500d9390b38c05fa55",
+      "name": "claude-code-2.0.37",
+      "pname": "claude-code",
+      "rev": "c5ae371f1a6a7fd27823bc500d9390b38c05fa55",
+      "rev_count": 895122,
+      "rev_date": "2025-11-12T20:02:36Z",
+      "scrape_date": "2025-11-14T17:18:25.745127Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
-      "unfree": false,
-      "version": "22.18.0",
+      "unfree": true,
+      "version": "2.0.37",
       "outputs_to_install": [
         "out"
       ],
       "outputs": {
-        "dev": "/nix/store/0nzhmyzfcgynya9yy6gsp66bk47nq8s3-nodejs-22.18.0-dev",
-        "libv8": "/nix/store/5zfqiqmnv1xlx0fv0zy28hwcm332vdm1-nodejs-22.18.0-libv8",
-        "out": "/nix/store/sswndb8p93xa94x53769zh3lhci99g8f-nodejs-22.18.0"
+        "out": "/nix/store/wnz6ck9z5jgbd9nlyrdw7pwcf842kil4-claude-code-2.0.37"
       },
       "system": "aarch64-linux",
       "group": "toplevel",
       "priority": 5
     },
     {
-      "attr_path": "nodejs_22",
+      "attr_path": "claude-code",
       "broken": false,
-      "derivation": "/nix/store/5cxy82gwm7zl4fxbfkj6ah23j9j5wbd6-nodejs-22.18.0.drv",
-      "description": "Event-driven I/O framework for the V8 JavaScript engine",
-      "install_id": "nodejs_22",
-      "license": "MIT",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=8a6d5427d99ec71c64f0b93d45778c889005d9c2",
-      "name": "nodejs-22.18.0",
-      "pname": "nodejs_22",
-      "rev": "8a6d5427d99ec71c64f0b93d45778c889005d9c2",
-      "rev_count": 852432,
-      "rev_date": "2025-08-27T03:49:43Z",
-      "scrape_date": "2025-08-28T03:43:56.911070Z",
+      "derivation": "/nix/store/lsc2cn3mmk9vzk21fk4g0rrn156ida51-claude-code-2.0.37.drv",
+      "description": "Agentic coding tool that lives in your terminal, understands your codebase, and helps you code faster",
+      "install_id": "claude-code",
+      "license": "Unfree",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=c5ae371f1a6a7fd27823bc500d9390b38c05fa55",
+      "name": "claude-code-2.0.37",
+      "pname": "claude-code",
+      "rev": "c5ae371f1a6a7fd27823bc500d9390b38c05fa55",
+      "rev_count": 895122,
+      "rev_date": "2025-11-12T20:02:36Z",
+      "scrape_date": "2025-11-14T17:52:16.953152Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
-      "unfree": false,
-      "version": "22.18.0",
+      "unfree": true,
+      "version": "2.0.37",
       "outputs_to_install": [
         "out"
       ],
       "outputs": {
-        "dev": "/nix/store/f39fwzjpkj0hn26f3av1smbl0lmabizj-nodejs-22.18.0-dev",
-        "libv8": "/nix/store/w90f0kd8h7893i6l8jmh01z3zsr514q0-nodejs-22.18.0-libv8",
-        "out": "/nix/store/c5d89lgzr7np5pfv9l02vcnd84mg4gj4-nodejs-22.18.0"
+        "out": "/nix/store/px034m72kd6r9rgkljpc1w4slvwmsc4r-claude-code-2.0.37"
       },
       "system": "x86_64-darwin",
       "group": "toplevel",
       "priority": 5
     },
     {
-      "attr_path": "nodejs_22",
+      "attr_path": "claude-code",
       "broken": false,
-      "derivation": "/nix/store/6hkkd1197yqg4n9k2vk8phx098gn1axv-nodejs-22.18.0.drv",
-      "description": "Event-driven I/O framework for the V8 JavaScript engine",
-      "install_id": "nodejs_22",
-      "license": "MIT",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=8a6d5427d99ec71c64f0b93d45778c889005d9c2",
-      "name": "nodejs-22.18.0",
-      "pname": "nodejs_22",
-      "rev": "8a6d5427d99ec71c64f0b93d45778c889005d9c2",
-      "rev_count": 852432,
-      "rev_date": "2025-08-27T03:49:43Z",
-      "scrape_date": "2025-08-28T03:51:41.511259Z",
+      "derivation": "/nix/store/idbn5c3psrl720ij1l7hqc80ra8yjgx3-claude-code-2.0.37.drv",
+      "description": "Agentic coding tool that lives in your terminal, understands your codebase, and helps you code faster",
+      "install_id": "claude-code",
+      "license": "Unfree",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=c5ae371f1a6a7fd27823bc500d9390b38c05fa55",
+      "name": "claude-code-2.0.37",
+      "pname": "claude-code",
+      "rev": "c5ae371f1a6a7fd27823bc500d9390b38c05fa55",
+      "rev_count": 895122,
+      "rev_date": "2025-11-12T20:02:36Z",
+      "scrape_date": "2025-11-14T18:31:37.063852Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
-      "unfree": false,
-      "version": "22.18.0",
+      "unfree": true,
+      "version": "2.0.37",
       "outputs_to_install": [
         "out"
       ],
       "outputs": {
-        "dev": "/nix/store/mjgd69ahrwz5skifd30a87l1gb7yc785-nodejs-22.18.0-dev",
-        "libv8": "/nix/store/j5lyv0imv3iiwbqyqc1v9vdscwylmk56-nodejs-22.18.0-libv8",
-        "out": "/nix/store/9d235766g7alzlalw4z8yqxql0jl2mgd-nodejs-22.18.0"
+        "out": "/nix/store/naj3abmnkp0dzznz8namssf0hk53db9w-claude-code-2.0.37"
+      },
+      "system": "x86_64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "nodejs_24",
+      "broken": false,
+      "derivation": "/nix/store/5i1rkrdcivq3vsad9mcxlq5hd2ixpqi2-nodejs-24.11.0.drv",
+      "description": "Event-driven I/O framework for the V8 JavaScript engine",
+      "install_id": "nodejs_24",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=c5ae371f1a6a7fd27823bc500d9390b38c05fa55",
+      "name": "nodejs-24.11.0",
+      "pname": "nodejs_24",
+      "rev": "c5ae371f1a6a7fd27823bc500d9390b38c05fa55",
+      "rev_count": 895122,
+      "rev_date": "2025-11-12T20:02:36Z",
+      "scrape_date": "2025-11-14T16:41:38.718360Z",
+      "stabilities": [
+        "staging",
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "24.11.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dev": "/nix/store/l7qvq86rssr0rqgj9aahka6993bxl90b-nodejs-24.11.0-dev",
+        "libv8": "/nix/store/q3l7naqajvsr7gg0mfbnbp9idpgri8sk-nodejs-24.11.0-libv8",
+        "out": "/nix/store/kh92nj218v7y267l59c9gh5cj90xjarb-nodejs-24.11.0"
+      },
+      "system": "aarch64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "nodejs_24",
+      "broken": false,
+      "derivation": "/nix/store/702qakwgs2rrn5hbaldaigviw7wwl9jm-nodejs-24.11.0.drv",
+      "description": "Event-driven I/O framework for the V8 JavaScript engine",
+      "install_id": "nodejs_24",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=c5ae371f1a6a7fd27823bc500d9390b38c05fa55",
+      "name": "nodejs-24.11.0",
+      "pname": "nodejs_24",
+      "rev": "c5ae371f1a6a7fd27823bc500d9390b38c05fa55",
+      "rev_count": 895122,
+      "rev_date": "2025-11-12T20:02:36Z",
+      "scrape_date": "2025-11-14T17:19:02.383522Z",
+      "stabilities": [
+        "staging",
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "24.11.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dev": "/nix/store/4prl57ccqz6vwa4d30rxhcq3d77prvh8-nodejs-24.11.0-dev",
+        "libv8": "/nix/store/8hv0m3dhaadqf85c8gqb21q483809k3n-nodejs-24.11.0-libv8",
+        "out": "/nix/store/a1kicz8hm9rm517mxlqxr6skayfxadf6-nodejs-24.11.0"
+      },
+      "system": "aarch64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "nodejs_24",
+      "broken": false,
+      "derivation": "/nix/store/7pawgydjrr1mf4s927pd3af8gv2s296z-nodejs-24.11.0.drv",
+      "description": "Event-driven I/O framework for the V8 JavaScript engine",
+      "install_id": "nodejs_24",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=c5ae371f1a6a7fd27823bc500d9390b38c05fa55",
+      "name": "nodejs-24.11.0",
+      "pname": "nodejs_24",
+      "rev": "c5ae371f1a6a7fd27823bc500d9390b38c05fa55",
+      "rev_count": 895122,
+      "rev_date": "2025-11-12T20:02:36Z",
+      "scrape_date": "2025-11-14T17:52:39.395999Z",
+      "stabilities": [
+        "staging",
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "24.11.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dev": "/nix/store/6iqjyc6sp3fvdhvb5040sb39zjim7zjf-nodejs-24.11.0-dev",
+        "libv8": "/nix/store/rqchj64g3mp1r06642q8vac9vmx47ghk-nodejs-24.11.0-libv8",
+        "out": "/nix/store/v578kr414iyvsx7imvs8kzww19kmw5nv-nodejs-24.11.0"
+      },
+      "system": "x86_64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "nodejs_24",
+      "broken": false,
+      "derivation": "/nix/store/np5vjqjxqik9fal0ljyh359zahgs2cgx-nodejs-24.11.0.drv",
+      "description": "Event-driven I/O framework for the V8 JavaScript engine",
+      "install_id": "nodejs_24",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=c5ae371f1a6a7fd27823bc500d9390b38c05fa55",
+      "name": "nodejs-24.11.0",
+      "pname": "nodejs_24",
+      "rev": "c5ae371f1a6a7fd27823bc500d9390b38c05fa55",
+      "rev_count": 895122,
+      "rev_date": "2025-11-12T20:02:36Z",
+      "scrape_date": "2025-11-14T18:32:16.857332Z",
+      "stabilities": [
+        "staging",
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "24.11.0",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "dev": "/nix/store/7lhsfdhaydi81bagx58087mpd67230yb-nodejs-24.11.0-dev",
+        "libv8": "/nix/store/mah41cip4l8vg5ibg7ijiyg47grff9q3-nodejs-24.11.0-libv8",
+        "out": "/nix/store/yz8zgb4x36b33zf553936fmnng7265a3-nodejs-24.11.0"
       },
       "system": "x86_64-linux",
       "group": "toplevel",
