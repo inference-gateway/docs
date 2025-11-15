@@ -22,6 +22,11 @@ Environment variables are the primary method for configuring Inference Gateway. 
   rows={[
     { variable: 'ENVIRONMENT', description: 'Deployment environment', defaultValue: 'production' },
     {
+      variable: 'ENABLE_VISION',
+      description: 'Enable vision/multimodal support for all providers',
+      defaultValue: 'false',
+    },
+    {
       variable: 'ENABLE_TELEMETRY',
       description: 'Enable OpenTelemetry metrics and tracing',
       defaultValue: 'false',
@@ -29,6 +34,8 @@ Environment variables are the primary method for configuring Inference Gateway. 
     { variable: 'ENABLE_AUTH', description: 'Enable OIDC authentication', defaultValue: 'false' },
   ]}
 />
+
+When `ENABLE_VISION` is set to `true`, Inference Gateway enables vision/multimodal capabilities, allowing you to send images alongside text in chat completion requests. When disabled (default), requests with image content will be rejected even if the provider and model support vision. This is disabled by default for performance and security reasons.
 
 When `ENABLE_TELEMETRY` is set to `true`, Inference Gateway exposes a `/metrics` endpoint for Prometheus scraping and generates distributed traces that can be collected by OpenTelemetry collectors.
 
@@ -369,6 +376,7 @@ Here's a comprehensive example for configuring Inference Gateway in a production
 ```bash
 # General settings
 ENVIRONMENT=production
+ENABLE_VISION=true
 ENABLE_TELEMETRY=true
 ENABLE_AUTH=true
 

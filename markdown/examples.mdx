@@ -98,4 +98,75 @@ curl -X POST http://localhost:8080/v1/chat/completions \
   }'
 ```
 
+### Vision/Multimodal Image Processing
+
+Process images with vision-capable models. First, enable vision support:
+
+```bash
+ENABLE_VISION=true
+```
+
+#### Using HTTP Image URL
+
+```bash
+curl -X POST http://localhost:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "anthropic/claude-3-5-sonnet-20241022",
+    "messages": [
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "What is in this image?"
+          },
+          {
+            "type": "image_url",
+            "image_url": {
+              "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg"
+            }
+          }
+        ]
+      }
+    ]
+  }'
+```
+
+#### Using Base64 Data URL
+
+```bash
+curl -X POST http://localhost:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "anthropic/claude-3-5-sonnet-20241022",
+    "messages": [
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "What color is this pixel?"
+          },
+          {
+            "type": "image_url",
+            "image_url": {
+              "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg=="
+            }
+          }
+        ]
+      }
+    ]
+  }'
+```
+
+**Supported Vision Models:**
+
+- `anthropic/claude-3-5-sonnet-20241022` (Claude 4.5 Sonnet)
+- `anthropic/claude-3-5-haiku-20250219` (Claude 4.5 Haiku)
+- `openai/gpt-4o`
+- `google/gemini-2.5-flash`
+- `ollama/llava`
+- And more...
+
 For more detailed examples and use cases, check out the full [examples directory](https://github.com/inference-gateway/inference-gateway/tree/main/examples) in the GitHub repository.

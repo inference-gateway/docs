@@ -409,6 +409,76 @@ curl -X POST http://localhost:8080/v1/chat/completions \
   }'
 ```
 
+### Vision/Multimodal Support
+
+For vision-capable models, you can include images in your requests using either HTTP URLs or base64-encoded data URLs. Vision support must be enabled with `ENABLE_VISION=true` in your configuration.
+
+#### Using HTTP URL
+
+```bash
+curl -X POST http://localhost:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "anthropic/claude-3-5-sonnet-20241022",
+    "messages": [
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "What is in this image?"
+          },
+          {
+            "type": "image_url",
+            "image_url": {
+              "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg"
+            }
+          }
+        ]
+      }
+    ]
+  }'
+```
+
+#### Using Base64 Data URL
+
+```bash
+curl -X POST http://localhost:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "anthropic/claude-3-5-sonnet-20241022",
+    "messages": [
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "Describe this image"
+          },
+          {
+            "type": "image_url",
+            "image_url": {
+              "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg=="
+            }
+          }
+        ]
+      }
+    ]
+  }'
+```
+
+**Supported Providers with Vision:**
+
+- OpenAI (GPT-4o, GPT-5, GPT-4.1, GPT-4 Turbo)
+- Anthropic (Claude 3, Claude 4, Claude 4.5 Sonnet, Claude 4.5 Haiku)
+- Google (Gemini 2.5)
+- Cohere (Command A Vision, Aya Vision)
+- Ollama (LLaVA, Llama 4, Llama 3.2 Vision)
+- Groq (vision models)
+- Mistral (Pixtral)
+
+**Note:** When `ENABLE_VISION=false` (default), requests containing image content will be rejected even if the model supports vision. This is disabled by default for performance and security reasons.
+
 ### Direct API Proxy
 
 For more advanced use cases, you can proxy requests directly to the provider's API:
