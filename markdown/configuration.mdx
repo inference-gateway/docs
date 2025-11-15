@@ -27,21 +27,21 @@ Environment variables are the primary method for configuring Inference Gateway. 
       defaultValue: 'false',
     },
     {
-      variable: 'ENABLE_TELEMETRY',
+      variable: 'TELEMETRY_ENABLE',
       description: 'Enable OpenTelemetry metrics and tracing',
       defaultValue: 'false',
     },
-    { variable: 'ENABLE_AUTH', description: 'Enable OIDC authentication', defaultValue: 'false' },
+    { variable: 'AUTH_ENABLE', description: 'Enable OIDC authentication', defaultValue: 'false' },
   ]}
 />
 
 When `ENABLE_VISION` is set to `true`, Inference Gateway enables vision/multimodal capabilities, allowing you to send images alongside text in chat completion requests. When disabled (default), requests with image content will be rejected even if the provider and model support vision. This is disabled by default for performance and security reasons.
 
-When `ENABLE_TELEMETRY` is set to `true`, Inference Gateway exposes a `/metrics` endpoint for Prometheus scraping and generates distributed traces that can be collected by OpenTelemetry collectors.
+When `TELEMETRY_ENABLE` is set to `true`, Inference Gateway exposes a `/metrics` endpoint for Prometheus scraping and generates distributed traces that can be collected by OpenTelemetry collectors.
 
 ### OpenID Connect
 
-If authentication is enabled (`ENABLE_AUTH=true`), configure the following OIDC settings:
+If authentication is enabled (`AUTH_ENABLE=true`), configure the following OIDC settings:
 
 <ConfigTable
   rows={[
@@ -327,7 +327,7 @@ For local development, you can use a `.env` file. Create a file named `.env` in 
 ```bash
 # .env file example
 ENVIRONMENT=development
-ENABLE_TELEMETRY=false
+TELEMETRY_ENABLE=false
 OPENAI_API_KEY=your-openai-key
 ANTHROPIC_API_KEY=your-anthropic-key
 ```
@@ -346,7 +346,7 @@ metadata:
   name: inference-gateway-config
 data:
   ENVIRONMENT: 'production'
-  ENABLE_TELEMETRY: 'true'
+  TELEMETRY_ENABLE: 'true'
   SERVER_HOST: '0.0.0.0'
   SERVER_PORT: '8080'
   SERVER_READ_TIMEOUT: '30s'
@@ -377,8 +377,8 @@ Here's a comprehensive example for configuring Inference Gateway in a production
 # General settings
 ENVIRONMENT=production
 ENABLE_VISION=true
-ENABLE_TELEMETRY=true
-ENABLE_AUTH=true
+TELEMETRY_ENABLE=true
+AUTH_ENABLE=true
 
 # Authentication
 OIDC_ISSUER_URL=https://auth.example.com/realms/inference-gateway

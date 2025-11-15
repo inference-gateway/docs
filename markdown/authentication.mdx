@@ -19,7 +19,7 @@ When authentication is enabled, all requests to the Inference Gateway API must i
 To enable authentication, set the following environment variables:
 
 ```bash
-ENABLE_AUTH=true
+AUTH_ENABLE=true
 OIDC_ISSUER_URL=https://your-keycloak-instance/realms/your-realm
 OIDC_CLIENT_ID=your-client-id
 OIDC_CLIENT_SECRET=your-client-secret
@@ -124,7 +124,7 @@ Update your Inference Gateway configuration to enable authentication:
 #### Using Environment Variables
 
 ```bash
-ENABLE_AUTH=true
+AUTH_ENABLE=true
 OIDC_ISSUER_URL=https://your-keycloak-instance/realms/inference-gateway-realm
 OIDC_CLIENT_ID=inference-gateway-client
 OIDC_CLIENT_SECRET=your-client-secret
@@ -140,7 +140,7 @@ metadata:
   name: inference-gateway
   namespace: inference-gateway
 data:
-  ENABLE_AUTH: 'true'
+  AUTH_ENABLE: 'true'
   OIDC_ISSUER_URL: https://your-keycloak-instance/realms/inference-gateway-realm
 
 ---

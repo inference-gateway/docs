@@ -9,7 +9,7 @@ Inference Gateway includes built-in support for OpenTelemetry, allowing you to c
 To enable telemetry in your deployment, set the following environment variable:
 
 ```
-ENABLE_TELEMETRY=true
+TELEMETRY_ENABLE=true
 ```
 
 ## Metrics Collection
@@ -44,7 +44,7 @@ metadata:
 data:
   # General settings
   ENVIRONMENT: "production"
-  ENABLE_TELEMETRY: "true"  # Enable telemetry
+  TELEMETRY_ENABLE: "true"  # Enable telemetry
   ...
 ```
 
