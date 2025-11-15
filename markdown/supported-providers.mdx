@@ -11,60 +11,152 @@ The following LLM providers are currently supported:
   <div className="border p-4 rounded-md">
     <h3>OpenAI</h3>
     <p>Access GPT models including GPT-3.5, GPT-4, and more.</p>
-    <p><strong>Authentication:</strong> Bearer Token</p>
-    <p><strong>Default URL:</strong> https://api.openai.com/v1</p>
+    <div><strong>Authentication:</strong> Bearer Token</div>
+    <div><strong>Default URL:</strong> https://api.openai.com/v1</div>
+    <div><strong>Vision Support:</strong> ✅ Yes (GPT-4o, GPT-5, GPT-4.1, GPT-4 Turbo)</div>
   </div>
 
-  <div className="border p-4 rounded-md">
-    <h3>DeepSeek</h3>
-    <p>Use DeepSeek's models for various natural language tasks.</p>
-    <p><strong>Authentication:</strong> Bearer Token</p>
-    <p><strong>Default URL:</strong> https://api.deepseek.com</p>
+<div className="border p-4 rounded-md">
+  <h3>DeepSeek</h3>
+  <p>Use DeepSeek's models for various natural language tasks.</p>
+  <div>
+    <strong>Authentication:</strong> Bearer Token
   </div>
-  
-  <div className="border p-4 rounded-md">
-    <h3>Anthropic</h3>
-    <p>Connect to Claude models for high-quality conversational AI.</p>
-    <p><strong>Authentication:</strong> X-Header</p>
-    <p><strong>Default URL:</strong> https://api.anthropic.com/v1</p>
+  <div>
+    <strong>Default URL:</strong> https://api.deepseek.com
   </div>
-  
-  <div className="border p-4 rounded-md">
-    <h3>Cohere</h3>
-    <p>Use Cohere's models for various natural language tasks.</p>
-    <p><strong>Authentication:</strong> Bearer Token</p>
-    <p><strong>Default URL:</strong> https://api.cohere.com</p>
+  <div>
+    <strong>Vision Support:</strong> ❌ No
   </div>
-  
-  <div className="border p-4 rounded-md">
-    <h3>Groq</h3>
-    <p>Access high-performance inference with Groq's LPU-accelerated models.</p>
-    <p><strong>Authentication:</strong> Bearer Token</p>
-    <p><strong>Default URL:</strong> https://api.groq.com/openai/v1</p>
+</div>
+
+<div className="border p-4 rounded-md">
+  <h3>Anthropic</h3>
+  <p>Connect to Claude models for high-quality conversational AI.</p>
+  <div>
+    <strong>Authentication:</strong> X-Header
   </div>
-  
-  <div className="border p-4 rounded-md">
-    <h3>Cloudflare</h3>
-    <p>Connect to Cloudflare Workers AI for inference on various models.</p>
-    <p><strong>Authentication:</strong> Bearer Token</p>
-    <p><strong>Default URL:</strong> https://api.cloudflare.com/client/v4/accounts/</p>
-    <p className="text-sm">{'{ACCOUNT_ID}'}/ai</p>
+  <div>
+    <strong>Default URL:</strong> https://api.anthropic.com/v1
   </div>
-  
-  <div className="border p-4 rounded-md">
-    <h3>Ollama</h3>
-    <p>Run open-source models locally or on a self-hosted server.</p>
-    <p><strong>Authentication:</strong> None (optional API key)</p>
-    <p><strong>Default URL:</strong> http://ollama:8080/v1</p>
+  <div>
+    <strong>Vision Support:</strong> ✅ Yes (Claude 3, Claude 4, Claude 4.5 Sonnet, Claude 4.5
+    Haiku)
   </div>
-  
+</div>
+
+<div className="border p-4 rounded-md">
+  <h3>Cohere</h3>
+  <p>Use Cohere's models for various natural language tasks.</p>
+  <div>
+    <strong>Authentication:</strong> Bearer Token
+  </div>
+  <div>
+    <strong>Default URL:</strong> https://api.cohere.com
+  </div>
+  <div>
+    <strong>Vision Support:</strong> ✅ Yes (Command A Vision, Aya Vision)
+  </div>
+</div>
+
+<div className="border p-4 rounded-md">
+  <h3>Groq</h3>
+  <p>Access high-performance inference with Groq's LPU-accelerated models.</p>
+  <div>
+    <strong>Authentication:</strong> Bearer Token
+  </div>
+  <div>
+    <strong>Default URL:</strong> https://api.groq.com/openai/v1
+  </div>
+  <div>
+    <strong>Vision Support:</strong> ✅ Yes (vision models)
+  </div>
+</div>
+
+<div className="border p-4 rounded-md">
+  <h3>Cloudflare</h3>
+  <p>Connect to Cloudflare Workers AI for inference on various models.</p>
+  <div>
+    <strong>Authentication:</strong> Bearer Token
+  </div>
+  <div>
+    <strong>Default URL:</strong> https://api.cloudflare.com/client/v4/accounts/
+  </div>
+  <div className="text-sm">{'{ACCOUNT_ID}'}/ai</div>
+  <div>
+    <strong>Vision Support:</strong> ❌ No
+  </div>
+</div>
+
+<div className="border p-4 rounded-md">
+  <h3>Ollama</h3>
+  <p>Run open-source models locally or on a self-hosted server.</p>
+  <div>
+    <strong>Authentication:</strong> None (optional API key)
+  </div>
+  <div>
+    <strong>Default URL:</strong> http://ollama:8080/v1
+  </div>
+  <div>
+    <strong>Vision Support:</strong> ✅ Yes (LLaVA, Llama 4, Llama 3.2 Vision)
+  </div>
+</div>
+
   <div className="border p-4 rounded-md">
     <h3>Google</h3>
     <p>Access Google's Gemini models for text generation and understanding.</p>
-    <p><strong>Authentication:</strong> Bearer Token</p>
-    <p><strong>Default URL:</strong> https://generativelanguage.googleapis.com/v1</p>
+    <div><strong>Authentication:</strong> Bearer Token</div>
+    <div><strong>Default URL:</strong> https://generativelanguage.googleapis.com/v1</div>
+    <div><strong>Vision Support:</strong> ✅ Yes (Gemini 2.5)</div>
   </div>
 </div>
+
+## Vision/Multimodal Support
+
+Several providers support vision/multimodal capabilities, allowing you to process images alongside text. To use vision features, you must enable them in your configuration:
+
+```bash
+ENABLE_VISION=true
+```
+
+**Note:** Vision support is disabled by default for performance and security reasons. When disabled, requests containing image content will be rejected even if the model supports vision.
+
+### Providers with Vision Support
+
+- **OpenAI**: GPT-4o, GPT-5, GPT-4.1, GPT-4 Turbo
+- **Anthropic**: Claude 3, Claude 4, Claude 4.5 Sonnet, Claude 4.5 Haiku
+- **Google**: Gemini 2.5
+- **Cohere**: Command A Vision, Aya Vision
+- **Ollama**: LLaVA, Llama 4, Llama 3.2 Vision
+- **Groq**: Vision models
+- **Mistral**: Pixtral
+
+### Example Vision Request
+
+```bash
+curl -X POST http://localhost:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "anthropic/claude-3-5-sonnet-20241022",
+    "messages": [
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "What is in this image?"
+          },
+          {
+            "type": "image_url",
+            "image_url": {
+              "url": "https://example.com/image.jpg"
+            }
+          }
+        ]
+      }
+    ]
+  }'
+```
 
 ## Using Providers
 
