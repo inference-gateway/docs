@@ -20,7 +20,7 @@
   </url>
   <url>
     <loc>https://docs.inference-gateway.com/api-reference</loc>
-    <lastmod>2025-11-15T19:55:03.391Z</lastmod>
+    <lastmod>2025-11-15T21:28:17.982Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -44,7 +44,7 @@
   </url>
   <url>
     <loc>https://docs.inference-gateway.com/configuration</loc>
-    <lastmod>2025-11-15T19:53:28.784Z</lastmod>
+    <lastmod>2025-11-15T21:28:17.983Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -56,7 +56,7 @@
   </url>
   <url>
     <loc>https://docs.inference-gateway.com/examples</loc>
-    <lastmod>2025-11-15T19:55:28.657Z</lastmod>
+    <lastmod>2025-11-15T21:28:17.983Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -92,7 +92,7 @@
   </url>
   <url>
     <loc>https://docs.inference-gateway.com/supported-providers</loc>
-    <lastmod>2025-11-15T21:12:52.321Z</lastmod>
+    <lastmod>2025-11-15T21:28:17.983Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
