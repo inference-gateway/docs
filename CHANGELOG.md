@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.6](https://github.com/inference-gateway/docs/compare/0.5.5...0.5.6) (2025-11-15)
+
+### 📚 Documentation
+
+* Update production configuration example with comprehensive settings ([b27d7c0](https://github.com/inference-gateway/docs/commit/b27d7c0472ffdd145ea274b2617c5301eedfee8c))
+
 ## [0.5.5](https://github.com/inference-gateway/docs/compare/0.5.4...0.5.5) (2025-11-15)
 
 ### 📚 Documentation
