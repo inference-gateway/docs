@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.5](https://github.com/inference-gateway/docs/compare/0.5.4...0.5.5) (2025-11-15)
+
+### 📚 Documentation
+
+* Add comprehensive vision/multimodal support documentation ([#11](https://github.com/inference-gateway/docs/issues/11)) ([7eaded1](https://github.com/inference-gateway/docs/commit/7eaded1e7f4886324cec57b237420bd78856b92e))
+
+### 🔧 Miscellaneous
+
+* **deps-dev:** bump js-yaml from 4.1.0 to 4.1.1 ([#13](https://github.com/inference-gateway/docs/issues/13)) ([6e8647d](https://github.com/inference-gateway/docs/commit/6e8647d09e8d535e0c6a97a8ee9b3a52969f9c42))
+* **deps:** bump mermaid from 11.4.1 to 11.10.0 ([#12](https://github.com/inference-gateway/docs/issues/12)) ([22a8805](https://github.com/inference-gateway/docs/commit/22a88059755cc3c9fc2eeb81f1866345c36eee22))
+* Pin Node.js and npm versions in package.json engines ([677bd6c](https://github.com/inference-gateway/docs/commit/677bd6c42c1d7950eabbde496ee2bba869f6555e))
+* Regenerate sitemap and search index ([a39e85d](https://github.com/inference-gateway/docs/commit/a39e85d9ec0aa5137b3d67d4df849f91ef21d5ff))
+* Remove Claude Code Review GitHub workflow ([e37de32](https://github.com/inference-gateway/docs/commit/e37de32cde095fd88ce9c72b6af3405b847e4e37))
+* Upgrade all dependencies to latest versions ([9f6911c](https://github.com/inference-gateway/docs/commit/9f6911cd8b63f3b2ed4b9e55a334b07a5ae59ab0))
+
 ## [0.5.4](https://github.com/inference-gateway/docs/compare/0.5.3...0.5.4) (2025-09-03)
 
 ### 📚 Documentation
