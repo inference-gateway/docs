@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.0](https://github.com/inference-gateway/docs/compare/0.5.8...0.6.0) (2025-11-21)
+
+### ✨ Features
+
+* Add Infer configuration and AGENTS.md documentation ([15acade](https://github.com/inference-gateway/docs/commit/15acadede9855b320af8e1a4ac4ca8fa8888806b))
+
+### 📚 Documentation
+
+* Sync CLI configuration with actual defaults ([404bcf4](https://github.com/inference-gateway/docs/commit/404bcf4cbf2cbab1ac3caf3c6154b57966858805))
+
 ## [0.5.8](https://github.com/inference-gateway/docs/compare/0.5.7...0.5.8) (2025-11-21)
 
 ### 🐛 Bug Fixes
