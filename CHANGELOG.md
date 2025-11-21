@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.7](https://github.com/inference-gateway/docs/compare/0.5.6...0.5.7) (2025-11-21)
+
+### 📚 Documentation
+
+* Fix debug environment variable name in CLI documentation ([#15](https://github.com/inference-gateway/docs/issues/15)) ([b9f9fd2](https://github.com/inference-gateway/docs/commit/b9f9fd278f9ff142f7459a039740655476d39e85))
+
+### 🔧 Miscellaneous
+
+* **deps-dev:** bump glob from 11.0.3 to 11.1.0 ([#14](https://github.com/inference-gateway/docs/issues/14)) ([c0c757b](https://github.com/inference-gateway/docs/commit/c0c757bcda9846acee15924cc858434d1c63df35))
+* **deps:** Bump glob and markdownlint-cli ([#16](https://github.com/inference-gateway/docs/issues/16)) ([6ee4813](https://github.com/inference-gateway/docs/commit/6ee48130c936e0a314a4c603351d312e89106912))
+
 ## [0.5.6](https://github.com/inference-gateway/docs/compare/0.5.5...0.5.6) (2025-11-15)
 
 ### 📚 Documentation
