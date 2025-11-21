@@ -271,8 +271,17 @@ The CLI creates a comprehensive YAML configuration:
 ```yaml
 gateway:
   url: http://localhost:8080
-  api_key: ""
+  api_key: ''
   timeout: 200
+  oci: ghcr.io/inference-gateway/inference-gateway:latest # OCI image for auto-running gateway
+  run: true # Auto-run gateway if not available
+  docker: true # Use Docker to run gateway
+  include_models: [] # Only show these models (empty = all)
+  exclude_models: # Models to hide from selection
+    - ollama_cloud/cogito-2.1:671b
+    - ollama_cloud/kimi-k2:1t
+    - ollama_cloud/kimi-k2-thinking
+    - ollama_cloud/deepseek-v3.1:671b
 client:
   timeout: 200
   retry:
@@ -284,37 +293,37 @@ client:
     retryable_status_codes: [400, 408, 429, 500, 502, 503, 504]
 logging:
   debug: false
+  dir: '' # Directory for log files (optional)
 tools:
   enabled: true # Tools are enabled by default with safe read-only commands
   sandbox:
-    directories: [".", "/tmp"] # Allowed directories for tool operations
+    directories: ['.', '/tmp'] # Allowed directories for tool operations
     protected_paths: # Paths excluded from tool access for security
       - .infer/
       - .git/
-      - *.env
+      - '*.env'
   bash:
     enabled: true
     whitelist:
       commands: # Exact command matches
         - ls
         - pwd
-        - echo
+        - tree
         - wc
         - sort
         - uniq
-        - gh
+        - head
+        - tail
         - task
+        - make
+        - find
       patterns: # Regex patterns for more complex commands
-        - ^git branch( --show-current)?$
-        - ^git checkout -b [a-zA-Z0-9/_-]+( [a-zA-Z0-9/_-]+)?$
-        - ^git checkout [a-zA-Z0-9/_-]+
-        - ^git add [a-zA-Z0-9/_.-]+
-        - ^git diff+
-        - ^git remote -v$
         - ^git status$
-        - ^git log --oneline -n [0-9]+$
-        - ^git commit -m ".+"$
-        - ^git push( --set-upstream)?( origin)?( [a-zA-Z0-9/_-]+)?$
+        - ^git branch( --show-current)?( -[alrvd])?$
+        - ^git log
+        - ^git diff
+        - ^git remote( -v)?$
+        - ^git show
   read:
     enabled: true
     require_approval: false
@@ -339,7 +348,7 @@ tools:
     whitelisted_domains:
       - golang.org
     safety:
-      max_size: 4096 # 4KB
+      max_size: 8192 # 8KB
       timeout: 30 # 30 seconds
       allow_redirect: true
     cache:
@@ -359,22 +368,24 @@ tools:
     require_approval: false
   github:
     enabled: true
-    token: "%GITHUB_TOKEN%"
-    base_url: "https://api.github.com"
-    owner: ""
+    token: '%GITHUB_TOKEN%'
+    base_url: 'https://api.github.com'
+    owner: ''
+    repo: '' # Default repository (optional)
     safety:
-      max_size: 1048576  # 1MB
-      timeout: 30        # 30 seconds
-    require_approval: false
+      max_size: 1048576 # 1MB
+      timeout: 30 # 30 seconds
   safety:
     require_approval: true
 compact:
   output_dir: .infer # Directory for compact command exports
-  summary_model: "" # Model to use for summarization (optional)
+  summary_model: '' # Model to use for summarization (optional)
 agent:
-  model: "" # Default model for agent operations
-  system_prompt: |
-    System prompt for the main agent
+  model: '' # Default model for agent operations
+  system_prompt: | # System prompt for the main agent
+    Autonomous software engineering agent...
+  system_prompt_plan: | # System prompt for plan mode
+    You are an AI planning assistant in PLAN MODE...
   system_reminders:
     enabled: true
     interval: 4
@@ -382,15 +393,73 @@ agent:
       System reminder text for maintaining context
   verbose_tools: false
   max_turns: 50 # Maximum number of turns for agent sessions
-  max_tokens: 4096 # The maximum number of tokens that can be generated per request
+  max_tokens: 4096 # The maximum number of tokens per request
+  max_concurrent_tools: 5 # Maximum parallel tool executions
   optimization:
     enabled: false
-    max_history: 10
-    compact_threshold: 20
-    truncate_large_outputs: true
-    skip_redundant_confirmations: true
+    model: '' # Model for optimization (optional)
+    min_messages: 10
+    buffer_size: 2
+git:
+  commit_message:
+    model: '' # Model for AI commit messages (optional)
+    system_prompt: |
+      Generate a concise git commit message...
+storage:
+  enabled: true
+  type: sqlite # Options: memory, sqlite, postgres, redis
+  sqlite:
+    path: .infer/conversations.db
+  postgres:
+    host: localhost
+    port: 5432
+    database: infer_conversations
+    username: ''
+    password: ''
+    ssl_mode: prefer
+  redis:
+    host: localhost
+    port: 6379
+    password: ''
+    db: 0
+conversation:
+  title_generation:
+    enabled: true
+    model: '' # Model for title generation (optional)
+    system_prompt: |
+      Generate a concise conversation title...
+    batch_size: 10
 chat:
   theme: tokyo-night
+a2a:
+  enabled: true
+  agents: [] # List of A2A agent URLs
+  cache:
+    enabled: true
+    ttl: 300 # 5 minutes
+  task:
+    status_poll_seconds: 5
+    polling_strategy: exponential
+    initial_poll_interval_sec: 2
+    max_poll_interval_sec: 60
+    backoff_multiplier: 2.0
+    background_monitoring: true
+    completed_task_retention: 5
+  tools:
+    query_agent:
+      enabled: true
+      require_approval: false
+    query_task:
+      enabled: true
+      require_approval: false
+    submit_task:
+      enabled: true
+      require_approval: false
+    download_artifacts:
+      enabled: true
+      download_dir: /tmp/downloads
+      timeout_seconds: 30
+      require_approval: false
 ```
 
 ### Environment Variables
