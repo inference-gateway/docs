@@ -277,27 +277,6 @@ These settings control MCP integration for external tool access:
   ]}
 />
 
-### Agent-to-Agent (A2A) Settings
-
-These settings control A2A protocol integration for agent coordination:
-
-<ConfigTable
-  rows={[
-    { variable: 'A2A_ENABLE', description: 'Enable A2A protocol support', defaultValue: 'false' },
-    {
-      variable: 'A2A_EXPOSE',
-      description: 'Expose A2A endpoints for debugging',
-      defaultValue: 'false',
-    },
-    {
-      variable: 'A2A_AGENTS',
-      description: 'Comma-separated list of A2A agent URLs',
-      defaultValue: '""',
-    },
-    { variable: 'A2A_CLIENT_TIMEOUT', description: 'A2A client timeout', defaultValue: '30s' },
-  ]}
-/>
-
 ### UI Settings
 
 These settings control the Inference Gateway UI:

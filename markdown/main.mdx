@@ -75,14 +75,19 @@ Inference Gateway supports **Agent-To-Agent (A2A)** integration, enabling LLMs t
 - **Discover agent capabilities** automatically
 - **Scale agent ecosystems** with distributed architecture
 
-```bash
-# Enable A2A with multiple agents
-export A2A_ENABLE=true
-export A2A_AGENTS="http://calendar-agent:3001,http://calculator-agent:3002,http://weather-agent:3003"
+The best way to use A2A is through the **Inference Gateway CLI**, which provides seamless integration with A2A agents:
 
-# LLMs can coordinate all agents in one request
-curl -X POST http://localhost:8080/v1/chat/completions \
-  -d '{"model": "deepseek-chat", "messages": [{"role": "user", "content": "Schedule a meeting, calculate costs, and check the weather"}]}'
+```bash
+# Install the CLI
+curl -fsSL https://raw.githubusercontent.com/inference-gateway/cli/main/install.sh | bash
+
+# Initialize and start chatting
+infer init
+infer chat
+
+# Delegate tasks to A2A agents
+> "Schedule a team meeting for tomorrow at 2 PM"
+> "Check my calendar for conflicts this week"
 ```
 
 Learn more about <Link href="/a2a">A2A Integration</Link> and see how to build your own agents.
