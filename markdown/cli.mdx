@@ -1,8 +1,17 @@
 # Inference Gateway CLI
 
-The Inference Gateway CLI (`infer`) is a powerful Go-based command-line tool that provides comprehensive access to the Inference Gateway. It features interactive chat, autonomous agent capabilities, extensive tool integration, and advanced conversation management.
+The Inference Gateway CLI (`infer`) is a powerful Go-based command-line tool that provides comprehensive access to the Inference Gateway. It features an interactive chat interface with a rich TUI, autonomous agent capabilities, extensive tool integration, and advanced conversation management.
 
-**Current Version:** v0.47.0 (Breaking changes expected until stable)
+**Current Version:** v0.58.0 (Breaking changes expected until stable)
+
+## What Makes It Special
+
+- **Zero-Configuration Setup**: Just add your API keys to a `.env` file and start chatting - the gateway manages itself
+- **Autonomous Agent Mode**: Delegate complex tasks to an AI agent that works iteratively until completion
+- **Rich Tool Integration**: LLMs can execute commands, read/write files, search code, browse the web, and interact with GitHub
+- **Smart Safety System**: Configurable approval workflow with real-time diff visualization for file changes
+- **Flexible Modes**: Toggle between Standard, Plan (read-only), and Auto-Accept (YOLO) modes during chat
+- **Beautiful TUI**: Scrollable interface with syntax highlighting, tool result expansion, and multiple themes
 
 ## Installation
 
@@ -87,13 +96,25 @@ infer status
 
 #### `infer chat`
 
-Launch interactive chat with TUI interface:
+Launch interactive chat with a rich terminal user interface (TUI):
 
 ```bash
 infer chat
 ```
 
-Features scrolling, keyboard navigation, model selection, and tool result expansion.
+**Key Features:**
+
+- Real-time streaming responses with syntax highlighting
+- Scrollable chat history with mouse wheel and keyboard support
+- Tool result expansion/collapse for detailed inspection
+- Model switching during conversation
+- Three operational modes: Standard, Plan, and Auto-Accept
+
+**Navigation & Shortcuts:**
+
+- **Shift + Arrow Down/Up**: Scroll through chat history
+- **Ctrl+R**: Toggle expanded view of tool results
+- **Shift+Tab**: Cycle through agent modes (Standard → Plan → Auto-Accept)
 
 #### `infer agent`
 
@@ -106,6 +127,91 @@ infer agent "Implement a new feature based on issue #123"
 ```
 
 The agent operates autonomously with task analysis, planning, execution, and validation phases.
+
+## Agent Modes
+
+The CLI supports three operational modes that change how the agent behaves and what tools it can access. Toggle between modes anytime during a chat session using **Shift+Tab**.
+
+### Standard Mode (Default) 🎯
+
+Normal operation with all configured tools and approval checks enabled.
+
+**What you get:**
+
+- Full access to all tools defined in your configuration
+- Approval prompts for sensitive operations (Write, Edit, Delete, Bash)
+- Real-time diff visualization for file modifications
+- Balanced safety and functionality
+
+**Best for:** General development work, exploring codebases, collaborative coding
+
+**Example:**
+
+```bash
+infer chat
+> "Refactor the authentication module to use environment variables"
+# Agent will analyze code, propose changes, and ask for approval before modifying files
+```
+
+### Plan Mode (Read-Only) 📋
+
+Designed for planning and analysis without executing changes.
+
+**What you get:**
+
+- Limited to Read, Grep, and Tree tools only
+- Cannot modify files or execute commands
+- Provides detailed step-by-step implementation plans
+- Safe exploration of unfamiliar codebases
+
+**Best for:** Code reviews, architecture analysis, understanding before implementing
+
+**Example:**
+
+```bash
+infer chat
+# Press Shift+Tab to switch to Plan Mode (shows: 📋 Plan Mode indicator)
+> "How should I implement user authentication with JWT tokens?"
+# Agent explores code structure and provides detailed plan without making changes
+```
+
+### Auto-Accept Mode (YOLO) ⚡
+
+All tool executions are automatically approved - maximum speed, minimum friction.
+
+**What you get:**
+
+- Full access to all configured tools
+- Zero approval prompts - immediate execution
+- All safety guardrails bypassed
+- Rapid iteration and automation
+
+**Best for:** Trusted environments, rapid prototyping, repetitive tasks, time-sensitive work
+
+**⚠️ Important:** Use with caution. Ensure you have:
+
+- Version control (git) with clean working tree
+- Backups of important files
+- Clear understanding of the task
+
+**Example:**
+
+```bash
+infer chat
+# Press Shift+Tab twice to switch to Auto-Accept Mode (shows: ⚡ Auto-Accept indicator)
+> "Run the test suite, fix all failing tests, and commit the changes"
+# Agent executes everything immediately without interruption
+```
+
+### Switching Modes
+
+Press **Shift+Tab** during any chat session to cycle through modes:
+
+```
+Standard Mode → Plan Mode → Auto-Accept Mode → Standard Mode (loops)
+```
+
+The current mode is shown below the input field when not in Standard mode.
 
 ### Configuration Management
 
@@ -386,6 +492,131 @@ shortcuts:
     args: ['run']
 ```
 
+## Real-World Workflows
+
+### Workflow 1: Bug Investigation and Fix
+
+```bash
+# Start in Plan Mode to understand the issue first
+infer chat
+# Shift+Tab to switch to Plan Mode
+> "Analyze the bug reported in issue #123 and create a fix plan"
+
+# Agent reads code, identifies root cause, provides detailed plan
+
+# Switch to Standard Mode to implement
+# Shift+Tab to return to Standard Mode
+> "Implement the fix according to the plan"
+# Agent makes changes, you approve each modification
+
+# Test and commit
+> "Run the test suite to verify the fix"
+> "/git commit"  # AI generates commit message
+```
+
+### Workflow 2: Feature Development from Scratch
+
+```bash
+# Initialize project understanding
+infer chat
+> "Read the CONTRIBUTING.md and understand the project structure"
+> "Find similar features to understand the patterns"
+
+# Create implementation plan
+# Shift+Tab to Plan Mode
+> "Design the implementation for user profile feature with avatar upload"
+
+# Switch to Auto-Accept for rapid development
+# Shift+Tab twice to Auto-Accept Mode
+> "Implement the user profile feature according to the plan"
+# Agent creates files, writes code, no interruptions
+
+# Review and test
+# Shift+Tab back to Standard Mode
+> "Review the changes and run all tests"
+```
+
+### Workflow 3: Code Review and Refactoring
+
+```bash
+infer chat
+# Use Plan Mode for analysis
+> "Review the authentication module for security issues and code quality"
+# Agent provides detailed analysis
+
+# Implement suggested improvements
+> "Refactor based on the recommendations, prioritize security issues"
+# Agent makes changes with approval
+```
+
+### Workflow 4: Working with GitHub Issues
+
+```bash
+# Let the agent read the issue
+infer agent "Fix the bug described in GitHub issue #456"
+
+# Agent will:
+# 1. Fetch issue details using GitHub tool
+# 2. Analyze relevant code
+# 3. Implement fix
+# 4. Run tests
+# 5. Create commit with reference to issue
+```
+
+### Workflow 5: Documentation Generation
+
+```bash
+infer chat
+> "Generate comprehensive API documentation for all exported functions in the /api directory"
+# Agent reads code and creates markdown documentation
+
+> "Create a README.md with installation instructions and examples"
+# Agent analyzes project structure and creates README
+```
+
+### Workflow 6: Automated Testing
+
+```bash
+infer agent "Create unit tests for all functions in the user service with >80% coverage"
+
+# Agent autonomously:
+# - Analyzes the user service code
+# - Identifies untested functions
+# - Writes comprehensive test cases
+# - Runs tests to verify coverage
+```
+
+## Tips and Best Practices
+
+### For Beginners
+
+1. **Start with Plan Mode**: When working with unfamiliar code, use Plan Mode first to understand before making changes
+2. **Use Git**: Always work in a git repository so you can easily revert changes
+3. **Approve Carefully**: Read the diff visualization before approving file modifications
+4. **Start Small**: Begin with simple tasks like "read this file" or "explain this function"
+
+### For Power Users
+
+1. **Auto-Accept for Trusted Tasks**: Use Auto-Accept mode for repetitive, well-understood tasks
+2. **Custom Shortcuts**: Create shortcuts for frequent commands (tests, builds, deployments)
+3. **Combine with Scripts**: Let the agent generate scripts, then use custom shortcuts to run them
+4. **A2A Integration**: Delegate specialized tasks to A2A agents (testing, documentation, security scans)
+
+### Performance Tips
+
+1. **Be Specific**: Instead of "fix the code," say "fix the null pointer error in handleRequest function"
+2. **Provide Context**: Reference file paths, function names, or line numbers when relevant
+3. **Use Grep First**: For large codebases, use Grep to narrow down relevant files before asking for analysis
+4. **Chunk Large Tasks**: Break down complex features into smaller, manageable subtasks
+
+### Safety Best Practices
+
+1. **Review Diffs**: Always review file modification diffs before approving in Standard Mode
+2. **Test Before Commit**: Run tests after significant changes
+3. **Backup Important Work**: Have backups before using Auto-Accept mode extensively
+4. **Whitelist Commands**: Only whitelist commands you understand and trust
+5. **Protected Paths**: Add sensitive directories to protected paths in configuration
+
 ## Security & Safety
 
 ### Command Whitelisting
@@ -420,36 +651,26 @@ LLMs will request approval before executing potentially dangerous operations.
 
 ## Integration Examples
 
-### Shell Aliases
-
-```bash
-# Add to .bashrc or .zshrc
-alias ask="infer chat"
-alias ai-agent="infer agent"
-alias ai-status="infer status"
-```
-
 ### Development Workflow
 
 ```bash
 # Initialize new project
 infer init
 
-# Agent-driven development
-infer agent "Implement user authentication with JWT"
-
-# Interactive problem solving
+# Interactive development
 infer chat
-> How do I optimize this database query?
+> "Read the authentication module and explain how it works"
+> "Refactor the database connection to use connection pooling"
+
+# Autonomous agent for complex tasks
+infer agent "Fix all linting errors in the codebase"
+infer agent "Implement user authentication with JWT"
+infer agent "Review the changes in this PR and suggest improvements"
 ```
 
 ### CI/CD Integration
 
-```bash
-#!/bin/bash
-# Automated code review
-infer agent "Review the changes in this PR and suggest improvements"
-```
+To be implemented
 
 ## Troubleshooting
 
@@ -489,7 +710,7 @@ infer config tools status
 infer config tools validate
 
 # Enable debug logging
-export INFER_DEBUG=true
+export INFER_LOGGING_DEBUG=true
 infer agent "your task"
 ```
 
