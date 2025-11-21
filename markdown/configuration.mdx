@@ -191,6 +191,12 @@ Configure access to various LLM providers. At minimum, you should configure the 
       defaultValue: 'http://ollama:8080/v1',
     },
     { variable: 'OLLAMA_API_KEY', description: 'Ollama API Key', defaultValue: '""' },
+    {
+      variable: 'OLLAMA_CLOUD_API_URL',
+      description: 'Ollama Cloud API URL',
+      defaultValue: 'https://ollama.com/v1',
+    },
+    { variable: 'OLLAMA_CLOUD_API_KEY', description: 'Ollama Cloud API Key', defaultValue: '""' },
   ]}
 />
 
@@ -436,6 +442,8 @@ GROQ_API_URL=https://api.groq.com/openai/v1
 GROQ_API_KEY=
 OLLAMA_API_URL=http://ollama:8080/v1
 OLLAMA_API_KEY=
+OLLAMA_CLOUD_API_URL=https://ollama.com/v1
+OLLAMA_CLOUD_API_KEY=
 OPENAI_API_URL=https://api.openai.com/v1
 OPENAI_API_KEY=
 DEEPSEEK_API_URL=https://api.deepseek.com
