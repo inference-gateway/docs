@@ -4,6 +4,8 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
+const HEADER_OFFSET = 64;
+
 interface TOCItem {
   id: string;
   text: string;
@@ -17,11 +19,17 @@ const TableOfContents = () => {
   const observerRef = useRef<IntersectionObserver | null>(null);
   const clickedRef = useRef<boolean>(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const activeIdRef = useRef<string>('');
+
+  useEffect(() => {
+    activeIdRef.current = activeId;
+  }, [activeId]);
 
   const handleHashChange = useCallback(() => {
     if (window.location.hash) {
       const id = window.location.hash.slice(1);
       setActiveId(id);
+      activeIdRef.current = id;
 
       clickedRef.current = true;
       if (timeoutRef.current) {
@@ -29,13 +37,13 @@ const TableOfContents = () => {
       }
       timeoutRef.current = setTimeout(() => {
         clickedRef.current = false;
-      }, 200);
+      }, 1000);
     }
   }, []);
 
-  const setupIntersectionObserver = useCallback(() => {
+  const getHeadingsFromDOM = useCallback(() => {
     const contentEl = document.querySelector('.docs-content');
-    if (!contentEl) return;
+    if (!contentEl) return { items: [], elements: [] };
 
     const headingElements = Array.from(contentEl.querySelectorAll('h1, h2, h3'));
 
@@ -51,8 +59,10 @@ const TableOfContents = () => {
       };
     });
 
-    setHeadings(items);
+    return { items, elements: headingElements };
+  }, []);
 
+  const createObserver = useCallback((headingElements: Element[]) => {
     if (observerRef.current) {
       observerRef.current.disconnect();
     }
@@ -79,9 +89,11 @@ const TableOfContents = () => {
 
         if (
           currentActiveId &&
-          ((currentActiveId !== activeId && maxRatio > 0.2 * thresholdMultiplier) || maxRatio > 0.7)
+          ((currentActiveId !== activeIdRef.current && maxRatio > 0.2 * thresholdMultiplier) ||
+            maxRatio > 0.7)
         ) {
           setActiveId(currentActiveId);
+          activeIdRef.current = currentActiveId;
 
           if (!clickedRef.current && window.location.hash !== `#${currentActiveId}`) {
             window.history.replaceState(null, '', `#${currentActiveId}`);
@@ -90,7 +102,7 @@ const TableOfContents = () => {
       },
       {
         root: null,
-        rootMargin: '-80px 0px -40% 0px',
+        rootMargin: `-${HEADER_OFFSET}px 0px -20% 0px`,
         threshold: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1],
       }
     );
@@ -100,7 +112,7 @@ const TableOfContents = () => {
         observerRef.current.observe(el);
       }
     });
-  }, [activeId]);
+  }, []);
 
   const setupContentHeadingListeners = useCallback(() => {
     const contentHeadingLinks = document.querySelectorAll('.docs-content a[href^="#"]');
@@ -117,7 +129,7 @@ const TableOfContents = () => {
         }
         timeoutRef.current = setTimeout(() => {
           clickedRef.current = false;
-        }, 200);
+        }, 1000);
       }
     };
 
@@ -133,10 +145,13 @@ const TableOfContents = () => {
   }, []);
 
   useEffect(() => {
-    setupIntersectionObserver();
+    const { items, elements } = getHeadingsFromDOM();
+    setHeadings(items);
+    createObserver(elements);
+  }, [pathname, getHeadingsFromDOM, createObserver]);
 
+  useEffect(() => {
     window.addEventListener('hashchange', handleHashChange);
-
     handleHashChange();
 
     const cleanup = setupContentHeadingListeners();
@@ -146,7 +161,7 @@ const TableOfContents = () => {
         clearTimeout(timeoutRef.current);
         timeoutRef.current = setTimeout(() => {
           clickedRef.current = false;
-        }, 200);
+        }, 1000);
       }
     };
 
@@ -163,7 +178,7 @@ const TableOfContents = () => {
       window.removeEventListener('scroll', handleScroll);
       cleanup();
     };
-  }, [pathname, setupIntersectionObserver, handleHashChange, setupContentHeadingListeners]);
+  }, [pathname, handleHashChange, setupContentHeadingListeners]);
 
   const handleClick = (e: React.MouseEvent, headingId: string) => {
     e.preventDefault();
@@ -172,17 +187,38 @@ const TableOfContents = () => {
       clickedRef.current = true;
 
       setActiveId(headingId);
+      activeIdRef.current = headingId;
 
       window.history.pushState(null, '', `#${headingId}`);
 
-      targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const scrollContainer = document.querySelector('main');
+      if (scrollContainer) {
+        const containerRect = scrollContainer.getBoundingClientRect();
+        const targetRect = targetEl.getBoundingClientRect();
+        const relativeTop =
+          targetRect.top - containerRect.top + scrollContainer.scrollTop - HEADER_OFFSET;
+
+        scrollContainer.scrollTo({
+          top: relativeTop,
+          behavior: 'smooth',
+        });
+      } else {
+        const elementPosition = targetEl.getBoundingClientRect().top;
+        const currentScrollY = window.scrollY || document.documentElement.scrollTop;
+        const offsetPosition = elementPosition + currentScrollY - HEADER_OFFSET;
+
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: 'smooth',
+        });
+      }
 
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
       timeoutRef.current = setTimeout(() => {
         clickedRef.current = false;
-      }, 200);
+      }, 1000);
     }
   };
 

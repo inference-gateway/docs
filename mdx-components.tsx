@@ -53,7 +53,15 @@ const Heading = ({ as: Component, id, children, ...props }: HeadingProps) => {
     if (typeof window !== 'undefined' && headingRef.current) {
       const { hash } = window.location;
       if (hash === `#${slug}`) {
-        headingRef.current.scrollIntoView();
+        const headerOffset = 64;
+        const elementPosition = headingRef.current.getBoundingClientRect().top;
+        const currentScrollY = window.scrollY || document.documentElement.scrollTop;
+        const offsetPosition = elementPosition + currentScrollY - headerOffset;
+
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: 'smooth',
+        });
       }
     }
   }, [slug]);
@@ -287,9 +295,11 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
               const targetId = href.replace('#', '');
               const targetElement = document.getElementById(targetId);
               if (targetElement) {
-                const headerOffset = 80;
+                // Header height is 4rem = 64px (h-16 from Header.tsx)
+                const headerOffset = 64;
                 const elementPosition = targetElement.getBoundingClientRect().top;
-                const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+                const currentScrollY = window.scrollY || document.documentElement.scrollTop;
+                const offsetPosition = elementPosition + currentScrollY - headerOffset;
 
                 window.scrollTo({
                   top: offsetPosition,

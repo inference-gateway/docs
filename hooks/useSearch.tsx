@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { loadSearchIndex, searchDocumentation, type SearchResult } from '@/lib/utils';
 
@@ -13,11 +13,15 @@ export function useSearch() {
   const [indexStatus, setIndexStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const router = useRouter();
   const pathname = usePathname();
+  const previousPathnameRef = useRef(pathname);
 
   useEffect(() => {
-    setIsOpen(false);
-    setQuery('');
-    setResults([]);
+    if (previousPathnameRef.current !== pathname) {
+      previousPathnameRef.current = pathname;
+      setIsOpen(false);
+      setQuery('');
+      setResults([]);
+    }
   }, [pathname]);
 
   useEffect(() => {
