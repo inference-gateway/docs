@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.8](https://github.com/inference-gateway/docs/compare/0.5.7...0.5.8) (2025-11-21)
+
+### 🐛 Bug Fixes
+
+* TOC scrolling and update dependencies ([c6f1d94](https://github.com/inference-gateway/docs/commit/c6f1d947a7bb9809df9e1a915bdb0086ba598454))
+
+### 📚 Documentation
+
+* Add Ollama Cloud API environment variables ([2655b6a](https://github.com/inference-gateway/docs/commit/2655b6a49bdd03ef00a1c001bff5785018c55f10))
+* Update A2A documentation to emphasize CLI usage ([d792550](https://github.com/inference-gateway/docs/commit/d792550bc8199452c2c3d5091760f96be1442177))
+
 ## [0.5.7](https://github.com/inference-gateway/docs/compare/0.5.6...0.5.7) (2025-11-21)
 
 ### 📚 Documentation
