@@ -1,6 +1,6 @@
 gateway:
   url: http://localhost:8080
-  api_key: ''
+  api_key: ""
   timeout: 200
   oci: ghcr.io/inference-gateway/inference-gateway:latest
   run: true
@@ -28,7 +28,7 @@ client:
       - 504
 logging:
   debug: false
-  dir: ''
+  dir: ""
 tools:
   enabled: true
   sandbox:
@@ -115,9 +115,9 @@ tools:
     require_approval: true
 export:
   output_dir: .infer
-  summary_model: ''
+  summary_model: ""
 agent:
-  model: ''
+  model: ""
   system_prompt: |
     Autonomous software engineering agent. Execute tasks iteratively until completion.
 
@@ -208,7 +208,7 @@ agent:
   max_concurrent_tools: 5
 git:
   commit_message:
-    model: ''
+    model: ""
     system_prompt: |-
       Generate a concise git commit message following conventional commit format.
 
@@ -227,10 +227,10 @@ git:
       Respond with ONLY the commit message, no quotes or explanation.
 scm:
   pr_create:
-    prompt: ''
+    prompt: ""
     base_branch: main
-    branch_prefix: ''
-    model: ''
+    branch_prefix: ""
+    model: ""
   cleanup:
     return_to_base: true
     delete_local_branch: false
@@ -243,18 +243,18 @@ storage:
     host: localhost
     port: 5432
     database: infer_conversations
-    username: ''
-    password: ''
+    username: ""
+    password: ""
     ssl_mode: prefer
   redis:
     host: localhost
     port: 6379
-    password: ''
+    password: ""
     db: 0
 conversation:
   title_generation:
     enabled: true
-    model: ''
+    model: ""
     system_prompt: |-
       Generate a concise conversation title based on the messages provided.
 

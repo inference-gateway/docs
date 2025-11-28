@@ -534,6 +534,30 @@ The TUI provides:
 
 The git shortcuts provide intelligent commit message generation using AI when no message is provided with `/git commit`.
 
+### GitHub Actions Setup Shortcut
+
+- `/setup-github-app` - **NEW**: Set up GitHub Actions for your project
+
+This shortcut helps you quickly configure GitHub Actions for your project by:
+
+- Creating a `.github/workflows/` directory structure
+- Setting up basic CI/CD workflows
+- Configuring GitHub Actions for automated testing and deployment
+- Adding necessary workflow files for common development tasks
+
+**Usage Example:**
+```bash
+infer chat
+> /setup-github-app
+# Agent will guide you through setting up GitHub Actions for your project
+```
+
+**Key Features:**
+- Automates GitHub Actions configuration
+- Creates standard workflow templates
+- Guides you through the setup process
+- Helps establish CI/CD pipelines
+
 ## User-Defined Shortcuts
 
 You can create custom shortcuts by adding YAML configuration files in the `.infer/shortcuts/` directory.
