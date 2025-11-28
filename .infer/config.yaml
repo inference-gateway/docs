@@ -104,7 +104,7 @@ tools:
     enabled: true
     token: '%GITHUB_TOKEN%'
     base_url: https://api.github.com
-    owner: ''
+    owner: inference-gateway
     safety:
       max_size: 1048576
       timeout: 30
@@ -113,7 +113,7 @@ tools:
     require_approval: false
   safety:
     require_approval: true
-compact:
+export:
   output_dir: .infer
   summary_model: ''
 agent:
@@ -204,13 +204,8 @@ agent:
       </system-reminder>
   verbose_tools: false
   max_turns: 50
-  max_tokens: 4096
+  max_tokens: 8192
   max_concurrent_tools: 5
-  optimization:
-    enabled: false
-    model: ''
-    min_messages: 10
-    buffer_size: 2
 git:
   commit_message:
     model: ''
@@ -230,6 +225,15 @@ git:
       - "refactor: Simplify error handling"
 
       Respond with ONLY the commit message, no quotes or explanation.
+scm:
+  pr_create:
+    prompt: ''
+    base_branch: main
+    branch_prefix: ''
+    model: ''
+  cleanup:
+    return_to_base: true
+    delete_local_branch: false
 storage:
   enabled: true
   type: sqlite
@@ -294,12 +298,12 @@ a2a:
       require_approval: false
     submit_task:
       enabled: true
-      require_approval: false
+      require_approval: true
     download_artifacts:
       enabled: true
       download_dir: /tmp/downloads
       timeout_seconds: 30
-      require_approval: false
+      require_approval: true
 init:
   prompt: |-
     Please analyze this project and generate a comprehensive AGENTS.md file. Start by using the Tree tool to understand the project structure.
@@ -316,3 +320,6 @@ init:
     - Important files and configurations
 
     Write the AGENTS.md file to the project root when you have gathered enough information.
+compact:
+  enabled: true
+  auto_at: 80
