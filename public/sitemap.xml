@@ -2,7 +2,7 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://docs.inference-gateway.com</loc>
-    <lastmod>2025-08-28T06:07:34.672Z</lastmod>
+    <lastmod>2025-11-21T18:06:45.628Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
@@ -14,7 +14,7 @@
   </url>
   <url>
     <loc>https://docs.inference-gateway.com/a2a</loc>
-    <lastmod>2025-09-03T23:17:59.078Z</lastmod>
+    <lastmod>2025-11-21T18:13:10.614Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -38,19 +38,19 @@
   </url>
   <url>
     <loc>https://docs.inference-gateway.com/cli</loc>
-    <lastmod>2025-11-21T17:28:02.927Z</lastmod>
+    <lastmod>2025-11-21T18:23:08.782Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://docs.inference-gateway.com/configuration</loc>
-    <lastmod>2025-11-21T17:30:08.586Z</lastmod>
+    <lastmod>2025-11-21T18:09:56.661Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://docs.inference-gateway.com/deployment</loc>
-    <lastmod>2025-08-28T07:06:52.268Z</lastmod>
+    <lastmod>2026-01-23T20:44:34.331Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -93,12 +93,6 @@
   <url>
     <loc>https://docs.inference-gateway.com/supported-providers</loc>
     <lastmod>2025-11-15T21:28:17.983Z</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://docs.inference-gateway.com/ui</loc>
-    <lastmod>2025-04-15T15:51:38.184Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
