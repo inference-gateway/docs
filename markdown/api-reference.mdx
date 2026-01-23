@@ -73,7 +73,7 @@ Get a list of available models for a specific provider.
 GET /v1/models?provider={provider}
 ```
 
-where `{provider}` is one of: `openai`, `anthropic`, `cohere`, `groq`, `cloudflare`, `ollama`, `deepseek`.
+where `{provider}` is one of: `openai`, `anthropic`, `cohere`, `groq`, `cloudflare`, `ollama`, `deepseek`, `mistral`, `moonshot`.
 
 **Response**:
 
@@ -476,6 +476,7 @@ curl -X POST http://localhost:8080/v1/chat/completions \
 - Ollama (LLaVA, Llama 4, Llama 3.2 Vision)
 - Groq (vision models)
 - Mistral (Pixtral)
+- Moonshot (vision models)
 
 **Note:** When `ENABLE_VISION=false` (default), requests containing image content will be rejected even if the model supports vision. This is disabled by default for performance and security reasons.
 

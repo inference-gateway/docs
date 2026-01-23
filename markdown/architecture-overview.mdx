@@ -30,6 +30,8 @@ graph TD
     P --> H1["💬 Cohere"]
     P --> H2["🧠 Anthropic"]
     P --> H3["🐋 DeepSeek"]
+    P --> H4["🌟 Mistral"]
+    P --> H5["🌙 Moonshot"]
 
     %% Define styles
     classDef client fill:#9370DB,stroke:#333,stroke-width:1px,color:white;
@@ -41,7 +43,7 @@ graph TD
     class A client;
     class Auth auth;
     class IG1,IG2,IG3,P gateway;
-    class C,D,E,G,H1,H2,H3 provider;
+    class C,D,E,G,H1,H2,H3,H4,H5 provider;
 ```
 
 ## Kubernetes Setup
@@ -103,6 +105,8 @@ graph TD
             Ext5["💬 Cohere"]
             Ext6["🚀 Groq"]
             Ext7["🐋 DeepSeek"]
+            Ext8["🌟 Mistral"]
+            Ext9["🌙 Moonshot"]
         end
     end
 
@@ -121,7 +125,7 @@ graph TD
     class Pod1,Pod2,Pod3 pod;
     class Prometheus,Grafana monitoring;
     class SM monitor;
-    class Ext1,Ext2,Ext3,Ext4,Ext5,Ext6,Ext7 externalSvc;
+    class Ext1,Ext2,Ext3,Ext4,Ext5,Ext6,Ext7,Ext8,Ext9 externalSvc;
     class IG1,IG2,IG3,PG1,PG2,PG3 service;
     class InternalClients,InternalAgents internalClient;
     class ExternalProviders extProviders;

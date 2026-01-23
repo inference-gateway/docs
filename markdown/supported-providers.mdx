@@ -102,12 +102,40 @@ The following LLM providers are currently supported:
   </div>
 </div>
 
+<div className="border p-4 rounded-md">
+  <h3>Google</h3>
+  <p>Access Google's Gemini models for text generation and understanding.</p>
+  <div>
+    <strong>Authentication:</strong> Bearer Token
+  </div>
+  <div>
+    <strong>Default URL:</strong> https://generativelanguage.googleapis.com/v1
+  </div>
+  <div>
+    <strong>Vision Support:</strong> ✅ Yes (Gemini 2.5)
+  </div>
+</div>
+
+<div className="border p-4 rounded-md">
+  <h3>Mistral</h3>
+  <p>Access Mistral AI's models including vision-capable Pixtral.</p>
+  <div>
+    <strong>Authentication:</strong> Bearer Token
+  </div>
+  <div>
+    <strong>Default URL:</strong> https://api.mistral.ai/v1
+  </div>
+  <div>
+    <strong>Vision Support:</strong> ✅ Yes (Pixtral)
+  </div>
+</div>
+
   <div className="border p-4 rounded-md">
-    <h3>Google</h3>
-    <p>Access Google's Gemini models for text generation and understanding.</p>
+    <h3>Moonshot</h3>
+    <p>Use Moonshot AI's models for natural language and vision tasks.</p>
     <div><strong>Authentication:</strong> Bearer Token</div>
-    <div><strong>Default URL:</strong> https://generativelanguage.googleapis.com/v1</div>
-    <div><strong>Vision Support:</strong> ✅ Yes (Gemini 2.5)</div>
+    <div><strong>Default URL:</strong> https://api.moonshot.ai/v1</div>
+    <div><strong>Vision Support:</strong> ✅ Yes</div>
   </div>
 </div>
 
@@ -130,6 +158,7 @@ ENABLE_VISION=true
 - **Ollama**: LLaVA, Llama 4, Llama 3.2 Vision
 - **Groq**: Vision models
 - **Mistral**: Pixtral
+- **Moonshot**: Vision models
 
 ### Example Vision Request
 
@@ -167,7 +196,7 @@ Each provider requires specific configuration through environment variables:
 - `PROVIDER_API_URL`: The base URL for the provider's API
 - `PROVIDER_API_KEY`: The authentication key for the provider
 
-Replace "PROVIDER" with the provider name (uppercase): OPENAI, ANTHROPIC, COHERE, GROQ, CLOUDFLARE, OLLAMA, GOOGLE, DEEPSEEK.
+Replace "PROVIDER" with the provider name (uppercase): OPENAI, ANTHROPIC, COHERE, GROQ, CLOUDFLARE, OLLAMA, GOOGLE, DEEPSEEK, MISTRAL, MOONSHOT.
 
 ### API Endpoints
 
@@ -398,6 +427,50 @@ curl -X POST http://localhost:8080/v1/chat/completions?provider=google \
       {
         "role": "user",
         "content": "Explain the concept of machine learning in simple terms."
+      }
+    ]
+  }'
+```
+
+### Mistral Provider
+
+Generate content with Mistral AI models:
+
+```bash
+curl -X POST http://localhost:8080/v1/chat/completions?provider=mistral \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "mistral-large-latest",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a helpful assistant."
+      },
+      {
+        "role": "user",
+        "content": "Explain the differences between supervised and unsupervised learning."
+      }
+    ]
+  }'
+```
+
+### Moonshot Provider
+
+Generate content with Moonshot AI models:
+
+```bash
+curl -X POST http://localhost:8080/v1/chat/completions?provider=moonshot \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "moonshot-v1-8k",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a helpful assistant."
+      },
+      {
+        "role": "user",
+        "content": "What are the key principles of clean code?"
       }
     ]
   }'

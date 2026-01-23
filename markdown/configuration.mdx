@@ -239,6 +239,32 @@ Configure access to various LLM providers. At minimum, you should configure the 
   ]}
 />
 
+#### Mistral
+
+<ConfigTable
+  rows={[
+    {
+      variable: 'MISTRAL_API_URL',
+      description: 'Mistral AI API URL',
+      defaultValue: 'https://api.mistral.ai/v1',
+    },
+    { variable: 'MISTRAL_API_KEY', description: 'Mistral AI API Key', defaultValue: '""' },
+  ]}
+/>
+
+#### Moonshot
+
+<ConfigTable
+  rows={[
+    {
+      variable: 'MOONSHOT_API_URL',
+      description: 'Moonshot AI API URL',
+      defaultValue: 'https://api.moonshot.ai/v1',
+    },
+    { variable: 'MOONSHOT_API_KEY', description: 'Moonshot AI API Key', defaultValue: '""' },
+  ]}
+/>
+
 ### Model Context Protocol (MCP) Settings
 
 These settings control MCP integration for external tool access:
@@ -431,6 +457,8 @@ GOOGLE_API_URL=https://generativelanguage.googleapis.com/v1beta/openai
 GOOGLE_API_KEY=
 MISTRAL_API_URL=https://api.mistral.ai/v1
 MISTRAL_API_KEY=
+MOONSHOT_API_URL=https://api.moonshot.ai/v1
+MOONSHOT_API_KEY=
 ```
 
 ## Configuration Best Practices
