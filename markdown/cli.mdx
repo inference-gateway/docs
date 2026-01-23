@@ -1,17 +1,19 @@
 # Inference Gateway CLI
 
-The Inference Gateway CLI (`infer`) is a powerful Go-based command-line tool that provides comprehensive access to the Inference Gateway. It features an interactive chat interface with a rich TUI, autonomous agent capabilities, extensive tool integration, and advanced conversation management.
+The Inference Gateway CLI (`infer`) is a powerful Go-based command-line tool providing comprehensive access to the Inference Gateway with interactive chat, autonomous agents, Computer Use tools, and development workflows.
 
-**Current Version:** v0.58.0 (Breaking changes expected until stable)
+**Current Version:** v0.97.0 (Breaking changes expected until stable)
 
-## What Makes It Special
+## Key Features
 
-- **Zero-Configuration Setup**: Just add your API keys to a `.env` file and start chatting - the gateway manages itself
-- **Autonomous Agent Mode**: Delegate complex tasks to an AI agent that works iteratively until completion
-- **Rich Tool Integration**: LLMs can execute commands, read/write files, search code, browse the web, and interact with GitHub
-- **Smart Safety System**: Configurable approval workflow with real-time diff visualization for file changes
-- **Flexible Modes**: Toggle between Standard, Plan (read-only), and Auto-Accept (YOLO) modes during chat
-- **Beautiful TUI**: Scrollable interface with syntax highlighting, tool result expansion, and multiple themes
+- 🚀 **Zero-Configuration Setup** - Add API keys and start chatting
+- 🤖 **Autonomous Agent Mode** - Delegate complex tasks with iterative execution
+- 🖥️ **Computer Use Tools** - GUI automation with screenshot, mouse, and keyboard control
+- 🛠️ **Rich Tool Integration** - File operations, code search, web access, GitHub integration
+- 🔒 **Smart Safety System** - Configurable approval workflow with diff visualization
+- 🎨 **Beautiful TUI** - Scrollable interface with syntax highlighting and multiple themes
+- 🌐 **Web Terminal** - Browser-based interface with tabbed sessions
+- 💰 **Cost Tracking** - Real-time token usage and cost calculation
 
 ## Installation
 
@@ -20,21 +22,15 @@ The Inference Gateway CLI (`infer`) is a powerful Go-based command-line tool tha
 ```bash
 # Latest version
 curl -fsSL https://raw.githubusercontent.com/inference-gateway/cli/main/install.sh | bash
-```
 
-```bash
 # Specific version
-curl -fsSL https://raw.githubusercontent.com/inference-gateway/cli/main/install.sh | bash -s -- --version v0.47.0
-```
+curl -fsSL https://raw.githubusercontent.com/inference-gateway/cli/main/install.sh | bash -s -- --version v0.97.0
 
-```bash
 # Custom directory
 curl -fsSL https://raw.githubusercontent.com/inference-gateway/cli/main/install.sh | bash -s -- --install-dir $HOME/.local/bin
 ```
 
 ### Go Install
-
-If you have Go installed:
 
 ```bash
 go install github.com/inference-gateway/cli@latest
@@ -56,11 +52,13 @@ go build -o infer
 
 ![Inference Gateway TUI Interface](/images/tui.gif)
 
-Initialize your project and start using the CLI:
-
 ```bash
 # Initialize configuration
 infer init
+
+# Generate AGENTS.md documentation for AI agents (recommended for new projects)
+infer chat
+> /init
 
 # Check gateway status
 infer status
@@ -68,183 +66,307 @@ infer status
 # Start interactive chat
 infer chat
 
+# Launch web terminal
+infer chat --web
+
+# Autonomous agent mode
+infer agent "Analyze this codebase and suggest improvements"
+
 # Get help
 infer --help
 ```
 
-## Core Commands
+### Generating AGENTS.md
 
-### Essential Commands
-
-#### `infer init`
-
-Initialize your project with `.infer` directory and configuration:
-
-```bash
-infer init
-```
-
-Creates `.infer/config.yaml` with default settings and tool configurations.
-
-#### `infer status`
-
-Check gateway health and resource usage:
-
-```bash
-infer status
-```
-
-#### `infer chat`
-
-Launch interactive chat with a rich terminal user interface (TUI):
+For new projects, use the `/init` shortcut to automatically generate an `AGENTS.md` file. This file provides structured documentation that helps AI agents understand your project:
 
 ```bash
 infer chat
+> /init
 ```
 
-**Key Features:**
+The agent will:
 
-- Real-time streaming responses with syntax highlighting
-- Scrollable chat history with mouse wheel and keyboard support
-- Tool result expansion/collapse for detailed inspection
+1. Analyze your project structure with the Tree tool
+2. Examine configuration files, build systems, and documentation
+3. Generate comprehensive `AGENTS.md` including:
+   - Project overview and technologies
+   - Architecture and structure
+   - Development environment setup
+   - Key commands (build, test, lint, run)
+   - Testing instructions
+   - Project conventions and coding standards
+   - Important files and configurations
+
+This documentation helps other AI agents (and developers) quickly understand how to work with your project.
+
+## Core Commands
+
+| Command              | Description                      | Key Features                                         |
+| -------------------- | -------------------------------- | ---------------------------------------------------- |
+| `infer init`         | Initialize project configuration | Creates `.infer/config.yaml` with defaults           |
+| `infer status`       | Check gateway health             | Shows resource usage and connectivity                |
+| `infer chat`         | Interactive chat TUI             | Streaming, scrolling, tool expansion, mode switching |
+| `infer chat --web`   | Web-based terminal               | Browser interface, tabbed sessions, remote access    |
+| `infer agent <task>` | Autonomous task execution        | Background operation, task planning, validation      |
+| `infer config <cmd>` | Configuration management         | Model, tools, safety, sandbox settings               |
+
+### Chat Interface Features
+
+**Navigation:**
+
+- **Shift + Arrow Down/Up**: Scroll chat history
+- **Ctrl+R**: Toggle tool result expansion
+- **Shift+Tab**: Cycle agent modes (Standard → Plan → Auto-Accept)
+- **Ctrl+K**: Toggle model thinking blocks
+
+**Capabilities:**
+
+- Real-time streaming with syntax highlighting
+- Mouse wheel and keyboard scrolling
 - Model switching during conversation
-- Three operational modes: Standard, Plan, and Auto-Accept
-
-**Navigation & Shortcuts:**
-
-- **Shift + Arrow Down/Up**: Scroll through chat history
-- **Ctrl+R**: Toggle expanded view of tool results
-- **Shift+Tab**: Cycle through agent modes (Standard → Plan → Auto-Accept)
-
-#### `infer agent`
-
-**Autonomous agent mode** - Execute complex tasks in the background:
-
-```bash
-infer agent "Analyze this codebase and suggest improvements"
-infer agent "Fix the failing tests in the test suite"
-infer agent "Implement a new feature based on issue #123"
-```
-
-The agent operates autonomously with task analysis, planning, execution, and validation phases.
+- Tool result inspection
+- Cost tracking in status bar
+- Collapsible thinking blocks
 
 ## Agent Modes
 
-The CLI supports three operational modes that change how the agent behaves and what tools it can access. Toggle between modes anytime during a chat session using **Shift+Tab**.
+Toggle between modes anytime during chat using **Shift+Tab**.
 
-### Standard Mode (Default) 🎯
+| Mode                   | Tools                 | Approval                            | Best For                                            |
+| ---------------------- | --------------------- | ----------------------------------- | --------------------------------------------------- |
+| **Standard** (Default) | All configured        | Required for Write/Edit/Delete/Bash | General development, collaborative coding           |
+| **Plan** (Read-Only)   | Read, Grep, Tree only | None                                | Code reviews, architecture analysis, planning       |
+| **Auto-Accept** (YOLO) | All configured        | None - immediate execution          | Trusted environments, rapid prototyping, automation |
 
-Normal operation with all configured tools and approval checks enabled.
+### Standard Mode
 
-**What you get:**
-
-- Full access to all tools defined in your configuration
-- Approval prompts for sensitive operations (Write, Edit, Delete, Bash)
-- Real-time diff visualization for file modifications
-- Balanced safety and functionality
-
-**Best for:** General development work, exploring codebases, collaborative coding
-
-**Example:**
+Full tool access with safety controls and approval prompts for sensitive operations.
 
 ```bash
 infer chat
 > "Refactor the authentication module to use environment variables"
-# Agent will analyze code, propose changes, and ask for approval before modifying files
+# Agent analyzes code, proposes changes, requests approval before modifying
 ```
 
-### Plan Mode (Read-Only) 📋
+### Plan Mode
 
-Designed for planning and analysis without executing changes.
-
-**What you get:**
-
-- Limited to Read, Grep, and Tree tools only
-- Cannot modify files or execute commands
-- Provides detailed step-by-step implementation plans
-- Safe exploration of unfamiliar codebases
-
-**Best for:** Code reviews, architecture analysis, understanding before implementing
-
-**Example:**
+Analysis and planning without execution. Safe exploration of unfamiliar codebases.
 
 ```bash
 infer chat
-# Press Shift+Tab to switch to Plan Mode (shows: 📋 Plan Mode indicator)
+# Press Shift+Tab to switch to Plan Mode
 > "How should I implement user authentication with JWT tokens?"
-# Agent explores code structure and provides detailed plan without making changes
+# Agent explores code structure and provides detailed plan
 ```
 
-### Auto-Accept Mode (YOLO) ⚡
+### Auto-Accept Mode
 
-All tool executions are automatically approved - maximum speed, minimum friction.
-
-**What you get:**
-
-- Full access to all configured tools
-- Zero approval prompts - immediate execution
-- All safety guardrails bypassed
-- Rapid iteration and automation
-
-**Best for:** Trusted environments, rapid prototyping, repetitive tasks, time-sensitive work
-
-**⚠️ Important:** Use with caution. Ensure you have:
-
-- Version control (git) with clean working tree
-- Backups of important files
-- Clear understanding of the task
-
-**Example:**
+Zero approval prompts for maximum speed. Use with caution in version-controlled environments.
 
 ```bash
 infer chat
-# Press Shift+Tab twice to switch to Auto-Accept Mode (shows: ⚡ Auto-Accept indicator)
+# Press Shift+Tab twice to switch to Auto-Accept Mode
 > "Run the test suite, fix all failing tests, and commit the changes"
-# Agent executes everything immediately without interruption
+# Agent executes everything immediately
 ```
 
-### Switching Modes
+**⚠️ Important for Auto-Accept:** Ensure clean git working tree and backups.
 
-Press **Shift+Tab** during any chat session to cycle through modes:
+## Computer Use
 
+GUI automation and visual understanding capabilities for interacting with applications and desktop environments.
+
+### Display Server Support
+
+Automatic display server detection - no configuration needed:
+
+| Platform  | Supported Servers              | Notes                                  |
+| --------- | ------------------------------ | -------------------------------------- |
+| **macOS** | Quartz (native), X11 (XQuartz) | Quartz automatically detected and used |
+| **Linux** | X11, Wayland                   | Auto-detection handles both protocols  |
+
+Display server type is automatically detected at runtime. No manual configuration required.
+
+### Computer Use Tools
+
+| Tool                    | Description             | Key Capabilities                                                                      |
+| ----------------------- | ----------------------- | ------------------------------------------------------------------------------------- |
+| **GetLatestScreenshot** | Capture screen regions  | Streaming mode, region selection, circular buffer, JPEG format (configurable quality) |
+| **MouseMove**           | Control cursor position | Absolute coordinates, relative movement                                               |
+| **MouseClick**          | Perform click actions   | Left/right/middle clicks, double-click support                                        |
+| **MouseScroll**         | Scroll content          | Vertical and horizontal scrolling                                                     |
+| **KeyboardType**        | Type text and keys      | Plain text, key combinations (Ctrl+C, Cmd+V), configurable typing delay               |
+| **GetFocusedApp**       | Identify active app     | Returns focused application name                                                      |
+| **ActivateApp**         | Switch applications     | Focus and activate specific apps                                                      |
+
+### Screenshot Tool Features
+
+**Streaming Mode:**
+
+- Maintains circular buffer of recent screenshots
+- Configurable buffer size (default: 5)
+- Configurable capture interval (default: 3 seconds)
+- Efficient memory management
+- Fast access to recent captures
+
+**Image Optimization:**
+
+- Automatic resolution scaling (max: 1920x1080, target: 1024x768)
+- JPEG compression with configurable quality (default: 85%)
+- Reduces bandwidth and storage requirements
+- Optional capture overlay for debugging
+
+**Region Selection:**
+
+- Full screen capture
+- Custom region coordinates (x, y, width, height)
+- Multiple monitor support
+
+### Floating Window
+
+Real-time visualization of agent activity:
+
+```yaml
+computer_use:
+  floating_window:
+    enabled: true
+    respawn_on_close: true # Auto-restart if closed
+    position: top-right # top-left, top-right, bottom-left, bottom-right
+    always_on_top: true # Keep window above other apps
 ```
-Standard Mode → Plan Mode → Auto-Accept Mode → Standard Mode (loops)
+
+**Features:**
+
+- Always-on-top overlay
+- Shows agent actions in real-time
+- Configurable position
+- Auto-respawn option if accidentally closed
+- Non-intrusive design
+- Available on all platforms with GUI support
+
+### Configuration
+
+```yaml
+computer_use:
+  enabled: true
+  floating_window:
+    enabled: true
+    respawn_on_close: true
+    position: top-right
+    always_on_top: true
+  screenshot:
+    enabled: true
+    max_width: 1920 # Maximum capture width
+    max_height: 1080 # Maximum capture height
+    target_width: 1024 # Target resize width
+    target_height: 768 # Target resize height
+    format: jpeg # jpeg or png
+    quality: 85 # JPEG quality (1-100)
+    streaming_enabled: true
+    capture_interval: 3 # Seconds between captures
+    buffer_size: 5 # Number of screenshots to buffer
+    temp_dir: '' # Temporary storage directory
+    log_captures: false # Log each capture
+    show_overlay: true # Show capture overlay
+  rate_limit:
+    enabled: true
+    max_actions_per_minute: 60
+    window_seconds: 60
+  tools:
+    mouse_move:
+      enabled: true
+    mouse_click:
+      enabled: true
+    mouse_scroll:
+      enabled: true
+    keyboard_type:
+      enabled: true
+      max_text_length: 1000
+      typing_delay_ms: 100
+    get_focused_app:
+      enabled: true
+    activate_app:
+      enabled: true
 ```
 
-The current mode is shown below the input field when not in Standard mode.
+### Safety and Rate Limiting
 
-### Configuration Management
+**Rate Limiting:**
 
-#### Initialize Configuration Only
+- Default: 60 actions per minute
+- Prevents runaway automation
+- Configurable threshold
+
+**Safety Controls:**
+
+- Approval prompts in Standard Mode
+- Auto-approve in YOLO mode
+- Activity logging for audit trails
+- Command execution monitoring
+
+**Best Practices:**
+
+- Use Standard Mode for initial exploration
+- Enable logging for debugging
+- Set appropriate rate limits
+- Monitor activity logs
+- Test in safe environments first
+
+### Example Use Cases
 
 ```bash
-infer config init
+infer chat
+> "Take a screenshot and analyze the error dialog"
+> "Click the Submit button in the center of the screen"
+> "Type 'Hello World' and press Enter"
+> "Switch to the Terminal app and run ls command"
+> "Find the Save button and click it"
 ```
 
-#### Agent Configuration
+## Tools & Capabilities
+
+When tools are enabled, LLMs have access to a comprehensive suite across multiple categories.
+
+### Tool Categories
+
+| Category            | Tools                                                                                             | Description                                 |
+| ------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| **File System**     | Read, Write, Edit, MultiEdit, Delete, Tree                                                        | File operations with safety controls        |
+| **Code Search**     | Grep (ripgrep-powered)                                                                            | Fast code search with regex support         |
+| **Web**             | WebSearch, WebFetch                                                                               | Internet research with caching (15-min TTL) |
+| **Development**     | Bash (whitelisted), GitHub API                                                                    | Command execution, repository integration   |
+| **Task Management** | TodoWrite                                                                                         | Track complex workflows and planning        |
+| **A2A Integration** | QueryAgent, SubmitTask, QueryTask, DownloadArtifacts                                              | Delegate to specialized agents              |
+| **Computer Use**    | GetLatestScreenshot, MouseMove, MouseClick, MouseScroll, KeyboardType, GetFocusedApp, ActivateApp | GUI automation and visual understanding     |
+
+### File System Tools
+
+- **Read**: Read file contents with line ranges
+- **Write**: Create or overwrite files (requires approval)
+- **Edit**: Modify files with string replacement (requires approval)
+- **MultiEdit**: Batch edit multiple files
+- **Delete**: Remove files (requires approval)
+- **Tree**: Directory structure visualization
+
+### Security Features
+
+- **Command Whitelisting**: Only approved patterns allowed for Bash tool
+- **Approval Prompts**: Safety confirmations for Write/Edit/Delete/Bash
+- **Path Protection**: Sensitive directories automatically excluded (`.git/`, `*.env`, `.infer/`)
+- **Sandbox Controls**: Restrict tool operations to allowed directories
+- **Domain Whitelisting**: Control web fetch access
+- **Diff Preview**: Visual diff before file modifications
+
+### Tool Configuration
 
 ```bash
-# Set default model for chat
-infer config agent set-model openai/gpt-4
-
-# Set system prompt
-infer config agent set-system "You are a helpful coding assistant"
-```
-
-#### Tool Management
-
-```bash
-# Enable/disable tool execution
+# Enable/disable tools
 infer config tools enable
 infer config tools disable
 
-# Manage command whitelist
-infer config tools list
-infer config tools validate
-infer config tools exec
-
 # Safety settings
-infer config tools safety enable    # Require approval prompts
+infer config tools safety enable
 infer config tools safety disable
 infer config tools safety status
 
@@ -252,463 +374,509 @@ infer config tools safety status
 infer config tools sandbox add /protected/path
 infer config tools sandbox remove /protected/path
 infer config tools sandbox list
+
+# Command whitelist
+infer config tools whitelist add "npm install"
+infer config tools whitelist remove "dangerous-command"
 ```
 
 ## Configuration
 
-The CLI uses a 2-layer configuration system with precedence:
+Two-layer configuration system with precedence from highest to lowest:
 
-1. **Environment Variables** (`INFER_*` prefix) - Highest priority
-2. **Command Line Flags**
-3. **Project Config** (`.infer/config.yaml`)
-4. **User Config** (`~/.infer/config.yaml`)
-5. **Built-in Defaults** - Lowest priority
+### Configuration Precedence
 
-### Configuration File Structure
+| Priority    | Source                | Example                                  |
+| ----------- | --------------------- | ---------------------------------------- |
+| 1 (Highest) | Environment Variables | `INFER_GATEWAY_URL`, `INFER_AGENT_MODEL` |
+| 2           | Command Line Flags    | `--model`, `--debug`                     |
+| 3           | Project Config        | `.infer/config.yaml`                     |
+| 4           | User Config           | `~/.infer/config.yaml`                   |
+| 5 (Lowest)  | Built-in Defaults     | Internal defaults                        |
 
-The CLI creates a comprehensive YAML configuration:
+### Key Configuration Areas
 
-```yaml
-gateway:
-  url: http://localhost:8080
-  api_key: ''
-  timeout: 200
-  oci: ghcr.io/inference-gateway/inference-gateway:latest # OCI image for auto-running gateway
-  run: true # Auto-run gateway if not available
-  docker: true # Use Docker to run gateway
-  include_models: [] # Only show these models (empty = all)
-  exclude_models: # Models to hide from selection
-    - ollama_cloud/cogito-2.1:671b
-    - ollama_cloud/kimi-k2:1t
-    - ollama_cloud/kimi-k2-thinking
-    - ollama_cloud/deepseek-v3.1:671b
-client:
-  timeout: 200
-  retry:
-    enabled: true
-    max_attempts: 3
-    initial_backoff_sec: 5
-    max_backoff_sec: 60
-    backoff_multiplier: 2
-    retryable_status_codes: [400, 408, 429, 500, 502, 503, 504]
-logging:
-  debug: false
-  dir: '' # Directory for log files (optional)
-tools:
-  enabled: true # Tools are enabled by default with safe read-only commands
-  sandbox:
-    directories: ['.', '/tmp'] # Allowed directories for tool operations
-    protected_paths: # Paths excluded from tool access for security
-      - .infer/
-      - .git/
-      - '*.env'
-  bash:
-    enabled: true
-    whitelist:
-      commands: # Exact command matches
-        - ls
-        - pwd
-        - tree
-        - wc
-        - sort
-        - uniq
-        - head
-        - tail
-        - task
-        - make
-        - find
-      patterns: # Regex patterns for more complex commands
-        - ^git status$
-        - ^git branch( --show-current)?( -[alrvd])?$
-        - ^git log
-        - ^git diff
-        - ^git remote( -v)?$
-        - ^git show
-  read:
-    enabled: true
-    require_approval: false
-  write:
-    enabled: true
-    require_approval: true # Write operations require approval by default for security
-  edit:
-    enabled: true
-    require_approval: true # Edit operations require approval by default for security
-  delete:
-    enabled: true
-    require_approval: true # Delete operations require approval by default for security
-  grep:
-    enabled: true
-    backend: auto # "auto", "ripgrep", or "go"
-    require_approval: false
-  tree:
-    enabled: true
-    require_approval: false
-  web_fetch:
-    enabled: true
-    whitelisted_domains:
-      - golang.org
-    safety:
-      max_size: 8192 # 8KB
-      timeout: 30 # 30 seconds
-      allow_redirect: true
-    cache:
-      enabled: true
-      ttl: 3600 # 1 hour
-      max_size: 52428800 # 50MB
-  web_search:
-    enabled: true
-    default_engine: duckduckgo
-    max_results: 10
-    engines:
-      - duckduckgo
-      - google
-    timeout: 10
-  todo_write:
-    enabled: true
-    require_approval: false
-  github:
-    enabled: true
-    token: '%GITHUB_TOKEN%'
-    base_url: 'https://api.github.com'
-    owner: ''
-    repo: '' # Default repository (optional)
-    safety:
-      max_size: 1048576 # 1MB
-      timeout: 30 # 30 seconds
-  safety:
-    require_approval: true
-compact:
-  output_dir: .infer # Directory for compact command exports
-  summary_model: '' # Model to use for summarization (optional)
-agent:
-  model: '' # Default model for agent operations
-  system_prompt: | # System prompt for the main agent
-    Autonomous software engineering agent...
-  system_prompt_plan: | # System prompt for plan mode
-    You are an AI planning assistant in PLAN MODE...
-  system_reminders:
-    enabled: true
-    interval: 4
-    reminder_text: |
-      System reminder text for maintaining context
-  verbose_tools: false
-  max_turns: 50 # Maximum number of turns for agent sessions
-  max_tokens: 4096 # The maximum number of tokens per request
-  max_concurrent_tools: 5 # Maximum parallel tool executions
-  optimization:
-    enabled: false
-    model: '' # Model for optimization (optional)
-    min_messages: 10
-    buffer_size: 2
-git:
-  commit_message:
-    model: '' # Model for AI commit messages (optional)
-    system_prompt: |
-      Generate a concise git commit message...
-storage:
-  enabled: true
-  type: sqlite # Options: memory, sqlite, postgres, redis
-  sqlite:
-    path: .infer/conversations.db
-  postgres:
-    host: localhost
-    port: 5432
-    database: infer_conversations
-    username: ''
-    password: ''
-    ssl_mode: prefer
-  redis:
-    host: localhost
-    port: 6379
-    password: ''
-    db: 0
-conversation:
-  title_generation:
-    enabled: true
-    model: '' # Model for title generation (optional)
-    system_prompt: |
-      Generate a concise conversation title...
-    batch_size: 10
-chat:
-  theme: tokyo-night
-a2a:
-  enabled: true
-  agents: [] # List of A2A agent URLs
-  cache:
-    enabled: true
-    ttl: 300 # 5 minutes
-  task:
-    status_poll_seconds: 5
-    polling_strategy: exponential
-    initial_poll_interval_sec: 2
-    max_poll_interval_sec: 60
-    backoff_multiplier: 2.0
-    background_monitoring: true
-    completed_task_retention: 5
-  tools:
-    query_agent:
-      enabled: true
-      require_approval: false
-    query_task:
-      enabled: true
-      require_approval: false
-    submit_task:
-      enabled: true
-      require_approval: false
-    download_artifacts:
-      enabled: true
-      download_dir: /tmp/downloads
-      timeout_seconds: 30
-      require_approval: false
-```
+**Gateway Settings:**
 
-### Environment Variables
+- Gateway URL and API key
+- Timeout and retry configuration
+- OCI image for auto-running gateway
+- Model filtering (include/exclude lists)
 
-```bash
-export INFER_GATEWAY_URL="http://localhost:3000"
-export INFER_GATEWAY_API_KEY="your-api-key"
-export INFER_AGENT_MODEL="openai/gpt-4"
-export INFER_LOGGING_DEBUG="true"
-```
+**Agent Configuration:**
 
-## Advanced Features
+- Default model for operations
+- System prompts (main and plan mode)
+- System reminders interval
+- Max turns and tokens
+- Parallel tool execution (default: 5 concurrent)
 
-### Tool System for LLMs
+**Tool Settings:**
 
-When enabled, LLMs have access to a comprehensive tool suite:
+- Enable/disable individual tools
+- Approval requirements per tool
+- Command whitelists and patterns
+- Sandbox directories
+- Protected paths
 
-#### File System Tools
+**Storage Backends:**
 
-- **Bash**: Execute whitelisted shell commands
-- **Read/Write/Edit**: File operations with safety controls
-- **MultiEdit**: Batch file edits
-- **Delete/Tree**: File management and exploration
+- SQLite (default) - local file storage
+- PostgreSQL - shared database for teams
+- Redis - high-performance caching
+- In-memory - temporary sessions
 
-#### Search Tools
+**Conversation Features:**
 
-- **Grep**: Powered by ripgrep for fast code search
-- **WebSearch/WebFetch**: Internet research capabilities
-
-#### Development Tools
-
-- **GitHub API**: Repository integration
-- **TodoWrite**: Task management for complex workflows
-
-#### Security Features
-
-- **Command Whitelisting**: Only approved patterns allowed
-- **Approval Prompts**: Safety confirmations for dangerous operations
-- **Path Protection**: Sensitive directories automatically excluded
-- **Sandbox Controls**: Protected directory management
-
-### Conversation Management
-
-#### Storage Backends
-
-- **SQLite** (default): Local file-based storage
-- **PostgreSQL**: Shared database for teams
-- **Redis**: High-performance caching
-
-#### Features
-
-- Automatic conversation history with search
-- Intelligent title generation
+- Automatic history with search
+- AI-generated titles
 - Token optimization and compaction
 - Export/import capabilities
 
-### Interactive Interface
+### Essential Environment Variables
 
-The TUI provides:
+```bash
+export INFER_GATEWAY_URL="http://localhost:8080"
+export INFER_GATEWAY_API_KEY="your-api-key"
+export INFER_AGENT_MODEL="openai/gpt-4"
+export INFER_LOGGING_DEBUG="true"
+export GITHUB_TOKEN="your-github-token"
+```
 
-- Scrollable conversation view
-- Keyboard shortcuts for navigation
-- Tool result expansion/collapse
-- Real-time streaming responses
-- Model switching during conversation
+### Configuration Commands
+
+```bash
+# Initialize configuration
+infer config init
+
+# Agent settings
+infer config agent set-model openai/gpt-4
+infer config agent set-system "You are a helpful coding assistant"
+
+# View current configuration
+infer config show
+
+# Reset to defaults
+infer config reset
+```
+
+See the [full configuration reference](https://github.com/inference-gateway/cli/blob/main/docs/configuration.md) for detailed options.
+
+## Shortcuts
+
+The CLI provides built-in shortcuts and supports custom user-defined shortcuts.
+
+### Built-in Shortcuts
+
+| Shortcut     | Description               | Example                                   |
+| ------------ | ------------------------- | ----------------------------------------- |
+| `/git <cmd>` | Git operations            | `/git status`, `/git commit`, `/git push` |
+| `/scm <cmd>` | GitHub operations         | `/scm pr-create`, `/scm issue view 123`   |
+| `/a2a`       | View connected A2A agents | `/a2a`                                    |
 
 ### Git Shortcuts
 
-- `/git <command> [args...]` - Execute git commands (supports commit, push, status, etc.)
-- `/git commit [flags]` - **NEW**: Commit staged changes with AI-generated message
-- `/git push [remote] [branch] [flags]` - **NEW**: Push commits to remote repository
+```bash
+# Execute git commands
+/git status
+/git branch
 
-The git shortcuts provide intelligent commit message generation using AI when no message is provided with `/git commit`.
+# AI-generated commit message
+/git commit
 
-## User-Defined Shortcuts
+# Push to remote
+/git push origin main
+```
 
-You can create custom shortcuts by adding YAML configuration files in the `.infer/shortcuts/` directory.
+### SCM (GitHub) Shortcuts
 
-### Configuration File Format
+```bash
+# List GitHub issues
+/scm issues
 
-Create files named `custom-*.yaml` (e.g., `custom-1.yaml`, `custom-dev.yaml`) in `.infer/shortcuts/`:
+# View issue details
+/scm issue 123
+
+# Create pull request with AI-powered plan
+/scm pr-create
+```
+
+### Custom Shortcuts
+
+Create YAML files in `.infer/shortcuts/` directory. Shortcuts support three types:
+
+#### 1. Simple Commands
+
+Execute a single command:
 
 ```yaml
+# .infer/shortcuts/simple.yaml
 shortcuts:
-  - name: 'tests'
-    description: 'Run all tests in the project'
-    command: 'go'
-    args: ['test', './...']
-    working_dir: '.' # Optional: set working directory
-
-  - name: 'build'
-    description: 'Build the project'
-    command: 'go'
-    args: ['build', '-o', 'infer', '.']
-
-  - name: 'lint'
-    description: 'Run linter on the codebase'
-    command: 'golangci-lint'
-    args: ['run']
+  - name: hello
+    description: 'Say hello'
+    command: echo
+    args:
+      - 'Hello from Inference Gateway!'
 ```
 
-## Real-World Workflows
+#### 2. Shortcuts with Subcommands
 
-### Workflow 1: Bug Investigation and Fix
+Group related commands under a parent shortcut:
+
+```yaml
+# .infer/shortcuts/dev.yaml
+shortcuts:
+  - name: dev
+    description: 'Development operations'
+    command: bash
+    subcommands:
+      - name: test
+        description: 'Run all tests'
+        args:
+          - -c
+          - 'go test ./...'
+
+      - name: build
+        description: 'Build the project'
+        args:
+          - -c
+          - 'go build -o app .'
+```
+
+Usage: `/dev test`, `/dev build`
+
+#### 3. AI-Powered Snippets
+
+Use LLM to generate dynamic content based on command output. The `snippet.prompt` can reference JSON fields from command output using `{fieldName}` placeholders, and `snippet.template` uses `{llm}` for the AI-generated response:
+
+```yaml
+# .infer/shortcuts/ai-commit.yaml
+shortcuts:
+  - name: ai-commit
+    description: 'AI-generated commit message'
+    command: bash
+    args:
+      - -c
+      - |
+        diff=$(git diff --cached)
+        jq -n --arg diff "$diff" '{"diff": $diff}'
+    snippet:
+      prompt: "Generate commit message for:\n{diff}"
+      template: '!git commit -m "{llm}"'
+```
+
+The command must output JSON. Fields are accessible in the prompt template via `{fieldName}` syntax. The LLM response is accessible via `{llm}` in the template.
+
+## Advanced Features
+
+### Cost Tracking
+
+Real-time token usage and cost calculation displayed in the status bar.
+
+**Features:**
+
+- Per-model pricing calculation
+- Cumulative session costs
+- Input and output token tracking
+- Status bar indicator (💰 $0.0234)
+- Custom pricing support
+
+**View Costs:**
 
 ```bash
-# Start in Plan Mode to understand the issue first
+# Costs displayed in status bar during chat
 infer chat
-# Shift+Tab to switch to Plan Mode
-> "Analyze the bug reported in issue #123 and create a fix plan"
+# Status bar shows: 💰 $0.0234 | Model: openai/gpt-4o
 
-# Agent reads code, identifies root cause, provides detailed plan
+# Export conversation with cost details
+infer conversation export <conversation-id>
+```
 
-# Switch to Standard Mode to implement
-# Shift+Tab to return to Standard Mode
+### Model Thinking Visualization
+
+Collapsible thinking blocks for models that support thinking (Claude, o1, etc.).
+
+**Features:**
+
+- Collapsible blocks with first sentence preview
+- **Ctrl+K** keyboard shortcut to toggle
+- Theme-aware styling
+- Performance optimization (long thinking blocks collapsed by default)
+
+**Usage:**
+
+```bash
+infer chat
+# Ask complex question requiring reasoning
+> "Design a scalable microservices architecture for e-commerce"
+# Model's thinking process displayed in collapsible blocks
+# Press Ctrl+K to expand/collapse thinking
+```
+
+### Conversation Management
+
+**Storage Backends:**
+
+- **SQLite** (default): `.infer/conversations.db`
+- **PostgreSQL**: Shared team database
+- **Redis**: High-performance caching
+- **In-memory**: Temporary sessions
+
+**Features:**
+
+- Automatic conversation history
+- AI-generated titles (batch: 10 messages)
+- Search across conversations
+- Export to JSON/Markdown
+- Token optimization with compaction
+
+**Commands:**
+
+```bash
+# List conversations
+infer conversation list
+
+# Show conversation
+infer conversation show <id>
+
+# Export conversation
+infer conversation export <id>
+
+# Delete conversation
+infer conversation delete <id>
+```
+
+### MCP Integration
+
+Connect to Model Context Protocol servers for extended capabilities. MCP provides stateless tool execution for external services like databases, file systems, and APIs.
+
+**Setup:**
+
+Initialize project to create `.infer/mcp.yaml`:
+
+```bash
+infer init
+```
+
+Configure MCP servers in `.infer/mcp.yaml`:
+
+```yaml
+enabled: true
+connection_timeout: 30
+discovery_timeout: 30
+liveness_probe_enabled: true
+liveness_probe_interval: 10
+
+servers:
+  # Auto-start MCP server in container (recommended)
+  - name: 'demo-server'
+    enabled: true
+    run: true
+    oci: 'mcp-demo-server:latest'
+    description: 'Demo MCP server'
+
+  # Connect to external MCP server
+  - name: 'filesystem'
+    url: 'http://localhost:3000/sse'
+    enabled: true
+    description: 'File system operations'
+    exclude_tools:
+      - 'delete_file'
+```
+
+**CLI Commands:**
+
+```bash
+# Add auto-start MCP server
+infer mcp add my-server --run --oci=my-mcp:latest
+
+# List MCP servers
+infer mcp list
+
+# Toggle server
+infer mcp toggle my-server
+
+# Remove server
+infer mcp remove my-server
+```
+
+**Using MCP Tools:**
+
+MCP tools appear as `MCP_<server>_<tool>` in chat. Example:
+
+```bash
+infer chat
+> "Use the MCP_demo-server_get_time tool to get current time"
+```
+
+See [MCP documentation](/mcp) for detailed integration guide and server development.
+
+### A2A Integration
+
+Delegate specialized tasks to Agent-to-Agent compatible agents.
+
+**Setup:**
+
+```bash
+# Initialize agents configuration
+infer agents init
+
+# Add remote agent
+infer agents add calendar-agent http://calendar.example.com
+
+# Add local agent with Docker
+infer agents add my-agent http://localhost:8081 --oci ghcr.io/myorg/agent:latest --run
+
+# List agents
+infer agents list
+
+# View agent details
+infer agents show calendar-agent
+```
+
+**Usage:**
+
+```bash
+infer chat
+> "Schedule a meeting tomorrow at 2 PM using the calendar agent"
+> /a2a  # View connected agents
+```
+
+See [A2A documentation](/a2a) for creating custom agents.
+
+### Parallel Tool Execution
+
+Execute up to 5 tools concurrently for improved performance.
+
+**Configuration:**
+
+```yaml
+agent:
+  max_concurrent_tools: 5 # Default: 5
+```
+
+**Benefits:**
+
+- Faster multi-file operations
+- Concurrent web fetches
+- Parallel code searches
+- Reduced total execution time
+
+## Workflows
+
+### Bug Investigation and Fix
+
+```bash
+infer chat
+# Shift+Tab to Plan Mode
+> "Analyze bug in issue #123 and create fix plan"
+
+# Shift+Tab to Standard Mode
 > "Implement the fix according to the plan"
-# Agent makes changes, you approve each modification
 
 # Test and commit
-> "Run the test suite to verify the fix"
-> "/git commit"  # AI generates commit message
+> "Run test suite to verify"
+> "/git commit"
 ```
 
-### Workflow 2: Feature Development from Scratch
+### Feature Development
 
 ```bash
-# Initialize project understanding
 infer chat
-> "Read the CONTRIBUTING.md and understand the project structure"
-> "Find similar features to understand the patterns"
+> "Read CONTRIBUTING.md and understand project structure"
 
-# Create implementation plan
 # Shift+Tab to Plan Mode
-> "Design the implementation for user profile feature with avatar upload"
+> "Design implementation for user profile feature with avatar upload"
 
-# Switch to Auto-Accept for rapid development
 # Shift+Tab twice to Auto-Accept Mode
 > "Implement the user profile feature according to the plan"
-# Agent creates files, writes code, no interruptions
 
-# Review and test
-# Shift+Tab back to Standard Mode
-> "Review the changes and run all tests"
+# Shift+Tab to Standard Mode
+> "Review changes and run all tests"
 ```
 
-### Workflow 3: Code Review and Refactoring
+### Code Review and Refactoring
 
 ```bash
 infer chat
-# Use Plan Mode for analysis
-> "Review the authentication module for security issues and code quality"
-# Agent provides detailed analysis
+# Plan Mode for analysis
+> "Review authentication module for security issues and code quality"
 
-# Implement suggested improvements
-> "Refactor based on the recommendations, prioritize security issues"
-# Agent makes changes with approval
+# Standard Mode for implementation
+> "Refactor based on recommendations, prioritize security issues"
 ```
 
-### Workflow 4: Working with GitHub Issues
+### GitHub Issue Resolution
 
 ```bash
-# Let the agent read the issue
 infer agent "Fix the bug described in GitHub issue #456"
 
-# Agent will:
-# 1. Fetch issue details using GitHub tool
-# 2. Analyze relevant code
-# 3. Implement fix
-# 4. Run tests
-# 5. Create commit with reference to issue
-```
-
-### Workflow 5: Documentation Generation
-
-```bash
-infer chat
-> "Generate comprehensive API documentation for all exported functions in the /api directory"
-# Agent reads code and creates markdown documentation
-
-> "Create a README.md with installation instructions and examples"
-# Agent analyzes project structure and creates README
-```
-
-### Workflow 6: Automated Testing
-
-```bash
-infer agent "Create unit tests for all functions in the user service with >80% coverage"
-
 # Agent autonomously:
-# - Analyzes the user service code
-# - Identifies untested functions
-# - Writes comprehensive test cases
-# - Runs tests to verify coverage
+# 1. Fetches issue details
+# 2. Analyzes relevant code
+# 3. Implements fix
+# 4. Runs tests
+# 5. Creates commit referencing issue
 ```
 
-## Tips and Best Practices
+## Best Practices
 
 ### For Beginners
 
-1. **Start with Plan Mode**: When working with unfamiliar code, use Plan Mode first to understand before making changes
-2. **Use Git**: Always work in a git repository so you can easily revert changes
-3. **Approve Carefully**: Read the diff visualization before approving file modifications
-4. **Start Small**: Begin with simple tasks like "read this file" or "explain this function"
+- Start with Plan Mode for unfamiliar code
+- Always work in git repositories
+- Review diff visualizations before approving
+- Begin with simple tasks
 
 ### For Power Users
 
-1. **Auto-Accept for Trusted Tasks**: Use Auto-Accept mode for repetitive, well-understood tasks
-2. **Custom Shortcuts**: Create shortcuts for frequent commands (tests, builds, deployments)
-3. **Combine with Scripts**: Let the agent generate scripts, then use custom shortcuts to run them
-4. **A2A Integration**: Delegate specialized tasks to A2A agents (testing, documentation, security scans)
+- Use Auto-Accept for trusted, repetitive tasks
+- Create custom shortcuts for frequent commands
+- Combine with scripts for automation
+- Leverage A2A for specialized workflows
 
 ### Performance Tips
 
-1. **Be Specific**: Instead of "fix the code," say "fix the null pointer error in handleRequest function"
-2. **Provide Context**: Reference file paths, function names, or line numbers when relevant
-3. **Use Grep First**: For large codebases, use Grep to narrow down relevant files before asking for analysis
-4. **Chunk Large Tasks**: Break down complex features into smaller, manageable subtasks
+- Be specific with file paths and function names
+- Use Grep to narrow down relevant files first
+- Break large tasks into smaller subtasks
+- Provide context with references
 
-### Safety Best Practices
+### Safety
 
-1. **Review Diffs**: Always review file modification diffs before approving in Standard Mode
-2. **Test Before Commit**: Run tests after significant changes
-3. **Backup Important Work**: Have backups before using Auto-Accept mode extensively
-4. **Whitelist Commands**: Only whitelist commands you understand and trust
-5. **Protected Paths**: Add sensitive directories to protected paths in configuration
+- Review diffs before approving modifications
+- Run tests after significant changes
+- Have backups before extensive Auto-Accept usage
+- Whitelist only trusted commands
+- Add sensitive directories to protected paths
 
-## Security & Safety
+## Security
 
 ### Command Whitelisting
 
-```bash
-# Add allowed commands
-infer config tools whitelist add "npm install"
-infer config tools whitelist add "git log --oneline"
+Bash tool only executes whitelisted commands and patterns:
 
-# Remove from whitelist
-infer config tools whitelist remove "dangerous-command"
+```yaml
+tools:
+  bash:
+    whitelist:
+      commands: [ls, pwd, tree, git]
+      patterns:
+        - ^git status$
+        - ^git branch.*$
+        - ^npm test$
 ```
 
 ### Protected Paths
 
-Sensitive directories are automatically protected:
+Automatically excluded from tool access:
 
-- `.git/` - Git repository data
+- `.git/` - Repository data
 - `*.env` - Environment files
-- `node_modules/` - Dependencies
-- Custom paths via sandbox configuration
+- `.infer/` - Configuration directory
+- Custom paths via sandbox config
 
-### Approval Prompts
+### Approval Workflow
 
 Enable safety confirmations:
 
@@ -716,30 +884,7 @@ Enable safety confirmations:
 infer config tools safety enable
 ```
 
-LLMs will request approval before executing potentially dangerous operations.
-
-## Integration Examples
-
-### Development Workflow
-
-```bash
-# Initialize new project
-infer init
-
-# Interactive development
-infer chat
-> "Read the authentication module and explain how it works"
-> "Refactor the database connection to use connection pooling"
-
-# Autonomous agent for complex tasks
-infer agent "Fix all linting errors in the codebase"
-infer agent "Implement user authentication with JWT"
-infer agent "Review the changes in this PR and suggest improvements"
-```
-
-### CI/CD Integration
-
-To be implemented
+LLMs request approval before executing Write/Edit/Delete/Bash operations with real-time diff preview.
 
 ## Troubleshooting
 
@@ -783,22 +928,40 @@ export INFER_LOGGING_DEBUG=true
 infer agent "your task"
 ```
 
+### Computer Use Issues
+
+```bash
+# Verify display server
+echo $DISPLAY  # Linux/X11
+
+# Check permissions (macOS)
+# System Preferences > Security & Privacy > Accessibility
+
+# Test screenshot
+infer chat
+> "Take a screenshot and describe what you see"
+```
+
 ## Command Reference
 
-| Command                     | Description                      |
-| --------------------------- | -------------------------------- |
-| `infer init`                | Initialize project configuration |
-| `infer status`              | Check gateway health             |
-| `infer chat`                | Interactive chat session         |
-| `infer agent <task>`        | Autonomous task execution        |
-| `infer config <subcommand>` | Configuration management         |
-| `infer --version`           | Show version information         |
-| `infer --help`              | Display help information         |
+| Command                           | Description                             |
+| --------------------------------- | --------------------------------------- |
+| `infer init`                      | Initialize project configuration        |
+| `infer status`                    | Check gateway health and resource usage |
+| `infer chat`                      | Interactive chat session (TUI)          |
+| `infer chat --web`                | Web-based terminal interface            |
+| `infer agent <task>`              | Autonomous task execution               |
+| `infer config <subcommand>`       | Configuration management                |
+| `infer agents <subcommand>`       | A2A agent management                    |
+| `infer conversation <subcommand>` | Conversation history management         |
+| `infer --version`                 | Show version information                |
+| `infer --help`                    | Display help information                |
 
 ## Support and Resources
 
 - **Repository**: [github.com/inference-gateway/cli](https://github.com/inference-gateway/cli)
 - **Issues**: [GitHub Issues](https://github.com/inference-gateway/cli/issues)
 - **Releases**: [GitHub Releases](https://github.com/inference-gateway/cli/releases)
+- **Documentation**: [Full Configuration Reference](https://github.com/inference-gateway/cli/blob/main/docs/configuration.md)
 
 The CLI is actively developed with regular updates and new features. Check the repository for the latest releases and announcements.
