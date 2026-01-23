@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.4](https://github.com/inference-gateway/docs/compare/0.6.3...0.6.4) (2026-01-23)
+
+### ♻️ Improvements
+
+* **docs:** Remove deprecated tool A2A_DownloadArtifacts ([856ddd4](https://github.com/inference-gateway/docs/commit/856ddd40a07973a6bad7bedda8a16dad54b4e800))
+* **docs:** Remove unavailable command ([fca6c4b](https://github.com/inference-gateway/docs/commit/fca6c4b3cef0ae0e12d3c798179637d81b9ae14f))
+
 ## [0.6.3](https://github.com/inference-gateway/docs/compare/0.6.2...0.6.3) (2026-01-23)
 
 ### 🔧 Miscellaneous
