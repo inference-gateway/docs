@@ -2,10 +2,10 @@ version = 1
 
 [install]
 nodejs_24.pkg-path = "nodejs_24"
-nodejs_24.version = "^24.11.0"
+nodejs_24.version = "^24.12.0"
 
 claude-code.pkg-path = "claude-code"
-claude-code.version = "2.0.37"
+claude-code.version = "2.1.14"
 
 [hook]
 on-activate = """
