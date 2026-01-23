@@ -709,13 +709,11 @@ html {
 }
 
 /* GitHub link hover effect */
-a[href^="https://github.com"]
-{
+a[href^='https://github.com'] {
   transition: all var(--link-transition-duration) ease-in-out;
 }
 
-a[href^="https://github.com"]:hover svg
-{
+a[href^='https://github.com']:hover svg {
   transform: scale(1.1) rotate(-5deg);
 }
 
