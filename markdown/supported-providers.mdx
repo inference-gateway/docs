@@ -10,10 +10,10 @@ The following LLM providers are currently supported:
 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
   <div className="border p-4 rounded-md">
     <h3>OpenAI</h3>
-    <p>Access GPT models including GPT-3.5, GPT-4, and more.</p>
+    <p>Access GPT models including GPT-5, GPT-5.2, GPT-4.1, and GPT-4o.</p>
     <div><strong>Authentication:</strong> Bearer Token</div>
     <div><strong>Default URL:</strong> https://api.openai.com/v1</div>
-    <div><strong>Vision Support:</strong> ✅ Yes (GPT-4o, GPT-5, GPT-4.1, GPT-4 Turbo)</div>
+    <div><strong>Vision Support:</strong> ✅ Yes (GPT-5 series, GPT-4.1, GPT-4o)</div>
   </div>
 
 <div className="border p-4 rounded-md">
@@ -40,8 +40,7 @@ The following LLM providers are currently supported:
     <strong>Default URL:</strong> https://api.anthropic.com/v1
   </div>
   <div>
-    <strong>Vision Support:</strong> ✅ Yes (Claude 3, Claude 4, Claude 4.5 Sonnet, Claude 4.5
-    Haiku)
+    <strong>Vision Support:</strong> ✅ Yes (Claude Opus 4.5, Claude Sonnet 4, Claude Opus 4)
   </div>
 </div>
 
@@ -55,7 +54,7 @@ The following LLM providers are currently supported:
     <strong>Default URL:</strong> https://api.cohere.com
   </div>
   <div>
-    <strong>Vision Support:</strong> ✅ Yes (Command A Vision, Aya Vision)
+    <strong>Vision Support:</strong> ✅ Yes (Command A Vision)
   </div>
 </div>
 
@@ -112,13 +111,13 @@ The following LLM providers are currently supported:
     <strong>Default URL:</strong> https://generativelanguage.googleapis.com/v1
   </div>
   <div>
-    <strong>Vision Support:</strong> ✅ Yes (Gemini 2.5)
+    <strong>Vision Support:</strong> ✅ Yes (Gemini 3 Flash, Gemini 3 Pro)
   </div>
 </div>
 
 <div className="border p-4 rounded-md">
   <h3>Mistral</h3>
-  <p>Access Mistral AI's models including vision-capable Pixtral.</p>
+  <p>Access Mistral AI's models including vision-capable Pixtral and Large 3.</p>
   <div>
     <strong>Authentication:</strong> Bearer Token
   </div>
@@ -126,16 +125,16 @@ The following LLM providers are currently supported:
     <strong>Default URL:</strong> https://api.mistral.ai/v1
   </div>
   <div>
-    <strong>Vision Support:</strong> ✅ Yes (Pixtral)
+    <strong>Vision Support:</strong> ✅ Yes (Pixtral Large, Ministral 3, Mistral Large 3)
   </div>
 </div>
 
   <div className="border p-4 rounded-md">
     <h3>Moonshot</h3>
-    <p>Use Moonshot AI's models for natural language and vision tasks.</p>
+    <p>Use Moonshot AI's Kimi models for natural language and vision tasks.</p>
     <div><strong>Authentication:</strong> Bearer Token</div>
     <div><strong>Default URL:</strong> https://api.moonshot.ai/v1</div>
-    <div><strong>Vision Support:</strong> ✅ Yes</div>
+    <div><strong>Vision Support:</strong> ✅ Yes (Kimi K2, Kimi K2 Thinking)</div>
   </div>
 </div>
 
@@ -151,14 +150,14 @@ ENABLE_VISION=true
 
 ### Providers with Vision Support
 
-- **OpenAI**: GPT-4o, GPT-5, GPT-4.1, GPT-4 Turbo
-- **Anthropic**: Claude 3, Claude 4, Claude 4.5 Sonnet, Claude 4.5 Haiku
-- **Google**: Gemini 2.5
-- **Cohere**: Command A Vision, Aya Vision
+- **OpenAI**: GPT-5 series, GPT-4.1, GPT-4o
+- **Anthropic**: Claude Opus 4.5, Claude Sonnet 4, Claude Opus 4
+- **Google**: Gemini 3 Flash, Gemini 3 Pro
+- **Cohere**: Command A Vision
 - **Ollama**: LLaVA, Llama 4, Llama 3.2 Vision
 - **Groq**: Vision models
-- **Mistral**: Pixtral
-- **Moonshot**: Vision models
+- **Mistral**: Pixtral Large, Ministral 3, Mistral Large 3
+- **Moonshot**: Kimi K2, Kimi K2 Thinking
 
 ### Example Vision Request
 
@@ -246,7 +245,7 @@ Generate content with OpenAI models:
 curl -X POST http://localhost:8080/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "gpt-3.5-turbo",
+    "model": "gpt-4o",
     "messages": [
       {
         "role": "system",
@@ -271,10 +270,10 @@ curl http://localhost:8080/v1/models
 Generate content with DeepSeek models:
 
 ```bash
-curl -X POST http://localhost:8080/v1/chat/completions?provider=deepseek \
+curl -X POST http://localhost:8080/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "deepseek-reasoner",
+    "model": "deepseek/deepseek-reasoner",
     "messages": [
       {
         "role": "system",
@@ -302,7 +301,7 @@ Generate content with Anthropic Claude models:
 curl -X POST http://localhost:8080/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "claude-3-opus-20240229",
+    "model": "anthropic/claude-sonnet-4-20250514",
     "messages": [
       {
         "role": "system",
@@ -327,10 +326,10 @@ curl http://localhost:8080/v1/models?provider=anthropic
 Generate content with Cohere models:
 
 ```bash
-curl -X POST http://localhost:8080/v1/chat/completions?provider=cohere \
+curl -X POST http://localhost:8080/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "command",
+    "model": "cohere/command-a-03-2025",
     "messages": [
       {
         "role": "system",
@@ -349,10 +348,10 @@ curl -X POST http://localhost:8080/v1/chat/completions?provider=cohere \
 Generate content with Groq's high-performance models:
 
 ```bash
-curl -X POST http://localhost:8080/v1/chat/completions?provider=groq \
+curl -X POST http://localhost:8080/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "llama2-70b-4096",
+    "model": "groq/llama-3.3-70b-versatile",
     "messages": [
       {
         "role": "system",
@@ -371,10 +370,10 @@ curl -X POST http://localhost:8080/v1/chat/completions?provider=groq \
 Generate content with Cloudflare Workers AI:
 
 ```bash
-curl -X POST http://localhost:8080/v1/chat/completions?provider=cloudflare \
+curl -X POST http://localhost:8080/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "llama-3.1-8b-instruct",
+    "model": "cloudflare/@cf/meta/llama-3.3-70b-instruct-fp8-fast",
     "messages": [
       {
         "role": "system",
@@ -393,10 +392,10 @@ curl -X POST http://localhost:8080/v1/chat/completions?provider=cloudflare \
 Generate content with locally-hosted Ollama models:
 
 ```bash
-curl -X POST http://localhost:8080/v1/chat/completions?provider=ollama \
+curl -X POST http://localhost:8080/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "llama2",
+    "model": "ollama/llama3.3",
     "messages": [
       {
         "role": "system",
@@ -415,10 +414,10 @@ curl -X POST http://localhost:8080/v1/chat/completions?provider=ollama \
 Generate content with Google's Gemini models:
 
 ```bash
-curl -X POST http://localhost:8080/v1/chat/completions?provider=google \
+curl -X POST http://localhost:8080/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "google/gemini-pro",
+    "model": "google/gemini-3-flash",
     "messages": [
       {
         "role": "system",
@@ -437,10 +436,10 @@ curl -X POST http://localhost:8080/v1/chat/completions?provider=google \
 Generate content with Mistral AI models:
 
 ```bash
-curl -X POST http://localhost:8080/v1/chat/completions?provider=mistral \
+curl -X POST http://localhost:8080/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "mistral-large-latest",
+    "model": "mistral/mistral-large-3",
     "messages": [
       {
         "role": "system",
@@ -459,10 +458,10 @@ curl -X POST http://localhost:8080/v1/chat/completions?provider=mistral \
 Generate content with Moonshot AI models:
 
 ```bash
-curl -X POST http://localhost:8080/v1/chat/completions?provider=moonshot \
+curl -X POST http://localhost:8080/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "moonshot-v1-8k",
+    "model": "moonshot/kimi-k2-thinking",
     "messages": [
       {
         "role": "system",

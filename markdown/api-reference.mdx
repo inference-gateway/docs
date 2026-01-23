@@ -469,14 +469,14 @@ curl -X POST http://localhost:8080/v1/chat/completions \
 
 **Supported Providers with Vision:**
 
-- OpenAI (GPT-4o, GPT-5, GPT-4.1, GPT-4 Turbo)
-- Anthropic (Claude 3, Claude 4, Claude 4.5 Sonnet, Claude 4.5 Haiku)
-- Google (Gemini 2.5)
-- Cohere (Command A Vision, Aya Vision)
+- OpenAI (GPT-5 series, GPT-4.1, GPT-4o)
+- Anthropic (Claude Opus 4.5, Claude Sonnet 4, Claude Opus 4)
+- Google (Gemini 3 Flash, Gemini 3 Pro)
+- Cohere (Command A Vision)
 - Ollama (LLaVA, Llama 4, Llama 3.2 Vision)
 - Groq (vision models)
-- Mistral (Pixtral)
-- Moonshot (vision models)
+- Mistral (Pixtral Large, Ministral 3, Mistral Large 3)
+- Moonshot (Kimi K2, Kimi K2 Thinking)
 
 **Note:** When `ENABLE_VISION=false` (default), requests containing image content will be rejected even if the model supports vision. This is disabled by default for performance and security reasons.
 
