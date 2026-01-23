@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.1](https://github.com/inference-gateway/docs/compare/0.6.0...0.6.1) (2026-01-23)
+
+### ♻️ Improvements
+
+* **docs:** Remove UI related documentation ([1abb0e4](https://github.com/inference-gateway/docs/commit/1abb0e4439cbe8bafab0a35efc0f4f7d5b09cb83))
+
+### 👷 CI
+
+* Setup Infer configuration and CI improvements ([#17](https://github.com/inference-gateway/docs/issues/17)) ([79d3a76](https://github.com/inference-gateway/docs/commit/79d3a769b5ad5914f3b4ab9686d9a958431742cb))
+
+### 📚 Documentation
+
+* Add Mistral and Moonshot provider documentation ([2effd41](https://github.com/inference-gateway/docs/commit/2effd41e1fd62bf250d8c526a973e1a8fa5a8a9a))
+* Update provider models to latest versions ([fa7d68c](https://github.com/inference-gateway/docs/commit/fa7d68cdb44204337c2b30afd0d19ec3d99a2123))
+
+### 🔧 Miscellaneous
+
+* **deps:** Bump dev dependencies ([953d354](https://github.com/inference-gateway/docs/commit/953d354900460ed25dba9c5a4821169c832d732f))
+
 ## [0.6.0](https://github.com/inference-gateway/docs/compare/0.5.8...0.6.0) (2025-11-21)
 
 ### ✨ Features
