@@ -32,7 +32,7 @@ This section provides a detailed guide for integrating Keycloak with Inference G
 ### Prerequisites
 
 - [Keycloak](https://www.keycloak.org/) server (v24.0.0 or later recommended)
-- [Inference Gateway](https://github.com/inference-gateway/inference-gateway) (v0.16.1 or later)
+- [Inference Gateway](https://github.com/inference-gateway/inference-gateway) (v0.23.1 or later)
 - [kubectl](https://kubernetes.io/docs/tasks/tools/) for Kubernetes deployment
 - [Helm](https://helm.sh/docs/intro/install/) for chart deployment
 - [Task](https://taskfile.dev/installation/) (optional, for running example tasks)
@@ -164,7 +164,7 @@ helm upgrade --install \
   --namespace inference-gateway \
   --set envFrom.configMapRef=inference-gateway \
   --set envFrom.secretRef=inference-gateway \
-  inference-gateway oci://ghcr.io/inference-gateway/charts/inference-gateway:0.16.1
+  inference-gateway oci://ghcr.io/inference-gateway/charts/inference-gateway:0.23.1
 ```
 
 ## Obtaining Access Tokens
@@ -226,7 +226,7 @@ helm upgrade --install \
   --set volumeMounts[0].mountPath=/usr/local/share/ca-certificates/keycloak-ca.crt \
   --set volumeMounts[0].subPath=ca.crt \
   --set volumeMounts[0].readOnly=true \
-  inference-gateway oci://ghcr.io/inference-gateway/charts/inference-gateway:0.16.1
+  inference-gateway oci://ghcr.io/inference-gateway/charts/inference-gateway:0.23.1
 ```
 
 ## Best Practices
