@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.2](https://github.com/inference-gateway/docs/compare/0.6.1...0.6.2) (2026-01-23)
+
+### 📚 Documentation
+
+* Add /init-github-action command documentation to CLI ([60da64d](https://github.com/inference-gateway/docs/commit/60da64d4320cd8a31c4581818ddba31cc18b5c47))
+* Update CLI documentation with Computer Use and corrections ([5d92bec](https://github.com/inference-gateway/docs/commit/5d92bec32f116a9bb6eae9cb98a51ede1512e97b))
+
 ## [0.6.1](https://github.com/inference-gateway/docs/compare/0.6.0...0.6.1) (2026-01-23)
 
 ### ♻️ Improvements
