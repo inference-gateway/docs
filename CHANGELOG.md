@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.3](https://github.com/inference-gateway/docs/compare/0.6.2...0.6.3) (2026-01-23)
+
+### 🔧 Miscellaneous
+
+* Cleanup deprecated UI related settings ([6162f52](https://github.com/inference-gateway/docs/commit/6162f52ed268d5e09c3e46aea0ad804171d4dc30))
+* **deps:** Bump versions ([a93cf7b](https://github.com/inference-gateway/docs/commit/a93cf7bd686fe3495fef873cc18ea2a675ef0436))
+
 ## [0.6.2](https://github.com/inference-gateway/docs/compare/0.6.1...0.6.2) (2026-01-23)
 
 ### 📚 Documentation
