@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.5](https://github.com/inference-gateway/docs/compare/0.6.4...0.6.5) (2026-01-23)
+
+### ♻️ Improvements
+
+* **docs:** Bump gateway versions to latest ([8c8557d](https://github.com/inference-gateway/docs/commit/8c8557d79c004bc6595078af25654bab6bd633c5))
+
 ## [0.6.4](https://github.com/inference-gateway/docs/compare/0.6.3...0.6.4) (2026-01-23)
 
 ### ♻️ Improvements
