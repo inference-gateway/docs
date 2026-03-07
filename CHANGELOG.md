@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.6](https://github.com/inference-gateway/docs/compare/0.6.5...0.6.6) (2026-03-07)
+
+### 📚 Documentation
+
+* Add ADL CLI documentation page ([#20](https://github.com/inference-gateway/docs/issues/20)) ([c5a144a](https://github.com/inference-gateway/docs/commit/c5a144a16c791425b1969eaa572df79b39d688a5))
+
+### 🔧 Miscellaneous
+
+* **deps:** Upgrade nodejs ([c7c806b](https://github.com/inference-gateway/docs/commit/c7c806b88f7afec2f85289bdc88f652f9a6ce0aa))
+
 ## [0.6.5](https://github.com/inference-gateway/docs/compare/0.6.4...0.6.5) (2026-01-23)
 
 ### ♻️ Improvements
