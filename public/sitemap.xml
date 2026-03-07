@@ -14,7 +14,13 @@
   </url>
   <url>
     <loc>https://docs.inference-gateway.com/a2a</loc>
-    <lastmod>2025-11-21T18:13:10.614Z</lastmod>
+    <lastmod>2026-03-07T13:23:41.566Z</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://docs.inference-gateway.com/adl-cli</loc>
+    <lastmod>2026-03-07T13:24:32.243Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -32,13 +38,13 @@
   </url>
   <url>
     <loc>https://docs.inference-gateway.com/authentication</loc>
-    <lastmod>2025-11-15T21:47:42.257Z</lastmod>
+    <lastmod>2026-01-23T23:07:10.095Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://docs.inference-gateway.com/cli</loc>
-    <lastmod>2026-01-23T22:20:53.729Z</lastmod>
+    <lastmod>2026-03-07T13:23:42.521Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -50,7 +56,7 @@
   </url>
   <url>
     <loc>https://docs.inference-gateway.com/deployment</loc>
-    <lastmod>2026-01-23T20:51:19.657Z</lastmod>
+    <lastmod>2026-01-23T23:07:10.095Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
