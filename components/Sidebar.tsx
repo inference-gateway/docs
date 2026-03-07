@@ -42,7 +42,10 @@ const sections = [
   },
   {
     title: 'Tools',
-    items: [{ title: 'CLI', href: '/cli' }],
+    items: [
+      { title: 'CLI', href: '/cli' },
+      { title: 'ADL CLI', href: '/adl-cli' },
+    ],
   },
   {
     title: 'Guides',

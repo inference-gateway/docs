@@ -1,0 +1,937 @@
+# ADL CLI
+
+The ADL CLI is a command-line tool for generating enterprise-ready [A2A (Agent-to-Agent)](/a2a) servers from Agent Definition Language (ADL) YAML files. It eliminates boilerplate code and ensures consistent patterns across your agent implementations, letting you focus on business logic.
+
+> **Note:** ADL CLI is in early development. Breaking changes may occur until a stable version is reached.
+
+## Key Features
+
+- **Multi-Language Code Generation** - Generate complete projects in Go or Rust (TypeScript planned)
+- **Interactive Wizard** - Guided project initialization with `adl init`
+- **Service Injection** - Type-safe dependency injection with interfaces and factory functions
+- **Configuration Management** - Automatic environment variable mapping with structured config sections
+- **CI/CD Generation** - GitHub Actions workflows with semantic-release CD pipelines
+- **Cloud Deployment** - Kubernetes manifests and Google Cloud Run deployment
+- **Sandbox Environments** - Flox and DevContainer support for isolated development
+- **Smart Ignore Files** - Protect custom implementations with `.adl-ignore`
+- **Post-Generation Hooks** - Run custom commands after code generation
+- **Multi-Provider AI** - OpenAI, Anthropic, DeepSeek, Ollama, Google AI, Mistral, and Groq
+- **Artifacts Support** - Filesystem and MinIO object storage for artifact management
+
+## Installation
+
+### Install Script (Recommended)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/inference-gateway/adl-cli/main/install.sh | bash
+```
+
+Install a specific version:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/inference-gateway/adl-cli/main/install.sh | bash -s -- --version v1.0.0
+```
+
+Custom install directory:
+
+```bash
+INSTALL_DIR=~/bin curl -fsSL https://raw.githubusercontent.com/inference-gateway/adl-cli/main/install.sh | bash
+```
+
+### Go Install
+
+```bash
+go install github.com/inference-gateway/adl-cli@latest
+```
+
+### From Source
+
+```bash
+git clone https://github.com/inference-gateway/adl-cli.git
+cd adl-cli
+go install .
+```
+
+### Pre-built Binaries
+
+Download pre-built binaries from the [GitHub releases page](https://github.com/inference-gateway/adl-cli/releases).
+
+## Quick Start
+
+### 1. Initialize a New Project
+
+```bash
+adl init my-weather-agent
+```
+
+This launches an interactive wizard that creates an ADL manifest file (`agent.yaml`).
+
+### 2. Review the Generated YAML
+
+```yaml
+apiVersion: adl.dev/v1
+kind: Agent
+metadata:
+  name: my-weather-agent
+  description: 'Provides weather information'
+  version: '0.1.0'
+spec:
+  capabilities:
+    streaming: true
+  agent:
+    provider: openai
+    model: gpt-4o-mini
+    systemPrompt: 'You are a helpful weather assistant.'
+    maxTokens: 4096
+    temperature: 0.7
+  skills:
+    - id: get_weather
+      name: get_weather
+      description: 'Get current weather for a city'
+      schema:
+        type: object
+        properties:
+          city:
+            type: string
+            description: 'City name'
+        required: [city]
+  server:
+    port: 8080
+    debug: false
+  language:
+    go:
+      module: 'github.com/example/my-weather-agent'
+      version: '1.25'
+```
+
+### 3. Validate the ADL File
+
+```bash
+adl validate agent.yaml
+```
+
+### 4. Generate the Project
+
+```bash
+adl generate --file agent.yaml --output ./my-weather-agent
+```
+
+### 5. Build and Run
+
+```bash
+cd my-weather-agent
+task build
+task run
+```
+
+Your A2A agent is now running and discoverable at `http://localhost:8080/.well-known/agent.json`.
+
+## Commands
+
+### adl init [project-name]
+
+Creates an ADL manifest file interactively or with flags.
+
+```bash
+# Interactive wizard
+adl init my-agent
+
+# Use defaults for all prompts
+adl init my-agent --defaults
+
+# Non-interactive with specific configuration
+adl init my-agent \
+  --name "Weather Agent" \
+  --description "Provides weather information" \
+  --provider openai \
+  --model gpt-4o-mini \
+  --language go \
+  --flox
+```
+
+#### Flags
+
+**Project Settings:**
+
+| Flag            | Description                        |
+| --------------- | ---------------------------------- |
+| `--defaults`    | Use default values for all prompts |
+| `--path`        | Project directory path             |
+| `--name`        | Agent name                         |
+| `--description` | Agent description                  |
+| `--version`     | Agent version                      |
+
+**Agent Configuration:**
+
+| Flag              | Description                                                                           |
+| ----------------- | ------------------------------------------------------------------------------------- |
+| `--type`          | Agent type: `ai-powered` or `minimal`                                                 |
+| `--provider`      | AI provider: `openai`, `anthropic`, `deepseek`, `ollama`, `google`, `mistral`, `groq` |
+| `--model`         | AI model name                                                                         |
+| `--system-prompt` | System prompt for the agent                                                           |
+| `--max-tokens`    | Maximum tokens (integer)                                                              |
+| `--temperature`   | Temperature (0.0-2.0)                                                                 |
+
+**Capabilities:**
+
+| Flag              | Description                     |
+| ----------------- | ------------------------------- |
+| `--streaming`     | Enable streaming responses      |
+| `--notifications` | Enable push notifications       |
+| `--history`       | Enable state transition history |
+
+**Server:**
+
+| Flag      | Description           |
+| --------- | --------------------- |
+| `--port`  | Server port (integer) |
+| `--debug` | Enable debug mode     |
+
+**Language Options:**
+
+| Flag                  | Description                                             |
+| --------------------- | ------------------------------------------------------- |
+| `--language`          | Programming language: `go`, `rust` (TypeScript planned) |
+| `--go-module`         | Go module path (e.g., `github.com/user/project`)        |
+| `--go-version`        | Go version (e.g., `1.25`)                               |
+| `--rust-package-name` | Rust package name                                       |
+| `--rust-version`      | Rust version (e.g., `1.88`)                             |
+| `--rust-edition`      | Rust edition (e.g., `2024`)                             |
+| `--typescript-name`   | TypeScript package name                                 |
+
+**Environment:**
+
+| Flag             | Description                     |
+| ---------------- | ------------------------------- |
+| `--flox`         | Enable Flox environment         |
+| `--devcontainer` | Enable DevContainer environment |
+
+### adl generate
+
+Generates project code from an ADL file.
+
+```bash
+# Basic generation
+adl generate --file agent.yaml --output ./my-agent
+
+# Overwrite existing files (respects .adl-ignore)
+adl generate --file agent.yaml --output ./my-agent --overwrite
+
+# Generate with CI workflow
+adl generate --file agent.yaml --output ./my-agent --ci
+
+# Generate with CD pipeline
+adl generate --file agent.yaml --output ./my-agent --cd
+
+# Generate with AI assistant instructions
+adl generate --file agent.yaml --output ./my-agent --ai
+
+# Generate with CloudRun deployment
+adl generate --file agent.yaml --output ./my-agent --deployment cloudrun
+
+# Generate with Kubernetes deployment
+adl generate --file agent.yaml --output ./my-agent --deployment kubernetes
+
+# Full-featured generation
+adl generate --file agent.yaml --output ./my-agent --ci --cd --deployment cloudrun --ai
+```
+
+#### Flags
+
+| Flag               | Description                                       | Default      |
+| ------------------ | ------------------------------------------------- | ------------ |
+| `--file`, `-f`     | ADL file to generate from                         | `agent.yaml` |
+| `--output`, `-o`   | Output directory for generated code               | `.`          |
+| `--template`, `-t` | Template to use                                   | `minimal`    |
+| `--overwrite`      | Overwrite existing files (respects `.adl-ignore`) | `false`      |
+| `--ci`             | Generate CI workflow (GitHub Actions)             | `false`      |
+| `--cd`             | Generate CD pipeline with semantic-release        | `false`      |
+| `--deployment`     | Deployment platform: `kubernetes` or `cloudrun`   | -            |
+| `--ai`             | Generate AI assistant instructions (CLAUDE.md)    | `false`      |
+
+**CI Generation** automatically detects the SCM provider from `spec.scm.provider` and creates language-specific workflows with caching, testing, and linting.
+
+**CD Generation** adds semantic-release automation with conventional commits, container publishing to GitHub Container Registry, changelog generation, and deployment integration.
+
+**AI Integration** (`--ai`) generates a `CLAUDE.md` file with project-specific guidelines and adds `claude-code` to sandbox environments for AI-assisted development.
+
+### adl validate [adl-file]
+
+Validates an ADL file against the schema.
+
+```bash
+# Validate a specific file
+adl validate agent.yaml
+
+# Validate default file
+adl validate
+```
+
+Returns validation errors if the file structure or required fields are invalid.
+
+## ADL Schema Reference
+
+### Overview
+
+ADL (Agent Definition Language) files are YAML documents that define your agent's configuration, capabilities, skills, and infrastructure. Every ADL file starts with:
+
+```yaml
+apiVersion: adl.dev/v1
+kind: Agent
+```
+
+### Complete Example
+
+```yaml
+apiVersion: adl.dev/v1
+kind: Agent
+metadata:
+  name: advanced-agent
+  description: 'Enterprise agent with full feature set'
+  version: '1.0.0'
+spec:
+  capabilities:
+    streaming: true
+    pushNotifications: true
+    stateTransitionHistory: true
+  card:
+    protocolVersion: '0.3.0'
+    preferredTransport: 'JSONRPC'
+    defaultInputModes: ['text', 'voice']
+    defaultOutputModes: ['text', 'audio']
+    url: 'https://my-agent.example.com:8443'
+    documentationUrl: 'https://github.com/company/my-agent/docs'
+    iconUrl: 'https://github.com/company/my-agent/icon.png'
+  agent:
+    provider: openai
+    model: gpt-4o-mini
+    systemPrompt: |
+      You are a helpful assistant with enterprise capabilities.
+      Always prioritize security and compliance.
+    maxTokens: 8192
+    temperature: 0.3
+  config:
+    database:
+      connectionString: 'postgresql://user:pass@localhost:5432/db'
+      maxConnections: '10'
+      timeout: '30s'
+    notifications:
+      slackWebhook: 'https://hooks.slack.com/services/...'
+      emailApiKey: 'your-email-api-key'
+      retryAttempts: '3'
+  services:
+    database:
+      type: service
+      interface: DatabaseService
+      factory: NewDatabaseService
+      description: PostgreSQL database service for persistent storage
+    notifications:
+      type: service
+      interface: NotificationService
+      factory: NewNotificationService
+      description: Multi-channel notification service
+  skills:
+    - id: query_database
+      name: query_database
+      description: 'Execute database queries with validation'
+      tags: ['database', 'query', 'data']
+      inject:
+        - logger
+        - database
+      schema:
+        type: object
+        properties:
+          query:
+            type: string
+            description: 'SQL query to execute'
+          table:
+            type: string
+            description: 'Target table name'
+          limit:
+            type: integer
+            description: 'Result limit'
+            maximum: 1000
+        required: [query, table]
+    - id: send_notification
+      name: send_notification
+      description: 'Send multi-channel notifications'
+      tags: ['notification', 'communication']
+      inject:
+        - logger
+        - notifications
+      schema:
+        type: object
+        properties:
+          recipient:
+            type: string
+            description: 'Recipient identifier'
+          message:
+            type: string
+            description: 'Message content'
+          priority:
+            type: string
+            enum: ['low', 'medium', 'high', 'critical']
+          channel:
+            type: string
+            enum: ['email', 'slack', 'teams', 'webhook']
+        required: [recipient, message, priority, channel]
+  server:
+    port: 8443
+    scheme: https
+    debug: false
+    auth:
+      enabled: true
+  language:
+    go:
+      module: 'github.com/company/advanced-agent'
+      version: '1.25'
+  acronyms: ['api', 'json', 'xml']
+  scm:
+    provider: github
+    url: 'https://github.com/company/advanced-agent'
+    github_app: true
+    issue_templates: true
+  sandbox:
+    flox:
+      enabled: true
+    devcontainer:
+      enabled: false
+  deployment:
+    type: cloudrun
+    cloudrun:
+      image:
+        registry: gcr.io
+        repository: advanced-agent
+        tag: latest
+        useCloudBuild: true
+      resources:
+        cpu: '2'
+        memory: 1Gi
+      scaling:
+        minInstances: 1
+        maxInstances: 100
+        concurrency: 1000
+      service:
+        timeout: 3600
+        allowUnauthenticated: false
+        serviceAccount: agent@PROJECT_ID.iam.gserviceaccount.com
+        executionEnvironment: gen2
+      environment:
+        LOG_LEVEL: info
+        ENVIRONMENT: production
+  hooks:
+    post:
+      - 'go mod tidy'
+      - 'go generate ./...'
+```
+
+### Metadata
+
+Top-level identification for your agent.
+
+| Field         | Type   | Description                                                |
+| ------------- | ------ | ---------------------------------------------------------- |
+| `name`        | string | Agent name (used for project directory and package naming) |
+| `description` | string | Human-readable description of the agent                    |
+| `version`     | string | Semantic version (e.g., `"1.0.0"`)                         |
+
+### Capabilities
+
+Defines what the agent supports at the protocol level.
+
+| Field                    | Type    | Default | Description                           |
+| ------------------------ | ------- | ------- | ------------------------------------- |
+| `streaming`              | boolean | `false` | Enable streaming responses            |
+| `pushNotifications`      | boolean | `false` | Enable push notification support      |
+| `stateTransitionHistory` | boolean | `false` | Enable task state transition tracking |
+
+### Card
+
+Optional A2A agent card configuration that controls how your agent is discovered and described.
+
+| Field                | Type     | Description                                        |
+| -------------------- | -------- | -------------------------------------------------- |
+| `protocolVersion`    | string   | A2A protocol version (e.g., `"0.3.0"`)             |
+| `preferredTransport` | string   | Transport protocol (e.g., `"JSONRPC"`)             |
+| `defaultInputModes`  | string[] | Supported input modes (e.g., `["text", "voice"]`)  |
+| `defaultOutputModes` | string[] | Supported output modes (e.g., `["text", "audio"]`) |
+| `url`                | string   | Public URL where the agent is accessible           |
+| `documentationUrl`   | string   | URL to agent documentation                         |
+| `iconUrl`            | string   | URL to agent icon                                  |
+
+### Agent Configuration
+
+AI provider and model settings.
+
+| Field          | Type    | Description                                                                           |
+| -------------- | ------- | ------------------------------------------------------------------------------------- |
+| `provider`     | string  | AI provider: `openai`, `anthropic`, `deepseek`, `ollama`, `google`, `mistral`, `groq` |
+| `model`        | string  | Model name (e.g., `gpt-4o-mini`, `claude-sonnet-4-20250514`, `deepseek-chat`)         |
+| `systemPrompt` | string  | System prompt for the AI model                                                        |
+| `maxTokens`    | integer | Maximum tokens for responses                                                          |
+| `temperature`  | float   | Sampling temperature (0.0-2.0)                                                        |
+
+### Skills
+
+Skills define the capabilities your agent exposes. Each skill becomes an A2A tool.
+
+```yaml
+skills:
+  - id: skill_id
+    name: skill_name
+    description: 'What the skill does'
+    tags: ['tag1', 'tag2']
+    examples:
+      - 'Example usage text'
+    inputModes: ['text']
+    outputModes: ['text']
+    inject:
+      - logger
+      - myService
+    schema:
+      type: object
+      properties:
+        param_name:
+          type: string
+          description: 'Parameter description'
+      required: [param_name]
+```
+
+| Field         | Type     | Required | Description                                    |
+| ------------- | -------- | -------- | ---------------------------------------------- |
+| `id`          | string   | Yes      | Unique skill identifier                        |
+| `name`        | string   | Yes      | Skill name                                     |
+| `description` | string   | Yes      | Human-readable description                     |
+| `tags`        | string[] | No       | Categorization tags                            |
+| `examples`    | string[] | No       | Example usage strings                          |
+| `inputModes`  | string[] | No       | Supported input modes                          |
+| `outputModes` | string[] | No       | Supported output modes                         |
+| `inject`      | string[] | No       | Services to inject (see [Services](#services)) |
+| `schema`      | object   | Yes      | JSON Schema for input parameters               |
+
+### Services
+
+Services provide dependency injection for skills. Define custom services with interfaces and factory functions.
+
+```yaml
+services:
+  database:
+    type: service
+    interface: DatabaseService
+    factory: NewDatabaseService
+    description: PostgreSQL database service
+```
+
+| Field         | Type   | Description                    |
+| ------------- | ------ | ------------------------------ |
+| `type`        | string | Service type (use `service`)   |
+| `interface`   | string | Interface name for the service |
+| `factory`     | string | Factory function name          |
+| `description` | string | Service description            |
+
+**Injection patterns** available in skill `inject` arrays:
+
+```yaml
+inject:
+  - logger # Built-in logger (always available)
+  - config # Entire config object
+  - config.database # Specific config subsection
+  - myService # Custom service from spec.services
+```
+
+**Config subsection injection** lets skills receive only the configuration they need:
+
+```yaml
+config:
+  email:
+    apiKey: ''
+    fromAddress: 'noreply@example.com'
+skills:
+  - name: send_email
+    inject:
+      - logger
+      - config.email # Only email config is injected
+```
+
+This generates type-safe code where the skill receives `*config.EmailConfig` instead of the full config object.
+
+### Server Configuration
+
+| Field          | Type    | Default | Description                    |
+| -------------- | ------- | ------- | ------------------------------ |
+| `port`         | integer | `8080`  | Server port                    |
+| `scheme`       | string  | `http`  | URL scheme (`http` or `https`) |
+| `debug`        | boolean | `false` | Enable debug mode              |
+| `auth.enabled` | boolean | `false` | Enable authentication          |
+
+### Language Configuration
+
+Configure language-specific settings. Only one language block should be specified.
+
+**Go:**
+
+```yaml
+language:
+  go:
+    module: 'github.com/company/my-agent'
+    version: '1.25'
+```
+
+| Field     | Type   | Description    |
+| --------- | ------ | -------------- |
+| `module`  | string | Go module path |
+| `version` | string | Go version     |
+
+**Rust:**
+
+```yaml
+language:
+  rust:
+    packageName: 'my-agent'
+    version: '1.88'
+    edition: '2024'
+```
+
+| Field         | Type   | Description                   |
+| ------------- | ------ | ----------------------------- |
+| `packageName` | string | Cargo package name            |
+| `version`     | string | Rust version                  |
+| `edition`     | string | Rust edition (`2024`, `2021`) |
+
+**TypeScript** (planned):
+
+```yaml
+language:
+  typescript:
+    packageName: 'my-agent'
+    nodeVersion: '22'
+```
+
+### Configuration Sections
+
+The `config` block defines structured configuration sections that are mapped to environment variables.
+
+```yaml
+config:
+  database:
+    connectionString: 'postgresql://localhost:5432/db'
+    maxConnections: '10'
+    timeout: '30s'
+  notifications:
+    slackWebhook: 'https://hooks.slack.com/...'
+    retryAttempts: '3'
+```
+
+Each section generates:
+
+- A typed configuration struct (e.g., `DatabaseConfig`)
+- Environment variable mappings with proper prefixes (e.g., `DATABASE_CONNECTION_STRING`)
+- Integration with the service injection system
+
+### Deployment
+
+#### Kubernetes
+
+```yaml
+deployment:
+  type: kubernetes
+```
+
+Generates a `k8s/deployment.yaml` with standard Kubernetes manifests including resource limits, health checks, ConfigMap/Secret integration, and Service/Ingress configurations.
+
+#### Cloud Run
+
+```yaml
+deployment:
+  type: cloudrun
+  cloudrun:
+    image:
+      registry: gcr.io
+      repository: my-agent
+      tag: latest
+      useCloudBuild: true
+    resources:
+      cpu: '1'
+      memory: 512Mi
+    scaling:
+      minInstances: 0
+      maxInstances: 100
+      concurrency: 1000
+    service:
+      timeout: 3600
+      allowUnauthenticated: true
+      serviceAccount: agent@PROJECT_ID.iam.gserviceaccount.com
+      executionEnvironment: gen2
+    environment:
+      LOG_LEVEL: info
+```
+
+Generates a `deploy` task in `Taskfile.yml` for `gcloud` deployment with configurable resources, scaling, and service options.
+
+### CI/CD
+
+#### GitHub Actions CI
+
+```yaml
+scm:
+  provider: github
+```
+
+With the `--ci` flag, generates `.github/workflows/ci.yml` with automated testing, format checking, linting, and Go/Rust module caching.
+
+#### Semantic Release CD
+
+With the `--cd` flag, generates:
+
+- `.github/workflows/cd.yml` - CD workflow triggered manually
+- `.releaserc.yaml` - Semantic-release configuration
+
+Features include conventional commit versioning, container publishing to GitHub Container Registry, changelog generation, and deployment integration.
+
+### Sandbox
+
+#### Flox
+
+```yaml
+sandbox:
+  flox:
+    enabled: true
+```
+
+Generates a `.flox/` directory with reproducible development environment configuration.
+
+#### DevContainer
+
+```yaml
+sandbox:
+  devcontainer:
+    enabled: true
+```
+
+Generates `.devcontainer/devcontainer.json` for VS Code Dev Containers.
+
+### Hooks
+
+Run commands after code generation:
+
+```yaml
+hooks:
+  post:
+    - 'go mod tidy'
+    - 'go generate ./...'
+    - 'go fmt ./...'
+```
+
+### Acronyms
+
+Custom acronyms for better code generation naming:
+
+```yaml
+acronyms: ['api', 'json', 'xml', 'url', 'http']
+```
+
+### Artifacts
+
+Enable artifact storage support:
+
+```yaml
+artifacts:
+  enabled: true
+```
+
+Supports filesystem and MinIO/S3 storage backends.
+
+### SCM
+
+Source control management configuration:
+
+```yaml
+scm:
+  provider: github
+  url: 'https://github.com/company/my-agent'
+  github_app: true
+  issue_templates: true
+```
+
+| Field             | Type    | Description                                                      |
+| ----------------- | ------- | ---------------------------------------------------------------- |
+| `provider`        | string  | SCM provider: `github` (GitLab planned)                          |
+| `url`             | string  | Repository URL                                                   |
+| `github_app`      | boolean | Enable GitHub App for enhanced CD security                       |
+| `issue_templates` | boolean | Generate issue templates (bug report, feature request, refactor) |
+
+## Generated Project Structure
+
+### Go Project
+
+```text
+my-go-agent/
+├── main.go                         # Main server setup
+├── go.mod                          # Go module definition
+├── config/
+│   └── config.go                   # Type-safe configuration with env mapping
+├── internal/
+│   ├── logger/
+│   │   └── logger.go               # Built-in logger factory
+│   └── <service>/
+│       └── <service>.go            # Custom service with interface
+├── skills/
+│   ├── query_database.go           # Skill implementations (TODO placeholders)
+│   └── send_notification.go
+├── Taskfile.yml                    # Build, test, lint, run tasks
+├── Dockerfile                      # Multi-stage container build
+├── .adl-ignore                     # File protection configuration
+├── .well-known/
+│   └── agent-card.json             # A2A agent discovery manifest
+├── .github/
+│   ├── workflows/
+│   │   ├── ci.yml                  # CI workflow (with --ci)
+│   │   └── cd.yml                  # CD workflow (with --cd)
+│   └── ISSUE_TEMPLATE/             # Issue templates (when enabled)
+├── .releaserc.yaml                 # Semantic-release config (with --cd)
+├── k8s/
+│   └── deployment.yaml             # Kubernetes manifest
+├── .flox/                          # Flox environment (when enabled)
+├── .devcontainer/
+│   └── devcontainer.json           # DevContainer config (when enabled)
+├── CLAUDE.md                       # AI instructions (with --ai)
+├── .gitignore
+├── .gitattributes
+├── .editorconfig
+└── README.md
+```
+
+### Rust Project
+
+```text
+my-rust-agent/
+├── src/
+│   ├── main.rs                     # Application entry point
+│   └── skills/
+│       ├── mod.rs                  # Module declarations
+│       ├── query_database.rs       # Skill implementations
+│       └── send_notification.rs
+├── Cargo.toml                      # Rust package configuration
+├── Taskfile.yml                    # Build, test, lint, run tasks
+├── Dockerfile                      # Rust-optimized container
+├── .adl-ignore                     # File protection
+├── .well-known/
+│   └── agent-card.json             # A2A agent discovery manifest
+├── .github/workflows/
+│   ├── ci.yml                      # CI workflow (with --ci)
+│   └── cd.yml                      # CD workflow (with --cd)
+├── .releaserc.yaml                 # Semantic-release config (with --cd)
+├── k8s/
+│   └── deployment.yaml             # Kubernetes manifest
+├── CLAUDE.md                       # AI instructions (with --ai)
+└── README.md
+```
+
+## .adl-ignore
+
+The `.adl-ignore` file protects files from being overwritten when re-running `adl generate --overwrite`. This lets you safely regenerate project scaffolding without losing custom implementations.
+
+### Syntax
+
+Uses glob patterns, one per line. Comments start with `#`.
+
+```text
+# Protect skill implementations
+skills/*
+
+# Protect specific files
+main.go
+config/config.go
+
+# Protect by extension
+*.go
+
+# Protect directories
+internal/
+```
+
+### Default Protected Files
+
+Generated `.adl-ignore` files automatically protect skill implementation files and custom service files to prevent accidental overwriting.
+
+## AI Provider Configuration
+
+The ADL CLI supports multiple AI providers. Set the corresponding environment variable for your chosen provider:
+
+| Provider  | `spec.agent.provider` | Environment Variable | Example Model              |
+| --------- | --------------------- | -------------------- | -------------------------- |
+| OpenAI    | `openai`              | `OPENAI_API_KEY`     | `gpt-4o-mini`              |
+| Anthropic | `anthropic`           | `ANTHROPIC_API_KEY`  | `claude-sonnet-4-20250514` |
+| DeepSeek  | `deepseek`            | `DEEPSEEK_API_KEY`   | `deepseek-chat`            |
+| Ollama    | `ollama`              | - (local)            | `llama3`                   |
+| Google AI | `google`              | `GOOGLE_API_KEY`     | `gemini-pro`               |
+| Mistral   | `mistral`             | `MISTRAL_API_KEY`    | `mistral-large`            |
+| Groq      | `groq`                | `GROQ_API_KEY`       | `llama-3.1-70b`            |
+
+## Integrating with Inference Gateway
+
+Generated A2A agents can be connected to the Inference Gateway using the [CLI](/cli):
+
+```bash
+# Add your running agent to the gateway
+infer agents add my-agent http://localhost:8080
+
+# Verify the agent is connected
+infer agents show my-agent
+
+# Chat with the agent through the gateway
+infer chat
+```
+
+The gateway discovers agent capabilities automatically via the `/.well-known/agent.json` endpoint. See the [A2A Integration](/a2a) documentation for more details on the agent protocol and architecture.
+
+## Best Practices
+
+- **Start with `adl init`** - Use the interactive wizard to scaffold your ADL file with sensible defaults
+- **Validate early** - Run `adl validate` before generating to catch schema errors
+- **Use `.adl-ignore`** - Protect your custom implementations before regenerating
+- **Version control your ADL file** - Track `agent.yaml` alongside your code
+- **Leverage service injection** - Use the `inject` system instead of global state for testability
+- **Config subsection injection** - Inject only the config sections each skill needs (`config.email` instead of `config`)
+- **Use `--ai` for AI-assisted development** - Generate CLAUDE.md and sandbox integration for AI pair programming
+- **Set up CI/CD early** - Use `--ci` and `--cd` flags to generate pipelines from the start
+
+## Troubleshooting
+
+### "file not found" when running `adl generate`
+
+Ensure the ADL file exists and the path is correct. The default file is `agent.yaml` in the current directory.
+
+```bash
+adl generate --file ./path/to/agent.yaml
+```
+
+### Validation errors
+
+Run `adl validate` to see detailed error messages about missing or invalid fields.
+
+### Files overwritten after regeneration
+
+Add files you want to protect to `.adl-ignore` before running `adl generate --overwrite`.
+
+### Provider authentication errors at runtime
+
+Ensure the appropriate environment variable is set for your AI provider (see [AI Provider Configuration](#ai-provider-configuration)).
+
+### Build errors in generated code
+
+Run the post-generation hooks manually:
+
+```bash
+# Go
+go mod tidy
+
+# Rust
+cargo build
+```
+
+## Support and Resources
+
+- **Repository:** [github.com/inference-gateway/adl-cli](https://github.com/inference-gateway/adl-cli)
+- **Issues:** [github.com/inference-gateway/adl-cli/issues](https://github.com/inference-gateway/adl-cli/issues)
+- **Releases:** [github.com/inference-gateway/adl-cli/releases](https://github.com/inference-gateway/adl-cli/releases)
