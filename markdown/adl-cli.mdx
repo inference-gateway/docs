@@ -466,7 +466,7 @@ AI provider and model settings.
 | Field          | Type    | Description                                                                           |
 | -------------- | ------- | ------------------------------------------------------------------------------------- |
 | `provider`     | string  | AI provider: `openai`, `anthropic`, `deepseek`, `ollama`, `google`, `mistral`, `groq` |
-| `model`        | string  | Model name (e.g., `gpt-4o-mini`, `claude-sonnet-4-20250514`, `deepseek-chat`)         |
+| `model`        | string  | Model name (e.g., `gpt-4o-mini`, `claude-sonnet-4-20250514`, `deepseek-v4-pro`)       |
 | `systemPrompt` | string  | System prompt for the AI model                                                        |
 | `maxTokens`    | integer | Maximum tokens for responses                                                          |
 | `temperature`  | float   | Sampling temperature (0.0-2.0)                                                        |
@@ -862,7 +862,7 @@ The ADL CLI supports multiple AI providers. Set the corresponding environment va
 | --------- | --------------------- | -------------------- | -------------------------- |
 | OpenAI    | `openai`              | `OPENAI_API_KEY`     | `gpt-4o-mini`              |
 | Anthropic | `anthropic`           | `ANTHROPIC_API_KEY`  | `claude-sonnet-4-20250514` |
-| DeepSeek  | `deepseek`            | `DEEPSEEK_API_KEY`   | `deepseek-chat`            |
+| DeepSeek  | `deepseek`            | `DEEPSEEK_API_KEY`   | `deepseek-v4-pro`          |
 | Ollama    | `ollama`              | - (local)            | `llama3`                   |
 | Google AI | `google`              | `GOOGLE_API_KEY`     | `gemini-pro`               |
 | Mistral   | `mistral`             | `MISTRAL_API_KEY`    | `mistral-large`            |
