@@ -13,6 +13,7 @@ The Inference Gateway CLI (`infer`) is a powerful Go-based command-line tool pro
 - 🔒 **Smart Safety System** - Configurable approval workflow with diff visualization
 - 🎨 **Beautiful TUI** - Scrollable interface with syntax highlighting and multiple themes
 - 🌐 **Web Terminal** - Browser-based interface with tabbed sessions
+- 💬 **Remote Messaging Channels** - Control the agent from Telegram and other platforms ([Learn more](/cli-channels))
 - 💰 **Cost Tracking** - Real-time token usage and cost calculation
 
 ## Installation
@@ -1085,18 +1086,19 @@ infer chat
 
 ## Command Reference
 
-| Command                           | Description                             |
-| --------------------------------- | --------------------------------------- |
-| `infer init`                      | Initialize project configuration        |
-| `infer status`                    | Check gateway health and resource usage |
-| `infer chat`                      | Interactive chat session (TUI)          |
-| `infer chat --web`                | Web-based terminal interface            |
-| `infer agent <task>`              | Autonomous task execution               |
-| `infer config <subcommand>`       | Configuration management                |
-| `infer agents <subcommand>`       | A2A agent management                    |
-| `infer conversation <subcommand>` | Conversation history management         |
-| `infer --version`                 | Show version information                |
-| `infer --help`                    | Display help information                |
+| Command                           | Description                                                   |
+| --------------------------------- | ------------------------------------------------------------- |
+| `infer init`                      | Initialize project configuration                              |
+| `infer status`                    | Check gateway health and resource usage                       |
+| `infer chat`                      | Interactive chat session (TUI)                                |
+| `infer chat --web`                | Web-based terminal interface                                  |
+| `infer agent <task>`              | Autonomous task execution                                     |
+| `infer channels-manager`          | Start the remote messaging daemon ([Channels](/cli-channels)) |
+| `infer config <subcommand>`       | Configuration management                                      |
+| `infer agents <subcommand>`       | A2A agent management                                          |
+| `infer conversation <subcommand>` | Conversation history management                               |
+| `infer --version`                 | Show version information                                      |
+| `infer --help`                    | Display help information                                      |
 
 ## Support and Resources
 

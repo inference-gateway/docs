@@ -1,0 +1,238 @@
+# Channels
+
+Channels turn the [Inference Gateway CLI](/cli) agent into a remote-controllable bot accessible from messaging platforms like Telegram. Send a message to your bot and the agent runs as if you launched it locally - with persistent per-sender conversation memory, allowlist-based access control, and optional approval prompts for sensitive tools.
+
+> **Note:** Channels run as a long-lived daemon started with `infer channels-manager`. Telegram is fully supported today; WhatsApp is planned and Discord/Slack are open for contributions.
+
+## Key Features
+
+- **Pluggable adapters** - One daemon, multiple platforms. Add new channels by implementing a small Go interface
+- **Per-sender sessions** - Each chat ID gets a deterministic session (`channel-<name>-<sender_id>`) so conversations persist across messages and daemon restarts
+- **Allowlist-only access** - Empty allowlist rejects all messages. Secure by default
+- **Tool approval prompts** - Sensitive tools (Bash, Write, Edit, Delete) ask for confirmation through the channel before running
+- **Image attachments** - Send a photo to the bot and the agent receives it as part of the prompt
+- **Scheduled tasks** - Combine with the Schedule tool to ask the bot for recurring or one-off jobs delivered back through the same chat
+
+## How Channels Work
+
+When the daemon receives a message, it routes it through a small pipeline:
+
+```text
+Messaging platform (e.g. Telegram)
+    │
+    ▼
+Channel adapter (long-polls or webhook)
+    │
+    ▼
+Channel manager - checks the allowlist
+    │
+    ▼
+Spawns: infer agent --session-id channel-<name>-<sender_id> "<message>"
+    │
+    ▼
+Agent emits JSON-line output on stdout
+    │
+    ├── approval_request   →  prompt sent back through channel,
+    │                          response written to agent stdin
+    │
+    └── assistant message  →  formatted and sent back as a reply
+```
+
+Because each sender gets a dedicated session ID, conversation history, model state, and any in-flight context are preserved across messages - even after restarting the daemon.
+
+## Telegram
+
+### Quick Setup
+
+**1. Create a Telegram bot.** Message [@BotFather](https://t.me/BotFather) on Telegram and send `/newbot`. Follow the prompts and copy the bot token (it looks like `123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11`).
+
+**2. Get your chat ID.** Send any message to your new bot, then visit:
+
+```text
+https://api.telegram.org/bot<YOUR_TOKEN>/getUpdates
+```
+
+Find the `"chat":{"id":123456789}` field in the JSON response - that number is your chat ID.
+
+**3. Configure** in `.infer/config.yaml`:
+
+```yaml
+channels:
+  enabled: true
+
+  telegram:
+    enabled: true
+    bot_token: '${INFER_CHANNELS_TELEGRAM_BOT_TOKEN}'
+    allowed_users:
+      - '123456789'
+    poll_timeout: 30
+```
+
+Or via environment variables:
+
+```bash
+export INFER_CHANNELS_ENABLED=true
+export INFER_CHANNELS_TELEGRAM_ENABLED=true
+export INFER_CHANNELS_TELEGRAM_BOT_TOKEN="123456:ABC-DEF..."
+export INFER_CHANNELS_TELEGRAM_ALLOWED_USERS="123456789"
+```
+
+**4. Start the daemon:**
+
+```bash
+infer channels-manager
+```
+
+**5. Message your bot** in Telegram - the agent will respond.
+
+> **Try it end-to-end:** The CLI repo ships a Docker Compose example - gateway, channels-manager daemon, and an A2A browser agent so you can ask the bot to surf the web from your phone. See [`examples/telegram-channel`](https://github.com/inference-gateway/cli/tree/main/examples/telegram-channel).
+
+### Configuration Options
+
+| Key                               | Type     | Default | Description                                                                |
+| --------------------------------- | -------- | ------- | -------------------------------------------------------------------------- |
+| `channels.telegram.enabled`       | bool     | `false` | Turn the Telegram adapter on                                               |
+| `channels.telegram.bot_token`     | string   | `""`    | Bot token from @BotFather. Reference an env var to keep secrets out of git |
+| `channels.telegram.allowed_users` | []string | `[]`    | Telegram chat IDs allowed to message the bot. Empty list rejects everyone  |
+| `channels.telegram.poll_timeout`  | int      | `30`    | Long-polling timeout in seconds                                            |
+
+### Access Control
+
+The allowlist is mandatory. If `allowed_users` is empty, **every** incoming message is rejected and logged as unauthorized - this is the secure default.
+
+Best practices:
+
+- Always set `allowed_users` before exposing the bot to anyone
+- Use environment variables for `bot_token`; never commit it to git
+- Each channel has its own independent allowlist - adding a Telegram chat ID does not authorize the same person on WhatsApp
+- Watch the daemon logs for repeated unauthorized attempts
+
+### Tool Approval
+
+By default, sensitive tools (`Bash`, `Write`, `Edit`, `Delete`) request explicit user approval before running. The agent emits an approval request, the daemon turns it into an inline keyboard message in Telegram, and the user taps **✅ Approve** or **❌ Reject** to continue.
+
+Read-only tools (`Read`, `Grep`, `Tree`) execute without prompting.
+
+Approval is wired through the existing `tools.*.require_approval` configuration. To turn it off entirely:
+
+```yaml
+channels:
+  require_approval: false # default: true
+```
+
+Or set `INFER_CHANNELS_REQUIRE_APPROVAL=false`.
+
+Approvals time out after **5 minutes** and are auto-rejected if the user does not respond.
+
+### Scheduled Tasks
+
+When the daemon is running, you can ask the bot to schedule prompts on a cron schedule. The agent's response is delivered back through the originating channel - for example, the same Telegram chat where you set it up:
+
+> _"Send me an inspiring quote every day at 8 AM"_ - recurring
+> _"Remind me at 6pm today to call mum"_ - one-off (deletes itself after firing)
+
+Enable it in `.infer/config.yaml`:
+
+```yaml
+tools:
+  schedule:
+    enabled: true # disabled by default
+    require_approval: true # recommended
+```
+
+Or via environment variable: `INFER_TOOLS_SCHEDULE_ENABLED=true`.
+
+Jobs are persisted as YAML in `~/.infer/schedules/<id>.yaml` and hot-reloaded by the daemon - no restart needed when the agent creates a new schedule. The channel and recipient are derived automatically from the originating session, so the LLM never has to guess them.
+
+> Container deployments must set `TZ=Europe/Berlin` (or your zone) so cron expressions are interpreted in local time. The binary embeds the IANA zone database, so this works on any base image.
+
+### Long Messages and Images
+
+- **Message splitting** - Telegram caps messages at 4096 characters. The adapter splits longer responses automatically into sequential messages
+- **Image input** - Photos sent to the bot (with or without a caption) are downloaded via the Telegram API and forwarded to the agent as base64-encoded attachments
+- **Image retention** - `channels.image_retention` controls how many recent images are kept per session (default: `5`)
+
+### Troubleshooting
+
+| Symptom                          | What to check                                                                                                      |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Bot does not respond             | Verify the token is reachable: `curl https://api.telegram.org/bot<TOKEN>/getMe`                                    |
+| Logs show "unauthorized user"    | Add the sender's chat ID to `allowed_users` (string, not number)                                                   |
+| Agent fails to spawn             | Run `infer agent "test"` standalone to confirm the agent itself works before debugging the daemon                  |
+| Approvals never appear           | Ensure `channels.require_approval: true` and the relevant tool's `require_approval` is not explicitly set to false |
+| Long replies are cut off         | Telegram limit is 4096 chars per message - confirm the adapter is splitting (check daemon logs)                    |
+| `channels are not enabled` error | Set `channels.enabled: true` (or `INFER_CHANNELS_ENABLED=true`) - the master switch is off by default              |
+
+## WhatsApp (Planned)
+
+WhatsApp is the next channel on the roadmap. The configuration schema is already defined and reserved in the CLI:
+
+```yaml
+channels:
+  whatsapp:
+    enabled: false
+    phone_number_id: ''
+    access_token: ''
+    verify_token: ''
+    webhook_port: 8443
+    allowed_users:
+      - '+1234567890'
+```
+
+Unlike Telegram, WhatsApp will use the Meta Business API with a webhook receiver (default port `8443`) rather than long-polling. Implementation is tracked in the CLI repository - keep an eye on releases.
+
+## Discord & Slack
+
+Not yet implemented. **Contributions welcome.** New channels implement the small `Channel` interface defined in `internal/domain/interfaces.go` of the [CLI repository](https://github.com/inference-gateway/cli):
+
+```go
+type Channel interface {
+    Name() string
+    Start(ctx context.Context, inbox chan<- InboundMessage) error
+    Send(ctx context.Context, msg OutboundMessage) error
+    Stop() error
+}
+```
+
+Adapters that want rich approval UI (buttons, modals, etc.) can additionally implement `ApprovalChannel` to override the default text-based approval prompt.
+
+## Configuration Reference
+
+All channel-level options live under `channels` in `.infer/config.yaml`:
+
+| Key                         | Type | Default | Description                                                        |
+| --------------------------- | ---- | ------- | ------------------------------------------------------------------ |
+| `channels.enabled`          | bool | `false` | Master switch - must be `true` for any channel to start            |
+| `channels.max_workers`      | int  | `5`     | Maximum concurrent agent subprocesses                              |
+| `channels.image_retention`  | int  | `5`     | Number of recent images kept per session                           |
+| `channels.require_approval` | bool | `true`  | Send tool-approval prompts through the channel for sensitive tools |
+| `channels.telegram.*`       | -    | -       | See [Telegram configuration](#configuration-options)               |
+| `channels.whatsapp.*`       | -    | -       | Reserved for the upcoming WhatsApp adapter                         |
+
+## Environment Variables
+
+Every YAML key has an `INFER_`-prefixed environment variable. Lists are comma-separated.
+
+| Variable                                  | Maps to                             |
+| ----------------------------------------- | ----------------------------------- |
+| `INFER_CHANNELS_ENABLED`                  | `channels.enabled`                  |
+| `INFER_CHANNELS_MAX_WORKERS`              | `channels.max_workers`              |
+| `INFER_CHANNELS_IMAGE_RETENTION`          | `channels.image_retention`          |
+| `INFER_CHANNELS_REQUIRE_APPROVAL`         | `channels.require_approval`         |
+| `INFER_CHANNELS_TELEGRAM_ENABLED`         | `channels.telegram.enabled`         |
+| `INFER_CHANNELS_TELEGRAM_BOT_TOKEN`       | `channels.telegram.bot_token`       |
+| `INFER_CHANNELS_TELEGRAM_ALLOWED_USERS`   | `channels.telegram.allowed_users`   |
+| `INFER_CHANNELS_TELEGRAM_POLL_TIMEOUT`    | `channels.telegram.poll_timeout`    |
+| `INFER_CHANNELS_WHATSAPP_ENABLED`         | `channels.whatsapp.enabled`         |
+| `INFER_CHANNELS_WHATSAPP_PHONE_NUMBER_ID` | `channels.whatsapp.phone_number_id` |
+| `INFER_CHANNELS_WHATSAPP_ACCESS_TOKEN`    | `channels.whatsapp.access_token`    |
+| `INFER_CHANNELS_WHATSAPP_VERIFY_TOKEN`    | `channels.whatsapp.verify_token`    |
+| `INFER_CHANNELS_WHATSAPP_WEBHOOK_PORT`    | `channels.whatsapp.webhook_port`    |
+| `INFER_CHANNELS_WHATSAPP_ALLOWED_USERS`   | `channels.whatsapp.allowed_users`   |
+
+## Related
+
+- [CLI](/cli) - overview of the `infer` command-line tool and agent mode
+- [Configuration](/configuration) - full configuration system across the gateway and CLI
+- [Telegram Channel Example](https://github.com/inference-gateway/cli/tree/main/examples/telegram-channel) - Docker Compose stack (gateway + channels-manager + A2A browser agent + optional VNC)
+- [Examples](/examples) - more end-to-end recipes
