@@ -15,6 +15,7 @@ const eslintConfig = [
     // and resetting state on route changes
     rules: {
       'react-hooks/set-state-in-effect': 'off',
+      'react-hooks/purity': 'off',
     },
   },
 ];

@@ -1,11 +1,10 @@
-version = 1
+schema-version = "1.11.0"
 
 [install]
-nodejs_24.pkg-path = "nodejs_24"
-nodejs_24.version = "^24.13.0"
-
+nodejs.pkg-path = "nodejs_24"
+nodejs.version = "24.14.0"
 claude-code.pkg-path = "claude-code"
-claude-code.version = "2.1.59"
+claude-code.version = "2.1.112"
 
 [hook]
 on-activate = """
