@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.8](https://github.com/inference-gateway/docs/compare/0.6.7...0.6.8) (2026-04-26)
+
+### 📚 Documentation
+
+* Change all instances of deepseek-chat or deepseek-reasoner to the existing current models ([f17fe05](https://github.com/inference-gateway/docs/commit/f17fe05a0166c8f1791cde9a3af50463a4706c90))
+
 ## [0.6.7](https://github.com/inference-gateway/docs/compare/0.6.6...0.6.7) (2026-04-26)
 
 ### 📚 Documentation
