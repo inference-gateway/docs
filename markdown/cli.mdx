@@ -331,24 +331,197 @@ When tools are enabled, LLMs have access to a comprehensive suite across multipl
 
 ### Tool Categories
 
-| Category            | Tools                                                                                             | Description                                 |
-| ------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------- |
-| **File System**     | Read, Write, Edit, MultiEdit, Delete, Tree                                                        | File operations with safety controls        |
-| **Code Search**     | Grep (ripgrep-powered)                                                                            | Fast code search with regex support         |
-| **Web**             | WebSearch, WebFetch                                                                               | Internet research with caching (15-min TTL) |
-| **Development**     | Bash (whitelisted), GitHub API                                                                    | Command execution, repository integration   |
-| **Task Management** | TodoWrite                                                                                         | Track complex workflows and planning        |
-| **A2A Integration** | A2A_QueryAgent, A2A_SubmitTask, A2A_QueryTask                                                     | Delegate to specialized agents              |
-| **Computer Use**    | GetLatestScreenshot, MouseMove, MouseClick, MouseScroll, KeyboardType, GetFocusedApp, ActivateApp | GUI automation and visual understanding     |
+| Category              | Tools                                                                                             | Description                                                     |
+| --------------------- | ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| **File System**       | Read, Write, Edit, MultiEdit, Delete, Tree, Grep                                                  | File operations and search with safety controls                 |
+| **Command Execution** | Bash, BashOutput, KillShell, ListShells                                                           | Whitelisted shell execution and background shell control        |
+| **Web**               | WebSearch, WebFetch, Github                                                                       | Internet research, content fetching, GitHub API                 |
+| **Workflow**          | TodoWrite, Schedule, RequestPlanApproval                                                          | Task tracking, cron jobs, plan-mode approval                    |
+| **A2A Integration**   | A2A_QueryAgent, A2A_SubmitTask, A2A_QueryTask                                                     | Delegate to specialized agents — see [A2A](/a2a)                |
+| **Computer Use**      | GetLatestScreenshot, MouseMove, MouseClick, MouseScroll, KeyboardType, GetFocusedApp, ActivateApp | GUI automation — see the Computer Use section above             |
+| **MCP**               | `MCP_<server>_<tool>`                                                                             | Dynamically registered tools from MCP servers — see [MCP](/mcp) |
 
 ### File System Tools
 
-- **Read**: Read file contents with line ranges
-- **Write**: Create or overwrite files (requires approval)
-- **Edit**: Modify files with string replacement (requires approval)
-- **MultiEdit**: Batch edit multiple files
-- **Delete**: Remove files (requires approval)
-- **Tree**: Directory structure visualization
+#### Read
+
+Read a file from the local filesystem with an optional line range. Handles text files and PDFs.
+
+- **Parameters**: `file_path` (required, absolute or relative), `limit` (default 2000 lines), `offset` (default 1)
+- **Approval**: not required (read-only)
+- **Notes**: lines longer than 2000 characters are truncated; output is returned in `cat -n` format
+
+#### Write
+
+Write content to a file on disk. Overwrites the existing file at the given path.
+
+- **Parameters**: `file_path` (required, absolute), `content` (required)
+- **Approval**: required by default
+- **Notes**: if the file exists, the Read tool must have been used first; respects configured path exclusions (`.git/`, `*.env`, `.infer/`)
+
+#### Edit
+
+Perform an exact string replacement in a single file.
+
+- **Parameters**: `file_path` (required), `old_string` (required — must match exactly and be unique unless `replace_all` is set), `new_string` (required — must differ from `old_string`), `replace_all` (default `false`)
+- **Approval**: required by default
+- **Notes**: the file must have been Read at least once in the conversation; indentation must be preserved exactly
+
+#### MultiEdit
+
+Apply a sequence of edits to a single file atomically — either all succeed or none are applied.
+
+- **Parameters**: `file_path` (required), `edits` (required array; each item has `old_string`, `new_string`, optional `replace_all`)
+- **Approval**: required by default
+- **Notes**: edits are applied in order, each operating on the result of the previous one — plan them so earlier edits don't invalidate later matches
+
+#### Delete
+
+Delete a file or directory. Wildcards are supported when enabled.
+
+- **Parameters**: `path` (required — supports patterns like `*.txt` or `temp/*`), `recursive` (default `false`), `force` (default `false`), `format` (`text` or `json`)
+- **Approval**: required by default
+- **Notes**: restricted to the current working directory for safety
+
+#### Tree
+
+Display a directory tree, similar to the Unix `tree` command.
+
+- **Parameters**: `path` (default `.`), `max_depth` (1–10, default 3), `max_files` (1–1000, default 100), `respect_gitignore` (default `true`), `show_hidden` (default `false`), `format` (`text` or `json`)
+- **Approval**: not required
+- **Notes**: uses the system `tree` binary when available, otherwise falls back to a built-in implementation
+
+#### Grep
+
+Powerful regex search across files. Uses `ripgrep` when available, otherwise a built-in Go implementation.
+
+- **Parameters**: `pattern` (required regex), `path` (default cwd), `glob` (e.g. `*.ts`, `**/*.tsx`), `type` (e.g. `go`, `py`, `rust`), `output_mode` (`content` | `files_with_matches` | `count`, default `files_with_matches`), `-i`, `-n`, `-A`, `-B`, `-C`, `multiline`, `head_limit`
+- **Approval**: not required
+- **Backend**: configurable via `tools.grep.backend` (`auto` | `ripgrep` | `go`)
+- **Notes**: respects `.gitignore`; auto-excludes `.git`, `node_modules`, `.infer`, `vendor`, `dist`, `build`, `target`
+
+### Command Execution
+
+#### Bash
+
+Execute a whitelisted bash command. Only commands matching the configured whitelist (exact commands or regex patterns) can run.
+
+- **Parameters**: `command` (required — must match the whitelist), `format` (`text` or `json`)
+- **Approval**: configurable via `tools.bash.require_approval`
+
+```yaml
+tools:
+  bash:
+    enabled: true
+    whitelist:
+      commands:
+        - ls
+        - pwd
+        - git status
+      patterns:
+        - ^git branch.*
+        - ^npm (install|test|run).*
+    require_approval: false
+```
+
+#### BashOutput, KillShell, ListShells
+
+Background-shell management. These tools are only registered when `tools.bash.background_shells.enabled: true`.
+
+- **BashOutput** — `bash_id` (required), `filter` (optional regex). Returns only new output since the last read.
+- **KillShell** — `shell_id` (required). Sends SIGTERM, then SIGKILL after 5 seconds if the shell doesn't exit.
+- **ListShells** — no parameters. Lists all running and recently completed background shells with their IDs, state, and elapsed time.
+
+### Web Tools
+
+#### WebSearch
+
+Search the web via DuckDuckGo or Google.
+
+- **Parameters**: `query` (required), `engine` (`duckduckgo` | `google`, defaults to the configured engine), `limit` (1–50, defaults to configured `max_results`), `format` (`text` or `json`)
+
+```yaml
+tools:
+  web_search:
+    enabled: true
+    default_engine: duckduckgo
+    max_results: 10
+    engines: [duckduckgo, google]
+    timeout: 10
+```
+
+#### WebFetch
+
+Fetch content from a whitelisted URL. Optionally save the response to disk.
+
+- **Parameters**: `url` (required), `format` (`text` or `json`), `download` (default `false` — when `true`, saves under `~/.infer/tmp`)
+- **Notes**: only whitelisted domains are allowed; responses are cached (default 15-minute TTL)
+
+```yaml
+tools:
+  web_fetch:
+    enabled: true
+    whitelisted_domains:
+      - golang.org
+      - github.com
+    safety:
+      max_size: 8192
+      timeout: 30
+    cache:
+      enabled: true
+      ttl: 3600
+```
+
+#### Github
+
+Read and write GitHub issues, pull requests, and comments via the GitHub API.
+
+- **Parameters**: `owner`, `repo` (both required unless preconfigured in `tools.github.{owner,repo}`), `resource` (default `issue`; one of `issue`, `issues`, `pull_request`, `comments`, `create_comment`, `update_comment`, `create_pull_request`, `update_pull_request`), `issue_number`, `comment_id`, `comment_body`, `title`, `body`, `head`, `base` (default `main`), `state` (`open` | `closed` | `all`, default `open`), `per_page` (max 100, default 30)
+
+```yaml
+tools:
+  github:
+    enabled: true
+    token: '%GITHUB_TOKEN%' # env-var interpolation
+    base_url: https://api.github.com
+    owner: your-org
+    repo: your-repo
+    safety:
+      timeout: 30
+    require_approval: false
+```
+
+### Workflow Tools
+
+#### TodoWrite
+
+Create and update a structured task list for the current session. Use for complex multi-step work to track progress and surface intent to the user.
+
+- **Parameters**: `todos` (required array; each item has `content`, `status` ∈ `pending` | `in_progress` | `completed`, and optional `id`)
+- **Approval**: not required
+- **Best practice**: keep at most one task in `in_progress` at a time; mark items `completed` immediately on finishing
+
+#### Schedule
+
+Create, list, get, update, or delete cron jobs that fire through the same messaging channel that started the session (e.g. Telegram). Jobs are persisted as YAML under `~/.infer/schedules/` and executed by the `infer channels-manager` daemon (which hot-reloads via fsnotify).
+
+- **Parameters**: `operation` (required: `create` | `list` | `get` | `update` | `delete`), `job_id` (required for get/update/delete), `cron_expression` (5-field crontab or `@every <duration>`), `prompt`, `run_once` (default `false` — when `true`, the job is deleted after firing once), `name`, `description`, `model` (optional model override)
+- **Approval**: required by default
+- **Notes**: each fire creates a brand-new agent session — no context is carried between runs; only usable from a channel-driven session
+
+```text
+"0 8 * * *"      every day at 08:00
+"*/15 * * * *"   every 15 minutes
+"0 9 * * 1-5"    weekdays at 09:00
+"@every 1h"      every hour
+```
+
+#### RequestPlanApproval
+
+Submit a completed plan for user approval. Available only in Plan Mode.
+
+- **Parameters**: `plan` (required — the complete, detailed plan text)
+- **Behavior**: pauses execution until the user approves (switches to execution mode) or rejects (provides feedback)
 
 ### Security Features
 
