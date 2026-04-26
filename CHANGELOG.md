@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.9](https://github.com/inference-gateway/docs/compare/0.6.8...0.6.9) (2026-04-26)
+
+### 📚 Documentation
+
+* Document basic CLI tools in cli.mdx ([e85d90e](https://github.com/inference-gateway/docs/commit/e85d90ec755a97b44be118072f1de4b6d6ab1dd9))
+
 ## [0.6.8](https://github.com/inference-gateway/docs/compare/0.6.7...0.6.8) (2026-04-26)
 
 ### 📚 Documentation
