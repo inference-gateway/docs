@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.7](https://github.com/inference-gateway/docs/compare/0.6.6...0.6.7) (2026-04-26)
+
+### 📚 Documentation
+
+* Add Channels documentation page ([6c3f713](https://github.com/inference-gateway/docs/commit/6c3f713d81e97ce9a2933a6df91fba8982e1adc6))
+
+### 🔧 Miscellaneous
+
+* **deps:** Upgrade dependencies to latest ([073baa4](https://github.com/inference-gateway/docs/commit/073baa46ff66cdf0442ea4c249a5368b0067e965))
+
 ## [0.6.6](https://github.com/inference-gateway/docs/compare/0.6.5...0.6.6) (2026-03-07)
 
 ### 📚 Documentation
