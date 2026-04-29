@@ -781,12 +781,12 @@ jobs:
           owner: ${{ github.repository_owner }}
 
       - name: Checkout Repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6.0.2
         with:
           token: ${{ steps.generate-token.outputs.token }}
 
       - name: Run Infer Agent
-        uses: inference-gateway/infer-action@v0.3.1
+        uses: inference-gateway/infer-action@v0.4.0
         with:
           github-token: ${{ steps.generate-token.outputs.token }}
           trigger-phrase: '@infer'
