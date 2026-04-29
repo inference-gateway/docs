@@ -1,0 +1,206 @@
+import Link from 'next/link';
+
+# Kubernetes Operator
+
+The Inference Gateway Operator is a Kubernetes controller that manages Inference Gateway and related resources declaratively through Custom Resources (CRs). Pick the operator over the <Link href="/deployment">Helm chart</Link> when you want to manage gateways, A2A agents, MCP servers, and chat-channel orchestrators as first-class CRs in the same cluster API your other workloads use.
+
+The operator publishes four CRDs under `core.inference-gateway.com/v1alpha1`:
+
+- `Gateway` - the gateway proxy itself, with providers, auth, MCP, ingress, and HPA.
+- `Agent` - an A2A worker that an `Orchestrator` (or any A2A client) can dispatch tasks to.
+- `MCP` - a Model Context Protocol server.
+- `Orchestrator` - runs a chat bot backed by the gateway. It listens on a messaging channel (Telegram today; more channels planned), drives the conversation with an LLM, and can delegate work to `Agent`s and MCP tools.
+
+The API is `v1alpha1` and breaking changes can land between releases.
+
+## Installation
+
+The operator is distributed as pre-rendered manifests on each GitHub release. The `install.yaml` artifact bundles the namespace, CRDs, RBAC, and controller deployment.
+
+```bash
+kubectl apply -f https://github.com/inference-gateway/operator/releases/latest/download/install.yaml
+```
+
+For production, pin to a release rather than `latest`:
+
+```bash
+kubectl apply -f https://github.com/inference-gateway/operator/releases/download/v<VERSION>/install.yaml
+```
+
+For GitOps (ArgoCD, Flux), point your source at the operator repository's `manifests/` directory at a tagged ref - it contains the same `install.yaml` and a CRD-only `crds.yaml` for split installs.
+
+## Verification
+
+```bash
+kubectl get pods -n inference-gateway-system
+kubectl get crd | grep inference-gateway.com
+```
+
+You should see four CRDs: `gateways`, `agents`, `mcps`, and `orchestrators`.
+
+## Custom Resources
+
+### Gateway
+
+Deploys the gateway proxy. Source: [`api/v1alpha1/gateway_types.go`](https://github.com/inference-gateway/operator/blob/main/api/v1alpha1/gateway_types.go).
+
+| Field                                                            | Description                                                                                                                                                                                |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `replicas`                                                       | Pod count (1–100, default `1`).                                                                                                                                                            |
+| `image`                                                          | Container image, default `ghcr.io/inference-gateway/inference-gateway:latest`.                                                                                                             |
+| `environment`                                                    | One of `development`, `staging`, `production` (default `production`).                                                                                                                      |
+| `server.port` / `server.host` / `server.timeouts` / `server.tls` | HTTP server settings.                                                                                                                                                                      |
+| `auth.enabled` / `auth.provider` / `auth.oidc`                   | Authentication. `provider` is `oidc`, `jwt`, or `basic`.                                                                                                                                   |
+| `providers[]`                                                    | Each item: `name`, `enabled`, and an `env` list of `corev1.EnvVar`. Provider keys are passed through unchanged.                                                                            |
+| `telemetry.enabled` / `telemetry.metrics.{enabled,port}`         | OpenTelemetry metrics. There is no `telemetry.tracing` block - tracing is configured through standard OTEL env vars on the gateway pod.                                                    |
+| `mcp.enabled` / `mcp.servers[]` / `mcp.timeouts`                 | MCP client configuration with per-server health checks.                                                                                                                                    |
+| `service.{type,port,annotations}`                                | Kubernetes Service for the gateway.                                                                                                                                                        |
+| `ingress.{enabled,host,className,hosts[],tls}`                   | Ingress with optional cert-manager integration via `tls.issuer`.                                                                                                                           |
+| `hpa.{enabled,config}`                                           | Wraps a `HorizontalPodAutoscalerSpec`. See the [Kubernetes HPA docs](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/) for the `metrics[]` and `behavior` shape. |
+| `serviceAccount.{create,name}`                                   | Pod service account.                                                                                                                                                                       |
+| `resources.requests` / `resources.limits`                        | CPU and memory.                                                                                                                                                                            |
+
+Provider env vars referenced via Secrets follow the standard `valueFrom.secretKeyRef` pattern - see <Link href="/configuration">Configuration</Link> for the full list of variables each provider accepts.
+
+### Agent
+
+Deploys an A2A worker. Agents are dispatched to by an `Orchestrator` (or any A2A client) - the gateway itself does not call agents; it only proxies inference. The agent typically calls back into the gateway for its own LLM completions via `agent.llm.baseURL`. Source: [`api/v1alpha1/agent_types.go`](https://github.com/inference-gateway/operator/blob/main/api/v1alpha1/agent_types.go). See <Link href="/a2a">A2A Integration</Link> for protocol background.
+
+| Field                                                                                                    | Description                                                                                                            |
+| -------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `image`                                                                                                  | Required agent container image.                                                                                        |
+| `port` / `host` / `readTimeout` / `writeTimeout` / `idleTimeout`                                         | HTTP server settings (defaults: `8080`, `0.0.0.0`, `30s`, `30s`, `60s`).                                               |
+| `logging.{level,format}`                                                                                 | Defaults: `info`, `json`.                                                                                              |
+| `tls.{enabled,secretRef}`                                                                                | TLS for the agent's HTTP server.                                                                                       |
+| `agent.maxConversationHistory` / `agent.maxChatCompletionIterations` / `agent.maxRetries`                | LLM loop limits (defaults `10`, `5`, `3`).                                                                             |
+| `agent.llm.baseURL`                                                                                      | LLM endpoint (typically the gateway URL).                                                                              |
+| `agent.llm.model`                                                                                        | `provider/model` format. The prefix is split out as `A2A_AGENT_CLIENT_PROVIDER`, the rest as `A2A_AGENT_CLIENT_MODEL`. |
+| `agent.llm.maxTokens` / `agent.llm.temperature` / `agent.llm.systemPrompt` / `agent.llm.customHeaders[]` | LLM tuning.                                                                                                            |
+| `agent.llm.apiKeySecretRef`                                                                              | `corev1.SecretKeySelector` for the LLM API key.                                                                        |
+| `queue.{enabled,maxSize,cleanupInterval}`                                                                | Optional task queue.                                                                                                   |
+| `env[]`                                                                                                  | Additional pod env vars.                                                                                               |
+
+The operator publishes the agent's discovered capabilities into `status.card`, which the orchestrator consumes through service discovery.
+
+### MCP
+
+Deploys a Model Context Protocol server. Source: [`api/v1alpha1/mcp_types.go`](https://github.com/inference-gateway/operator/blob/main/api/v1alpha1/mcp_types.go). See <Link href="/mcp">MCP Integration</Link> for protocol background.
+
+| Field                             | Description                                                           |
+| --------------------------------- | --------------------------------------------------------------------- |
+| `replicas`                        | Pod count (default `1`).                                              |
+| `image`                           | Container image, default `node:lts`.                                  |
+| `server.port`                     | Listen port (default `8080`).                                         |
+| `server.command` / `server.args`  | Override the container command.                                       |
+| `server.timeout`                  | Request timeout (default `30s`).                                      |
+| `server.tls.{enabled,secretName}` | TLS cert from a Secret. `secretName` is required when TLS is enabled. |
+| `hpa.{enabled,config}`            | Same shape as `Gateway.hpa`.                                          |
+
+### Orchestrator
+
+Deploys the Inference Gateway CLI's `channels-manager` daemon - a chat bot that bridges a messaging channel and the gateway. It receives incoming messages, runs them through an LLM, optionally delegates work to `Agent`s and MCP tools, and posts the reply back to the channel. Source: [`api/v1alpha1/orchestrator_types.go`](https://github.com/inference-gateway/operator/blob/main/api/v1alpha1/orchestrator_types.go).
+
+The Deployment is forced to a singleton (`replicas: 1`, `strategy: Recreate`) because Telegram allows only one active `getUpdates` consumer per bot token - running two replicas would 409. For HA today, run multiple `Orchestrator` resources with different tokens and disjoint allowed-user lists.
+
+| Field                                                                          | Description                                                                                |
+| ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ |
+| `image`                                                                        | Required CLI image, e.g. `ghcr.io/inference-gateway/cli:latest`.                           |
+| `channels.maxWorkers` / `channels.imageRetention` / `channels.requireApproval` | Top-level channel runtime.                                                                 |
+| `channels.telegram.enabled`                                                    | Toggle the Telegram channel.                                                               |
+| `channels.telegram.tokenSecretRef`                                             | `SecretKeySelector` for the bot token (required).                                          |
+| `channels.telegram.allowedUsersSecretRef`                                      | `SecretKeySelector` for a comma-separated allow-list.                                      |
+| `channels.telegram.pollTimeout`                                                | `metav1.Duration` for `getUpdates` long-polling.                                           |
+| `gateway.url`                                                                  | Required URL of the gateway this orchestrator talks to.                                    |
+| `gateway.apiKeySecretRef`                                                      | Optional API key for the gateway.                                                          |
+| `agent.model`                                                                  | Required `provider/model` for the orchestrating LLM.                                       |
+| `agent.systemPrompt`                                                           | Optional system prompt.                                                                    |
+| `tools.enabled` / `tools.schedule`                                             | Built-in CLI tools (incl. scheduling).                                                     |
+| `a2a.enabled`                                                                  | Toggle A2A fan-out. **A2A lives on `Orchestrator`, not on `Gateway`.**                     |
+| `a2a.agents[]`                                                                 | Static agent URLs.                                                                         |
+| `a2a.serviceDiscovery.{enabled,namespace,selector}`                            | Discover `Agent` CRs by label selector. The pod is rolled when the discovered set changes. |
+| `resources` / `env[]`                                                          | Standard pod knobs.                                                                        |
+
+## Quick Start: Minimal Gateway
+
+Create a Secret with your provider API key, then a `Gateway`. The provider shape is `name` + `enabled` + `env[]` - env vars are passed through to the gateway pod.
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: openai-secret
+  namespace: inference-gateway
+type: Opaque
+stringData:
+  OPENAI_API_KEY: sk-...
+---
+apiVersion: core.inference-gateway.com/v1alpha1
+kind: Gateway
+metadata:
+  name: my-gateway
+  namespace: inference-gateway
+spec:
+  replicas: 1
+  environment: development
+  telemetry:
+    enabled: true
+    metrics:
+      enabled: true
+      port: 9464
+  providers:
+    - name: OpenAI
+      enabled: true
+      env:
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: openai-secret
+              key: OPENAI_API_KEY
+```
+
+Apply it and port-forward to test:
+
+```bash
+kubectl apply -f gateway.yaml
+kubectl get gateway -n inference-gateway -w
+kubectl port-forward -n inference-gateway svc/my-gateway 8080:8080
+```
+
+For a full end-to-end example with an `Orchestrator`, two `Agent`s, and Redis state, see [`examples/orchestrator/`](https://github.com/inference-gateway/operator/tree/main/examples/orchestrator) in the operator repository.
+
+## Status and Monitoring
+
+```bash
+kubectl get gateway -A
+kubectl describe gateway my-gateway -n inference-gateway
+```
+
+The `Gateway` status surfaces:
+
+- `phase` - `Pending`, `Running`, `Failed`, or `Unknown`.
+- `readyReplicas` / `availableReplicas`.
+- `url` - the resolved access URL (ingress host when ingress is enabled, otherwise the cluster service URL).
+- `providerSummary` - comma-separated list of enabled providers.
+- `conditions[]` - standard `Available` / `Progressing` / `ReplicaFailure` conditions.
+
+`Agent`, `MCP`, and `Orchestrator` expose the standard `metav1.Condition` slice plus a boolean `ready`. `Orchestrator` additionally exposes `discoveredAgents[]` and `discoveredAgentCount` when service discovery is enabled. See <Link href="/observability">Observability</Link> for end-to-end metrics and tracing setup.
+
+## Cleanup
+
+Delete custom resources before uninstalling the operator so finalizers can run:
+
+```bash
+kubectl delete gateway,agent,mcp,orchestrator --all -A
+kubectl delete -f https://github.com/inference-gateway/operator/releases/latest/download/install.yaml
+```
+
+## Examples
+
+The operator repository ships runnable examples for each CRD:
+
+- [`gateway-minimal`](https://github.com/inference-gateway/operator/tree/main/examples/gateway-minimal) - single provider, no ingress.
+- [`gateway-complete`](https://github.com/inference-gateway/operator/tree/main/examples/gateway-complete) - HPA, multiple providers, ingress with cert-manager.
+- [`gateway-with-ingress-simple`](https://github.com/inference-gateway/operator/tree/main/examples/gateway-with-ingress-simple) and [`gateway-with-ingress-advanced`](https://github.com/inference-gateway/operator/tree/main/examples/gateway-with-ingress-advanced) - ingress patterns.
+- [`agent-server`](https://github.com/inference-gateway/operator/tree/main/examples/agent-server) - minimal A2A agent.
+- [`mcp-server`](https://github.com/inference-gateway/operator/tree/main/examples/mcp-server) - MCP server.
+- [`orchestrator`](https://github.com/inference-gateway/operator/tree/main/examples/orchestrator) - gateway + two agents + orchestrator with service discovery.

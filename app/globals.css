@@ -350,7 +350,7 @@ html {
   }
 
   .prose code {
-    @apply bg-[--color-code-bg] text-[--color-code-text] px-1.5 py-0.5 rounded-md text-sm font-mono;
+    @apply bg-[var(--color-code-bg)] text-[var(--color-code-text)] px-1 py-0.5 rounded text-[0.9em] font-mono;
   }
 
   .prose pre code {
@@ -358,7 +358,7 @@ html {
   }
 
   .prose :not(pre) > code {
-    @apply bg-[--color-code-bg] text-[--color-code-text] px-1.5 py-0.5 rounded-md text-sm font-mono;
+    @apply bg-[var(--color-code-bg)] text-[var(--color-code-text)] px-1 py-0.5 rounded text-[0.9em] font-mono;
   }
 
   .prose a {
