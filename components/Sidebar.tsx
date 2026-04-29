@@ -26,6 +26,10 @@ const sections = [
     ],
   },
   {
+    title: 'Kubernetes Operator',
+    items: [{ title: 'Operator', href: '/operator' }],
+  },
+  {
     title: 'Model Context Protocol',
     items: [{ title: 'MCP Integration', href: '/mcp' }],
   },
