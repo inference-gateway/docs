@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.10](https://github.com/inference-gateway/docs/compare/0.6.9...0.6.10) (2026-04-29)
+
+### 📚 Documentation
+
+* Add Kubernetes Operator page ([#21](https://github.com/inference-gateway/docs/issues/21)) ([92cdb84](https://github.com/inference-gateway/docs/commit/92cdb840c519de41b205e48b1218ed8ed3a011a8))
+
+### 🔧 Miscellaneous
+
+* Update infer config and action versions ([9a189e7](https://github.com/inference-gateway/docs/commit/9a189e722cd65f3ac07b6237a723b56837af76dc))
+
 ## [0.6.9](https://github.com/inference-gateway/docs/compare/0.6.8...0.6.9) (2026-04-26)
 
 ### 📚 Documentation
