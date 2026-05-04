@@ -2,7 +2,7 @@
 
 The Inference Gateway CLI (`infer`) is a powerful Go-based command-line tool providing comprehensive access to the Inference Gateway with interactive chat, autonomous agents, Computer Use tools, and development workflows.
 
-**Current Version:** v0.97.0 (Breaking changes expected until stable)
+**Current Version:** v0.109.0 (Breaking changes expected until stable)
 
 ## Key Features
 
@@ -14,6 +14,7 @@ The Inference Gateway CLI (`infer`) is a powerful Go-based command-line tool pro
 - 🎨 **Beautiful TUI** - Scrollable interface with syntax highlighting and multiple themes
 - 🌐 **Web Terminal** - Browser-based interface with tabbed sessions
 - 💬 **Remote Messaging Channels** - Control the agent from Telegram and other platforms ([Learn more](/cli-channels))
+- 🧠 **Agent Skills** - Reusable, model-readable instruction folders loaded on demand, portable across vendors ([Learn more](#agent-skills))
 - 💰 **Cost Tracking** - Real-time token usage and cost calculation
 
 ## Installation
@@ -645,6 +646,7 @@ The CLI provides built-in shortcuts and supports custom user-defined shortcuts.
 | `/git <cmd>`          | Git operations                   | `/git status`, `/git commit`, `/git push` |
 | `/scm <cmd>`          | GitHub operations                | `/scm pr-create`, `/scm issue view 123`   |
 | `/a2a`                | View connected A2A agents        | `/a2a`                                    |
+| `/skills <cmd>`       | Manage Agent Skills              | `/skills list`, `/skills install <url>`   |
 
 ### Git Shortcuts
 
@@ -1026,6 +1028,97 @@ infer chat
 
 See [MCP documentation](/mcp) for detailed integration guide and server development.
 
+### Agent Skills
+
+Reusable, model-readable instruction folders that the agent loads on demand. The CLI uses the same on-disk format as Claude Code, Gemini CLI, and OpenAI Codex CLI, so a skill authored for any of those tools drops in unchanged.
+
+**Why use skills:**
+
+- **Lazy-loaded**: only the skill list is in the system prompt; bodies are read on demand via the Read tool
+- **Zero cost when off**: disabled by default, no token overhead until you enable
+- **Portable**: drop folders from `github.com/anthropics/skills` or `github.com/google/skills` straight into `.infer/skills/`
+
+**Skill format:**
+
+A skill is a directory containing a `SKILL.md` with YAML frontmatter:
+
+```markdown
+---
+name: pdf-helper
+description: Extract text from PDFs. Use when the user asks to read, summarise, or analyse a PDF file.
+---
+
+# PDF Helper
+
+1. Use the Bash tool to invoke `pdftotext input.pdf -` and capture stdout.
+2. If the PDF is image-only, fall back to `tesseract` for OCR.
+```
+
+Optional sibling directories (`references/`, `scripts/`, `assets/`) hold supporting material the model reads or executes once the skill is active.
+
+**Frontmatter rules:**
+
+- `name` (required): ≤64 chars, lowercase letters/digits/hyphens only, must equal the directory name, must not contain `infer`, `claude`, `anthropic`, `gemini`, or `openai`
+- `description` (required): non-empty, ≤1024 chars — make it actionable; this is the routing signal
+- Unknown keys (e.g. Anthropic's `allowed-tools:`, Gemini's `disabled:`) are tolerated and ignored
+
+**Locations:**
+
+| Scope         | Path                              | Notes                                  |
+| ------------- | --------------------------------- | -------------------------------------- |
+| Project-local | `.infer/skills/<name>/SKILL.md`   | Overrides user-global of the same name |
+| User-global   | `~/.infer/skills/<name>/SKILL.md` | Personal defaults across projects      |
+
+**Enabling:**
+
+Skills are **disabled by default**. Enable via config or environment variable:
+
+```yaml
+# .infer/config.yaml
+agent:
+  skills:
+    enabled: true
+    disabled_skills: [] # optional list of skill names to skip
+```
+
+```bash
+INFER_AGENT_SKILLS_ENABLED=true infer chat
+```
+
+**Managing skills:**
+
+```bash
+# List discovered skills (works regardless of the enabled flag)
+infer skills list
+infer skills list --format json
+
+# Install from a public GitHub directory URL
+infer skills install https://github.com/anthropics/skills/tree/main/skills/pdf
+infer skills install <url> --user        # install to ~/.infer/skills instead
+infer skills install <url> --overwrite   # replace an existing skill folder
+
+# Uninstall by name
+infer skills uninstall pdf-helper
+infer skills uninstall pdf-helper --user
+
+# Or from inside chat
+> /skills list
+> /skills install <github-url>
+> /skills uninstall <name>
+```
+
+**GitHub installer notes:**
+
+- URL must point at a directory: `https://github.com/<owner>/<repo>/tree/<ref>/<path>`. URLs at `/blob/` (files) or the repo root are rejected with a clear error.
+- Public repos only — private repos and `GITHUB_TOKEN` auth are not supported in this version.
+- Refs containing `/` (e.g. `feature/foo`) aren't supported; use a tag or single-segment branch.
+- GitHub's unauthenticated API rate limit is 60 req/hour per IP; each install is one tree call plus one raw download per file.
+- Frontmatter is re-validated post-download — a half-installed skill is never left on disk.
+
+**Security:**
+
+A skill instructs the model to run shell commands, read files, or call external APIs. Treat skills like any other piece of executable content — **only install from trusted sources**. The CLI's normal tool-approval system still gates each call, but a malicious skill could craft a plausible-looking Bash command. The `name` validator rejects vendor strings to make impersonating an official skill harder.
+
 ### A2A Integration
 
 Delegate specialized tasks to Agent-to-Agent compatible agents.
@@ -1266,6 +1359,7 @@ infer chat
 | `infer chat`                      | Interactive chat session (TUI)                                |
 | `infer chat --web`                | Web-based terminal interface                                  |
 | `infer agent <task>`              | Autonomous task execution                                     |
+| `infer skills <subcommand>`       | Manage Agent Skills (list, install, uninstall)                |
 | `infer channels-manager`          | Start the remote messaging daemon ([Channels](/cli-channels)) |
 | `infer config <subcommand>`       | Configuration management                                      |
 | `infer agents <subcommand>`       | A2A agent management                                          |
