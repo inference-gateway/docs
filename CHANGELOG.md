@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.11](https://github.com/inference-gateway/docs/compare/0.6.10...0.6.11) (2026-05-04)
+
+### 📚 Documentation
+
+* Document Agent Skills feature in CLI page ([04349a3](https://github.com/inference-gateway/docs/commit/04349a3f44cc3414d99e9f3ffae89378eaf09030))
+
+### 🔧 Miscellaneous
+
+* **deps:** Upgrade dev dependecies ([0734e3d](https://github.com/inference-gateway/docs/commit/0734e3de8c963ca77808e3d9842f64aa8a94dc8f))
+
 ## [0.6.10](https://github.com/inference-gateway/docs/compare/0.6.9...0.6.10) (2026-04-29)
 
 ### 📚 Documentation
