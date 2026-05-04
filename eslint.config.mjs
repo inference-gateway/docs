@@ -1,13 +1,11 @@
-import nextConfig from 'eslint-config-next';
-import nextTypescriptConfig from 'eslint-config-next/typescript';
+import { defineConfig, globalIgnores } from 'eslint/config';
+import nextVitals from 'eslint-config-next/core-web-vitals';
+import nextTs from 'eslint-config-next/typescript';
 import prettierConfig from 'eslint-config-prettier';
 
-const eslintConfig = [
-  {
-    ignores: ['node_modules/**', '.next/**', 'out/**', 'build/**', 'next-env.d.ts'],
-  },
-  ...nextConfig,
-  ...nextTypescriptConfig,
+const eslintConfig = defineConfig([
+  ...nextVitals,
+  ...nextTs,
   prettierConfig,
   {
     // Disable overly strict rule that flags common legitimate patterns
@@ -18,6 +16,7 @@ const eslintConfig = [
       'react-hooks/purity': 'off',
     },
   },
-];
+  globalIgnores(['.next/**', 'out/**', 'build/**', 'next-env.d.ts']),
+]);
 
 export default eslintConfig;

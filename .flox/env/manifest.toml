@@ -2,9 +2,9 @@ schema-version = "1.11.0"
 
 [install]
 nodejs.pkg-path = "nodejs_24"
-nodejs.version = "24.14.0"
+nodejs.version = "24.14.1"
 claude-code.pkg-path = "claude-code"
-claude-code.version = "2.1.112"
+claude-code.version = "2.1.121"
 
 [hook]
 on-activate = """

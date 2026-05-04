@@ -5,11 +5,11 @@
     "install": {
       "claude-code": {
         "pkg-path": "claude-code",
-        "version": "2.1.112"
+        "version": "2.1.121"
       },
       "nodejs": {
         "pkg-path": "nodejs_24",
-        "version": "24.14.0"
+        "version": "24.14.1"
       }
     },
     "hook": {
@@ -21,27 +21,27 @@
     {
       "attr_path": "claude-code",
       "broken": false,
-      "derivation": "/nix/store/xig1b7nkm9vni46c718i90q2r8yd2sf0-claude-code-2.1.112.drv",
+      "derivation": "/nix/store/hqyfnd98krwan8i7yb3100rnnklx54w2-claude-code-2.1.121.drv",
       "description": "Agentic coding tool that lives in your terminal, understands your codebase, and helps you code faster",
       "install_id": "claude-code",
       "license": "Unfree",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=b12141ef619e0a9c1c84dc8c684040326f27cdcc",
-      "name": "claude-code-2.1.112",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=15f4ee454b1dce334612fa6843b3e05cf546efab",
+      "name": "claude-code-2.1.121",
       "pname": "claude-code",
-      "rev": "b12141ef619e0a9c1c84dc8c684040326f27cdcc",
-      "rev_count": 982522,
-      "rev_date": "2026-04-18T21:33:21Z",
-      "scrape_date": "2026-04-21T06:03:20.080867Z",
+      "rev": "15f4ee454b1dce334612fa6843b3e05cf546efab",
+      "rev_count": 990025,
+      "rev_date": "2026-04-30T19:45:37Z",
+      "scrape_date": "2026-05-03T08:10:22.380488Z",
       "stabilities": [
         "unstable"
       ],
       "unfree": true,
-      "version": "2.1.112",
+      "version": "2.1.121",
       "outputs_to_install": [
         "out"
       ],
       "outputs": {
-        "out": "/nix/store/17dk1jy33ka7hi8gm54sgclvycgs5vz0-claude-code-2.1.112"
+        "out": "/nix/store/1im7qb4aigab8lmf08y3yd3zp1drgyx5-claude-code-2.1.121"
       },
       "system": "aarch64-darwin",
       "group": "toplevel",
@@ -50,27 +50,27 @@
     {
       "attr_path": "claude-code",
       "broken": false,
-      "derivation": "/nix/store/7nx313nb4x9hdwv0rahvvfgasadpc2ls-claude-code-2.1.112.drv",
+      "derivation": "/nix/store/9dyv4jh10jj2snaq57413vpl1zgnq0p0-claude-code-2.1.121.drv",
       "description": "Agentic coding tool that lives in your terminal, understands your codebase, and helps you code faster",
       "install_id": "claude-code",
       "license": "Unfree",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=b12141ef619e0a9c1c84dc8c684040326f27cdcc",
-      "name": "claude-code-2.1.112",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=15f4ee454b1dce334612fa6843b3e05cf546efab",
+      "name": "claude-code-2.1.121",
       "pname": "claude-code",
-      "rev": "b12141ef619e0a9c1c84dc8c684040326f27cdcc",
-      "rev_count": 982522,
-      "rev_date": "2026-04-18T21:33:21Z",
-      "scrape_date": "2026-04-21T06:36:37.454220Z",
+      "rev": "15f4ee454b1dce334612fa6843b3e05cf546efab",
+      "rev_count": 990025,
+      "rev_date": "2026-04-30T19:45:37Z",
+      "scrape_date": "2026-05-03T08:44:33.919769Z",
       "stabilities": [
         "unstable"
       ],
       "unfree": true,
-      "version": "2.1.112",
+      "version": "2.1.121",
       "outputs_to_install": [
         "out"
       ],
       "outputs": {
-        "out": "/nix/store/6lq2028561g2mlp48q6rih11f4cjff0y-claude-code-2.1.112"
+        "out": "/nix/store/ajrks622dji73vzpfdqnmj1g9vc2w2pc-claude-code-2.1.121"
       },
       "system": "aarch64-linux",
       "group": "toplevel",
@@ -79,27 +79,27 @@
     {
       "attr_path": "claude-code",
       "broken": false,
-      "derivation": "/nix/store/ipbkms1kypaa25bxmf8lhncn6qyf1li2-claude-code-2.1.112.drv",
+      "derivation": "/nix/store/ki6x4cscwyvdlnly9agrfpck3l9rnj85-claude-code-2.1.121.drv",
       "description": "Agentic coding tool that lives in your terminal, understands your codebase, and helps you code faster",
       "install_id": "claude-code",
       "license": "Unfree",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=b12141ef619e0a9c1c84dc8c684040326f27cdcc",
-      "name": "claude-code-2.1.112",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=15f4ee454b1dce334612fa6843b3e05cf546efab",
+      "name": "claude-code-2.1.121",
       "pname": "claude-code",
-      "rev": "b12141ef619e0a9c1c84dc8c684040326f27cdcc",
-      "rev_count": 982522,
-      "rev_date": "2026-04-18T21:33:21Z",
-      "scrape_date": "2026-04-21T07:08:11.862986Z",
+      "rev": "15f4ee454b1dce334612fa6843b3e05cf546efab",
+      "rev_count": 990025,
+      "rev_date": "2026-04-30T19:45:37Z",
+      "scrape_date": "2026-05-03T09:15:55.366730Z",
       "stabilities": [
         "unstable"
       ],
       "unfree": true,
-      "version": "2.1.112",
+      "version": "2.1.121",
       "outputs_to_install": [
         "out"
       ],
       "outputs": {
-        "out": "/nix/store/199nfsrncc807k1204f865rqlnjap4fs-claude-code-2.1.112"
+        "out": "/nix/store/h4rh5hk71hsk42s1vwfxgpjzj8mnq5ny-claude-code-2.1.121"
       },
       "system": "x86_64-darwin",
       "group": "toplevel",
@@ -108,27 +108,27 @@
     {
       "attr_path": "claude-code",
       "broken": false,
-      "derivation": "/nix/store/xxc7lmzy7d8lir9hqmh3hqp8pm7nil4v-claude-code-2.1.112.drv",
+      "derivation": "/nix/store/2p9z5g7h4rmr0934mzkyxiijcjgphdj4-claude-code-2.1.121.drv",
       "description": "Agentic coding tool that lives in your terminal, understands your codebase, and helps you code faster",
       "install_id": "claude-code",
       "license": "Unfree",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=b12141ef619e0a9c1c84dc8c684040326f27cdcc",
-      "name": "claude-code-2.1.112",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=15f4ee454b1dce334612fa6843b3e05cf546efab",
+      "name": "claude-code-2.1.121",
       "pname": "claude-code",
-      "rev": "b12141ef619e0a9c1c84dc8c684040326f27cdcc",
-      "rev_count": 982522,
-      "rev_date": "2026-04-18T21:33:21Z",
-      "scrape_date": "2026-04-21T07:44:39.704418Z",
+      "rev": "15f4ee454b1dce334612fa6843b3e05cf546efab",
+      "rev_count": 990025,
+      "rev_date": "2026-04-30T19:45:37Z",
+      "scrape_date": "2026-05-03T09:52:11.170334Z",
       "stabilities": [
         "unstable"
       ],
       "unfree": true,
-      "version": "2.1.112",
+      "version": "2.1.121",
       "outputs_to_install": [
         "out"
       ],
       "outputs": {
-        "out": "/nix/store/pja1as42i5hxnb8zhyp27gwhsmxak3s3-claude-code-2.1.112"
+        "out": "/nix/store/n0f313wixxwzk4hb4dhisicsbb6p40s4-claude-code-2.1.121"
       },
       "system": "x86_64-linux",
       "group": "toplevel",
@@ -137,30 +137,27 @@
     {
       "attr_path": "nodejs_24",
       "broken": false,
-      "derivation": "/nix/store/g2yfx00n1lp9i8ka7nbl11fawc0yfm7n-nodejs-24.14.0.drv",
+      "derivation": "/nix/store/1m7745r13n7wk43fzx5yr3jjr3vdc1db-nodejs-24.14.1.drv",
       "description": "Event-driven I/O framework for the V8 JavaScript engine",
       "install_id": "nodejs",
       "license": "MIT",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=b12141ef619e0a9c1c84dc8c684040326f27cdcc",
-      "name": "nodejs-24.14.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=15f4ee454b1dce334612fa6843b3e05cf546efab",
+      "name": "nodejs-24.14.1",
       "pname": "nodejs_24",
-      "rev": "b12141ef619e0a9c1c84dc8c684040326f27cdcc",
-      "rev_count": 982522,
-      "rev_date": "2026-04-18T21:33:21Z",
-      "scrape_date": "2026-04-21T06:03:43.890509Z",
+      "rev": "15f4ee454b1dce334612fa6843b3e05cf546efab",
+      "rev_count": 990025,
+      "rev_date": "2026-04-30T19:45:37Z",
+      "scrape_date": "2026-05-03T08:10:46.948511Z",
       "stabilities": [
         "unstable"
       ],
       "unfree": false,
-      "version": "24.14.0",
+      "version": "24.14.1",
       "outputs_to_install": [
-        "out",
-        "out",
-        "out",
         "out"
       ],
       "outputs": {
-        "out": "/nix/store/d5hw52iialz64hvfzfp9qm1gr2fp43kx-nodejs-24.14.0"
+        "out": "/nix/store/sf85v1qd1glkmsyfxwn9p8wridb4qf6y-nodejs-24.14.1"
       },
       "system": "aarch64-darwin",
       "group": "toplevel",
@@ -169,29 +166,27 @@
     {
       "attr_path": "nodejs_24",
       "broken": false,
-      "derivation": "/nix/store/jj8rw2gnisil7dw10xi2qdinad9jqp7s-nodejs-24.14.0.drv",
+      "derivation": "/nix/store/3h5ymdg61db3f9xwhwclj05afipbxiq2-nodejs-24.14.1.drv",
       "description": "Event-driven I/O framework for the V8 JavaScript engine",
       "install_id": "nodejs",
       "license": "MIT",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=b12141ef619e0a9c1c84dc8c684040326f27cdcc",
-      "name": "nodejs-24.14.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=15f4ee454b1dce334612fa6843b3e05cf546efab",
+      "name": "nodejs-24.14.1",
       "pname": "nodejs_24",
-      "rev": "b12141ef619e0a9c1c84dc8c684040326f27cdcc",
-      "rev_count": 982522,
-      "rev_date": "2026-04-18T21:33:21Z",
-      "scrape_date": "2026-04-21T06:37:14.584334Z",
+      "rev": "15f4ee454b1dce334612fa6843b3e05cf546efab",
+      "rev_count": 990025,
+      "rev_date": "2026-04-30T19:45:37Z",
+      "scrape_date": "2026-05-03T08:45:12.090351Z",
       "stabilities": [
         "unstable"
       ],
       "unfree": false,
-      "version": "24.14.0",
+      "version": "24.14.1",
       "outputs_to_install": [
-        "out",
-        "out",
         "out"
       ],
       "outputs": {
-        "out": "/nix/store/vs8zaq8fvbbjqfg4bzn424kn55sj7s7y-nodejs-24.14.0"
+        "out": "/nix/store/amh21igq2gjg6ai42f3ksan8fh89qvpm-nodejs-24.14.1"
       },
       "system": "aarch64-linux",
       "group": "toplevel",
@@ -200,29 +195,27 @@
     {
       "attr_path": "nodejs_24",
       "broken": false,
-      "derivation": "/nix/store/l9ksrfa960964gqf23yfr7a66a2n18c1-nodejs-24.14.0.drv",
+      "derivation": "/nix/store/aarkp2y0aj12skgji58mbf5va0dcf9bd-nodejs-24.14.1.drv",
       "description": "Event-driven I/O framework for the V8 JavaScript engine",
       "install_id": "nodejs",
       "license": "MIT",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=b12141ef619e0a9c1c84dc8c684040326f27cdcc",
-      "name": "nodejs-24.14.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=15f4ee454b1dce334612fa6843b3e05cf546efab",
+      "name": "nodejs-24.14.1",
       "pname": "nodejs_24",
-      "rev": "b12141ef619e0a9c1c84dc8c684040326f27cdcc",
-      "rev_count": 982522,
-      "rev_date": "2026-04-18T21:33:21Z",
-      "scrape_date": "2026-04-21T07:08:36.434877Z",
+      "rev": "15f4ee454b1dce334612fa6843b3e05cf546efab",
+      "rev_count": 990025,
+      "rev_date": "2026-04-30T19:45:37Z",
+      "scrape_date": "2026-05-03T09:16:20.086256Z",
       "stabilities": [
         "unstable"
       ],
       "unfree": false,
-      "version": "24.14.0",
+      "version": "24.14.1",
       "outputs_to_install": [
-        "out",
-        "out",
         "out"
       ],
       "outputs": {
-        "out": "/nix/store/70ypbaj273w2kk0nrs4vijizyqgbg48v-nodejs-24.14.0"
+        "out": "/nix/store/w9axwcpzxv1cd78d6v748az2j08k6vfw-nodejs-24.14.1"
       },
       "system": "x86_64-darwin",
       "group": "toplevel",
@@ -231,29 +224,27 @@
     {
       "attr_path": "nodejs_24",
       "broken": false,
-      "derivation": "/nix/store/15s1kk2n6vg180wg04wj2wgnl19f03v7-nodejs-24.14.0.drv",
+      "derivation": "/nix/store/8l6p07vmrcj7lsry0jz2ayp1rmpyjdai-nodejs-24.14.1.drv",
       "description": "Event-driven I/O framework for the V8 JavaScript engine",
       "install_id": "nodejs",
       "license": "MIT",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=b12141ef619e0a9c1c84dc8c684040326f27cdcc",
-      "name": "nodejs-24.14.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=15f4ee454b1dce334612fa6843b3e05cf546efab",
+      "name": "nodejs-24.14.1",
       "pname": "nodejs_24",
-      "rev": "b12141ef619e0a9c1c84dc8c684040326f27cdcc",
-      "rev_count": 982522,
-      "rev_date": "2026-04-18T21:33:21Z",
-      "scrape_date": "2026-04-21T07:45:21.166505Z",
+      "rev": "15f4ee454b1dce334612fa6843b3e05cf546efab",
+      "rev_count": 990025,
+      "rev_date": "2026-04-30T19:45:37Z",
+      "scrape_date": "2026-05-03T09:52:51.744258Z",
       "stabilities": [
         "unstable"
       ],
       "unfree": false,
-      "version": "24.14.0",
+      "version": "24.14.1",
       "outputs_to_install": [
-        "out",
-        "out",
         "out"
       ],
       "outputs": {
-        "out": "/nix/store/v2210ar51jddnrcx46m53ivv9palc26m-nodejs-24.14.0"
+        "out": "/nix/store/785jidgnryzj566s25s3rb262d4g5znb-nodejs-24.14.1"
       },
       "system": "x86_64-linux",
       "group": "toplevel",
