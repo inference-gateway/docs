@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.12](https://github.com/inference-gateway/docs/compare/0.6.11...0.6.12) (2026-05-04)
+
+### 👷 CI
+
+* Bump actions to latest ([be3f6f4](https://github.com/inference-gateway/docs/commit/be3f6f4d263e64cd382a80394a10dedefdf2db20))
+
 ## [0.6.11](https://github.com/inference-gateway/docs/compare/0.6.10...0.6.11) (2026-05-04)
 
 ### 📚 Documentation
