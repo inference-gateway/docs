@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.13](https://github.com/inference-gateway/docs/compare/0.6.12...0.6.13) (2026-05-06)
+
+### 📚 Documentation
+
+* **api-reference:** Document all 30 missing OpenAPI schema names ([#24](https://github.com/inference-gateway/docs/issues/24)) ([6b751f1](https://github.com/inference-gateway/docs/commit/6b751f11ce6f4e5d8452340b01eae89a90d5e664)), closes [#23](https://github.com/inference-gateway/docs/issues/23)
+
 ## [0.6.12](https://github.com/inference-gateway/docs/compare/0.6.11...0.6.12) (2026-05-04)
 
 ### 👷 CI
