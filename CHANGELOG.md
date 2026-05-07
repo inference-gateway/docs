@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.15](https://github.com/inference-gateway/docs/compare/0.6.14...0.6.15) (2026-05-07)
+
+### ♻️ Improvements
+
+* Delete .github/copilot-instructions.md ([460f1f8](https://github.com/inference-gateway/docs/commit/460f1f8b0a5c9268dbeb0492836c8d12d2471511))
+* Delete .github/ISSUE_TEMPLATE directory ([ba504c5](https://github.com/inference-gateway/docs/commit/ba504c5538820139f870df63044e98287f0e94ff))
+
+### 🐛 Bug Fixes
+
+* **seo:** Correct robots.txt sitemap URL and dedupe homepage entry ([3ce82c0](https://github.com/inference-gateway/docs/commit/3ce82c009a443647dc2f9a4a2f92c340c1a4b4c0))
+
+### 🔧 Miscellaneous
+
+* Remove refactor request issue template ([8bec111](https://github.com/inference-gateway/docs/commit/8bec111e28b27f5f476e67515871fd70d38b6eae))
+
 ## [0.6.14](https://github.com/inference-gateway/docs/compare/0.6.13...0.6.14) (2026-05-07)
 
 ### 👷 CI
