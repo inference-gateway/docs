@@ -25,18 +25,16 @@ async function generateSitemap() {
   const urlEntries: Array<{
     url: string;
     lastmod: string;
-    changefreq: string;
-    priority: string;
   }> = [];
 
+  const homepageUrl = `${baseUrl}/`;
+
   urlEntries.push({
-    url: baseUrl,
+    url: homepageUrl,
     lastmod: rootLastMod,
-    changefreq: 'weekly',
-    priority: '1.0',
   });
 
-  const addedUrls = new Set([baseUrl]);
+  const addedUrls = new Set([homepageUrl]);
 
   for (const page of pages) {
     if (page.includes('not-found') || page.includes('error') || page.includes('/api/')) {
@@ -69,21 +67,9 @@ async function generateSitemap() {
       lastMod = fs.statSync(page).mtime.toISOString();
     }
 
-    const segments = route.split('/').filter(Boolean).length;
-    const priority = Math.max(0.1, 1.0 - segments * 0.2).toFixed(1);
-
-    let changeFreq = 'monthly';
-    if (route === '/') {
-      changeFreq = 'weekly';
-    } else if (route.includes('/blog/')) {
-      changeFreq = 'weekly';
-    }
-
     urlEntries.push({
       url: fullUrl,
       lastmod: lastMod,
-      changefreq: changeFreq,
-      priority: priority,
     });
   }
 
@@ -97,8 +83,6 @@ async function generateSitemap() {
   <url>
     <loc>${entry.url}</loc>
     <lastmod>${entry.lastmod}</lastmod>
-    <changefreq>${entry.changefreq}</changefreq>
-    <priority>${entry.priority}</priority>
   </url>`;
   }
 
