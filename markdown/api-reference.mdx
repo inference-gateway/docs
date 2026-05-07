@@ -196,12 +196,13 @@ The `MessageRole` type constrains the `role` field of a `Message` to one of:
 // Example multimodal MessageContent using ContentPart array
 [
   {
-    "type": "text",          // TextContentPart
+    "type": "text", // TextContentPart
     "text": "Describe this image"
   },
   {
-    "type": "image_url",     // ImageContentPart
-    "image_url": {           // ImageURL object
+    "type": "image_url", // ImageContentPart
+    "image_url": {
+      // ImageURL object
       "url": "https://example.com/image.png"
     }
   }
@@ -584,21 +585,21 @@ This section documents each request and response schema defined in the
 Returned by `GET /v1/models` and `GET /v1/models?provider={provider}`. Contains a `data` array of
 `Model` objects and an optional `provider` field when filtering by provider.
 
-| Field      | Type       | Description                              |
-| ---------- | ---------- | ---------------------------------------- |
-| `object`   | `string`   | Always `"list"`                          |
-| `data`     | `Model[]`  | Array of model descriptors               |
-| `provider` | `Provider` | Provider identifier (when filtered)      |
+| Field      | Type       | Description                         |
+| ---------- | ---------- | ----------------------------------- |
+| `object`   | `string`   | Always `"list"`                     |
+| `data`     | `Model[]`  | Array of model descriptors          |
+| `provider` | `Provider` | Provider identifier (when filtered) |
 
 #### `ProviderAuthType`
 
 Enumerates the authentication method that each provider uses:
 
-| Value           | Description                                   |
-| --------------- | --------------------------------------------- |
-| `"bearer"`      | Standard `Authorization: Bearer <token>` header |
-| `"x-header"`    | Provider-specific header (e.g., `x-api-key`)  |
-| `"none"`        | No authentication required (e.g., Ollama)     |
+| Value        | Description                                     |
+| ------------ | ----------------------------------------------- |
+| `"bearer"`   | Standard `Authorization: Bearer <token>` header |
+| `"x-header"` | Provider-specific header (e.g., `x-api-key`)    |
+| `"none"`     | No authentication required (e.g., Ollama)       |
 
 #### `ProviderSpecificResponse`
 
@@ -611,22 +612,22 @@ JSON structure depends on the upstream provider and is passed through without mo
 
 The body sent to `POST /v1/chat/completions`.
 
-| Field            | Type                       | Required | Description                                     |
-| ---------------- | -------------------------- | -------- | ----------------------------------------------- |
-| `model`          | `string`                   | ✅       | Model identifier (e.g., `"openai/gpt-4"`)       |
-| `messages`       | `Message[]`                | ✅       | Conversation history                            |
-| `stream`         | `boolean`                  |          | Enable SSE streaming (default: `false`)         |
-| `stream_options` | `ChatCompletionStreamOptions` |       | Streaming behaviour options                     |
-| `max_tokens`     | `integer`                  |          | Maximum tokens to generate                      |
-| `tools`          | `ChatCompletionTool[]`     |          | Tools available to the model                    |
-| `temperature`    | `number`                   |          | Sampling temperature (0–2)                      |
+| Field            | Type                          | Required | Description                               |
+| ---------------- | ----------------------------- | -------- | ----------------------------------------- |
+| `model`          | `string`                      | ✅       | Model identifier (e.g., `"openai/gpt-4"`) |
+| `messages`       | `Message[]`                   | ✅       | Conversation history                      |
+| `stream`         | `boolean`                     |          | Enable SSE streaming (default: `false`)   |
+| `stream_options` | `ChatCompletionStreamOptions` |          | Streaming behaviour options               |
+| `max_tokens`     | `integer`                     |          | Maximum tokens to generate                |
+| `tools`          | `ChatCompletionTool[]`        |          | Tools available to the model              |
+| `temperature`    | `number`                      |          | Sampling temperature (0–2)                |
 
 #### `ChatCompletionStreamOptions`
 
 Controls streaming behaviour when `stream: true`.
 
-| Field           | Type      | Description                                               |
-| --------------- | --------- | --------------------------------------------------------- |
+| Field           | Type      | Description                                                      |
+| --------------- | --------- | ---------------------------------------------------------------- |
 | `include_usage` | `boolean` | Include a final `CompletionUsage` chunk at the end of the stream |
 
 ### Message Content
@@ -649,24 +650,24 @@ A discriminated union — either a `TextContentPart` or an `ImageContentPart`, d
 
 #### `TextContentPart`
 
-| Field  | Type     | Description          |
-| ------ | -------- | -------------------- |
-| `type` | `string` | Always `"text"`      |
-| `text` | `string` | The text content     |
+| Field  | Type     | Description      |
+| ------ | -------- | ---------------- |
+| `type` | `string` | Always `"text"`  |
+| `text` | `string` | The text content |
 
 #### `ImageContentPart`
 
-| Field       | Type       | Description              |
-| ----------- | ---------- | ------------------------ |
-| `type`      | `string`   | Always `"image_url"`     |
-| `image_url` | `ImageURL` | Image URL descriptor     |
+| Field       | Type       | Description          |
+| ----------- | ---------- | -------------------- |
+| `type`      | `string`   | Always `"image_url"` |
+| `image_url` | `ImageURL` | Image URL descriptor |
 
 #### `ImageURL`
 
-| Field   | Type     | Description                                                   |
-| ------- | -------- | ------------------------------------------------------------- |
-| `url`   | `string` | HTTPS URL or `data:` URI (base64) of the image               |
-| `detail`| `string` | Optional detail level: `"auto"`, `"low"`, or `"high"`        |
+| Field    | Type     | Description                                           |
+| -------- | -------- | ----------------------------------------------------- |
+| `url`    | `string` | HTTPS URL or `data:` URI (base64) of the image        |
+| `detail` | `string` | Optional detail level: `"auto"`, `"low"`, or `"high"` |
 
 ### Chat Completion Response
 
@@ -674,57 +675,57 @@ A discriminated union — either a `TextContentPart` or an `ImageContentPart`, d
 
 Returned by `POST /v1/chat/completions` when `stream: false`.
 
-| Field     | Type                     | Description                           |
-| --------- | ------------------------ | ------------------------------------- |
-| `id`      | `string`                 | Unique completion identifier          |
-| `object`  | `string`                 | Always `"chat.completion"`            |
-| `created` | `integer`                | Unix timestamp of creation            |
-| `model`   | `string`                 | Model used                            |
-| `choices` | `ChatCompletionChoice[]` | One or more completion choices        |
-| `usage`   | `CompletionUsage`        | Token usage statistics                |
+| Field     | Type                     | Description                    |
+| --------- | ------------------------ | ------------------------------ |
+| `id`      | `string`                 | Unique completion identifier   |
+| `object`  | `string`                 | Always `"chat.completion"`     |
+| `created` | `integer`                | Unix timestamp of creation     |
+| `model`   | `string`                 | Model used                     |
+| `choices` | `ChatCompletionChoice[]` | One or more completion choices |
+| `usage`   | `CompletionUsage`        | Token usage statistics         |
 
 #### `ChatCompletionChoice`
 
 One element of the `choices` array in a `CreateChatCompletionResponse`.
 
-| Field           | Type                        | Description                                     |
-| --------------- | --------------------------- | ----------------------------------------------- |
-| `index`         | `integer`                   | Choice index                                    |
-| `message`       | `Message`                   | The generated message                           |
-| `finish_reason` | `FinishReason`              | Why the model stopped generating               |
-| `logprobs`      | `ChatCompletionTokenLogprob[]` | Log probabilities (when requested)           |
+| Field           | Type                           | Description                        |
+| --------------- | ------------------------------ | ---------------------------------- |
+| `index`         | `integer`                      | Choice index                       |
+| `message`       | `Message`                      | The generated message              |
+| `finish_reason` | `FinishReason`                 | Why the model stopped generating   |
+| `logprobs`      | `ChatCompletionTokenLogprob[]` | Log probabilities (when requested) |
 
 #### `FinishReason`
 
 Why the model stopped generating tokens. One of:
 
-| Value              | Description                                  |
-| ------------------ | -------------------------------------------- |
-| `"stop"`           | Natural end of output or stop sequence hit   |
-| `"length"`         | `max_tokens` limit reached                   |
-| `"tool_calls"`     | Model issued one or more tool calls          |
-| `"content_filter"` | Output was filtered                          |
+| Value              | Description                                |
+| ------------------ | ------------------------------------------ |
+| `"stop"`           | Natural end of output or stop sequence hit |
+| `"length"`         | `max_tokens` limit reached                 |
+| `"tool_calls"`     | Model issued one or more tool calls        |
+| `"content_filter"` | Output was filtered                        |
 
 #### `CompletionUsage`
 
 Token usage statistics returned in both streaming and non-streaming responses.
 
-| Field               | Type      | Description                          |
-| ------------------- | --------- | ------------------------------------ |
-| `prompt_tokens`     | `integer` | Tokens in the input prompt           |
-| `completion_tokens` | `integer` | Tokens in the generated output       |
-| `total_tokens`      | `integer` | Sum of prompt and completion tokens  |
+| Field               | Type      | Description                         |
+| ------------------- | --------- | ----------------------------------- |
+| `prompt_tokens`     | `integer` | Tokens in the input prompt          |
+| `completion_tokens` | `integer` | Tokens in the generated output      |
+| `total_tokens`      | `integer` | Sum of prompt and completion tokens |
 
 #### `ChatCompletionTokenLogprob`
 
 Per-token log-probability information, present when `logprobs: true` is requested.
 
-| Field      | Type      | Description                              |
-| ---------- | --------- | ---------------------------------------- |
-| `token`    | `string`  | The token string                         |
-| `logprob`  | `number`  | Log probability of the token             |
-| `bytes`    | `integer[]` | UTF-8 bytes of the token              |
-| `top_logprobs` | `ChatCompletionTokenLogprob[]` | Top alternative tokens   |
+| Field          | Type                           | Description                  |
+| -------------- | ------------------------------ | ---------------------------- |
+| `token`        | `string`                       | The token string             |
+| `logprob`      | `number`                       | Log probability of the token |
+| `bytes`        | `integer[]`                    | UTF-8 bytes of the token     |
+| `top_logprobs` | `ChatCompletionTokenLogprob[]` | Top alternative tokens       |
 
 ### Streaming Response Schemas
 
@@ -733,56 +734,56 @@ Per-token log-probability information, present when `logprobs: true` is requeste
 Returned by `POST /v1/chat/completions` when `stream: true`. Each SSE event carries one of these
 objects in its `data` field.
 
-| Field     | Type                          | Description                                    |
-| --------- | ----------------------------- | ---------------------------------------------- |
-| `id`      | `string`                      | Unique completion identifier (same across chunks) |
-| `object`  | `string`                      | Always `"chat.completion.chunk"`               |
-| `created` | `integer`                     | Unix timestamp                                 |
-| `model`   | `string`                      | Model used                                     |
-| `choices` | `ChatCompletionStreamChoice[]`| Streaming choices (empty in the usage chunk)   |
-| `usage`   | `CompletionUsage`             | Present only in the final usage chunk          |
+| Field     | Type                           | Description                                       |
+| --------- | ------------------------------ | ------------------------------------------------- |
+| `id`      | `string`                       | Unique completion identifier (same across chunks) |
+| `object`  | `string`                       | Always `"chat.completion.chunk"`                  |
+| `created` | `integer`                      | Unix timestamp                                    |
+| `model`   | `string`                       | Model used                                        |
+| `choices` | `ChatCompletionStreamChoice[]` | Streaming choices (empty in the usage chunk)      |
+| `usage`   | `CompletionUsage`              | Present only in the final usage chunk             |
 
 #### `SSEvent`
 
 A Server-Sent Event as defined by the W3C SSE specification. Each event sent over the
 `text/event-stream` connection has:
 
-| Field  | Type     | Description                                         |
-| ------ | -------- | --------------------------------------------------- |
-| `data` | `string` | JSON-encoded `CreateChatCompletionStreamResponse` or `[DONE]` |
-| `event`| `string` | Optional event type (omitted in most chunks)        |
-| `id`   | `string` | Optional event identifier                           |
+| Field   | Type     | Description                                                   |
+| ------- | -------- | ------------------------------------------------------------- |
+| `data`  | `string` | JSON-encoded `CreateChatCompletionStreamResponse` or `[DONE]` |
+| `event` | `string` | Optional event type (omitted in most chunks)                  |
+| `id`    | `string` | Optional event identifier                                     |
 
 #### `ChatCompletionStreamChoice`
 
 One element of the `choices` array in a `CreateChatCompletionStreamResponse`.
 
-| Field           | Type                               | Description                         |
-| --------------- | ---------------------------------- | ----------------------------------- |
-| `index`         | `integer`                          | Choice index                        |
-| `delta`         | `ChatCompletionStreamResponseDelta`| Incremental content for this chunk  |
-| `finish_reason` | `FinishReason` \| `null`           | Set on the final chunk for a choice |
+| Field           | Type                                | Description                         |
+| --------------- | ----------------------------------- | ----------------------------------- |
+| `index`         | `integer`                           | Choice index                        |
+| `delta`         | `ChatCompletionStreamResponseDelta` | Incremental content for this chunk  |
+| `finish_reason` | `FinishReason` \| `null`            | Set on the final chunk for a choice |
 
 #### `ChatCompletionStreamResponseDelta`
 
 The incremental content carried by each `ChatCompletionStreamChoice`.
 
-| Field        | Type                                    | Description                                      |
-| ------------ | --------------------------------------- | ------------------------------------------------ |
-| `role`       | `MessageRole`                           | Sent once in the first chunk (`"assistant"`)     |
-| `content`    | `string`                                | Partial text content                             |
-| `tool_calls` | `ChatCompletionMessageToolCallChunk[]`  | Partial tool-call data (when the model calls tools) |
+| Field        | Type                                   | Description                                         |
+| ------------ | -------------------------------------- | --------------------------------------------------- |
+| `role`       | `MessageRole`                          | Sent once in the first chunk (`"assistant"`)        |
+| `content`    | `string`                               | Partial text content                                |
+| `tool_calls` | `ChatCompletionMessageToolCallChunk[]` | Partial tool-call data (when the model calls tools) |
 
 #### `ChatCompletionMessageToolCallChunk`
 
 A partial `ChatCompletionMessageToolCall` that arrives over multiple stream chunks.
 
-| Field      | Type     | Description                                        |
-| ---------- | -------- | -------------------------------------------------- |
-| `index`    | `integer`| Tool-call index within the response               |
-| `id`       | `string` | Tool-call ID (present in the first chunk)          |
-| `type`     | `string` | Always `"function"`                               |
-| `function` | `object` | Partial `{ name, arguments }` accumulated across chunks |
+| Field      | Type      | Description                                             |
+| ---------- | --------- | ------------------------------------------------------- |
+| `index`    | `integer` | Tool-call index within the response                     |
+| `id`       | `string`  | Tool-call ID (present in the first chunk)               |
+| `type`     | `string`  | Always `"function"`                                     |
+| `function` | `object`  | Partial `{ name, arguments }` accumulated across chunks |
 
 ### Tool-Calling Schemas
 
@@ -790,10 +791,10 @@ A partial `ChatCompletionMessageToolCall` that arrives over multiple stream chun
 
 One element of the `tools` array in a `CreateChatCompletionRequest`.
 
-| Field      | Type                    | Description                          |
-| ---------- | ----------------------- | ------------------------------------ |
-| `type`     | `ChatCompletionToolType`| The tool category (always `"function"`) |
-| `function` | `FunctionObject`        | The function definition              |
+| Field      | Type                     | Description                             |
+| ---------- | ------------------------ | --------------------------------------- |
+| `type`     | `ChatCompletionToolType` | The tool category (always `"function"`) |
+| `function` | `FunctionObject`         | The function definition                 |
 
 #### `ChatCompletionToolType`
 
@@ -803,11 +804,11 @@ An enum for the `type` field of a `ChatCompletionTool`. Currently only `"functio
 
 The function definition inside a `ChatCompletionTool`.
 
-| Field         | Type                | Required | Description                             |
-| ------------- | ------------------- | -------- | --------------------------------------- |
-| `name`        | `string`            | ✅       | Function name (snake_case recommended)  |
-| `description` | `string`            |          | What the function does                  |
-| `parameters`  | `FunctionParameters`|          | JSON Schema describing the parameters   |
+| Field         | Type                 | Required | Description                            |
+| ------------- | -------------------- | -------- | -------------------------------------- |
+| `name`        | `string`             | ✅       | Function name (snake_case recommended) |
+| `description` | `string`             |          | What the function does                 |
+| `parameters`  | `FunctionParameters` |          | JSON Schema describing the parameters  |
 
 #### `FunctionParameters`
 
@@ -827,30 +828,30 @@ A JSON Schema object that describes the parameters accepted by a `FunctionObject
 
 Represents a tool call made by the model in a non-streaming response.
 
-| Field      | Type                                    | Description                     |
-| ---------- | --------------------------------------- | ------------------------------- |
-| `id`       | `string`                                | Unique tool-call identifier     |
-| `type`     | `string`                                | Always `"function"`             |
-| `function` | `ChatCompletionMessageToolCallFunction` | Function called and its args    |
+| Field      | Type                                    | Description                  |
+| ---------- | --------------------------------------- | ---------------------------- |
+| `id`       | `string`                                | Unique tool-call identifier  |
+| `type`     | `string`                                | Always `"function"`          |
+| `function` | `ChatCompletionMessageToolCallFunction` | Function called and its args |
 
 #### `ChatCompletionMessageToolCallFunction`
 
 The function invocation details inside a `ChatCompletionMessageToolCall`.
 
-| Field       | Type     | Description                                              |
-| ----------- | -------- | -------------------------------------------------------- |
-| `name`      | `string` | Name of the function called                              |
-| `arguments` | `string` | JSON-encoded string of arguments passed to the function  |
+| Field       | Type     | Description                                             |
+| ----------- | -------- | ------------------------------------------------------- |
+| `name`      | `string` | Name of the function called                             |
+| `arguments` | `string` | JSON-encoded string of arguments passed to the function |
 
 #### `ToolCallExtraContent`
 
 Additional metadata that may be attached to a tool call response (e.g., extended thinking traces
 from models that support chain-of-thought output alongside tool calls).
 
-| Field    | Type     | Description                              |
-| -------- | -------- | ---------------------------------------- |
-| `type`   | `string` | Content type identifier                  |
-| `content`| `string` | The extra content (e.g., thinking trace) |
+| Field     | Type     | Description                              |
+| --------- | -------- | ---------------------------------------- |
+| `type`    | `string` | Content type identifier                  |
+| `content` | `string` | The extra content (e.g., thinking trace) |
 
 ### MCP Tool Schemas
 
@@ -867,12 +868,12 @@ MCP servers.
 
 Describes a single tool exposed by an MCP server.
 
-| Field         | Type     | Description                                              |
-| ------------- | -------- | -------------------------------------------------------- |
-| `name`        | `string` | Unique tool name                                         |
-| `description` | `string` | Human-readable description of what the tool does        |
-| `server`      | `string` | URL of the MCP server that provides this tool            |
-| `inputSchema` | `object` | JSON Schema describing the tool's input parameters       |
+| Field         | Type     | Description                                        |
+| ------------- | -------- | -------------------------------------------------- |
+| `name`        | `string` | Unique tool name                                   |
+| `description` | `string` | Human-readable description of what the tool does   |
+| `server`      | `string` | URL of the MCP server that provides this tool      |
+| `inputSchema` | `object` | JSON Schema describing the tool's input parameters |
 
 ## OpenAPI Specification
 
