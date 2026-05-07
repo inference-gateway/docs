@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.14](https://github.com/inference-gateway/docs/compare/0.6.13...0.6.14) (2026-05-07)
+
+### 👷 CI
+
+* Pin claude-code-action to v1.0.114 and update system prompt for clarity ([8c24c3e](https://github.com/inference-gateway/docs/commit/8c24c3eaac0c33cfba5721b28b42a4fb72af0694))
+
 ## [0.6.13](https://github.com/inference-gateway/docs/compare/0.6.12...0.6.13) (2026-05-06)
 
 ### 📚 Documentation
