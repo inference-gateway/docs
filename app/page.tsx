@@ -1,11 +1,21 @@
-'use client';
+import type { Metadata } from 'next';
+import { pageMetadata } from '@/lib/metadata';
+import HomeContent from './HomeContent';
 
-import Main from '@/markdown/main.mdx';
+const home = pageMetadata({
+  title: 'Inference Gateway Documentation',
+  description:
+    'Open-source proxy for multiple language model APIs. Unify access to OpenAI, Anthropic, Google, Groq, Ollama, and more — with MCP, A2A, and observability built in.',
+  path: '/',
+});
+
+export const metadata: Metadata = {
+  ...home,
+  title: {
+    absolute: 'Inference Gateway Documentation',
+  },
+};
 
 export default function Home() {
-  return (
-    <div className="prose max-w-none">
-      <Main />
-    </div>
-  );
+  return <HomeContent />;
 }
