@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.16](https://github.com/inference-gateway/docs/compare/0.6.15...0.6.16) (2026-05-11)
+
+### ♻️ Improvements
+
+* **seo:** Centralize page metadata via shared helper ([#25](https://github.com/inference-gateway/docs/issues/25)) ([45e99f7](https://github.com/inference-gateway/docs/commit/45e99f704ba49d5acebffbfb180608c83c07d71a))
+
+### 👷 CI
+
+* Enable display report for Claude Code action ([94fad33](https://github.com/inference-gateway/docs/commit/94fad332c94179da6978eeb87d2b96046e545151))
+
 ## [0.6.15](https://github.com/inference-gateway/docs/compare/0.6.14...0.6.15) (2026-05-07)
 
 ### ♻️ Improvements
