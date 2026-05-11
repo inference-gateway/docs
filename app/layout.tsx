@@ -11,8 +11,40 @@ import TableOfContents from '@/components/TableOfContents';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Inference Gateway Documentation',
+  metadataBase: new URL('https://docs.inference-gateway.com'),
+  title: {
+    default: 'Inference Gateway Documentation',
+    template: '%s | Inference Gateway',
+  },
   description: 'Documentation for the Inference Gateway, a proxy for multiple language model APIs',
+  alternates: {
+    canonical: '/',
+  },
+  openGraph: {
+    type: 'website',
+    siteName: 'Inference Gateway',
+    locale: 'en_US',
+    url: '/',
+    title: 'Inference Gateway Documentation',
+    description:
+      'Documentation for the Inference Gateway, a proxy for multiple language model APIs',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Inference Gateway Documentation',
+    description:
+      'Documentation for the Inference Gateway, a proxy for multiple language model APIs',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
