@@ -1,7 +1,7 @@
 import createMDX from '@next/mdx';
-import type { NextConfig } from 'next';
 
-const nextConfig: NextConfig = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   output: 'export',
   pageExtensions: ['ts', 'tsx', 'md', 'mdx'],
   images: {
