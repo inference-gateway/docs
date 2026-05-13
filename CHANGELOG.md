@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.17](https://github.com/inference-gateway/docs/compare/0.6.16...0.6.17) (2026-05-13)
+
+### 🐛 Bug Fixes
+
+* Latest nextjs dropped support for config in typescript ([c909305](https://github.com/inference-gateway/docs/commit/c909305bc9ef6e1090df29358c4abb08b6b8bd62))
+
+### 🔧 Miscellaneous
+
+* Add codeowners ([72d886e](https://github.com/inference-gateway/docs/commit/72d886e162538b86946f18e7c9b95c9636a50645))
+* Add dependabot for general maintenance ([cb1ee87](https://github.com/inference-gateway/docs/commit/cb1ee877f56de4db4cc69aa59f8243d4f933803c))
+* **deps-dev:** Bump @tailwindcss/postcss from 4.2.4 to 4.3.0 ([#38](https://github.com/inference-gateway/docs/issues/38)) ([4d3b933](https://github.com/inference-gateway/docs/commit/4d3b933371d8af2fde05a57a0f2ad0a5f3390b25))
+* **deps-dev:** Bump @types/node from 24.12.2 to 25.7.0 ([#26](https://github.com/inference-gateway/docs/issues/26)) ([43fd7bd](https://github.com/inference-gateway/docs/commit/43fd7bd028c22f7ffa23f22cc115f646bf57f79c))
+* **deps-dev:** Bump baseline-browser-mapping from 2.10.27 to 2.10.29 ([#30](https://github.com/inference-gateway/docs/issues/30)) ([7a00f4f](https://github.com/inference-gateway/docs/commit/7a00f4f18d93c5028ae4e655ba99ce447b7b1f63))
+* **deps-dev:** Bump eslint from 9.39.4 to 10.3.0 ([#28](https://github.com/inference-gateway/docs/issues/28)) ([218a6f3](https://github.com/inference-gateway/docs/commit/218a6f36ea538c5f69d673e5569c0fe22d912f54))
+* **deps-dev:** Bump eslint-config-next from 16.2.4 to 16.2.6 ([#31](https://github.com/inference-gateway/docs/issues/31)) ([e255cdf](https://github.com/inference-gateway/docs/commit/e255cdf3b89bd3fa1166b88bf434591389386449))
+* **deps-dev:** Bump tailwindcss from 4.2.4 to 4.3.0 ([#39](https://github.com/inference-gateway/docs/issues/39)) ([b144d5b](https://github.com/inference-gateway/docs/commit/b144d5b7370c164e04d686ba9fa0888ea29f12c4))
+* **deps:** Bump @next/mdx from 16.2.4 to 16.2.6 ([#33](https://github.com/inference-gateway/docs/issues/33)) ([9530f3e](https://github.com/inference-gateway/docs/commit/9530f3e3a16efacb30bb8eb1a5800332ddaf2316))
+* **deps:** Bump @next/mdx from 16.2.4 to 16.2.6 ([#40](https://github.com/inference-gateway/docs/issues/40)) ([d270f46](https://github.com/inference-gateway/docs/commit/d270f4693c7e7c656d055080ed110f7781d55470))
+* **deps:** Bump actions/create-github-app-token from 3.1.1 to 3.2.0 ([#27](https://github.com/inference-gateway/docs/issues/27)) ([e61160f](https://github.com/inference-gateway/docs/commit/e61160f662c66bd56d7b989ef98f595be8a99560))
+* **deps:** Bump anthropics/claude-code-action from 1.0.114 to 1.0.121 ([#29](https://github.com/inference-gateway/docs/issues/29)) ([862d1f1](https://github.com/inference-gateway/docs/commit/862d1f1111615fa0d49d7ea6ef41977178b52b88))
+* **deps:** Bump mermaid from 11.14.0 to 11.15.0 ([#35](https://github.com/inference-gateway/docs/issues/35)) ([f906c8a](https://github.com/inference-gateway/docs/commit/f906c8a0cbd39d7fa4c204341866fa5151ad365e))
+* **deps:** Bump next from 16.2.4 to 16.2.6 ([#36](https://github.com/inference-gateway/docs/issues/36)) ([7794b4c](https://github.com/inference-gateway/docs/commit/7794b4cddc94899f29c9db4a9c5d3cc84494a8dd))
+* **deps:** Bump react from 19.2.5 to 19.2.6 ([#37](https://github.com/inference-gateway/docs/issues/37)) ([6a1b2b9](https://github.com/inference-gateway/docs/commit/6a1b2b9a21765a35d77ed6d8ceb9d5b140384ce7))
+* **deps:** Bump react-dom from 19.2.5 to 19.2.6 ([#34](https://github.com/inference-gateway/docs/issues/34)) ([b93d273](https://github.com/inference-gateway/docs/commit/b93d27378a39d824e2e7a81eac3ed4f7175f9d7c))
+* **deps:** Bump tailwind-merge from 3.5.0 to 3.6.0 ([#32](https://github.com/inference-gateway/docs/issues/32)) ([5e79249](https://github.com/inference-gateway/docs/commit/5e7924963f54c2f345d8715965e1c80a89d75cea))
+* Run npm install ([a4803cd](https://github.com/inference-gateway/docs/commit/a4803cd2249ea9c2c9265880934235d4960a2126))
+
 ## [0.6.16](https://github.com/inference-gateway/docs/compare/0.6.15...0.6.16) (2026-05-11)
 
 ### ♻️ Improvements
