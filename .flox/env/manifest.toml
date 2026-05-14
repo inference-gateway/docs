@@ -5,6 +5,7 @@ nodejs.pkg-path = "nodejs_24"
 nodejs.version = "24.14.1"
 claude-code.pkg-path = "claude-code"
 claude-code.version = "2.1.121"
+infer.flake = "github:inference-gateway/cli/v0.109.6"
 
 [hook]
 on-activate = """
