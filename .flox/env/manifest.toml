@@ -4,8 +4,8 @@ schema-version = "1.11.0"
 nodejs.pkg-path = "nodejs_24"
 nodejs.version = "24.14.1"
 claude-code.pkg-path = "claude-code"
-claude-code.version = "2.1.121"
-infer.flake = "github:inference-gateway/cli/v0.109.6"
+claude-code.version = "2.1.141"
+infer.flake = "github:inference-gateway/cli/v0.109.8"
 
 [hook]
 on-activate = """
