@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.18](https://github.com/inference-gateway/docs/compare/0.6.17...0.6.18) (2026-05-20)
+
+### 👷 CI
+
+* **dependabot:** Add dependabot to help with dependecies upgrades ([79e255a](https://github.com/inference-gateway/docs/commit/79e255abd3a11bb474f702c812df18eb29e53939))
+* **deps:** Bump anthropics/claude-code-action ([#41](https://github.com/inference-gateway/docs/issues/41)) ([8895b7b](https://github.com/inference-gateway/docs/commit/8895b7bf2d436ff80a2fcd1bcf01b44af8088361))
+* **deps:** Bump anthropics/claude-code-action in the github-actions group ([#42](https://github.com/inference-gateway/docs/issues/42)) ([670a7a5](https://github.com/inference-gateway/docs/commit/670a7a5bdb504531071243f25d479eb185e0ab8e))
+* **deps:** Bump the npm group with 5 updates ([#43](https://github.com/inference-gateway/docs/issues/43)) ([9e9388f](https://github.com/inference-gateway/docs/commit/9e9388fcd489ad368435f3b058615011e562f4f8))
+
+### 🔧 Miscellaneous
+
+* **deps:** Update claude-code version to 2.1.141 and infer flake reference ([171101d](https://github.com/inference-gateway/docs/commit/171101d3eab4f55ea9d91923d1780e223b223b9f))
+* **dev-deps:** Add infer to flox manifest ([12b4d4c](https://github.com/inference-gateway/docs/commit/12b4d4cf44dc8e0dc927ab5f71bb230582c88346))
+* Remove conventional-changelog-cli from semantic release installation ([6e51a80](https://github.com/inference-gateway/docs/commit/6e51a80313efebfa349193c78ff00d099db9ab99))
+
 ## [0.6.17](https://github.com/inference-gateway/docs/compare/0.6.16...0.6.17) (2026-05-13)
 
 ### 🐛 Bug Fixes
