@@ -33,7 +33,7 @@ npm install
 npm run dev
 ```
 
-You can use the devcontainer for a consistent development environment. The devcontainer is configured with all the necessary tools and extensions for development.
+You can use flox for a consistent development environment. The flox environment is configured with all the necessary tools and extensions for development.
 
 ## Contributing
 
