@@ -509,6 +509,102 @@ skills:
 | `inject`      | string[] | No       | Services to inject (see [Services](#services)) |
 | `schema`      | object   | Yes      | JSON Schema for input parameters               |
 
+### Built-in Tools
+
+In addition to the custom skills you define, the ADL CLI ships a small set of **reserved built-in tool IDs** that the generator owns end-to-end. A reserved built-in is an entry under `spec.tools` that contains **only** an `id` field — the generator supplies the tool's name, description, JSON schema, and implementation. You configure its behaviour through `spec.config.tools.<id>`.
+
+All built-ins default to `enabled: false`; you opt in explicitly per tool.
+
+The reserved-ID set lives in [`internal/schema/builtin_config.go`](https://github.com/inference-gateway/adl-cli/blob/main/internal/schema/builtin_config.go) in the [adl-cli repo](https://github.com/inference-gateway/adl-cli).
+
+#### Reserved IDs
+
+| ID      | Purpose                            | Config struct        | Notes                                                                                                                                                                                                           |
+| ------- | ---------------------------------- | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `read`  | Read files (capped lines per call) | `ReadBuiltinConfig`  | **Required and enabled** when `spec.skills` is non-empty (validator-enforced) — this is how `SKILL.md` bodies are loaded on demand                                                                              |
+| `write` | Create or overwrite files          | `WriteBuiltinConfig` | Most destructive built-in; strictly opt-in                                                                                                                                                                      |
+| `edit`  | In-place string replace            | `EditBuiltinConfig`  | Preferred file modifier (safer than `write`)                                                                                                                                                                    |
+| `bash`  | Execute shell commands             | `BashBuiltinConfig`  | Command whitelist + timeout; runtime kill switch via `A2A_BASH_DISABLED=1`                                                                                                                                      |
+| `fetch` | HTTP GET / file download           | `FetchBuiltinConfig` | Domain whitelist (suffix match via `.example.com`), `max_bytes`, `timeout_seconds`, `allow_downloads` + scoped `download_dir`, `save_path` traversal/abs-path rejection; kill switch via `A2A_FETCH_DISABLED=1` |
+
+#### Declaring built-ins
+
+A reserved built-in is referenced under `spec.tools` by ID only — never with `name`, `description`, or `schema`:
+
+```yaml
+spec:
+  tools:
+    - id: read
+    - id: write
+    - id: edit
+    - id: bash
+    - id: fetch
+  config:
+    tools:
+      read:
+        enabled: true
+      write:
+        enabled: false
+      edit:
+        enabled: true
+      bash:
+        enabled: true
+        whitelist:
+          - 'ls'
+          - 'cat'
+          - 'go test ./...'
+        timeout_seconds: 30
+      fetch:
+        enabled: true
+        allowed_domains:
+          - 'pkg.go.dev'
+          - '.rust-lang.org'
+        max_bytes: 1048576
+        timeout_seconds: 15
+        allow_downloads: true
+        download_dir: './downloads'
+```
+
+#### Runtime env-var overrides
+
+Built-in tool settings can be overridden at runtime without regenerating code. The prefix depends on the target runtime:
+
+| Runtime | Prefix         | Example                                                          |
+| ------- | -------------- | ---------------------------------------------------------------- |
+| Go      | `TOOLS_<ID>_*` | `TOOLS_FETCH_MAX_BYTES=2097152`, `TOOLS_BASH_WHITELIST='ls,cat'` |
+| Rust    | `A2A_<ID>_*`   | `A2A_FETCH_TIMEOUT_SECONDS=20`, `A2A_BASH_TIMEOUT_SECONDS=60`    |
+
+**Kill switches** (disable a tool entirely at runtime, regardless of compile-time config):
+
+- `A2A_BASH_DISABLED=1`
+- `A2A_FETCH_DISABLED=1`
+
+**Precedence:** `env var` > `compile-time literal (from ADL)` > `built-in default (disabled)`.
+
+> **Note:** These values do **not** flow through `config/config.go`. They are baked as compile-time literals into the tool-registration block in `main.<ext>` and read inside `tools/<id>.<ext>`.
+
+#### The `read` ↔ `skills` coupling
+
+If `spec.skills` is non-empty, the ADL **must** declare `read` under `spec.tools` **and** set `spec.config.tools.read.enabled: true`. The validator rejects ADL files that violate this.
+
+At runtime, only each skill's frontmatter is auto-injected into the system prompt; the model reads the full `SKILL.md` body on demand via the `read` built-in. Disabling `read` would leave the agent unable to load its own skill instructions.
+
+#### `fetch` specifics
+
+| Field             | Type     | Description                                                                                                     |
+| ----------------- | -------- | --------------------------------------------------------------------------------------------------------------- |
+| `allowed_domains` | string[] | Exact host (e.g. `pkg.go.dev`) or suffix match prefixed with `.` (e.g. `.rust-lang.org` matches all subdomains) |
+| `max_bytes`       | integer  | Response body cap per request                                                                                   |
+| `timeout_seconds` | integer  | Per-request timeout                                                                                             |
+| `allow_downloads` | boolean  | Gates the `save_path` argument. When `false`, calls passing `save_path` are rejected                            |
+| `download_dir`    | string   | Required when `allow_downloads: true`. `save_path` is resolved **relative** to this directory                   |
+
+The `save_path` argument is sanitised by the generated tool: absolute paths and `..` traversal segments are rejected before any file is written.
+
+#### Working example
+
+A complete ADL that exercises all five built-ins is available at [`examples/go-agent-builtin-tools.yaml`](https://github.com/inference-gateway/adl-cli/blob/main/examples/go-agent-builtin-tools.yaml) in the adl-cli repo.
+
 ### Services
 
 Services provide dependency injection for skills. Define custom services with interfaces and factory functions.
