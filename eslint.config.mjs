@@ -8,9 +8,9 @@ const eslintConfig = defineConfig([
   ...nextTs,
   prettierConfig,
   {
-    // Disable overly strict rule that flags common legitimate patterns
-    // like setMounted(true) for hydration safety, setting state from DOM on mount,
-    // and resetting state on route changes
+    settings: {
+      react: { version: '19' },
+    },
     rules: {
       'react-hooks/set-state-in-effect': 'off',
       'react-hooks/purity': 'off',
