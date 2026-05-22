@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.19](https://github.com/inference-gateway/docs/compare/0.6.18...0.6.19) (2026-05-22)
+
+### ♻️ Improvements
+
+* Remove devcontainer configuration files ([8298212](https://github.com/inference-gateway/docs/commit/829821203a9e11904b08bbf7071f2bf18772930a))
+
+### 🐛 Bug Fixes
+
+* **eslint:** Pin react version to skip plugin auto-detection on ESLint 10 ([c5f5674](https://github.com/inference-gateway/docs/commit/c5f5674e1e0ae55569cc439129b3fb61fd80b5c6))
+
+### 👷 CI
+
+* Add basic CI workflow for lint, format, and build ([a1a38b1](https://github.com/inference-gateway/docs/commit/a1a38b15b902ea3f3132392b7ca48f483c3d0388))
+* **claude:** Add maintainer skill ([fe5bc60](https://github.com/inference-gateway/docs/commit/fe5bc60834b731022d9d6a637e3d03d860f830d1))
+* **claude:** Add missing deps ([d79f749](https://github.com/inference-gateway/docs/commit/d79f7493eb5a6e7be7f4eee68d74001e38d6e38b))
+* **claude:** Simplify conditions for triggering Claude Code actions ([3354d05](https://github.com/inference-gateway/docs/commit/3354d0534d2064f8be81def263700f2f72d9a23a))
+* **deps:** Update Claude Code Action to version 1.0.131 ([3570360](https://github.com/inference-gateway/docs/commit/3570360d6b4af664fba508b937a7008abd8f222f))
+* **deps:** Update claude-code-action to version 1.0.130 ([6772c5c](https://github.com/inference-gateway/docs/commit/6772c5c27795f1e07d3ab5290ed3e4b4a22e986f))
+
+### 📚 Documentation
+
+* **adl-cli:** Document reserved built-in tool IDs ([#45](https://github.com/inference-gateway/docs/issues/45)) ([4f1e33a](https://github.com/inference-gateway/docs/commit/4f1e33a6a80bf1ab5df0905235b5c9d90927ec3d)), closes [#44](https://github.com/inference-gateway/docs/issues/44)
+
+### 🔧 Miscellaneous
+
+* **deps:** Update claude-code version to 2.1.141 and infer.flake to v0.109.11 ([da3964a](https://github.com/inference-gateway/docs/commit/da3964a945f7104ddbe16a21489e4cf38e6e47c6))
+* Run npm audit fix ([11dbbf3](https://github.com/inference-gateway/docs/commit/11dbbf3bd1cadff866f2d792010d521ba2c9b50d))
+
 ## [0.6.18](https://github.com/inference-gateway/docs/compare/0.6.17...0.6.18) (2026-05-20)
 
 ### 👷 CI
