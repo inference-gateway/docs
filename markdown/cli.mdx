@@ -338,9 +338,9 @@ When tools are enabled, LLMs have access to a comprehensive suite across multipl
 | **Command Execution** | Bash, BashOutput, KillShell, ListShells                                                           | Whitelisted shell execution and background shell control        |
 | **Web**               | WebSearch, WebFetch, Github                                                                       | Internet research, content fetching, GitHub API                 |
 | **Workflow**          | TodoWrite, Schedule, RequestPlanApproval                                                          | Task tracking, cron jobs, plan-mode approval                    |
-| **A2A Integration**   | A2A_QueryAgent, A2A_SubmitTask, A2A_QueryTask                                                     | Delegate to specialized agents — see [A2A](/a2a)                |
-| **Computer Use**      | GetLatestScreenshot, MouseMove, MouseClick, MouseScroll, KeyboardType, GetFocusedApp, ActivateApp | GUI automation — see the Computer Use section above             |
-| **MCP**               | `MCP_<server>_<tool>`                                                                             | Dynamically registered tools from MCP servers — see [MCP](/mcp) |
+| **A2A Integration**   | A2A_QueryAgent, A2A_SubmitTask, A2A_QueryTask                                                     | Delegate to specialized agents - see [A2A](/a2a)                |
+| **Computer Use**      | GetLatestScreenshot, MouseMove, MouseClick, MouseScroll, KeyboardType, GetFocusedApp, ActivateApp | GUI automation - see the Computer Use section above             |
+| **MCP**               | `MCP_<server>_<tool>`                                                                             | Dynamically registered tools from MCP servers - see [MCP](/mcp) |
 
 ### File System Tools
 
@@ -364,23 +364,23 @@ Write content to a file on disk. Overwrites the existing file at the given path.
 
 Perform an exact string replacement in a single file.
 
-- **Parameters**: `file_path` (required), `old_string` (required — must match exactly and be unique unless `replace_all` is set), `new_string` (required — must differ from `old_string`), `replace_all` (default `false`)
+- **Parameters**: `file_path` (required), `old_string` (required - must match exactly and be unique unless `replace_all` is set), `new_string` (required - must differ from `old_string`), `replace_all` (default `false`)
 - **Approval**: required by default
 - **Notes**: the file must have been Read at least once in the conversation; indentation must be preserved exactly
 
 #### MultiEdit
 
-Apply a sequence of edits to a single file atomically — either all succeed or none are applied.
+Apply a sequence of edits to a single file atomically - either all succeed or none are applied.
 
 - **Parameters**: `file_path` (required), `edits` (required array; each item has `old_string`, `new_string`, optional `replace_all`)
 - **Approval**: required by default
-- **Notes**: edits are applied in order, each operating on the result of the previous one — plan them so earlier edits don't invalidate later matches
+- **Notes**: edits are applied in order, each operating on the result of the previous one - plan them so earlier edits don't invalidate later matches
 
 #### Delete
 
 Delete a file or directory. Wildcards are supported when enabled.
 
-- **Parameters**: `path` (required — supports patterns like `*.txt` or `temp/*`), `recursive` (default `false`), `force` (default `false`), `format` (`text` or `json`)
+- **Parameters**: `path` (required - supports patterns like `*.txt` or `temp/*`), `recursive` (default `false`), `force` (default `false`), `format` (`text` or `json`)
 - **Approval**: required by default
 - **Notes**: restricted to the current working directory for safety
 
@@ -407,7 +407,7 @@ Powerful regex search across files. Uses `ripgrep` when available, otherwise a b
 
 Execute a whitelisted bash command. Only commands matching the configured whitelist (exact commands or regex patterns) can run.
 
-- **Parameters**: `command` (required — must match the whitelist), `format` (`text` or `json`)
+- **Parameters**: `command` (required - must match the whitelist), `format` (`text` or `json`)
 - **Approval**: configurable via `tools.bash.require_approval`
 
 ```yaml
@@ -429,9 +429,9 @@ tools:
 
 Background-shell management. These tools are only registered when `tools.bash.background_shells.enabled: true`.
 
-- **BashOutput** — `bash_id` (required), `filter` (optional regex). Returns only new output since the last read.
-- **KillShell** — `shell_id` (required). Sends SIGTERM, then SIGKILL after 5 seconds if the shell doesn't exit.
-- **ListShells** — no parameters. Lists all running and recently completed background shells with their IDs, state, and elapsed time.
+- **BashOutput** - `bash_id` (required), `filter` (optional regex). Returns only new output since the last read.
+- **KillShell** - `shell_id` (required). Sends SIGTERM, then SIGKILL after 5 seconds if the shell doesn't exit.
+- **ListShells** - no parameters. Lists all running and recently completed background shells with their IDs, state, and elapsed time.
 
 ### Web Tools
 
@@ -455,7 +455,7 @@ tools:
 
 Fetch content from a whitelisted URL. Optionally save the response to disk.
 
-- **Parameters**: `url` (required), `format` (`text` or `json`), `download` (default `false` — when `true`, saves under `~/.infer/tmp`)
+- **Parameters**: `url` (required), `format` (`text` or `json`), `download` (default `false` - when `true`, saves under `~/.infer/tmp`)
 - **Notes**: only whitelisted domains are allowed; responses are cached (default 15-minute TTL)
 
 ```yaml
@@ -506,9 +506,9 @@ Create and update a structured task list for the current session. Use for comple
 
 Create, list, get, update, or delete cron jobs that fire through the same messaging channel that started the session (e.g. Telegram). Jobs are persisted as YAML under `~/.infer/schedules/` and executed by the `infer channels-manager` daemon (which hot-reloads via fsnotify).
 
-- **Parameters**: `operation` (required: `create` | `list` | `get` | `update` | `delete`), `job_id` (required for get/update/delete), `cron_expression` (5-field crontab or `@every <duration>`), `prompt`, `run_once` (default `false` — when `true`, the job is deleted after firing once), `name`, `description`, `model` (optional model override)
+- **Parameters**: `operation` (required: `create` | `list` | `get` | `update` | `delete`), `job_id` (required for get/update/delete), `cron_expression` (5-field crontab or `@every <duration>`), `prompt`, `run_once` (default `false` - when `true`, the job is deleted after firing once), `name`, `description`, `model` (optional model override)
 - **Approval**: required by default
-- **Notes**: each fire creates a brand-new agent session — no context is carried between runs; only usable from a channel-driven session
+- **Notes**: each fire creates a brand-new agent session - no context is carried between runs; only usable from a channel-driven session
 
 ```text
 "0 8 * * *"      every day at 08:00
@@ -521,7 +521,7 @@ Create, list, get, update, or delete cron jobs that fire through the same messag
 
 Submit a completed plan for user approval. Available only in Plan Mode.
 
-- **Parameters**: `plan` (required — the complete, detailed plan text)
+- **Parameters**: `plan` (required - the complete, detailed plan text)
 - **Behavior**: pauses execution until the user approves (switches to execution mode) or rejects (provides feedback)
 
 ### Security Features
@@ -1059,7 +1059,7 @@ Optional sibling directories (`references/`, `scripts/`, `assets/`) hold support
 **Frontmatter rules:**
 
 - `name` (required): ≤64 chars, lowercase letters/digits/hyphens only, must equal the directory name, must not contain `infer`, `claude`, `anthropic`, `gemini`, or `openai`
-- `description` (required): non-empty, ≤1024 chars — make it actionable; this is the routing signal
+- `description` (required): non-empty, ≤1024 chars - make it actionable; this is the routing signal
 - Unknown keys (e.g. Anthropic's `allowed-tools:`, Gemini's `disabled:`) are tolerated and ignored
 
 **Locations:**
@@ -1110,14 +1110,14 @@ infer skills uninstall pdf-helper --user
 **GitHub installer notes:**
 
 - URL must point at a directory: `https://github.com/<owner>/<repo>/tree/<ref>/<path>`. URLs at `/blob/` (files) or the repo root are rejected with a clear error.
-- Public repos only — private repos and `GITHUB_TOKEN` auth are not supported in this version.
+- Public repos only - private repos and `GITHUB_TOKEN` auth are not supported in this version.
 - Refs containing `/` (e.g. `feature/foo`) aren't supported; use a tag or single-segment branch.
 - GitHub's unauthenticated API rate limit is 60 req/hour per IP; each install is one tree call plus one raw download per file.
-- Frontmatter is re-validated post-download — a half-installed skill is never left on disk.
+- Frontmatter is re-validated post-download - a half-installed skill is never left on disk.
 
 **Security:**
 
-A skill instructs the model to run shell commands, read files, or call external APIs. Treat skills like any other piece of executable content — **only install from trusted sources**. The CLI's normal tool-approval system still gates each call, but a malicious skill could craft a plausible-looking Bash command. The `name` validator rejects vendor strings to make impersonating an official skill harder.
+A skill instructs the model to run shell commands, read files, or call external APIs. Treat skills like any other piece of executable content - **only install from trusted sources**. The CLI's normal tool-approval system still gates each call, but a malicious skill could craft a plausible-looking Bash command. The `name` validator rejects vendor strings to make impersonating an official skill harder.
 
 ### A2A Integration
 

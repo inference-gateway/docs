@@ -5,7 +5,7 @@ import HomeContent from './HomeContent';
 const home = pageMetadata({
   title: 'Inference Gateway Documentation',
   description:
-    'Open-source proxy for multiple language model APIs. Unify access to OpenAI, Anthropic, Google, Groq, Ollama, and more — with MCP, A2A, and observability built in.',
+    'Open-source proxy for multiple language model APIs. Unify access to OpenAI, Anthropic, Google, Groq, Ollama, and more - with MCP, A2A, and observability built in.',
   path: '/',
 });
 

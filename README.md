@@ -1,9 +1,9 @@
 <h1 align="center">Inference Gateway Documentation</h1>
 
 <p align="center">
-  <!-- Release Status Badge -->
+  <!-- CI Status Badge -->
   <a href="https://github.com/inference-gateway/docs/actions/workflows/ci.yml?query=branch%3Amain">
-    <img src="https://github.com/inference-gateway/docs/actions/workflows/release.yml/badge.svg?branch=main" alt="CI Status"/>
+    <img src="https://github.com/inference-gateway/docs/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI Status"/>
   </a>
   <!-- Version Badge -->
   <a href="https://github.com/inference-gateway/docs/releases">

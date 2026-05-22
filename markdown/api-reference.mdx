@@ -186,8 +186,8 @@ The response body conforms to the `CreateChatCompletionResponse` schema. Each el
 The `MessageContent` field in a `Message` can be either a plain string or an array of `ContentPart`
 objects for multimodal requests. Each `ContentPart` is one of:
 
-- **`TextContentPart`** — `{ "type": "text", "text": "..." }`
-- **`ImageContentPart`** — `{ "type": "image_url", "image_url": { ... } }` where `image_url` is an `ImageURL` object
+- **`TextContentPart`** - `{ "type": "text", "text": "..." }`
+- **`ImageContentPart`** - `{ "type": "image_url", "image_url": { ... } }` where `image_url` is an `ImageURL` object
 
 The `MessageRole` type constrains the `role` field of a `Message` to one of:
 `"system"`, `"user"`, `"assistant"`, or `"tool"`.
@@ -342,8 +342,9 @@ Note that the final message contains the `CompletionUsage` metrics of the token 
 ### Proxy Requests
 
 Pass requests directly through to provider APIs. The response body is a `ProviderSpecificResponse`
-— the exact shape depends on the upstream provider. Each provider uses a `ProviderAuthType` to
-authenticate: `Bearer Token`, `X-Header`, or none.
+
+- the exact shape depends on the upstream provider. Each provider uses a `ProviderAuthType` to
+  authenticate: `Bearer Token`, `X-Header`, or none.
 
 ```http
 {METHOD} /proxy/{provider}/{path}
@@ -645,7 +646,7 @@ The `content` field of a `Message`. Either:
 
 #### `ContentPart`
 
-A discriminated union — either a `TextContentPart` or an `ImageContentPart`, distinguished by the
+A discriminated union - either a `TextContentPart` or an `ImageContentPart`, distinguished by the
 `type` field.
 
 #### `TextContentPart`
