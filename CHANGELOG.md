@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.21](https://github.com/inference-gateway/docs/compare/0.6.20...0.6.21) (2026-05-23)
+
+### 📚 Documentation
+
+* **adl-cli:** Realign page with current adl and adl-cli upstream ([a06e276](https://github.com/inference-gateway/docs/commit/a06e276ebe4d2ace43214ecc398d32061fbc763a))
+
 ## [0.6.20](https://github.com/inference-gateway/docs/compare/0.6.19...0.6.20) (2026-05-23)
 
 ### 👷 CI
