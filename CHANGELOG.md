@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.20](https://github.com/inference-gateway/docs/compare/0.6.19...0.6.20) (2026-05-23)
+
+### 👷 CI
+
+* Always use the version of nodejs from the package.json ([55a506a](https://github.com/inference-gateway/docs/commit/55a506ae794daa5a892ae887d859c1a24a5cb4d2))
+
+### 🔧 Miscellaneous
+
+* **deps:** Bump claude-code 2.1.141 -> 2.1.145 and nodejs 24.14.1 -> 24.15.0 ([2676b03](https://github.com/inference-gateway/docs/commit/2676b0367f0414c819e6877c0e04c5804c791596))
+* Update CI status badge in README ([0422058](https://github.com/inference-gateway/docs/commit/042205862f9120e3ca9678356e3ce26648392680))
+* Update package.json to use the latest nodejs ([41914ff](https://github.com/inference-gateway/docs/commit/41914ff7b36193ef3ae23577d69d181730feff16))
+
 ## [0.6.19](https://github.com/inference-gateway/docs/compare/0.6.18...0.6.19) (2026-05-22)
 
 ### ♻️ Improvements
