@@ -27,8 +27,8 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v6.4.0
         with:
-          node-version: '24'
-          cache: 'npm'
+          node-version-file: package.json
+          cache: npm
           cache-dependency-path: package-lock.json
 
       - name: Install dependencies
@@ -53,8 +53,8 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v6.4.0
         with:
-          node-version: '24'
-          cache: 'npm'
+          node-version-file: package.json
+          cache: npm
           cache-dependency-path: package-lock.json
 
       - name: Install dependencies

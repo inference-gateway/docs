@@ -45,8 +45,9 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6.4.0
         with:
-          node-version-file: 'package.json'
-          cache: 'npm'
+          node-version-file: package.json
+          cache: npm
+          cache-dependency-path: package-lock.json
 
       - name: Install additional dependencies
         run: npm install -g markdownlint-cli

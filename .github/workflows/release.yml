@@ -47,8 +47,9 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6.4.0
         with:
-          node-version: '24'
-          cache: 'npm'
+          node-version-file: package.json
+          cache: npm
+          cache-dependency-path: package-lock.json
 
       - name: Install semantic release and plugins
         run: |
@@ -116,9 +117,9 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v6.4.0
         with:
-          node-version: '24'
-          cache: 'npm'
-          cache-dependency-path: package.json
+          node-version-file: package.json
+          cache: npm
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
         run: npm ci
