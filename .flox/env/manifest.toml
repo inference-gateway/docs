@@ -4,7 +4,7 @@ schema-version = "1.11.0"
 nodejs.pkg-path = "nodejs_24"
 nodejs.version = "24.15.0"
 claude-code.pkg-path = "claude-code"
-claude-code.version = "^2.1.145"
+claude-code.version = "^2.1.148"
 infer.flake = "github:inference-gateway/cli/v0.110.0"
 
 [hook]
