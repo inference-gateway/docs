@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.23](https://github.com/inference-gateway/docs/compare/0.6.22...0.6.23) (2026-05-25)
+
+### ♻️ Improvements
+
+* **docs:** Rename Production-ready to Enterprise-ready ([19e9edb](https://github.com/inference-gateway/docs/commit/19e9edbae705c0fdd5c146392df49dd15c851e59))
+
+### 🔧 Miscellaneous
+
+* **search:** Regenerate search index ([71ac1b3](https://github.com/inference-gateway/docs/commit/71ac1b3418179709eee3e0edc9fef58499c17706))
+* **sitemap:** Regenerate sitemap ([ef91c89](https://github.com/inference-gateway/docs/commit/ef91c89368f9ba346167d17764aa7bf1be03dc03))
+
 ## [0.6.22](https://github.com/inference-gateway/docs/compare/0.6.21...0.6.22) (2026-05-25)
 
 ### 👷 CI
