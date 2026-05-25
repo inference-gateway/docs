@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.22](https://github.com/inference-gateway/docs/compare/0.6.21...0.6.22) (2026-05-25)
+
+### 👷 CI
+
+* **deps-dev:** Bump the npm group with 4 updates ([#47](https://github.com/inference-gateway/docs/issues/47)) ([010b2f6](https://github.com/inference-gateway/docs/commit/010b2f6aa9c2c6e03ff76bafeda2c99beac4dc4a))
+* **deps:** Bump anthropics/claude-code-action in the github-actions group ([#46](https://github.com/inference-gateway/docs/issues/46)) ([ba212bd](https://github.com/inference-gateway/docs/commit/ba212bdcce1993ad133f40a5fd52fbabe7772ba7))
+
+### 📚 Documentation
+
+* **a2a:** Add A2A Debugger and Registry pages ([#58](https://github.com/inference-gateway/docs/issues/58)) ([ef3f63e](https://github.com/inference-gateway/docs/commit/ef3f63ed3b93c23ac2adf92c4382f41a04de66df)), closes [#51](https://github.com/inference-gateway/docs/issues/51)
+* **auth:** Fix OIDC env var names to match upstream gateway ([#54](https://github.com/inference-gateway/docs/issues/54)) ([08bcbb5](https://github.com/inference-gateway/docs/commit/08bcbb542b8168e187dd8606f4cc03502196dd18)), closes [#48](https://github.com/inference-gateway/docs/issues/48)
+* **configuration:** Sync configuration.mdx with upstream Configurations.md ([#55](https://github.com/inference-gateway/docs/issues/55)) ([3a1afe3](https://github.com/inference-gateway/docs/commit/3a1afe36750e7ba290dd2222752ab44fd08eb909)), closes [#49](https://github.com/inference-gateway/docs/issues/49)
+* **github-action:** Add infer-action GitHub Action documentation page ([#57](https://github.com/inference-gateway/docs/issues/57)) ([86304cf](https://github.com/inference-gateway/docs/commit/86304cf5e0e4344ba7742bdddfb106c69bd94a8b)), closes [#52](https://github.com/inference-gateway/docs/issues/52)
+* **guides:** Expand observability and add troubleshooting page ([#59](https://github.com/inference-gateway/docs/issues/59)) ([8490c8b](https://github.com/inference-gateway/docs/commit/8490c8b075b0f159efb9b6305939dd35068fc406)), closes [#53](https://github.com/inference-gateway/docs/issues/53)
+* **sdks:** Expand page with per-language usage examples ([#56](https://github.com/inference-gateway/docs/issues/56)) ([fffea83](https://github.com/inference-gateway/docs/commit/fffea833d677ab30305c78d3c47ce3f5c67fc196))
+
+### 🔧 Miscellaneous
+
+* Delete AGENTS.md ([689a3d8](https://github.com/inference-gateway/docs/commit/689a3d808dbbb6cbe53b56242da0adfe304153ce))
+* **deps:** Bump claude-code version ^2.1.145 -> ^2.1.148 ([7bd6a6d](https://github.com/inference-gateway/docs/commit/7bd6a6d87c732328bb95931fd73d94978e1a343f))
+* **deps:** Bump dev dependecies ([898d1fe](https://github.com/inference-gateway/docs/commit/898d1fed6c33b2f88e000f8f85ef15536269c327))
+* **deps:** Bump dev dependecies ([130da4c](https://github.com/inference-gateway/docs/commit/130da4c6faeeab75fec0f893f23624e8ff122b85))
+* **docs:** Generate AGENTS.md file ([33c12a8](https://github.com/inference-gateway/docs/commit/33c12a8f6bb6bcf9575991b0e6345f04c279cfb4))
+* Generate CLAUDE.md file ([d1e3cb6](https://github.com/inference-gateway/docs/commit/d1e3cb6790d9e2fec4d31dad2984d7466934d291))
+* **license:** Update license to Apache 2.0 ([46f1beb](https://github.com/inference-gateway/docs/commit/46f1beb91860e20cd8ad7433752b9e7f34c3f890))
+* Remove CLAUDE.md file ([39a8324](https://github.com/inference-gateway/docs/commit/39a8324abf1b5f38c1d4735c5a949fbbb96f15e4))
+* Remove warning ([536d62a](https://github.com/inference-gateway/docs/commit/536d62aef738c919b2658c248becee989c3ad876))
+
 ## [0.6.21](https://github.com/inference-gateway/docs/compare/0.6.20...0.6.21) (2026-05-23)
 
 ### 📚 Documentation
