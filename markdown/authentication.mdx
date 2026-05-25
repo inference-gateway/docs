@@ -20,9 +20,9 @@ To enable authentication, set the following environment variables:
 
 ```bash
 AUTH_ENABLE=true
-OIDC_ISSUER_URL=https://your-keycloak-instance/realms/your-realm
-OIDC_CLIENT_ID=your-client-id
-OIDC_CLIENT_SECRET=your-client-secret
+AUTH_OIDC_ISSUER=https://your-keycloak-instance/realms/your-realm
+AUTH_OIDC_CLIENT_ID=your-client-id
+AUTH_OIDC_CLIENT_SECRET=your-client-secret
 ```
 
 ## Keycloak Integration
@@ -125,9 +125,9 @@ Update your Inference Gateway configuration to enable authentication:
 
 ```bash
 AUTH_ENABLE=true
-OIDC_ISSUER_URL=https://your-keycloak-instance/realms/inference-gateway-realm
-OIDC_CLIENT_ID=inference-gateway-client
-OIDC_CLIENT_SECRET=your-client-secret
+AUTH_OIDC_ISSUER=https://your-keycloak-instance/realms/inference-gateway-realm
+AUTH_OIDC_CLIENT_ID=inference-gateway-client
+AUTH_OIDC_CLIENT_SECRET=your-client-secret
 ```
 
 #### Using Kubernetes ConfigMap and Secret
@@ -141,7 +141,7 @@ metadata:
   namespace: inference-gateway
 data:
   AUTH_ENABLE: 'true'
-  OIDC_ISSUER_URL: https://your-keycloak-instance/realms/inference-gateway-realm
+  AUTH_OIDC_ISSUER: https://your-keycloak-instance/realms/inference-gateway-realm
 
 ---
 # Secret
@@ -151,8 +151,8 @@ metadata:
   name: inference-gateway
   namespace: inference-gateway
 stringData:
-  OIDC_CLIENT_ID: inference-gateway-client
-  OIDC_CLIENT_SECRET: your-client-secret
+  AUTH_OIDC_CLIENT_ID: inference-gateway-client
+  AUTH_OIDC_CLIENT_SECRET: your-client-secret
 type: Opaque
 ```
 
@@ -243,7 +243,7 @@ helm upgrade --install \
 
 1. **401 Unauthorized Errors**:
    - Check that the token hasn't expired
-   - Verify that OIDC_ISSUER_URL is correct
+   - Verify that AUTH_OIDC_ISSUER is correct
    - Ensure the client secret is valid
 
 2. **Certificate Issues**:
