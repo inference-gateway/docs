@@ -62,6 +62,7 @@ const sections = [
       { title: 'Examples', href: '/examples' },
       { title: 'IDEs', href: '/ides' },
       { title: 'Observability', href: '/observability' },
+      { title: 'Troubleshooting', href: '/troubleshooting' },
     ],
   },
 ];
