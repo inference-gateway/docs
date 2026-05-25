@@ -50,6 +50,7 @@ const sections = [
       { title: 'CLI', href: '/cli' },
       { title: 'ADL CLI', href: '/adl-cli' },
       { title: 'Channels', href: '/cli-channels' },
+      { title: 'GitHub Action', href: '/github-action' },
     ],
   },
   {
