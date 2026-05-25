@@ -46,16 +46,16 @@ If authentication is enabled (`AUTH_ENABLE=true`), configure the following OIDC 
 <ConfigTable
   rows={[
     {
-      variable: 'OIDC_ISSUER_URL',
+      variable: 'AUTH_OIDC_ISSUER',
       description: 'OIDC issuer URL',
       defaultValue: 'http://keycloak:8080/realms/inference-gateway-realm',
     },
     {
-      variable: 'OIDC_CLIENT_ID',
+      variable: 'AUTH_OIDC_CLIENT_ID',
       description: 'OIDC client ID',
       defaultValue: 'inference-gateway-client',
     },
-    { variable: 'OIDC_CLIENT_SECRET', description: 'OIDC client secret', defaultValue: '""' },
+    { variable: 'AUTH_OIDC_CLIENT_SECRET', description: 'OIDC client secret', defaultValue: '""' },
   ]}
 />
 
@@ -363,7 +363,7 @@ data:
   ANTHROPIC_API_KEY: '<base64-encoded-key>'
   COHERE_API_KEY: '<base64-encoded-key>'
   OPENAI_API_KEY: '<base64-encoded-key>'
-  OIDC_CLIENT_SECRET: '<base64-encoded-key>'
+  AUTH_OIDC_CLIENT_SECRET: '<base64-encoded-key>'
 ```
 
 ## Complete Configuration Example
