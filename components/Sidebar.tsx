@@ -35,7 +35,11 @@ const sections = [
   },
   {
     title: 'Agent-To-Agent (A2A)',
-    items: [{ title: 'A2A Integration', href: '/a2a' }],
+    items: [
+      { title: 'A2A Integration', href: '/a2a' },
+      { title: 'A2A Debugger', href: '/a2a-debugger' },
+      { title: 'A2A Registry', href: '/registry' },
+    ],
   },
   {
     title: 'API Reference',
@@ -50,7 +54,6 @@ const sections = [
       { title: 'CLI', href: '/cli' },
       { title: 'ADL CLI', href: '/adl-cli' },
       { title: 'Channels', href: '/cli-channels' },
-      { title: 'GitHub Action', href: '/github-action' },
     ],
   },
   {
