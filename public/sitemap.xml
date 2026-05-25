@@ -2,78 +2,82 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://docs.inference-gateway.com/</loc>
-    <lastmod>2026-05-25T14:04:37.021Z</lastmod>
+    <lastmod>2026-05-25T14:20:37.084Z</lastmod>
   </url>
   <url>
     <loc>https://docs.inference-gateway.com/a2a</loc>
-    <lastmod>2026-05-25T14:04:37.020Z</lastmod>
+    <lastmod>2026-05-25T14:24:53.881Z</lastmod>
+  </url>
+  <url>
+    <loc>https://docs.inference-gateway.com/a2a-debugger</loc>
+    <lastmod>2026-05-25T14:25:29.012Z</lastmod>
   </url>
   <url>
     <loc>https://docs.inference-gateway.com/adl-cli</loc>
-    <lastmod>2026-05-25T14:04:37.020Z</lastmod>
+    <lastmod>2026-05-25T14:25:01.410Z</lastmod>
   </url>
   <url>
     <loc>https://docs.inference-gateway.com/api-reference</loc>
-    <lastmod>2026-05-25T14:04:37.020Z</lastmod>
+    <lastmod>2026-05-25T14:20:37.084Z</lastmod>
   </url>
   <url>
     <loc>https://docs.inference-gateway.com/architecture-overview</loc>
-    <lastmod>2026-05-25T14:04:37.020Z</lastmod>
+    <lastmod>2026-05-25T14:20:37.084Z</lastmod>
   </url>
   <url>
     <loc>https://docs.inference-gateway.com/authentication</loc>
-    <lastmod>2026-05-25T14:04:37.020Z</lastmod>
+    <lastmod>2026-05-25T14:20:37.084Z</lastmod>
   </url>
   <url>
     <loc>https://docs.inference-gateway.com/cli</loc>
-    <lastmod>2026-05-25T14:08:00.260Z</lastmod>
+    <lastmod>2026-05-25T14:20:37.084Z</lastmod>
   </url>
   <url>
     <loc>https://docs.inference-gateway.com/cli-channels</loc>
-    <lastmod>2026-05-25T14:04:37.020Z</lastmod>
+    <lastmod>2026-05-25T14:20:37.084Z</lastmod>
   </url>
   <url>
     <loc>https://docs.inference-gateway.com/configuration</loc>
-    <lastmod>2026-05-25T14:04:37.020Z</lastmod>
+    <lastmod>2026-05-25T14:20:37.084Z</lastmod>
   </url>
   <url>
     <loc>https://docs.inference-gateway.com/deployment</loc>
-    <lastmod>2026-05-25T14:04:37.021Z</lastmod>
+    <lastmod>2026-05-25T14:20:37.084Z</lastmod>
   </url>
   <url>
     <loc>https://docs.inference-gateway.com/examples</loc>
-    <lastmod>2026-05-25T14:04:37.021Z</lastmod>
+    <lastmod>2026-05-25T14:20:37.084Z</lastmod>
   </url>
   <url>
     <loc>https://docs.inference-gateway.com/getting-started</loc>
-    <lastmod>2026-05-25T14:04:37.021Z</lastmod>
-  </url>
-  <url>
-    <loc>https://docs.inference-gateway.com/github-action</loc>
-    <lastmod>2026-05-25T14:08:48.000Z</lastmod>
+    <lastmod>2026-05-25T14:20:37.084Z</lastmod>
   </url>
   <url>
     <loc>https://docs.inference-gateway.com/ides</loc>
-    <lastmod>2026-05-25T14:04:37.021Z</lastmod>
+    <lastmod>2026-05-25T14:20:37.084Z</lastmod>
   </url>
   <url>
     <loc>https://docs.inference-gateway.com/mcp</loc>
-    <lastmod>2026-05-25T14:04:37.021Z</lastmod>
+    <lastmod>2026-05-25T14:20:37.084Z</lastmod>
   </url>
   <url>
     <loc>https://docs.inference-gateway.com/observability</loc>
-    <lastmod>2026-05-25T14:04:37.021Z</lastmod>
+    <lastmod>2026-05-25T14:20:37.084Z</lastmod>
   </url>
   <url>
     <loc>https://docs.inference-gateway.com/operator</loc>
-    <lastmod>2026-05-25T14:04:37.021Z</lastmod>
+    <lastmod>2026-05-25T14:20:37.084Z</lastmod>
+  </url>
+  <url>
+    <loc>https://docs.inference-gateway.com/registry</loc>
+    <lastmod>2026-05-25T14:25:29.713Z</lastmod>
   </url>
   <url>
     <loc>https://docs.inference-gateway.com/sdks</loc>
-    <lastmod>2026-05-25T14:04:37.021Z</lastmod>
+    <lastmod>2026-05-25T14:20:37.084Z</lastmod>
   </url>
   <url>
     <loc>https://docs.inference-gateway.com/supported-providers</loc>
-    <lastmod>2026-05-25T14:04:37.021Z</lastmod>
+    <lastmod>2026-05-25T14:20:37.084Z</lastmod>
   </url>
 </urlset>
