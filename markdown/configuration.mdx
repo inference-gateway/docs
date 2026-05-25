@@ -22,20 +22,57 @@ Environment variables are the primary method for configuring Inference Gateway. 
   rows={[
     { variable: 'ENVIRONMENT', description: 'Deployment environment', defaultValue: 'production' },
     {
+      variable: 'ALLOWED_MODELS',
+      description:
+        'Comma-separated list of models to allow. If empty, all models will be available',
+      defaultValue: '""',
+    },
+    {
+      variable: 'DISALLOWED_MODELS',
+      description:
+        'Comma-separated list of models to disallow. If empty, no models will be blocked. Takes lower precedence than ALLOWED_MODELS',
+      defaultValue: '""',
+    },
+    {
       variable: 'ENABLE_VISION',
       description: 'Enable vision/multimodal support for all providers',
       defaultValue: 'false',
     },
     {
-      variable: 'TELEMETRY_ENABLE',
-      description: 'Enable OpenTelemetry metrics and tracing',
-      defaultValue: 'false',
+      variable: 'DEBUG_CONTENT_TRUNCATE_WORDS',
+      description:
+        'Number of words to truncate per content section in debug logs (development mode only)',
+      defaultValue: '10',
+    },
+    {
+      variable: 'DEBUG_MAX_MESSAGES',
+      description: 'Maximum number of messages to show in debug logs (development mode only)',
+      defaultValue: '100',
     },
     { variable: 'AUTH_ENABLE', description: 'Enable OIDC authentication', defaultValue: 'false' },
   ]}
 />
 
 When `ENABLE_VISION` is set to `true`, Inference Gateway enables vision/multimodal capabilities, allowing you to send images alongside text in chat completion requests. When disabled (default), requests with image content will be rejected even if the provider and model support vision. This is disabled by default for performance and security reasons.
+
+### Telemetry
+
+These settings control telemetry and metrics exposure:
+
+<ConfigTable
+  rows={[
+    {
+      variable: 'TELEMETRY_ENABLE',
+      description: 'Enable OpenTelemetry metrics and tracing',
+      defaultValue: 'false',
+    },
+    {
+      variable: 'TELEMETRY_METRICS_PORT',
+      description: 'Port for telemetry metrics server',
+      defaultValue: '9464',
+    },
+  ]}
+/>
 
 When `TELEMETRY_ENABLE` is set to `true`, Inference Gateway exposes a `/metrics` endpoint for Prometheus scraping and generates distributed traces that can be collected by OpenTelemetry collectors.
 
@@ -115,6 +152,21 @@ These settings control how Inference Gateway connects to third-party APIs:
       description: 'Minimum TLS version',
       defaultValue: 'TLS12',
     },
+    {
+      variable: 'CLIENT_DISABLE_COMPRESSION',
+      description: 'Disable compression for faster streaming',
+      defaultValue: 'true',
+    },
+    {
+      variable: 'CLIENT_RESPONSE_HEADER_TIMEOUT',
+      description: 'Response header timeout',
+      defaultValue: '10s',
+    },
+    {
+      variable: 'CLIENT_EXPECT_CONTINUE_TIMEOUT',
+      description: 'Expect continue timeout',
+      defaultValue: '1s',
+    },
   ]}
 />
 
@@ -162,7 +214,7 @@ Configure access to various LLM providers. At minimum, you should configure the 
     {
       variable: 'COHERE_API_URL',
       description: 'Cohere API URL',
-      defaultValue: 'https://api.cohere.com',
+      defaultValue: 'https://api.cohere.ai',
     },
     { variable: 'COHERE_API_KEY', description: 'Cohere API Key', defaultValue: '""' },
   ]}
@@ -233,7 +285,7 @@ Configure access to various LLM providers. At minimum, you should configure the 
     {
       variable: 'GOOGLE_API_URL',
       description: 'Google AI API URL',
-      defaultValue: 'https://generativelanguage.googleapis.com/v1',
+      defaultValue: 'https://generativelanguage.googleapis.com/v1beta/openai',
     },
     { variable: 'GOOGLE_API_KEY', description: 'Google AI API Key', defaultValue: '""' },
   ]}
@@ -282,24 +334,77 @@ These settings control MCP integration for external tool access:
       description: 'Comma-separated list of MCP server URLs',
       defaultValue: '""',
     },
-    { variable: 'MCP_CLIENT_TIMEOUT', description: 'MCP client timeout', defaultValue: '10s' },
-    { variable: 'MCP_DIAL_TIMEOUT', description: 'MCP dial timeout', defaultValue: '5s' },
+    {
+      variable: 'MCP_CLIENT_TIMEOUT',
+      description: 'MCP client HTTP timeout',
+      defaultValue: '5s',
+    },
+    { variable: 'MCP_DIAL_TIMEOUT', description: 'MCP client dial timeout', defaultValue: '3s' },
     {
       variable: 'MCP_TLS_HANDSHAKE_TIMEOUT',
-      description: 'MCP TLS handshake timeout',
-      defaultValue: '5s',
+      description: 'MCP client TLS handshake timeout',
+      defaultValue: '3s',
     },
     {
       variable: 'MCP_RESPONSE_HEADER_TIMEOUT',
-      description: 'MCP response header timeout',
-      defaultValue: '5s',
+      description: 'MCP client response header timeout',
+      defaultValue: '3s',
     },
     {
       variable: 'MCP_EXPECT_CONTINUE_TIMEOUT',
-      description: 'MCP expect continue timeout',
-      defaultValue: '2s',
+      description: 'MCP client expect continue timeout',
+      defaultValue: '1s',
     },
-    { variable: 'MCP_REQUEST_TIMEOUT', description: 'MCP request timeout', defaultValue: '10s' },
+    {
+      variable: 'MCP_REQUEST_TIMEOUT',
+      description: 'MCP client request timeout for initialize and tool calls',
+      defaultValue: '5s',
+    },
+    {
+      variable: 'MCP_MAX_RETRIES',
+      description: 'Maximum number of connection retry attempts',
+      defaultValue: '3',
+    },
+    {
+      variable: 'MCP_RETRY_INTERVAL',
+      description: 'Interval between connection retry attempts',
+      defaultValue: '5s',
+    },
+    {
+      variable: 'MCP_INITIAL_BACKOFF',
+      description: 'Initial backoff duration for exponential backoff retry',
+      defaultValue: '1s',
+    },
+    {
+      variable: 'MCP_ENABLE_RECONNECT',
+      description: 'Enable automatic reconnection for failed servers',
+      defaultValue: 'true',
+    },
+    {
+      variable: 'MCP_RECONNECT_INTERVAL',
+      description: 'Interval between reconnection attempts',
+      defaultValue: '30s',
+    },
+    {
+      variable: 'MCP_POLLING_ENABLE',
+      description: 'Enable health check polling',
+      defaultValue: 'true',
+    },
+    {
+      variable: 'MCP_POLLING_INTERVAL',
+      description: 'Interval between health check polling requests',
+      defaultValue: '30s',
+    },
+    {
+      variable: 'MCP_POLLING_TIMEOUT',
+      description: 'Timeout for individual health check requests',
+      defaultValue: '5s',
+    },
+    {
+      variable: 'MCP_DISABLE_HEALTHCHECK_LOGS',
+      description: 'Disable health check log messages to reduce noise',
+      defaultValue: 'true',
+    },
   ]}
 />
 
