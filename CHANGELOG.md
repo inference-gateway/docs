@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.24](https://github.com/inference-gateway/docs/compare/0.6.23...0.6.24) (2026-05-26)
+
+### ♻️ Improvements
+
+* **docs:** Migrate from Next.js + MDX to VitePress ([#61](https://github.com/inference-gateway/docs/issues/61)) ([d6fa247](https://github.com/inference-gateway/docs/commit/d6fa247f8100877de7e659df381bae7f45e19f18))
+
+### 🔧 Miscellaneous
+
+* **flox:** Bump schema version ([1f2d793](https://github.com/inference-gateway/docs/commit/1f2d793592200b661983f010cb1d9db99c2ca1d9))
+
 ## [0.6.23](https://github.com/inference-gateway/docs/compare/0.6.22...0.6.23) (2026-05-25)
 
 ### ♻️ Improvements
