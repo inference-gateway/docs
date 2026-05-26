@@ -1,0 +1,46 @@
+---
+title: Getting Started
+description: Install Inference Gateway with Docker, Docker Compose, or Kubernetes and send your first chat completion request.
+---
+
+# Getting Started
+
+Learn how to install and set up Inference Gateway.
+
+## Installation
+
+### Using Docker
+
+```bash
+docker pull ghcr.io/inference-gateway/inference-gateway:latest
+docker run --rm -it -p 8080:8080 -e OPENAI_API_KEY=your_key_here ghcr.io/inference-gateway/inference-gateway:latest
+```
+
+### Using Docker Compose
+
+Checkout the examples in the [Docker Compose examples](https://github.com/inference-gateway/inference-gateway/tree/main/examples/docker-compose).
+
+### Using Kubernetes
+
+Checkout the examples in the [Kubernetes examples](https://github.com/inference-gateway/inference-gateway/tree/main/examples/kubernetes).
+
+## Basic Usage
+
+Send a request to the Inference Gateway:
+
+```bash
+curl -X POST http://localhost:8080/v1/chat/completions \
+-d '{
+"model": "openai/gpt-4o-mini",
+"messages": [
+        {
+            "role": "system",
+            "content": "You are a helpful assistant."
+        },
+        {
+            "role": "user",
+            "content": "Hello, world!"
+        }
+    ]
+}
+```
