@@ -137,6 +137,7 @@ export default withMermaid(
             { text: 'A2A Integration', link: '/a2a' },
             { text: 'A2A Debugger', link: '/a2a-debugger' },
             { text: 'A2A Registry', link: '/registry' },
+            { text: 'Skills Catalog', link: '/skills' },
           ],
         },
       ],
@@ -178,6 +179,11 @@ export default withMermaid(
             { text: 'A2A Debugger', link: '/a2a-debugger' },
             { text: 'A2A Registry', link: '/registry' },
           ],
+        },
+        {
+          text: 'Agent Skills',
+          collapsed: false,
+          items: [{ text: 'Skills Catalog', link: '/skills' }],
         },
         {
           text: 'API Reference',
