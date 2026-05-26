@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.25](https://github.com/inference-gateway/docs/compare/0.6.24...0.6.25) (2026-05-26)
+
+### 🔧 Miscellaneous
+
+* **tui:** Update gif with the current state of the CLI ([1a649c8](https://github.com/inference-gateway/docs/commit/1a649c862d6b326c771e741c7b3aad29cee23d22))
+
 ## [0.6.24](https://github.com/inference-gateway/docs/compare/0.6.23...0.6.24) (2026-05-26)
 
 ### ♻️ Improvements
