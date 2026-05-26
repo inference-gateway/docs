@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.30](https://github.com/inference-gateway/docs/compare/0.6.29...0.6.30) (2026-05-26)
+
+### 📚 Documentation
+
+* add TypeScript ADK page for message/send JSON-RPC handler ([#64](https://github.com/inference-gateway/docs/issues/64)) ([ab41f52](https://github.com/inference-gateway/docs/commit/ab41f52ac87b6ee8c6e55bb615070fdd279fcc0a)), closes [inference-gateway/docs#62](https://github.com/inference-gateway/docs/issues/62)
+
 ## [0.6.29](https://github.com/inference-gateway/docs/compare/0.6.28...0.6.29) (2026-05-26)
 
 ### 👷 CI
