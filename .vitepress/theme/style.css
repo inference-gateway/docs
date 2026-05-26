@@ -75,10 +75,16 @@
 /* Mermaid edge labels: subtle background so they're readable wherever they sit */
 .vp-doc .mermaid .edgeLabel {
   background-color: #ffffff !important;
-  padding: 2px 6px !important;
+  padding: 3px 8px !important;
   border-radius: 4px !important;
-  font-size: 12px !important;
+  font-size: 13px !important;
   color: #4b5563 !important;
+}
+
+/* Mermaid node labels: give them breathing room so text doesn't kiss the border */
+.vp-doc .mermaid .nodeLabel {
+  padding: 4px 8px !important;
+  line-height: 1.4 !important;
 }
 
 /* Mermaid cluster (subgraph) titles */
@@ -91,4 +97,5 @@
 .vp-doc .mermaid .cluster text {
   font-weight: 600 !important;
   fill: #4b5563 !important;
+  font-size: 14px !important;
 }

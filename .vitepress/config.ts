@@ -246,7 +246,7 @@ export default withMermaid(
       themeVariables: {
         fontFamily:
           'Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
-        fontSize: '14px',
+        fontSize: '16px',
         primaryColor: '#ede9fe',
         primaryTextColor: '#1f2937',
         primaryBorderColor: '#7c3aed',
@@ -260,9 +260,9 @@ export default withMermaid(
       },
       flowchart: {
         curve: 'basis',
-        nodeSpacing: 50,
-        rankSpacing: 60,
-        padding: 16,
+        nodeSpacing: 60,
+        rankSpacing: 70,
+        padding: 24,
         useMaxWidth: true,
         htmlLabels: true,
       },

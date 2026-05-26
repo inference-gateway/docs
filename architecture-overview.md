@@ -13,10 +13,10 @@ A unified OpenAI-compatible request enters the gateway, optionally clears OIDC a
 
 ```mermaid
 flowchart LR
-    Client(["Clients &nbsp;/&nbsp; Agents"])
+    Client["Clients / Agents"]
     Auth{{"Optional OIDC"}}
-    Proxy(["Provider Proxy"])
-    Providers[/"LLM Providers<br/><span style='font-size:11px;opacity:0.7'>OpenAI · Anthropic · Groq · Cohere<br/>Google · Ollama · DeepSeek · Cloudflare<br/>Mistral · Moonshot"</span>/]
+    Proxy["Provider Proxy"]
+    Providers["LLM Providers"]
 
     Client -- "POST /v1/chat/completions" --> Auth
 
@@ -48,7 +48,7 @@ flowchart LR
     class Providers provider
 ```
 
-The gateway tier is stateless - replicas scale horizontally behind any load balancer. Per-request state (tool-call iteration, MCP context, A2A delegation) lives in the request lifecycle, not the pod. See [Supported Providers](/supported-providers) for the full provider matrix.
+The gateway tier is stateless - replicas scale horizontally behind any load balancer. Per-request state (tool-call iteration, MCP context, A2A delegation) lives in the request lifecycle, not the pod. See [Supported Providers](/supported-providers) for the full provider matrix: OpenAI, Anthropic, Groq, Cohere, Google, Ollama, DeepSeek, Cloudflare, Mistral, and Moonshot.
 
 ## Kubernetes Setup
 
@@ -56,14 +56,15 @@ The Inference Gateway is built to run on Kubernetes. Traffic flows from an ingre
 
 ```mermaid
 flowchart LR
-    ExtClient(["External<br/>Clients &amp; Agents"])
-    IntClient(["Internal<br/>Clients &amp; Agents"])
-    Providers[/"External LLM Providers<br/><span style='font-size:11px;opacity:0.7'>OpenAI · Anthropic · Groq · Cohere<br/>Google · Ollama · DeepSeek · Cloudflare<br/>Mistral · Moonshot"</span>/]
+    ExtClient["External Clients"]
+    IntClient["Internal Clients"]
+    Providers["External LLM Providers"]
+    Monitoring["Monitoring Stack"]
 
     subgraph Cluster["Kubernetes Cluster"]
         direction TB
         Ingress["Ingress"]
-        Svc[["Gateway Service"]]
+        Svc["Gateway Service"]
 
         subgraph Pods["Gateway Pods"]
             direction TB
@@ -76,17 +77,7 @@ flowchart LR
         Svc --> Pod1
         Svc --> Pod2
         Svc --> Pod3
-
-        subgraph Telemetry["Telemetry"]
-            direction TB
-            SM["ServiceMonitor"]
-            Prom["Prometheus"]
-            Graf["Grafana"]
-            SM -. "scrape" .-> Prom
-            Prom --> Graf
-        end
-
-        Svc -. ":9464 /metrics" .-> SM
+        Svc -. ":9464 /metrics" .-> Monitoring
     end
 
     ExtClient --> Ingress
@@ -106,8 +97,8 @@ flowchart LR
     class Ingress ingress
     class Svc service
     class Pod1,Pod2,Pod3 gateway
-    class SM,Prom,Graf monitor
+    class Monitoring monitor
     class Providers provider
 ```
 
-Pods are interchangeable. Add capacity with an HPA, remove pods with rolling updates. The `ServiceMonitor` lets kube-prometheus-stack discover the metrics port without per-deployment scrape config. See [Observability](/observability) for the full Prometheus / Grafana / OTLP setup, and the [Kubernetes Operator](/operator) for managing this topology declaratively as Custom Resources.
+Pods are interchangeable. Add capacity with an HPA, remove pods with rolling updates. The `Monitoring Stack` here represents the `ServiceMonitor` + Prometheus + Grafana pipeline kube-prometheus-stack deploys around the gateway - see [Observability](/observability) for the full setup, and the [Kubernetes Operator](/operator) for managing this topology declaratively as Custom Resources.
