@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.27](https://github.com/inference-gateway/docs/compare/0.6.26...0.6.27) (2026-05-26)
+
+### 📚 Documentation
+
+* **skills:** Document third-party skill contribution via skills.yaml ([#63](https://github.com/inference-gateway/docs/issues/63)) ([6a7812e](https://github.com/inference-gateway/docs/commit/6a7812e39ca41f557a775af1151afb9d036ce0b5)), closes [#60](https://github.com/inference-gateway/docs/issues/60)
+
 ## [0.6.26](https://github.com/inference-gateway/docs/compare/0.6.25...0.6.26) (2026-05-26)
 
 ### 🔧 Miscellaneous
