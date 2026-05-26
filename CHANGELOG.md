@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.29](https://github.com/inference-gateway/docs/compare/0.6.28...0.6.29) (2026-05-26)
+
+### 👷 CI
+
+* **infer:** fix formatting ([31bd934](https://github.com/inference-gateway/docs/commit/31bd934f15fe3d15776b01e509bd550fdabab4fb))
+
+### 🔧 Miscellaneous
+
+* update infer.yml ([e3b3f7d](https://github.com/inference-gateway/docs/commit/e3b3f7d6dfaa0567316668b97ada7e69df353c12))
+
 ## [0.6.28](https://github.com/inference-gateway/docs/compare/0.6.27...0.6.28) (2026-05-26)
 
 ### ♻️ Improvements
