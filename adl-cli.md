@@ -5,8 +5,10 @@ description: Scaffold enterprise-ready A2A agents from Agent Definition Language
 
 # ADL CLI
 
-The ADL CLI is a command-line tool for generating enterprise-ready [A2A (Agent-to-Agent)](/a2a) servers from Agent Definition Language (ADL) YAML files. It eliminates boilerplate code and ensures consistent patterns across your agent implementations, letting you focus on business logic.
+The ADL CLI is a command-line tool for generating enterprise-ready [A2A (Agent-to-Agent)](/a2a) servers from [Agent Definition Language (ADL)](https://adl.inference-gateway.com) YAML files. It eliminates boilerplate code and ensures consistent patterns across your agent implementations, letting you focus on business logic.
 
+> For the canonical ADL spec, schema reference, and authoring guide, see [adl.inference-gateway.com](https://adl.inference-gateway.com). This page is the CLI-specific reference.
+>
 > **Note:** ADL CLI is in early development. Breaking changes may occur until a stable version is reached.
 
 ## Key Features
@@ -1289,5 +1291,6 @@ cargo build
 - **Repository:** [github.com/inference-gateway/adl-cli](https://github.com/inference-gateway/adl-cli)
 - **Issues:** [github.com/inference-gateway/adl-cli/issues](https://github.com/inference-gateway/adl-cli/issues)
 - **Releases:** [github.com/inference-gateway/adl-cli/releases](https://github.com/inference-gateway/adl-cli/releases)
+- **ADL specification:** [adl.inference-gateway.com](https://adl.inference-gateway.com) - canonical schema, field reference, and authoring guide for `agent.yaml` manifests.
 - **Publish your agent:** Once your generated agent ships a container image, list it in the [A2A Registry](/registry) so others can discover and consume it.
 - **Debug your agent:** Use the [A2A Debugger](/a2a-debugger) to inspect agent cards, stream tasks, and replay conversations during development.
