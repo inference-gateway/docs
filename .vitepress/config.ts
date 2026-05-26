@@ -7,7 +7,7 @@ const HOSTNAME = 'https://docs.inference-gateway.com';
 const SITE_NAME = 'Inference Gateway';
 const SITE_DESCRIPTION =
   'Documentation for Inference Gateway, an open-source, cloud-native gateway unifying multiple LLM providers (OpenAI, Anthropic, Groq, Cohere, Ollama, DeepSeek, Cloudflare and more) behind a single API.';
-const OG_IMAGE = 'https://github.com/inference-gateway.png';
+const OG_IMAGE = `${HOSTNAME}/logo.png`;
 
 const structuredData = {
   '@context': 'https://schema.org',
@@ -17,7 +17,7 @@ const structuredData = {
       '@id': `${HOSTNAME}/#organization`,
       name: SITE_NAME,
       url: HOSTNAME,
-      logo: 'https://github.com/inference-gateway.png',
+      logo: `${HOSTNAME}/logo.png`,
       sameAs: ['https://github.com/inference-gateway'],
     },
     {
@@ -64,8 +64,8 @@ export default withMermaid(
       writeFileSync(join(siteConfig.outDir, '.nojekyll'), '');
     },
     head: [
-      ['link', { rel: 'icon', type: 'image/svg+xml', href: '/logo.svg' }],
-      ['link', { rel: 'apple-touch-icon', href: '/logo.svg' }],
+      ['link', { rel: 'icon', type: 'image/png', href: '/logo.png' }],
+      ['link', { rel: 'apple-touch-icon', href: '/logo.png' }],
       ['meta', { name: 'theme-color', content: '#7c3aed' }],
       ['meta', { name: 'author', content: 'Inference Gateway' }],
       ['meta', { name: 'robots', content: 'index, follow' }],
@@ -100,7 +100,7 @@ export default withMermaid(
       pageData.frontmatter.head.push(['meta', { property: 'og:url', content: canonicalUrl }]);
     },
     themeConfig: {
-      logo: '/logo.svg',
+      logo: '/logo.png',
       siteTitle: SITE_NAME,
       nav: [
         { text: 'Getting Started', link: '/getting-started', activeMatch: '^/getting-started$' },

@@ -9,7 +9,7 @@ hero:
   text: One API for every LLM
   tagline: Open-source, cloud-native proxy unifying OpenAI, Anthropic, Groq, Cohere, Ollama, DeepSeek, Cloudflare, Google, Mistral and Moonshot behind a single OpenAI-compatible API.
   image:
-    src: /logo.svg
+    src: /logo.png
     alt: Inference Gateway logo
   actions:
     - theme: brand
