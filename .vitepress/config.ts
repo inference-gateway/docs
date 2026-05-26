@@ -135,6 +135,7 @@ export default withMermaid(
           items: [
             { text: 'MCP Integration', link: '/mcp' },
             { text: 'A2A Integration', link: '/a2a' },
+            { text: 'TypeScript ADK', link: '/typescript-adk' },
             { text: 'A2A Debugger', link: '/a2a-debugger' },
             { text: 'A2A Registry', link: '/registry' },
             { text: 'Skills Catalog', link: '/skills' },
@@ -176,6 +177,7 @@ export default withMermaid(
           collapsed: false,
           items: [
             { text: 'A2A Integration', link: '/a2a' },
+            { text: 'TypeScript ADK', link: '/typescript-adk' },
             { text: 'A2A Debugger', link: '/a2a-debugger' },
             { text: 'A2A Registry', link: '/registry' },
           ],

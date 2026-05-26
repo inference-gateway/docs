@@ -209,6 +209,8 @@ The Google Calendar Agent provides comprehensive calendar management capabilitie
 ## Creating Custom Agents
 
 > **Tip:** Use the [ADL CLI](/adl-cli) to scaffold A2A agents from YAML definitions. It generates complete project structures with service injection, CI/CD pipelines, and deployment configurations.
+>
+> Writing the server by hand in TypeScript? See the [TypeScript ADK](/typescript-adk) for the `@inference-gateway/adk` package, which ships the HTTP server core and JSON-RPC handlers (starting with `message/send`).
 
 To create your own A2A-compatible agent, implement these endpoints:
 
@@ -273,6 +275,7 @@ Implement the A2A protocol at the `/a2a` endpoint to handle:
 - [A2A Debugger](/a2a-debugger) - Inspect, stream, and replay tasks on any A2A server from the CLI
 - [A2A Registry](/registry) - Discover available A2A agents and their capabilities ([registry.inference-gateway.com](https://registry.inference-gateway.com))
 - [ADL CLI](/adl-cli) - Generate A2A agents from YAML definitions
+- [TypeScript ADK](/typescript-adk) - Build A2A agents in TypeScript with `@inference-gateway/adk`
 - [Inference Gateway CLI](/cli) - Manage and chat with A2A agents
 - [Awesome A2A](https://github.com/inference-gateway/awesome-a2a)
 - [A2A Protocol Specification](https://github.com/inference-gateway/inference-gateway/tree/main/a2a)
