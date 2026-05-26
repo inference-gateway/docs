@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.28](https://github.com/inference-gateway/docs/compare/0.6.27...0.6.28) (2026-05-26)
+
+### ♻️ Improvements
+
+* **ci:** remove extra system prompt and add effort max to claude ([9ded58b](https://github.com/inference-gateway/docs/commit/9ded58bf1a905297e99514cbba7fc54c391f95c6))
+
 ## [0.6.27](https://github.com/inference-gateway/docs/compare/0.6.26...0.6.27) (2026-05-26)
 
 ### 📚 Documentation
