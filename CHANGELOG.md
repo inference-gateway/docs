@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.26](https://github.com/inference-gateway/docs/compare/0.6.25...0.6.26) (2026-05-26)
+
+### 🔧 Miscellaneous
+
+* **docs:** Use lists styles ([98f4de5](https://github.com/inference-gateway/docs/commit/98f4de5987d89f623dda3f0106b60adf596f90f1))
+
 ## [0.6.25](https://github.com/inference-gateway/docs/compare/0.6.24...0.6.25) (2026-05-26)
 
 ### 🔧 Miscellaneous
