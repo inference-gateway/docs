@@ -768,9 +768,12 @@ name: Infer
 
 on:
   issues:
-    types: [opened, edited]
+    types:
+      - opened
+      - edited
   issue_comment:
-    types: [created]
+    types:
+      - created
 
 permissions:
   issues: write
