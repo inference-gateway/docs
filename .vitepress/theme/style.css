@@ -72,30 +72,14 @@
   height: auto;
 }
 
-/* Mermaid edge labels: subtle background so they're readable wherever they sit */
+/* Mermaid edge labels: subtle background so they're readable on lines */
 .vp-doc .mermaid .edgeLabel {
   background-color: #ffffff !important;
-  padding: 3px 8px !important;
-  border-radius: 4px !important;
-  font-size: 13px !important;
-  color: #4b5563 !important;
 }
 
-/* Mermaid node labels: give them breathing room so text doesn't kiss the border */
-.vp-doc .mermaid .nodeLabel {
-  padding: 4px 8px !important;
-  line-height: 1.4 !important;
-}
-
-/* Mermaid cluster (subgraph) titles */
+/* Mermaid cluster (subgraph) backgrounds */
 .vp-doc .mermaid .cluster rect {
   fill: #f9fafb !important;
   stroke: #d1d5db !important;
   stroke-dasharray: 4 4 !important;
-}
-
-.vp-doc .mermaid .cluster text {
-  font-weight: 600 !important;
-  fill: #4b5563 !important;
-  font-size: 14px !important;
 }
