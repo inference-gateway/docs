@@ -23,34 +23,52 @@ Agent-To-Agent (A2A) is a protocol that enables LLMs to discover, communicate wi
 ## How A2A Works
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#326CE5', 'primaryTextColor': '#fff', 'lineColor': '#5D8AA8', 'secondaryColor': '#006100' }, 'flowchart': { 'nodeSpacing': 50, 'rankSpacing': 80, 'curve': 'linear' }}}%%
+flowchart TD
+    User(["User Request"])
+    LLM["LLM"]
+    Discover["Discover Available Agents"]
+    Registry[("Agent Registry")]
+    Coord["Coordinate Multiple Agents"]
+    Results["Aggregated Results"]
+    Reply(["Unified Response"])
 
-graph TD
-    A[User Request] --> B[LLM]
-    B --> C[Discover<br/>Available Agents]
-    C --> D[Agent Registry]
-    D --> E[Agent Skills]
-    B --> F[Coordinate<br/>Multiple Agents]
-    F --> G[Agent 1:<br/>Email]
-    F --> H[Agent 2:<br/>Calendar]
-    F --> I[Agent 3:<br/>Calculator]
-    F --> J[Agent 4:<br/>Weather]
-    G --> K[Results]
-    H --> K
-    I --> K
-    J --> K
-    K --> B
-    B --> L[Unified Response]
+    User --> LLM
+    LLM --> Discover
+    Discover --> Registry
+    Registry --> Coord
+    LLM --> Coord
 
-    classDef user fill:#9370DB,stroke:#333,stroke-width:2px,color:white;
-    classDef llm fill:#326CE5,stroke:#fff,stroke-width:2px,color:white;
-    classDef agent fill:#32CD32,stroke:#333,stroke-width:2px,color:white;
-    classDef system fill:#F5A800,stroke:#333,stroke-width:2px,color:black;
+    subgraph Agents["A2A Agents"]
+        direction LR
+        Email["Email Agent"]
+        Calendar["Calendar Agent"]
+        Calc["Calculator Agent"]
+        Weather["Weather Agent"]
+    end
 
-    class A user;
-    class B,L llm;
-    class G,H,I,J agent;
-    class C,D,E,F,K system;
+    Coord --> Email
+    Coord --> Calendar
+    Coord --> Calc
+    Coord --> Weather
+
+    Email --> Results
+    Calendar --> Results
+    Calc --> Results
+    Weather --> Results
+    Results --> LLM
+    LLM --> Reply
+
+    classDef user fill:#ede9fe,stroke:#7c3aed,stroke-width:2px,color:#1f2937
+    classDef llm fill:#7c3aed,stroke:#6d28d9,stroke-width:2px,color:#ffffff
+    classDef system fill:#a78bfa,stroke:#7c3aed,stroke-width:2px,color:#ffffff
+    classDef registry fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#78350f
+    classDef agent fill:#ecfdf5,stroke:#10b981,stroke-width:1px,color:#065f46
+
+    class User,Reply user
+    class LLM llm
+    class Discover,Coord,Results system
+    class Registry registry
+    class Email,Calendar,Calc,Weather agent
 ```
 
 When a user makes a request:

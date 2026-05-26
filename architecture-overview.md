@@ -5,133 +5,129 @@ description: How Inference Gateway is structured, how requests flow through opti
 
 # Architecture Overview
 
-This document provides a high-level overview of the architecture of the Inference Gateway. The Inference-Gateway is designed to be modular and extensible, allowing easy integration of new models and providers.
+This document provides a high-level overview of the architecture of the Inference Gateway. The Inference Gateway is designed to be modular and extensible, allowing easy integration of new models and providers.
 
 ## General Overview
 
+A unified OpenAI-compatible request enters the gateway, optionally clears OIDC authentication, fans out to a horizontally-scalable gateway tier, and is normalised through a single proxy layer before being dispatched to whichever upstream provider serves the requested model.
+
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#326CE5', 'primaryTextColor': '#fff', 'lineColor': '#5D8AA8', 'secondaryColor': '#006100' }, 'fontFamily': 'Arial', 'flowchart': {'nodeSpacing': 50, 'rankSpacing': 70, 'padding': 15}}}%%
+flowchart TD
+    Client(["Clients &nbsp;/&nbsp; Agents"])
+    Client -- "POST /v1/chat/completions" --> Auth
+    Auth{{"Optional OIDC"}}
+    Auth --> GW1
+    Auth --> GW2
+    Auth --> GW3
+    GW1["Inference Gateway"]
+    GW2["Inference Gateway"]
+    GW3["Inference Gateway"]
+    GW1 --> Proxy
+    GW2 --> Proxy
+    GW3 --> Proxy
+    Proxy(["Provider Proxy"])
 
+    subgraph Providers["LLM Providers"]
+        direction LR
+        OpenAI["OpenAI"]
+        Anthropic["Anthropic"]
+        Groq["Groq"]
+        Cohere["Cohere"]
+        Google["Google"]
+        Ollama["Ollama"]
+        DeepSeek["DeepSeek"]
+        Cloudflare["Cloudflare"]
+        Mistral["Mistral"]
+        Moonshot["Moonshot"]
+    end
 
-graph TD
-    %% Client nodes
-    A["👥 Clients / 🤖 Agents"] --> |POST /v1/chat/completions| Auth
+    Proxy --> Providers
 
-    %% Auth node
-    Auth["🔒 Optional OIDC"] --> |Auth?| IG1
-    Auth --> |Auth?| IG2
-    Auth --> |Auth?| IG3
+    classDef client fill:#ede9fe,stroke:#7c3aed,stroke-width:2px,color:#1f2937
+    classDef auth fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#78350f
+    classDef gateway fill:#7c3aed,stroke:#6d28d9,stroke-width:2px,color:#ffffff
+    classDef proxy fill:#a78bfa,stroke:#7c3aed,stroke-width:2px,color:#ffffff
+    classDef provider fill:#f3f4f6,stroke:#9ca3af,stroke-width:1px,color:#1f2937
 
-    %% Gateway nodes
-    IG1["🖥️ Inference Gateway"] --> P
-    IG2["🖥️ Inference Gateway"] --> P
-    IG3["🖥️ Inference Gateway"] --> P
-
-    %% Proxy and providers
-    P["🔌 Proxy Gateway"] --> C["🦙 Ollama"]
-    P --> D["🚀 Groq"]
-    P --> E["☁️ OpenAI"]
-    P --> G["⚡ Cloudflare"]
-    P --> H1["💬 Cohere"]
-    P --> H2["🧠 Anthropic"]
-    P --> H3["🐋 DeepSeek"]
-    P --> H4["🌟 Mistral"]
-    P --> H5["🌙 Moonshot"]
-
-    %% Define styles
-    classDef client fill:#9370DB,stroke:#333,stroke-width:1px,color:white;
-    classDef auth fill:#F5A800,stroke:#333,stroke-width:1px,color:black;
-    classDef gateway fill:#326CE5,stroke:#fff,stroke-width:1px,color:white;
-    classDef provider fill:#32CD32,stroke:#333,stroke-width:1px,color:white;
-
-    %% Apply styles
-    class A client;
-    class Auth auth;
-    class IG1,IG2,IG3,P gateway;
-    class C,D,E,G,H1,H2,H3,H4,H5 provider;
+    class Client client
+    class Auth auth
+    class GW1,GW2,GW3 gateway
+    class Proxy proxy
+    class OpenAI,Anthropic,Groq,Cohere,Google,Ollama,DeepSeek,Cloudflare,Mistral,Moonshot provider
 ```
+
+The gateway tier is stateless. Replicas can be scaled horizontally behind any load balancer; per-request state (tool-call iteration, MCP context, A2A delegation) lives in the request lifecycle, not the pod.
 
 ## Kubernetes Setup
 
-The Inference Gateway is designed to run on Kubernetes. The following diagram shows the high-level architecture of the Inference Gateway running on Kubernetes.
+The Inference Gateway is built to run on Kubernetes. Traffic flows from an ingress through a `Service` to a pool of stateless gateway pods, each fronting the same provider proxy. Telemetry is scraped on a dedicated metrics port via a `ServiceMonitor`, and providers stay external.
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#326CE5', 'primaryTextColor': '#fff', 'lineColor': '#5D8AA8', 'secondaryColor': '#006100' }, 'fontFamily': 'Arial', 'flowchart': {'nodeSpacing': 50, 'rankSpacing': 70, 'padding': 15}}}%%
+flowchart TD
+    ExtClient(["External Clients &nbsp;/&nbsp; Agents"])
 
-graph TD
-    %% External Clients
-    Clients["👥 External Clients"] --> Ingress
-    Agents["🤖 External Agents"] --> Ingress
+    subgraph Cluster["Kubernetes Cluster"]
+        direction TB
+        Ingress["Ingress &nbsp;/&nbsp; API Gateway"]
+        Svc[["Gateway Service"]]
+        IntClient(["Internal Clients &nbsp;/&nbsp; Agents"])
 
-    %% Define Kubernetes border
-    subgraph Kubernetes["⎈ Kubernetes Cluster"]
-        %% Ingress/API Gateway
-        Ingress["🚪 API Gateway"] --> Service
+        Ingress --> Svc
+        IntClient --> Svc
 
-        %% Internal Clients
-        InternalClients["💻 Internal Clients"] --> Service
-        InternalAgents["🤖 Internal Agents"] --> Service
+        Svc --> Pod1
+        Svc --> Pod2
+        Svc --> Pod3
 
-        %% Service Discovery
-        Service["🔌 Gateway Service"] --> Pod1
-        Service --> Pod2
-        Service --> Pod3
-
-        %% Pods
         subgraph Pod1["Inference Gateway Pod"]
-            IG1["🖥️ Inference Gateway"]
-            IG1 --> PG1["Provider Proxy"]
+            IG1["Gateway"] --> PP1["Provider Proxy"]
         end
-
         subgraph Pod2["Inference Gateway Pod"]
-            IG2["🖥️ Inference Gateway"]
-            IG2 --> PG2["Provider Proxy"]
+            IG2["Gateway"] --> PP2["Provider Proxy"]
         end
-
         subgraph Pod3["Inference Gateway Pod"]
-            IG3["🖥️ Inference Gateway"]
-            IG3 --> PG3["Provider Proxy"]
+            IG3["Gateway"] --> PP3["Provider Proxy"]
         end
 
-        %% Monitoring Stack with ServiceMonitor
-        Service --> |metrics| SM["🔍 ServiceMonitor"]
-        SM -.->|scrapes| Prometheus["🔥 Prometheus"]
-        Prometheus --> Grafana["📊 Grafana"]
-
-        %% Connection to External Providers
-        PG1 & PG2 & PG3 --> ExternalProviders
-
-        %% External Providers placed inside K8s subgraph but visually separate
-        subgraph ExternalProviders["☁️ External Providers"]
-            Ext1["🦙 Ollama"]
-            Ext2["☁️ OpenAI"]
-            Ext3["🧠 Anthropic"]
-            Ext4["⚡ Cloudflare"]
-            Ext5["💬 Cohere"]
-            Ext6["🚀 Groq"]
-            Ext7["🐋 DeepSeek"]
-            Ext8["🌟 Mistral"]
-            Ext9["🌙 Moonshot"]
-        end
+        Svc -. ":9464 /metrics" .-> SM["ServiceMonitor"]
+        SM -. "scrape" .-> Prom["Prometheus"]
+        Prom --> Graf["Grafana"]
     end
 
-    %% Define styles
-    classDef k8s fill:#326CE5,stroke:#fff,stroke-width:1px,color:white;
-    classDef pod fill:#FFFFFF,stroke:#326CE5,stroke-width:1px,color:black;
-    classDef monitoring fill:#F5A800,stroke:#333,stroke-width:1px,color:black;
-    classDef externalSvc fill:#32CD32,stroke:#333,stroke-width:1px,color:white;
-    classDef service fill:#326CE5,stroke:#fff,stroke-width:1px,color:white;
-    classDef monitor fill:#84a392,stroke:#333,stroke-width:1px,color:white;
-    classDef internalClient fill:#9370DB,stroke:#333,stroke-width:1px,color:white;
-    classDef extProviders fill:#32CD32,stroke:#333,stroke-width:2px,color:white,stroke-dasharray:5;
+    subgraph Providers["External LLM Providers"]
+        direction LR
+        P_OpenAI["OpenAI"]
+        P_Anthropic["Anthropic"]
+        P_Groq["Groq"]
+        P_Cohere["Cohere"]
+        P_Google["Google"]
+        P_Ollama["Ollama"]
+        P_DeepSeek["DeepSeek"]
+        P_Cloudflare["Cloudflare"]
+        P_Mistral["Mistral"]
+        P_Moonshot["Moonshot"]
+    end
 
-    %% Apply styles
-    class Kubernetes,Ingress,Service k8s;
-    class Pod1,Pod2,Pod3 pod;
-    class Prometheus,Grafana monitoring;
-    class SM monitor;
-    class Ext1,Ext2,Ext3,Ext4,Ext5,Ext6,Ext7,Ext8,Ext9 externalSvc;
-    class IG1,IG2,IG3,PG1,PG2,PG3 service;
-    class InternalClients,InternalAgents internalClient;
-    class ExternalProviders extProviders;
+    ExtClient --> Ingress
+    PP1 --> Providers
+    PP2 --> Providers
+    PP3 --> Providers
+
+    classDef client fill:#ede9fe,stroke:#7c3aed,stroke-width:2px,color:#1f2937
+    classDef ingress fill:#dbeafe,stroke:#2563eb,stroke-width:2px,color:#1e3a8a
+    classDef service fill:#bfdbfe,stroke:#2563eb,stroke-width:2px,color:#1e3a8a
+    classDef gateway fill:#7c3aed,stroke:#6d28d9,stroke-width:2px,color:#ffffff
+    classDef proxy fill:#a78bfa,stroke:#7c3aed,stroke-width:2px,color:#ffffff
+    classDef monitor fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#78350f
+    classDef provider fill:#f3f4f6,stroke:#9ca3af,stroke-width:1px,color:#1f2937
+
+    class ExtClient,IntClient client
+    class Ingress ingress
+    class Svc service
+    class IG1,IG2,IG3 gateway
+    class PP1,PP2,PP3 proxy
+    class SM,Prom,Graf monitor
+    class P_OpenAI,P_Anthropic,P_Groq,P_Cohere,P_Google,P_Ollama,P_DeepSeek,P_Cloudflare,P_Mistral,P_Moonshot provider
 ```
+
+Pods are interchangeable. Add capacity with an HPA; remove pods with rolling updates. The `ServiceMonitor` lets kube-prometheus-stack discover the metrics port without per-deployment scrape config. See [Observability](/observability) for the full Prometheus / Grafana / OTLP setup, and the [Kubernetes Operator](/operator) for managing this topology declaratively as Custom Resources.

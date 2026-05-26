@@ -242,7 +242,30 @@ export default withMermaid(
       },
     },
     mermaid: {
-      theme: 'default',
+      theme: 'base',
+      themeVariables: {
+        fontFamily:
+          'Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
+        fontSize: '14px',
+        primaryColor: '#ede9fe',
+        primaryTextColor: '#1f2937',
+        primaryBorderColor: '#7c3aed',
+        lineColor: '#6b7280',
+        secondaryColor: '#fef3c7',
+        tertiaryColor: '#f8fafc',
+        clusterBkg: '#f9fafb',
+        clusterBorder: '#e5e7eb',
+        edgeLabelBackground: '#ffffff',
+        labelTextColor: '#1f2937',
+      },
+      flowchart: {
+        curve: 'basis',
+        nodeSpacing: 50,
+        rankSpacing: 60,
+        padding: 16,
+        useMaxWidth: true,
+        htmlLabels: true,
+      },
     },
     vite: {
       build: {

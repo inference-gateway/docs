@@ -29,17 +29,52 @@ The [Model Context Protocol](https://modelcontextprotocol.io/) is an open standa
 ## How It Works
 
 ```mermaid
-graph TB
-    A[Client Request] --> B[Inference Gateway]
-    B --> C[MCP Middleware]
-    C --> D[Tool Discovery]
-    D --> E[Tool Injection]
-    E --> F[LLM Provider]
-    F --> G[Tool Calls]
-    G --> H[MCP Servers]
-    H --> I[Tool Results]
-    I --> J[Response Assembly]
-    J --> K[Client Response]
+flowchart TB
+    Client(["Client Request"])
+    Resp(["Client Response"])
+
+    subgraph Gateway["Inference Gateway"]
+        direction TB
+        Entry["Request Handler"]
+        MW["MCP Middleware"]
+        Disc["Tool Discovery"]
+        Inject["Tool Injection"]
+        Assembly["Response Assembly"]
+
+        Entry --> MW
+        MW --> Disc
+        Disc --> Inject
+        Assembly --> Entry
+    end
+
+    LLM["LLM Provider"]
+
+    subgraph MCPServers["MCP Servers"]
+        direction LR
+        Files[("Filesystem")]
+        DB[("Database")]
+        Search["Search"]
+        Time["Time"]
+    end
+
+    Client --> Entry
+    Inject --> LLM
+    LLM -. "tool calls" .-> MCPServers
+    MCPServers -. "results" .-> LLM
+    LLM --> Assembly
+    Entry --> Resp
+
+    classDef client fill:#ede9fe,stroke:#7c3aed,stroke-width:2px,color:#1f2937
+    classDef gateway fill:#7c3aed,stroke:#6d28d9,stroke-width:2px,color:#ffffff
+    classDef middleware fill:#a78bfa,stroke:#7c3aed,stroke-width:2px,color:#ffffff
+    classDef llm fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#78350f
+    classDef tool fill:#ecfdf5,stroke:#10b981,stroke-width:1px,color:#065f46
+
+    class Client,Resp client
+    class Entry,Assembly gateway
+    class MW,Disc,Inject middleware
+    class LLM llm
+    class Files,DB,Search,Time tool
 ```
 
 1. **Request Processing**: Client sends a chat completion request
