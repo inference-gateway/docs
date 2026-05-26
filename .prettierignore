@@ -7,6 +7,7 @@ dist/
 # Dependencies
 node_modules/
 .flox/
+.infer/
 
 # Generated files
 public/search-index.json
@@ -22,3 +23,5 @@ pnpm-lock.yaml
 
 # Generated files
 CHANGELOG.md
+CLAUDE.md
+AGENTS.md

@@ -4,74 +4,93 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repo is
 
-The documentation site for [Inference Gateway](https://github.com/inference-gateway/inference-gateway), built with **Next.js 16 + MDX** and shipped as a **static export** (`output: 'export'` in `next.config.mjs`). Content is authored as MDX files in `markdown/` and rendered by thin App Router page wrappers in `app/`. Deploys as plain static files to `docs.inference-gateway.com`.
+The documentation site for [Inference Gateway](https://github.com/inference-gateway/inference-gateway), built with **VitePress 1.x** and Vue 3, shipped as a static site to `docs.inference-gateway.com` via GitHub Pages. Content is authored as `.md` files at the repo root; each top-level `.md` becomes a route.
 
 Node `^24.15.0` is required (enforced in `package.json` engines; matched by `.flox/env/manifest.toml`).
 
 ## Commands
 
 ```bash
-npm run dev              # local dev server
-npm run build            # static build → out/ (prebuild auto-runs search index + sitemap)
-npm run serve            # build, then serve out/ via `npx serve`
-npm run clean            # rm -rf out/ .next/
+npm run dev              # local dev server on http://localhost:5173
+npm run build            # static build → .vitepress/dist/
+npm run preview          # serve .vitepress/dist/ for local preview
 
-npm run lint             # ESLint (eslint-config-next)
-npm run lint:md          # markdownlint over **/*.md + **/*.mdx
+npm run lint:md          # markdownlint over **/*.md
 npm run lint:md:fix      # autofix markdownlint
 npm run format           # prettier --write .
 npm run format:check     # prettier --check .
-
-npm run generate-sitemap        # writes public/sitemap.xml
-npm run generate-search-index   # writes public/search-index.json
 ```
 
-CI (`.github/workflows/ci.yml`) runs `lint:md`, `lint`, `format:check`, and `build`. Husky `pre-commit` blocks commits that fail `format:check` or `lint:md` — fix with `npm run format` / `npm run lint:md:fix` rather than bypassing.
+CI (`.github/workflows/ci.yml`) runs `lint:md`, `format:check`, and `build` on every PR.
+Deploys (`.github/workflows/deploy.yml`) fire on every push to `main` that touches `**/*.md`, `public/**`, `.vitepress/**`, or `package.json` - content pushes now ship.
+Releases (`.github/workflows/release.yml`) run semantic-release for changelog/tags only - it does NOT deploy.
 
 ## Architecture
 
-### Page = MDX + page.tsx + Content.tsx (three coordinated files)
+### One markdown file = one page
 
-Every docs page is a triple. To add a page called `foo`:
+To add a page called `foo`:
 
-1. `markdown/foo.mdx` — the actual content.
-2. `app/foo/page.tsx` — a server component that exports `metadata` built via `pageMetadata(...)` from `lib/metadata.ts` and renders `<FooContent />`.
-3. `app/foo/FooContent.tsx` — a `'use client'` component that imports the MDX and wraps it in `<div className="prose max-w-none">`.
+1. Create `foo.md` at the repo root.
+2. Add `title` and `description` frontmatter (the description goes into `<meta name="description">`, OG, and sitemap).
+3. Add the page to `themeConfig.sidebar` in `.vitepress/config.ts` so it shows up in nav.
 
-The split exists because metadata must be exported from a server component, while the MDX rendering pipeline (Prism, Mermaid, clipboard handlers in `mdx-components.tsx`) needs `'use client'`. Mirror the pattern in any existing `app/<slug>/` directory rather than improvising.
-
-The home page is special: `markdown/main.mdx` → `/` (mapped in `scripts/generate-search-index.ts` and rendered by `app/HomeContent.tsx`).
+Homepage is special: `index.md` uses VitePress's hero `layout: home` with frontmatter-driven hero/features blocks.
 
 ### Sidebar nav is hand-maintained
 
-`components/Sidebar.tsx` has a top-level `sections` array that drives the entire left nav. New pages won't appear in the sidebar until added here — there is no filesystem-based auto-discovery.
+`.vitepress/config.ts` `themeConfig.sidebar` is a hand-maintained array. New pages don't appear automatically.
 
-### MDX rendering pipeline (`mdx-components.tsx`)
+### Config (`.vitepress/config.ts`)
 
-Centralizes all MDX → React customization:
+- `cleanUrls: true` - URLs are served without `.html` suffix.
+- `srcExclude` skips `README.md`, `CHANGELOG.md`, `CLAUDE.md`, `AGENTS.md` so they don't become pages.
+- `sitemap.hostname` + `transformItems` filter out `404` from the sitemap.
+- `transformPageData` injects per-page `canonical` and `og:url` `<link>`/`<meta>` tags.
+- `head` block sets OG/Twitter cards, theme-color, and a JSON-LD structured-data block (Organization + SoftwareApplication + WebSite).
+- `buildEnd` writes `.nojekyll` to `dist/` so GitHub Pages serves files starting with `_` (otherwise Jekyll strips them).
+- Mermaid is wired via `withMermaid()` from `vitepress-plugin-mermaid` - ` ```mermaid ` fences render to SVG at build time, so diagrams are indexable text.
+- Local search is enabled (`search: { provider: 'local' }`) - no Algolia.
 
-- **Headings** (`h1`–`h6`) auto-slugged from text and rendered with anchor links + smooth-scroll hash handling (offset by 64px header).
-- **Code fences** routed through a `CodeBlock` component using Prism for highlighting (bash, ts/tsx, go, rust, python, yaml, json, http, etc.) with a clipboard-copy button and optional `data-filename` header.
-- **` ```mermaid ` fences** are intercepted and rendered via the `MermaidDiagram` component (Mermaid imported dynamically, click-to-zoom into a modal).
-- **Tables, lists, links** are themed via CSS custom properties (`--color-*`) defined in `app/globals.css` so dark-mode follows `next-themes`.
+### Theme customization (`.vitepress/theme/`)
 
-If a code language doesn't highlight, add the corresponding `prismjs/components/prism-<lang>` import here.
+- `index.ts` extends the default theme and globally registers the `<ConfigTable>` Vue component.
+- `style.css` overrides `--vp-c-brand-*` to keep Inference Gateway purple (`#7c3aed` family) rather than VitePress default teal.
+- `components/ConfigTable.vue` renders the 3-column env-var table used 17 times in `configuration.md`.
 
-### Build-time generators (`scripts/`)
+### `configuration.md` uses `<script setup>`
 
-`prebuild` hook runs both before every `npm run build`:
+Because Vue's `:rows="..."` attribute parsing breaks on inline string literals containing `""`, table data lives in a top-of-file `<script setup>` block and the ConfigTable receives it by reference (`:rows="generalSettings"`). When adding a new section, follow the same pattern - declare a const, then reference it.
 
-- `generate-search-index.ts` walks `markdown/**/*.mdx`, tokenizes titles/headings/first 500 content words into a keyword → entries map, writes `public/search-index.json`. The `SearchModal` (`components/SearchModal.tsx`) fetches this at runtime — there is no server-side search.
-- `generate-sitemap.ts` globs `app/**/page.*` for routes and matches them against `markdown/*.mdx` to use the MDX file's `mtime` as `lastmod` (so prose edits show up in the sitemap even when the wrapper `page.tsx` hasn't changed).
+### Inline GitHub Actions / Vue interpolation conflicts
 
-Both are skipped during `npm run dev`. If search results or sitemap look stale, run them manually.
+The patterns `${{ ... }}` (GitHub Actions, Grafana templating) and `<id>`-style angle-bracket placeholders break the Vue compiler when they appear in inline markdown code spans (e.g. `` `${{ secrets.X }}` ``). Workarounds:
 
-### Path alias
+- Inside fenced code blocks: leave them; VitePress wraps fenced blocks with `v-pre`.
+- Inline: use `<code v-pre>...</code>` instead of backticks (see `github-action.md` for examples).
 
-`@/*` resolves to the repo root (`tsconfig.json`). Use `@/components/...`, `@/lib/...`, `@/markdown/...` rather than relative paths.
+### Public assets (`public/`)
+
+- `CNAME` - serves `docs.inference-gateway.com`.
+- `robots.txt` - allows all crawlers, points at `/sitemap.xml`.
+- `logo.svg` - favicon, apple-touch-icon, and hero image.
+- `images/` - any inline screenshots/GIFs (e.g. `tui.gif`).
+
+The OG/Twitter card image points at `https://github.com/inference-gateway.png` (the org avatar) since we don't ship a custom OG image.
 
 ## Conventions
 
-- **Edit content in `markdown/*.mdx`**, not in the `app/` wrappers. The wrappers exist only for routing + metadata.
-- Markdownlint config (`.markdownlint.json`) disables MD013 (line length), MD040 (fenced code language), MD041 (first-line heading), and allows HTML/JSX inside MDX. Stick to ATX headings (`#`) and dash bullets (`-`).
+- **Author content in `*.md` at the repo root** - don't recreate the old Next.js `markdown/` directory.
+- Markdownlint config (`.markdownlint.json`) disables MD013 (line length), MD040 (fenced code language), MD041 (first-line heading), MD033 (HTML), and MD024 siblings-only. ATX headings (`#`) and dash bullets (`-`).
 - Prettier: 2-space, single quotes, semicolons, 100-col, trailing commas `es5`, LF endings.
+- `[DOCS]` titles and PR bodies in this repo are ASCII-only (no em dash, en dash) - the maintainer skill enforces this org-wide.
+
+## SEO-blocking gotchas to watch for
+
+Past indexing problems traced to:
+
+1. **Client-rendered content** - VitePress now SSRs the full body into `dist/<page>.html`. Never wrap content in client-only Vue components without thinking about whether Google sees the prose in the first-pass HTML.
+2. **Deploy trigger** - the old `release.yml` only redeployed when `release.yml` itself changed, so content pushes never shipped. The new `deploy.yml` watches `**/*.md` and `.vitepress/**`.
+3. **Trailing slashes** - `cleanUrls: true` means both `/foo` and `/foo.html` work; the sitemap lists the canonical no-slash form.
+4. **404s** - `404.md` exists; the build emits a real `404.html`.
+5. **HTTPS enforcement and Search Console verification** are repo/external-dashboard concerns, not code. Confirm `Settings → Pages → Enforce HTTPS` is on, and verify the `inference-gateway.com` domain property in Search Console via DNS TXT.

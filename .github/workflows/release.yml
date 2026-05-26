@@ -5,29 +5,19 @@ on:
   push:
     branches:
       - main
-    paths:
-      - '.github/workflows/release.yml'
-  pull_request:
-    paths:
-      - '.github/workflows/release.yml'
   workflow_dispatch:
 
 permissions:
   contents: write
-  pages: write
-  id-token: write
 
 concurrency:
-  group: 'pages'
-  cancel-in-progress: true
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   github_release:
     name: GitHub Release
     runs-on: ubuntu-24.04
-    outputs:
-      new_release_version: ${{ steps.semantic.outputs.new_release_version }}
-      new_release_published: ${{ steps.semantic.outputs.new_release_published }}
     steps:
       - uses: actions/checkout@v6.0.2
         with:
@@ -71,8 +61,8 @@ jobs:
           GIT_COMMITTER_EMAIL: 'eden.reich@gmail.com'
         run: |
           # Create first release if not exists using gh cli - Initial Release Version 0.1.0
-          # This is an HACK because semantic release doesn't support versions under 1.0.0
-          # But if we already have a release then it respects it and start to increment from there
+          # Semantic release doesn't support versions under 1.0.0; if a release exists
+          # it starts incrementing from there.
           if ! gh release view 0.1.0 >/dev/null 2>&1; then
             gh release create 0.1.0 --title "Initial Release" --notes "Initial Release" --target main
           fi
@@ -83,65 +73,13 @@ jobs:
           # Check if there are no changes
           if $(echo "$DRY_OUTPUT" | grep -q "no new version is released"); then
             echo "No new release needed"
-            echo "new_release_published=false" >> $GITHUB_OUTPUT
             exit 0
           fi
 
-          # Extract version from dry run output
-          VERSION=$(echo "$DRY_OUTPUT" | grep -o "The next release version is [0-9]\+\.[0-9]\+\.[0-9]\+\(-rc\.[0-9]\+\)\?" | cut -d ' ' -f6)
-          if [ -z "$VERSION" ]; then
-            echo "Error: Could not determine version"
-            exit 1
-          fi
-
-          echo "new_release_version=$VERSION" >> $GITHUB_OUTPUT
-
           # Run actual release
           if semantic-release; then
-            echo "Successfully released version $VERSION"
-            echo "new_release_published=true" >> $GITHUB_OUTPUT
+            echo "Released successfully"
           else
             echo "Release failed"
             exit 1
           fi
-
-  build:
-    runs-on: ubuntu-24.04
-    needs:
-      - github_release
-    if: needs.github_release.outputs.new_release_published == 'true'
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6.0.2
-
-      - name: Setup Node
-        uses: actions/setup-node@v6.4.0
-        with:
-          node-version-file: package.json
-          cache: npm
-          cache-dependency-path: package-lock.json
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build static site
-        run: npm run build
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v5.0.0
-        with:
-          path: out
-
-  deploy:
-    needs:
-      - github_release
-      - build
-    if: needs.github_release.outputs.new_release_published == 'true'
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v5.0.0
