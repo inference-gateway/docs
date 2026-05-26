@@ -1129,6 +1129,10 @@ infer skills uninstall pdf-helper --user
 
 A skill instructs the model to run shell commands, read files, or call external APIs. Treat skills like any other piece of executable content - **only install from trusted sources**. The CLI's normal tool-approval system still gates each call, but a malicious skill could craft a plausible-looking Bash command. The `name` validator rejects vendor strings to make impersonating an official skill harder.
 
+**Publishing a skill:**
+
+To list your skill in the public catalog (so it surfaces in `infer skills search` and on [registry.inference-gateway.com/skills/](https://registry.inference-gateway.com/skills/)), open a one-line PR against [`inference-gateway/skills`](https://github.com/inference-gateway/skills)'s `skills.yaml`. See the [Skills Catalog](/skills) guide for the entry shape, validation rules (kebab-case `name`, 1-1024 char `description`, ADL license enum), and the build/cron cycle.
+
 ### A2A Integration
 
 Delegate specialized tasks to Agent-to-Agent compatible agents.
