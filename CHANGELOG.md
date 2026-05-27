@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.35](https://github.com/inference-gateway/docs/compare/0.6.34...0.6.35) (2026-05-27)
+
+### 📚 Documentation
+
+* **typescript-adk:** document AgentBuilder fluent agent wiring ([#74](https://github.com/inference-gateway/docs/issues/74)) ([fbdd9c6](https://github.com/inference-gateway/docs/commit/fbdd9c6c4fdc18e3824591da85ef68e9f36e07ca)), closes [#73](https://github.com/inference-gateway/docs/issues/73)
+
 ## [0.6.34](https://github.com/inference-gateway/docs/compare/0.6.33...0.6.34) (2026-05-27)
 
 ### 🐛 Bug Fixes
