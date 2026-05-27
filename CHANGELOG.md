@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.34](https://github.com/inference-gateway/docs/compare/0.6.33...0.6.34) (2026-05-27)
+
+### 🐛 Bug Fixes
+
+* **ci:** only trigger infer when actually needed ([5925036](https://github.com/inference-gateway/docs/commit/59250366ae8269b526d5f691272a143a3d2b8ae3))
+
 ## [0.6.33](https://github.com/inference-gateway/docs/compare/0.6.32...0.6.33) (2026-05-27)
 
 ### 📚 Documentation
