@@ -1,6 +1,6 @@
 ---
 title: TypeScript ADK
-description: Build A2A-compatible agents in TypeScript with the @inference-gateway/adk package. Handler registration, JSON-RPC message/send, message/stream, tasks/get, tasks/list, tasks/cancel with TaskCancellationRegistry, SSE event sequence, CloudEvents v1.0 envelopes, STREAMING_STATUS_UPDATE_INTERVAL, DefaultBackgroundTaskHandler agentic loop with tool dispatch and usage metadata, MAX_CHAT_COMPLETION_ITERATIONS cap, reserved input_required tool, validation contract, id semantics, cancellation, and runnable client samples.
+description: Build A2A-compatible agents in TypeScript with the @inference-gateway/adk package. Handler registration, JSON-RPC message/send, message/stream, tasks/get, tasks/list, tasks/cancel with TaskCancellationRegistry, SSE event sequence, CloudEvents v1.0 envelopes, STREAMING_STATUS_UPDATE_INTERVAL, DefaultBackgroundTaskHandler agentic loop with tool dispatch and usage metadata, MAX_CHAT_COMPLETION_ITERATIONS cap, reserved input_required tool, AgentBuilder fluent wiring for OpenAICompatibleAgent with Go-parity defaults and lifecycle Callbacks, validation contract, id semantics, cancellation, and runnable client samples.
 ---
 
 # TypeScript ADK
@@ -35,6 +35,7 @@ The ADK currently exposes the HTTP server core and the first A2A JSON-RPC method
 | `createTaskCancelHandler`           | Available | Synchronous `tasks/cancel` handler. Drops `PENDING` from the queue, aborts in-flight.    |
 | `TaskCancellationRegistry`          | Available | Shared `taskId -> AbortController` map bridging `tasks/cancel` and streaming handlers.   |
 | `DefaultBackgroundTaskHandler`      | Available | LLM-driven agentic loop with tool dispatch, history truncation, and an iteration cap.    |
+| `AgentBuilder`                      | Available | Fluent builder for an `OpenAICompatibleAgent`; defaults match the Go ADK byte-for-byte.  |
 | `A2AServerBuilder`                  | Available | Fluent server builder; validates that the agent card's capabilities match the handlers.  |
 
 ## The `message/send` JSON-RPC method
@@ -1342,6 +1343,370 @@ await server.listen(8080, '0.0.0.0');
 Because the agent card above advertises `capabilities.streaming: false`, the builder only requires a background handler. To support `message/stream` as well, add `.withStreamingTaskHandler(...)` and flip the capability to `true` - the builder validates the handler-vs-capability pairing at `build()` time and throws `A2AServerBuilderError` on a mismatch.
 
 > **Why `asHandler()` instead of passing `handler` directly?** The builder type signature is `withBackgroundTaskHandler(handler: BackgroundTaskHandler)`, where `BackgroundTaskHandler` is a plain function. `asHandler()` returns a closure that forwards each invocation to `handler.handle(context)`, so the same handler instance (and its accumulated usage tracker state) serves every dequeued task.
+>
+> **Prefer `AgentBuilder` when wiring an LLM-backed agent.** The snippet above takes `llmClient` and `toolBox` as inputs - in real code, build them through [`AgentBuilder`](#agent-builder-agentbuilder) (which centralises provider/model/sampling config, applies Go-parity defaults, and registers via `A2AServerBuilder.withAgent(...)`) rather than constructing the dependencies by hand.
+
+## Agent builder (`AgentBuilder`)
+
+`AgentBuilder` is the fluent entry point for wiring an LLM client, tool registry, lifecycle callbacks, system prompt, and sampling parameters into an `OpenAICompatibleAgent`. The agent it produces is a configuration container that [`DefaultBackgroundTaskHandler`](#background-task-handler-defaultbackgroundtaskhandler) (and any custom [`TaskHandler`](#wiring-into-a2aserverbuilder)) reads from to drive an LLM-backed turn.
+
+It mirrors the Go ADK's [`AgentBuilder`](https://github.com/inference-gateway/adk/blob/main/server/agent_builder.go) verbatim. Where the Go API exposes a single `WithConfig` call that consumes an `AgentConfig`, the TypeScript variant surfaces each field as its own builder method so callers can compose partial configuration without constructing a full config object - everything else (defaults, validation, the produced agent's accessor surface) is identical.
+
+> **Reach for `AgentBuilder` when** you need an LLM-backed agent and want one well-typed call site to wire it up. For a stub handler that doesn't talk to an LLM (echo, test fixtures), implement a plain [`TaskHandler`](#wiring-into-a2aserverbuilder) directly - the builder is overhead you don't need.
+
+### Quick start
+
+```ts
+import {
+  A2AServerBuilder,
+  AgentBuilder,
+  DefaultBackgroundTaskHandler,
+  type AgentCard,
+} from '@inference-gateway/adk';
+
+const card: AgentCard = {
+  name: 'support-agent',
+  description: 'Answers product questions using an LLM.',
+  version: '0.1.0',
+  protocolVersion: '1.0',
+  defaultInputModes: ['text/plain'],
+  defaultOutputModes: ['text/plain'],
+  capabilities: { streaming: false },
+  skills: [{ id: 'support', name: 'Support', description: 'Answer questions.', tags: [] }],
+};
+
+const agent = new AgentBuilder()
+  .withProvider('openai')
+  .withModel('gpt-4o-mini')
+  .withSystemPrompt('You are a careful customer-support agent.')
+  .build();
+
+const handler = new DefaultBackgroundTaskHandler({
+  llmClient: agent.getLLMClient(), // see "Bridging to DefaultBackgroundTaskHandler" below
+  systemPrompt: agent.getSystemPrompt(),
+  maxIterations: agent.getMaxIterations(),
+  maxConversationHistory: agent.getMaxConversationHistory(),
+});
+
+const server = new A2AServerBuilder()
+  .withAgentCard(card)
+  .withAgent(agent)
+  .withBackgroundTaskHandler(handler.asHandler())
+  .build();
+
+await server.listen(8080, '0.0.0.0');
+```
+
+`new AgentBuilder()` takes no constructor arguments - every field is configured through `.with*()` chains and validated when `build()` is called.
+
+### Builder methods
+
+Every method returns `this`, so calls compose. The fluent surface:
+
+| Method                              | Default                                                            | Description                                                                                                                                                                                                    |
+| ----------------------------------- | ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.withProvider(provider)`           | -                                                                  | Set the LLM provider (e.g. `'openai'`, `'ollama'`, `'groq'`). Required unless `.withLLMClient(...)` is used. Accepts the `Provider` enum or a raw string.                                                      |
+| `.withModel(model)`                 | -                                                                  | Set the model identifier (e.g. `'gpt-4o-mini'`). Required unless `.withLLMClient(...)` is used. A `<provider>/<model>` prefix is stripped to match Go ADK behaviour.                                           |
+| `.withTemperature(temperature)`     | provider default                                                   | Sampling temperature. Forwarded to the LLM call when set.                                                                                                                                                      |
+| `.withTopP(topP)`                   | provider default                                                   | Top-p sampling threshold.                                                                                                                                                                                      |
+| `.withMaxTokens(maxTokens)`         | provider default                                                   | Upper bound on tokens emitted per LLM response. Forwarded both to the LLM client (as `max_tokens` on every request) and stored on the agent for diagnostic access via `agent.getMaxTokens()`.                  |
+| `.withMaxIterations(maxIterations)` | `50` (`DEFAULT_MAX_CHAT_COMPLETION_ITERATIONS`)                    | Chat-completion iteration cap. Must be a positive integer; non-positive values cause `build()` to throw `AgentBuilderError`.                                                                                   |
+| `.withSystemPrompt(systemPrompt)`   | `DEFAULT_AGENT_SYSTEM_PROMPT` (see [Defaults](#defaults) below)    | System prompt prepended verbatim to every LLM call as a `system` message. Not counted against `maxConversationHistory`.                                                                                        |
+| `.withMaxConversationHistory(max)`  | `20` (`DEFAULT_MAX_CONVERSATION_HISTORY`)                          | Upper bound on conversation messages forwarded to the LLM per iteration. Older messages are dropped oldest-first; the system prompt is always preserved. Must be a positive integer.                           |
+| `.withCallbacks(callbacks)`         | `undefined`                                                        | Lifecycle callbacks (`beforeAgent` / `afterAgent` / `beforeModel` / `afterModel` / `beforeTool` / `afterTool`). See [Callbacks](#callbacks) below.                                                             |
+| `.withToolBox(toolBox)`             | `undefined`                                                        | Tool registry consulted on every iteration. Omit for a tool-free agent that stops after the first assistant message.                                                                                           |
+| `.withLLMClient(client)`            | builder constructs `OpenAICompatibleLLMClient` from provider/model | Inject a pre-built `OpenAICompatibleLLMClient`. When set, the builder skips internal LLM-client construction and uses this client verbatim; `.withProvider(...)` and `.withModel(...)` are no longer required. |
+| `.build()`                          | -                                                                  | Validate the configuration and return an `OpenAICompatibleAgentImpl`. Throws `AgentBuilderError` on the failures listed below.                                                                                 |
+
+### `build()` validation
+
+`build()` throws `AgentBuilderError` (a distinct subclass of `Error` so callers can differentiate it from `LLMConfigurationError` raised by the downstream LLM client) when:
+
+| Condition                                                                                              | Error message contains                                                         |
+| ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------ |
+| Neither `.withLLMClient(...)` nor `.withProvider(...)` was called (or the provider is an empty string) | `provider is required - call withProvider() or withLLMClient() before build()` |
+| Neither `.withLLMClient(...)` nor `.withModel(...)` was called (or the model is an empty string)       | `model is required - call withModel() or withLLMClient() before build()`       |
+| `maxIterations <= 0`                                                                                   | `maxIterations must be a positive integer`                                     |
+| `maxConversationHistory <= 0`                                                                          | `maxConversationHistory must be a positive integer`                            |
+
+Validation runs **before** any LLM client is constructed, so a misconfigured builder fails fast without opening connections or reading credentials.
+
+### Defaults
+
+Every builder default matches the Go ADK's `AgentConfig` in [`adk/server/config/config.go`](https://github.com/inference-gateway/adk/blob/main/server/config/config.go) byte-for-byte. A deployment that pins the same env-driven config on both ADKs produces the same runtime behaviour regardless of which ADK is serving.
+
+| Field                    | Default value                                                                                                            | Constant                                 | Go ADK source                             |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------- | ----------------------------------------- |
+| `maxIterations`          | `50`                                                                                                                     | `DEFAULT_MAX_CHAT_COMPLETION_ITERATIONS` | `AgentConfig.MaxChatCompletionIterations` |
+| `maxConversationHistory` | `20`                                                                                                                     | `DEFAULT_MAX_CONVERSATION_HISTORY`       | `AgentConfig.MaxConversationHistory`      |
+| `systemPrompt`           | `You are a helpful AI assistant processing an A2A (Agent-to-Agent) task. Please provide helpful and accurate responses.` | `DEFAULT_AGENT_SYSTEM_PROMPT`            | `AgentConfig.SystemPrompt` (env default)  |
+
+The system prompt is a **byte-for-byte copy** of the Go ADK's `AgentConfig.SystemPrompt` env default. Both ADKs export the value as a named constant (`DEFAULT_AGENT_SYSTEM_PROMPT` in TypeScript, the embedded env `default=...` tag in Go) so an override in either language can re-use the canonical phrasing if it wants to layer on top of it.
+
+### `OpenAICompatibleAgent`
+
+`build()` returns an `OpenAICompatibleAgentImpl` - a configuration container that implements the structural `OpenAICompatibleAgent` marker interface:
+
+```ts
+interface OpenAICompatibleAgent {
+  readonly id: string; // `<provider>/<model>`, diagnostic only
+}
+```
+
+The concrete class exposes accessors for every field the builder wired in:
+
+| Accessor                            | Returns                     | Notes                                                                                                |
+| ----------------------------------- | --------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `agent.getLLMClient()`              | `OpenAICompatibleLLMClient` | The wired LLM client - the only required field.                                                      |
+| `agent.getToolBox()`                | `ToolBox \| undefined`      | Defined only when `.withToolBox(...)` was called.                                                    |
+| `agent.getCallbacks()`              | `Callbacks \| undefined`    | Defined only when `.withCallbacks(...)` was called.                                                  |
+| `agent.getSystemPrompt()`           | `string`                    | Always defined - falls back to `DEFAULT_AGENT_SYSTEM_PROMPT`.                                        |
+| `agent.getMaxIterations()`          | `number`                    | Always defined - falls back to `DEFAULT_MAX_CHAT_COMPLETION_ITERATIONS`.                             |
+| `agent.getMaxConversationHistory()` | `number`                    | Always defined - falls back to `DEFAULT_MAX_CONVERSATION_HISTORY`.                                   |
+| `agent.getTemperature()`            | `number \| undefined`       | Defined only when `.withTemperature(...)` was called.                                                |
+| `agent.getTopP()`                   | `number \| undefined`       | Defined only when `.withTopP(...)` was called.                                                       |
+| `agent.getMaxTokens()`              | `number \| undefined`       | Defined only when `.withMaxTokens(...)` was called.                                                  |
+| `agent.id`                          | `string`                    | `<provider>/<model>`, derived from the wired LLM client. Diagnostic surface only - not load-bearing. |
+
+The agent itself does not run anything. The agentic loop lives in [`DefaultBackgroundTaskHandler`](#background-task-handler-defaultbackgroundtaskhandler) (or in a custom `TaskHandler` you implement) and consumes the agent through these accessors. A future iteration will move the loop onto the agent itself, matching the Go ADK's `OpenAICompatibleAgent.RunWithStream`.
+
+### `Callbacks`
+
+`Callbacks` is the lifecycle-hook configuration consumed by `.withCallbacks(...)`. Every field is optional and accepts an **array** of callbacks - multiple callbacks at the same lifecycle point execute in order, and the first non-`undefined` return short-circuits the remaining callbacks at that point:
+
+| Field         | Signature                                        | When                                           | Return semantics                                                                                                        |
+| ------------- | ------------------------------------------------ | ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `beforeAgent` | `(ctx) => Message \| undefined`                  | Before the agent's main execution loop starts. | Return a `Message` to skip agent execution and use it as the final response; `undefined` proceeds.                      |
+| `afterAgent`  | `(ctx, output) => Message \| undefined`          | After the agent's main execution completes.    | Return a `Message` to replace the agent's output; `undefined` keeps it. Not invoked when `beforeAgent` short-circuited. |
+| `beforeModel` | `(ctx, request) => LLMResponse \| undefined`     | Just before each LLM request.                  | Return an `LLMResponse` to skip the LLM call (caching / guardrails); `undefined` proceeds.                              |
+| `afterModel`  | `(ctx, response) => LLMResponse \| undefined`    | Just after each LLM response.                  | Return an `LLMResponse` to replace the upstream response; `undefined` keeps it.                                         |
+| `beforeTool`  | `(ctx, toolCall) => string \| undefined`         | Just before each tool dispatch.                | Return a string to skip execution and use the value as the tool result; `undefined` proceeds.                           |
+| `afterTool`   | `(ctx, toolCall, result) => string \| undefined` | Just after each tool's execution completes.    | Return a string to replace the tool result; `undefined` keeps the original.                                             |
+
+Every callback receives a shared `CallbackContext`:
+
+```ts
+interface CallbackContext {
+  readonly agentName?: string;
+  readonly invocationId: string;
+  readonly taskId?: string;
+  readonly contextId?: string;
+  readonly state: Record<string, unknown>; // session-scoped scratch data, mutable across callbacks
+  readonly signal: AbortSignal; // honoured by the agent and downstream dispatched work
+}
+```
+
+Each callback can return synchronously or as a `Promise`. The contract mirrors the Go ADK's `CallbackConfig` in [`adk/server/callbacks.go`](https://github.com/inference-gateway/adk/blob/main/server/callbacks.go); the only Go-specific affordance not carried over is `context.Context` propagation - the TS variant uses the `AbortSignal` on `CallbackContext` for cancellation instead.
+
+### Bridging to `DefaultBackgroundTaskHandler`
+
+`DefaultBackgroundTaskHandler` consumes the structural `LLMClient` interface (camelCase, `createCompletion`), not the `OpenAICompatibleLLMClient` returned by `agent.getLLMClient()` (snake_case wire shape, `chatCompletion`). The two shapes differ because the structural interface is the future-proof one the agentic loop will eventually drive directly - but the bridge is not yet shipped from the package. Until it lands, write a small adapter:
+
+```ts
+import {
+  ChatCompletionToolType,
+  MessageRole,
+  OpenAICompatibleLLMClient,
+  type ChatMessage,
+  type CompletionResult,
+  type CreateCompletionOptions,
+  type LLMClient,
+  type LLMMessage,
+  type LLMTool,
+  type ToolDefinition,
+} from '@inference-gateway/adk';
+
+function adaptLLMClient(client: OpenAICompatibleLLMClient): LLMClient {
+  return {
+    async createCompletion(opts: CreateCompletionOptions): Promise<CompletionResult> {
+      const response = await client.chatCompletion(opts.messages.map(toWireMessage), {
+        ...(opts.tools !== undefined && opts.tools.length > 0
+          ? { tools: opts.tools.map(toWireTool) }
+          : {}),
+        ...(opts.signal !== undefined ? { signal: opts.signal } : {}),
+      });
+      const msg = response.choices[0]?.message;
+      const toolCalls = msg?.tool_calls?.map((tc) => ({
+        id: tc.id,
+        name: tc.function.name,
+        arguments: tc.function.arguments,
+      }));
+      const usage =
+        response.usage !== undefined
+          ? {
+              promptTokens: response.usage.prompt_tokens,
+              completionTokens: response.usage.completion_tokens,
+              totalTokens: response.usage.total_tokens,
+            }
+          : undefined;
+      return {
+        message: {
+          ...(typeof msg?.content === 'string' ? { content: msg.content } : {}),
+          ...(toolCalls !== undefined && toolCalls.length > 0 ? { toolCalls } : {}),
+        },
+        ...(usage !== undefined ? { usage } : {}),
+      };
+    },
+  };
+}
+
+function toWireMessage(message: ChatMessage): LLMMessage {
+  switch (message.role) {
+    case 'system':
+      return { role: MessageRole.system, content: message.content };
+    case 'user':
+      return { role: MessageRole.user, content: message.content };
+    case 'assistant': {
+      const toolCalls = message.toolCalls?.map((tc) => ({
+        id: tc.id,
+        type: ChatCompletionToolType.function,
+        function: { name: tc.name, arguments: tc.arguments },
+      }));
+      return {
+        role: MessageRole.assistant,
+        content: message.content ?? '',
+        ...(toolCalls !== undefined && toolCalls.length > 0 ? { tool_calls: toolCalls } : {}),
+      };
+    }
+    case 'tool':
+      return {
+        role: MessageRole.tool,
+        content: message.content,
+        tool_call_id: message.toolCallId,
+      };
+  }
+}
+
+function toWireTool(tool: ToolDefinition): LLMTool {
+  return {
+    type: ChatCompletionToolType.function,
+    function: {
+      name: tool.name,
+      description: tool.description,
+      parameters: tool.parameters as Record<string, unknown>,
+      strict: false,
+    },
+  };
+}
+```
+
+The same adapter ships verbatim in the [`examples/ai-powered/server.ts`](https://github.com/inference-gateway/typescript-adk/blob/main/examples/ai-powered/server.ts) reference example. When the bridge is published from the package itself the adapter goes away; the rest of the wiring below does not change.
+
+### End-to-end example
+
+The canonical pattern: `AgentBuilder` -> `OpenAICompatibleAgent` -> `DefaultBackgroundTaskHandler` -> [`A2AServerBuilder.withAgent(...)`](#wiring-into-a2aserverbuilder). The agent is registered with the builder so that any future `TaskHandler` registered via [`withTaskHandler`](#wiring-into-a2aserverbuilder) receives it through `setAgent`, while the background loop runs through `DefaultBackgroundTaskHandler` against the agent's wired LLM client and tool box.
+
+```ts
+import {
+  A2AServerBuilder,
+  AgentBuilder,
+  DefaultBackgroundTaskHandler,
+  DefaultToolBox,
+  createTool,
+  type AgentCard,
+  type Callbacks,
+} from '@inference-gateway/adk';
+
+// 1. Describe the agent on the wire.
+const card: AgentCard = {
+  name: 'support-agent',
+  description: 'Answers product questions and looks up account state.',
+  version: '0.1.0',
+  protocolVersion: '1.0',
+  defaultInputModes: ['text/plain'],
+  defaultOutputModes: ['text/plain'],
+  capabilities: { streaming: false },
+  skills: [
+    {
+      id: 'support',
+      name: 'Customer support',
+      description: 'Answer questions using account-lookup tools.',
+      tags: [],
+    },
+  ],
+};
+
+// 2. Wire up a tool registry.
+const toolBox = new DefaultToolBox();
+toolBox.addTool(
+  createTool({
+    name: 'lookup_account',
+    description: 'Fetch summary data for a customer account.',
+    parameters: {
+      type: 'object',
+      properties: { accountId: { type: 'string', description: 'Account identifier.' } },
+      required: ['accountId'],
+    },
+    execute: async (rawArgs) => {
+      const { accountId } = JSON.parse(rawArgs) as { accountId: string };
+      // ... fetch from your backing system
+      return JSON.stringify({ accountId, status: 'active', plan: 'pro' });
+    },
+  })
+);
+
+// 3. Lifecycle callbacks - optional, shown here for completeness.
+const callbacks: Callbacks = {
+  beforeModel: [
+    (ctx, request) => {
+      console.log(`[${ctx.invocationId}] LLM call: ${request.messages.length} messages`);
+      return undefined; // proceed
+    },
+  ],
+};
+
+// 4. Build the agent. Defaults: maxIterations=50, maxConversationHistory=20,
+//    systemPrompt = DEFAULT_AGENT_SYSTEM_PROMPT (byte-for-byte from the Go ADK).
+const agent = new AgentBuilder()
+  .withProvider('openai')
+  .withModel('gpt-4o-mini')
+  .withTemperature(0.2)
+  .withSystemPrompt('You are a customer-support agent. Use the tools when you need account state.')
+  .withMaxIterations(25)
+  .withToolBox(toolBox)
+  .withCallbacks(callbacks)
+  .build();
+
+// 5. Construct the background handler from the agent's accessors.
+const handler = new DefaultBackgroundTaskHandler({
+  llmClient: adaptLLMClient(agent.getLLMClient()),
+  toolBox: agent.getToolBox(),
+  systemPrompt: agent.getSystemPrompt(),
+  maxIterations: agent.getMaxIterations(),
+  maxConversationHistory: agent.getMaxConversationHistory(),
+});
+handler.setEnableUsageMetadata(true);
+
+// 6. Register the agent and the handler on the server builder.
+const server = new A2AServerBuilder()
+  .withAgentCard(card)
+  .withAgent(agent)
+  .withBackgroundTaskHandler(handler.asHandler())
+  .build();
+
+await server.listen(8080, '0.0.0.0');
+```
+
+The full, runnable counterpart - including the `adaptLLMClient` helper from [Bridging to `DefaultBackgroundTaskHandler`](#bridging-to-defaultbackgroundtaskhandler), an in-process dequeue worker that drives `handler.handle(...)`, and a matching client - lives at [`examples/ai-powered/`](https://github.com/inference-gateway/typescript-adk/tree/main/examples/ai-powered) in the source repo. It mirrors the Go ADK's [`examples/ai-powered/`](https://github.com/inference-gateway/adk/tree/main/examples/ai-powered) for cross-language consistency.
+
+### `AgentBuilderError`
+
+`build()` throws `AgentBuilderError` - a distinct subclass of `Error` (with `name === 'AgentBuilderError'`) so callers can pinpoint whether a failure originated in the builder or in downstream LLM-client construction (the latter throws `LLMConfigurationError` from `@inference-gateway/adk/llm/errors.js`). Both errors are exported; production code typically catches both at the wiring boundary and aborts startup:
+
+```ts
+import { AgentBuilder, AgentBuilderError } from '@inference-gateway/adk';
+
+try {
+  const agent = new AgentBuilder().withProvider('openai').build();
+  // ...
+} catch (err) {
+  if (err instanceof AgentBuilderError) {
+    console.error(`agent misconfigured: ${err.message}`);
+    process.exit(1);
+  }
+  throw err;
+}
+```
 
 ## Parity with the Go ADK
 
@@ -1353,6 +1718,7 @@ The TypeScript ADK is being grown in lockstep with the [Go ADK](https://github.c
 - The `message/stream` SSE wire format - CloudEvents v1.0 envelopes, `source = 'adk/agent'`, `subject = taskId`, and the `AGENT_EVENT_TYPE.*` constants - is **byte-identical** to the Go ADK's emitter in `server/agent_streamable.go`. Client implementations target one canonical wire contract regardless of which ADK the agent is built with.
 - `STREAMING_STATUS_UPDATE_INTERVAL` shares its name, default (`1s`), and accepted format with the Go ADK's `server/config/config.go`.
 - `DefaultBackgroundTaskHandler` mirrors the Go ADK's [`DefaultBackgroundTaskHandler`](https://github.com/inference-gateway/adk/blob/main/server/task_handler.go) - same iteration cap default (`50`), same `MAX_CHAT_COMPLETION_ITERATIONS` env var name, same reserved `input_required` tool and `message` / `prompt` / `question` arg-key fallback, and the same `execution_stats` / `usage` metadata shape on `task.metadata`.
+- [`AgentBuilder`](#agent-builder-agentbuilder) mirrors the Go ADK's [`AgentBuilder`](https://github.com/inference-gateway/adk/blob/main/server/agent_builder.go) - same fluent surface (`withProvider` / `withModel` / `withTemperature` / `withTopP` / `withMaxTokens` / `withMaxIterations` / `withSystemPrompt` / `withMaxConversationHistory` / `withCallbacks` / `withToolBox` / `withLLMClient` / `build`), same defaults (`maxIterations: 50`, `maxConversationHistory: 20`), and a `systemPrompt` default that is a byte-for-byte copy of `AgentConfig.SystemPrompt` from [`server/config/config.go`](https://github.com/inference-gateway/adk/blob/main/server/config/config.go). The TS variant surfaces each LLM-config field as its own builder method instead of a single `WithConfig` call.
 - The generated `Message`, `Task`, and `Part` types are produced from the same `inference-gateway/schemas` source of truth, regenerated via `pnpm generate:types` and pinned to a specific schema commit.
 
 Where the TypeScript ADK has not yet shipped a handler that the Go ADK has, cross-referencing the Go source is the safest reference point.
