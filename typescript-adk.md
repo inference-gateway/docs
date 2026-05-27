@@ -46,7 +46,7 @@ The ADK currently exposes the HTTP server core and the first A2A JSON-RPC method
 
 This mirrors the Go ADK's [`HandleMessageSend`](https://github.com/inference-gateway/adk) / `CreateTaskFromMessage` semantics. Examples written against the Go ADK transfer over directly.
 
-> Need the agent's reply to land incrementally rather than after the whole turn finishes? Use [`message/stream`](#the-messagestream-json-rpc-method) instead - same JSON-RPC params, but the response is a Server-Sent Events stream of CloudEvents v1.0 frames carrying status transitions and partial-message deltas.
+> Need the agent's reply to land incrementally rather than after the whole turn finishes? Use [`message/stream`](#the-message-stream-json-rpc-method) instead - same JSON-RPC params, but the response is a Server-Sent Events stream of CloudEvents v1.0 frames carrying status transitions and partial-message deltas.
 
 ### Registering the handler
 
