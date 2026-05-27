@@ -7,7 +7,8 @@ const HOSTNAME = 'https://docs.inference-gateway.com';
 const SITE_NAME = 'Inference Gateway';
 const SITE_DESCRIPTION =
   'Documentation for Inference Gateway, an open-source, cloud-native gateway unifying multiple LLM providers (OpenAI, Anthropic, Groq, Cohere, Ollama, DeepSeek, Cloudflare and more) behind a single API.';
-const OG_IMAGE = `${HOSTNAME}/logo.png`;
+const OG_IMAGE = `${HOSTNAME}/og-image.webp`;
+const OG_IMAGE_TYPE = 'image/webp';
 
 const structuredData = {
   '@context': 'https://schema.org',
@@ -63,6 +64,16 @@ export default withMermaid(
     buildEnd(siteConfig) {
       writeFileSync(join(siteConfig.outDir, '.nojekyll'), '');
     },
+    transformHtml(html) {
+      // Strip <link rel="modulepreload"> tags for mermaid sub-chunks. VitePress
+      // generates these from the Vite manifest for every page, but the homepage
+      // and most pages have no diagrams. The chunks remain in the bundle and
+      // mermaid dynamically imports them on demand.
+      return html.replace(
+        /<link[^>]+rel="modulepreload"[^>]+href="[^"]*\/assets\/chunks\/(?:[A-Za-z0-9]*Diagram-|diagram-|classDiagram|stateDiagram|wardley(?:Diagram)?-|dagre-|cose-bilkent-|cytoscape\.esm|katex|sankey|kanban-definition|timeline-definition|mindmap-definition|virtual_mermaid)[^"]*"[^>]*>\s*/g,
+        ''
+      );
+    },
     head: [
       ['link', { rel: 'icon', type: 'image/png', href: '/logo.png' }],
       ['link', { rel: 'apple-touch-icon', href: '/logo.png' }],
@@ -84,12 +95,20 @@ export default withMermaid(
       ['meta', { property: 'og:description', content: SITE_DESCRIPTION }],
       ['meta', { property: 'og:url', content: HOSTNAME + '/' }],
       ['meta', { property: 'og:image', content: OG_IMAGE }],
+      ['meta', { property: 'og:image:type', content: OG_IMAGE_TYPE }],
+      ['meta', { property: 'og:image:width', content: '1200' }],
+      ['meta', { property: 'og:image:height', content: '630' }],
       ['meta', { property: 'og:image:alt', content: `${SITE_NAME} logo` }],
       ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
       ['meta', { name: 'twitter:title', content: `${SITE_NAME} Documentation` }],
       ['meta', { name: 'twitter:description', content: SITE_DESCRIPTION }],
       ['meta', { name: 'twitter:image', content: OG_IMAGE }],
       ['script', { type: 'application/ld+json' }, JSON.stringify(structuredData)],
+      [
+        'script',
+        {},
+        "document.addEventListener('DOMContentLoaded',function(){var e=document.getElementById('VPContent');if(e&&e.classList.contains('is-home')&&!e.querySelector('main'))e.setAttribute('role','main')});",
+      ],
     ],
     transformPageData(pageData) {
       const canonicalUrl = `${HOSTNAME}/${pageData.relativePath}`
@@ -278,6 +297,15 @@ export default withMermaid(
     vite: {
       build: {
         chunkSizeWarningLimit: 1500,
+        modulePreload: {
+          resolveDependencies: (_filename, deps) =>
+            deps.filter(
+              (d) =>
+                !/(?:^|\/)(?:[A-Za-z0-9]*Diagram-|diagram-|classDiagram|stateDiagram|wardley(?:Diagram)?-|dagre-|cose-bilkent-|cytoscape\.esm|katex|sankey|kanban-definition|timeline-definition|mindmap-definition|virtual_mermaid)/.test(
+                  d
+                )
+            ),
+        },
       },
     },
   })
