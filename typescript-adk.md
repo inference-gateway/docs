@@ -1,6 +1,6 @@
 ---
 title: TypeScript ADK
-description: Build A2A-compatible agents in TypeScript with the @inference-gateway/adk package. Handler registration, JSON-RPC message/send and message/stream, SSE event sequence, CloudEvents v1.0 envelopes, STREAMING_STATUS_UPDATE_INTERVAL, DefaultBackgroundTaskHandler agentic loop with tool dispatch and usage metadata, MAX_CHAT_COMPLETION_ITERATIONS cap, reserved input_required tool, validation contract, id semantics, cancellation, and runnable client samples.
+description: Build A2A-compatible agents in TypeScript with the @inference-gateway/adk package. Handler registration, JSON-RPC message/send, message/stream, tasks/get, tasks/list, tasks/cancel with TaskCancellationRegistry, SSE event sequence, CloudEvents v1.0 envelopes, STREAMING_STATUS_UPDATE_INTERVAL, DefaultBackgroundTaskHandler agentic loop with tool dispatch and usage metadata, MAX_CHAT_COMPLETION_ITERATIONS cap, reserved input_required tool, validation contract, id semantics, cancellation, and runnable client samples.
 ---
 
 # TypeScript ADK
@@ -32,6 +32,8 @@ The ADK currently exposes the HTTP server core and the first A2A JSON-RPC method
 | `createMessageStreamHandler`        | Available | Streaming `message/stream` handler. SSE response wrapped in CloudEvents v1.0 envelopes.  |
 | `createTaskGetHandler`              | Available | Synchronous `tasks/get` handler. Looks up a task across active and dead-letter storage.  |
 | `createTaskListHandler`             | Available | Synchronous `tasks/list` handler. Filterable, keyset-paginated over `(createdAt, id)`.   |
+| `createTaskCancelHandler`           | Available | Synchronous `tasks/cancel` handler. Drops `PENDING` from the queue, aborts in-flight.    |
+| `TaskCancellationRegistry`          | Available | Shared `taskId -> AbortController` map bridging `tasks/cancel` and streaming handlers.   |
 | `DefaultBackgroundTaskHandler`      | Available | LLM-driven agentic loop with tool dispatch, history truncation, and an iteration cap.    |
 | `A2AServerBuilder`                  | Available | Fluent server builder; validates that the agent card's capabilities match the handlers.  |
 
@@ -449,6 +451,256 @@ When the next call returns a `result` without `nextCursor`, the client has exhau
 
 The integration fixtures for this handler live at [`tests/server/task-list.test.ts`](https://github.com/inference-gateway/typescript-adk/blob/main/tests/server/task-list.test.ts) in the source repo.
 
+## The `tasks/cancel` JSON-RPC method
+
+`tasks/cancel` is the synchronous cancellation method a client uses to stop a queued or in-flight task. The handler:
+
+1. Validates the JSON-RPC `params` payload against `TaskCancelParams`.
+2. Looks the task up via `TaskStorage.getTask(taskId)`.
+3. Routes by current state:
+   - `PENDING` -> drops the task from the FIFO queue so no worker dequeues it, transitions the stored task to `CANCELLED`, writes it to the dead-letter store.
+   - `IN_PROGRESS` / `INPUT_REQUIRED` -> calls `registry.cancel(taskId, reason)` on the shared [`TaskCancellationRegistry`](#taskcancellationregistry), which aborts the `AbortController` the running handler registered, then transitions and dead-letters the task.
+   - terminal (`COMPLETED` / `FAILED` / `CANCELLED`) -> rejects the call with a JSON-RPC `-32602` error.
+   - unknown `taskId` -> rejects the call with a JSON-RPC `-32602` "task not found" error.
+4. Returns the wire-format `Task` reflecting the post-cancellation state.
+
+This mirrors the Go ADK's `CancelTask` in [`adk/server/task_manager.go`](https://github.com/inference-gateway/adk/blob/main/server/task_manager.go), including the choice to surface "cannot cancel" cases as `-32602` (same envelope as `tasks/get` and `tasks/list`) rather than a custom error code.
+
+> **Signal, don't wait.** The state transition and dead-letter write are synchronous, but the call does **not** wait for the aborted handler to fully unwind. The handler observes `signal.aborted`, finishes any cleanup it wants, and returns at its own pace. Clients that need to confirm the handler has finished should poll [`tasks/get`](#the-tasks-get-json-rpc-method) for a task whose stored state has settled.
+
+### Registering the handler
+
+```ts
+import {
+  TASK_CANCEL_METHOD,
+  TaskCancellationRegistry,
+  createTaskCancelHandler,
+} from '@inference-gateway/adk';
+
+const registry = new TaskCancellationRegistry();
+
+server.registerMethod(TASK_CANCEL_METHOD, createTaskCancelHandler({ storage, registry }));
+```
+
+> `TASK_CANCEL_METHOD` resolves to the string `'tasks/cancel'`. Use the exported constant rather than the literal so the registration stays in lockstep with conformance tests.
+
+The same `registry` instance must be supplied to every long-running handler (streaming or background) that should be cancellable through `tasks/cancel`. See [`TaskCancellationRegistry`](#taskcancellationregistry) below for the registration / unregistration contract handlers must follow.
+
+When the server is constructed via [`A2AServerBuilder`](#wiring-into-a2aserverbuilder), the builder creates a single `TaskCancellationRegistry`, wires it into the streaming handler, and registers `tasks/cancel` automatically. Manual registration as above is only needed when assembling an `A2AServer` directly.
+
+### Handler options
+
+`createTaskCancelHandler(options)` accepts:
+
+| Option     | Required | Default            | Description                                                                                                                                                                              |
+| ---------- | -------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `storage`  | Yes      | -                  | Implementation of `TaskStorage` used to look up, drop from queue, transition, and dead-letter the task.                                                                                  |
+| `registry` | No       | `undefined`        | Shared [`TaskCancellationRegistry`](#taskcancellationregistry). Required when the server runs long-lived handlers; may be omitted for servers that only enqueue work without processing. |
+| `now`      | No       | `() => new Date()` | Clock injection point for the cancellation timestamp. Useful for deterministic tests.                                                                                                    |
+
+Omitting `registry` is supported because `PENDING` tasks can still be cancelled without it (they are dropped directly from the FIFO queue). For `IN_PROGRESS` / `INPUT_REQUIRED` tasks the handler still flips the stored state and dead-letters the task, but no `AbortController` is signalled, so the running handler will keep running until it finishes naturally. In a production server you almost always want to pass the registry.
+
+### Request shape (`TaskCancelParams`)
+
+```ts
+interface TaskCancelParams {
+  readonly taskId: string; // required, non-empty
+  readonly metadata?: Struct; // free-form per-call metadata
+}
+```
+
+`taskId` mirrors the [`tasks/get`](#the-tasks-get-json-rpc-method) field name (the Go ADK's `types.TaskIdParams` uses `id`, but the TypeScript ADK uses `taskId` across the entire `tasks/*` family for consistency).
+
+### Response shape
+
+On success the handler returns the wire-format `Task` whose `status.state` is `TASK_STATE_CANCELLED`:
+
+```jsonc
+{
+  "id": "9c8b8b7e-...",
+  "contextId": "ctx-1",
+  "status": {
+    "state": "TASK_STATE_CANCELLED",
+    "timestamp": "2026-05-26T12:00:01.500Z",
+  },
+  "history": [
+    /* ... whatever messages had been recorded so far */
+  ],
+}
+```
+
+The cancelled task is moved into the dead-letter store, so a subsequent [`tasks/get`](#the-tasks-get-json-rpc-method) call returns the same record (with `status.state = 'TASK_STATE_CANCELLED'`).
+
+### State-machine behaviour
+
+The handler's branch table - the canonical reference for what `tasks/cancel` does for each inbound state:
+
+| Current task state                             | Queue effect                 | Registry effect                            | Stored state after | Dead-letter | Response                                                      |
+| ---------------------------------------------- | ---------------------------- | ------------------------------------------ | ------------------ | ----------- | ------------------------------------------------------------- |
+| `PENDING` (`TASK_STATE_SUBMITTED`)             | Removed from FIFO queue      | `cancel()` is still called (no-op if none) | `CANCELLED`        | Written     | `Task` wire form with `status.state = 'TASK_STATE_CANCELLED'` |
+| `IN_PROGRESS` (`TASK_STATE_WORKING`)           | No change (was never queued) | `AbortController.abort(reason)` invoked    | `CANCELLED`        | Written     | `Task` wire form with `status.state = 'TASK_STATE_CANCELLED'` |
+| `INPUT_REQUIRED` (`TASK_STATE_INPUT_REQUIRED`) | No change                    | `AbortController.abort(reason)` invoked    | `CANCELLED`        | Written     | `Task` wire form with `status.state = 'TASK_STATE_CANCELLED'` |
+| `COMPLETED` / `FAILED` / `CANCELLED`           | No change                    | Not invoked                                | Unchanged          | Unchanged   | JSON-RPC `-32602` `task cannot be cancelled in state <state>` |
+| Unknown `taskId`                               | No change                    | Not invoked                                | -                  | -           | JSON-RPC `-32602` `task not found`                            |
+
+The abort reason supplied by the handler is a `DOMException('Task cancelled via tasks/cancel', 'AbortError')`. Downstream executors that read `signal.reason` after the abort see this exact instance, so log lines and surfaced errors can distinguish "client disconnected" (the streaming handler's own abort path) from "cancelled via `tasks/cancel`" (this handler's abort path).
+
+### Validation contract
+
+All failures surface as JSON-RPC error code `-32602 Invalid Params` - the same envelope every other `tasks/*` method uses:
+
+| Failure                                        | Error message contains                              |
+| ---------------------------------------------- | --------------------------------------------------- |
+| `params` is `null`, an array, or not an object | `expected TaskCancelParams object`                  |
+| `taskId` missing, empty, or not a string       | `taskId is required and must be a non-empty string` |
+| `metadata` present but not an object           | `metadata must be an object`                        |
+| No task exists with the supplied `taskId`      | `task not found`                                    |
+| Task is already in a terminal state            | `task cannot be cancelled in state <state>`         |
+
+`<state>` is rendered as the internal `ManagedTask` state (`COMPLETED` / `FAILED` / `CANCELLED`), not the wire form, so logs grep against the same identifiers the storage layer uses.
+
+### `TaskCancellationRegistry`
+
+`TaskCancellationRegistry` is the shared `taskId -> AbortController` map that bridges `tasks/cancel` and any long-running handler (streaming, future background worker, custom). It is exported from the server entry of `@inference-gateway/adk` so advanced consumers can plug their own handlers into the cancel pipeline.
+
+The class is single-threaded by virtue of JavaScript's execution model - all mutations are atomic between awaits, so no internal locking is required. It mirrors the Go ADK's `RegisterTaskCancelFunc` / `UnregisterTaskCancelFunc` / `runningTasks` map on `DefaultTaskManager` in [`adk/server/task_manager.go`](https://github.com/inference-gateway/adk/blob/main/server/task_manager.go).
+
+```ts
+import { TaskCancellationRegistry } from '@inference-gateway/adk';
+
+const registry = new TaskCancellationRegistry();
+```
+
+#### Methods
+
+| Method                         | Returns   | Description                                                                                                                                                      |
+| ------------------------------ | --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `register(taskId, controller)` | `void`    | Register `controller` as the abort controller for `taskId`. Replaces any previously registered controller for the same id.                                       |
+| `unregister(taskId)`           | `boolean` | Drop the controller for `taskId` **without** aborting it. Returns `true` if one was registered, `false` otherwise. Safe to call unconditionally from `finally`.  |
+| `cancel(taskId, reason?)`      | `boolean` | Abort the controller for `taskId` and drop it. Returns `true` if a controller was registered (and aborted), `false` if no controller was registered for that id. |
+| `has(taskId)`                  | `boolean` | True when a controller is registered for `taskId`.                                                                                                               |
+| `size()`                       | `number`  | Number of currently registered controllers. Diagnostics only.                                                                                                    |
+| `clear()`                      | `void`    | Drop every registered controller without aborting them. Intended for tests; production code should rely on per-task `unregister` calls.                          |
+
+#### Lifecycle contract for handlers
+
+Any handler that owns a long-running task and wants to be cancellable through `tasks/cancel` must register its controller before work starts and unregister it on exit so the map never leaks past task completion:
+
+```ts
+import { TaskCancellationRegistry } from '@inference-gateway/adk';
+import type { StreamingTaskExecutor } from '@inference-gateway/adk';
+
+function createCustomExecutor(registry: TaskCancellationRegistry): StreamingTaskExecutor {
+  return async function* ({ task, signal }) {
+    // Bridge the request-scoped `signal` to a controller we can register.
+    const controller = new AbortController();
+    const forward = () => controller.abort(signal.reason);
+    if (signal.aborted) {
+      forward();
+    } else {
+      signal.addEventListener('abort', forward, { once: true });
+    }
+
+    registry.register(task.id, controller);
+    try {
+      // ... drive the LLM / tool calls, propagating `controller.signal`
+      // to every cancellable downstream call. Yield deltas / status events
+      // as usual. The executor MUST stop yielding promptly once the signal
+      // aborts so the outer handler can finalise the task.
+      yield { type: 'delta', message: /* ... */ };
+    } finally {
+      registry.unregister(task.id);
+      signal.removeEventListener('abort', forward);
+    }
+  };
+}
+```
+
+`unregister` is idempotent: calling it after `cancel()` (or after a different handler took over the same id) returns `false` rather than throwing. That makes the `finally` block above safe regardless of which side of the race finished first.
+
+The bundled streaming handler ([`createMessageStreamHandler`](#the-message-stream-json-rpc-method)) follows this contract internally when wired through [`A2AServerBuilder`](#wiring-into-a2aserverbuilder), so the example above is only relevant when assembling custom executors or non-streaming background handlers that need to participate in cancellation.
+
+### Runnable example
+
+Cancel a task that another client has just enqueued via `message/send`:
+
+```bash
+curl -sS -X POST http://localhost:8080/ \
+  -H 'Content-Type: application/json' \
+  --data '{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tasks/cancel",
+    "params": {
+      "taskId": "9c8b8b7e-3f4a-4b6e-9a1d-1b2c3d4e5f60"
+    }
+  }'
+```
+
+Response on a successful cancellation:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "id": "9c8b8b7e-3f4a-4b6e-9a1d-1b2c3d4e5f60",
+    "contextId": "ctx-1",
+    "status": {
+      "state": "TASK_STATE_CANCELLED",
+      "timestamp": "2026-05-26T12:00:01.500Z"
+    },
+    "history": [
+      {
+        "messageId": "client-msg",
+        "role": "ROLE_USER",
+        "contextId": "ctx-1",
+        "parts": [{ "text": "hello agent" }]
+      }
+    ]
+  }
+}
+```
+
+A cancel against a terminal task returns the structured error envelope (note the HTTP status is still `200`):
+
+```bash
+curl -sS -X POST http://localhost:8080/ \
+  -H 'Content-Type: application/json' \
+  --data '{
+    "jsonrpc": "2.0",
+    "id": 2,
+    "method": "tasks/cancel",
+    "params": { "taskId": "9c8b8b7e-3f4a-4b6e-9a1d-1b2c3d4e5f60" }
+  }'
+```
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 2,
+  "error": {
+    "code": -32602,
+    "message": "invalid params: task cannot be cancelled in state COMPLETED"
+  }
+}
+```
+
+And against an unknown id:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 3,
+  "error": {
+    "code": -32602,
+    "message": "invalid params: task not found"
+  }
+}
+```
+
+The integration fixtures backing every assertion above (per-state branch coverage, registry interaction, dead-letter persistence, conformance over the JSON-RPC wire) live at [`tests/server/task-cancel.test.ts`](https://github.com/inference-gateway/typescript-adk/blob/main/tests/server/task-cancel.test.ts) and the registry's own unit tests at [`tests/server/task-cancellation.test.ts`](https://github.com/inference-gateway/typescript-adk/blob/main/tests/server/task-cancellation.test.ts) in the source repo.
+
 ## The `message/stream` JSON-RPC method
 
 `message/stream` is the streaming counterpart to `message/send`. The JSON-RPC `params` are structurally identical to `MessageSendParams` - the difference is the response: instead of a single JSON-RPC envelope, the server holds the HTTP connection open and emits an `text/event-stream` response carrying [CloudEvents v1.0](https://github.com/cloudevents/spec/blob/v1.0.2/cloudevents/spec.md) envelopes that narrate the task's lifecycle from `WORKING` through to a terminal state.
@@ -662,6 +914,18 @@ When the originating HTTP request is cancelled (browser navigates away, `fetch` 
 4. Closes the SSE stream and moves the task into the dead-letter map for later inspection via `tasks/get`.
 
 The executor is expected to observe the abort cooperatively. The handler does not forcibly terminate generator iteration; long-running executor work that ignores the signal will keep running until it naturally yields or returns.
+
+### External cancellation via `tasks/cancel`
+
+`message/stream` also participates in the shared [`TaskCancellationRegistry`](#taskcancellationregistry) so an unrelated client can cancel a running stream by issuing a [`tasks/cancel`](#the-tasks-cancel-json-rpc-method) call against the same `taskId`. When the streaming handler is wired through [`A2AServerBuilder`](#wiring-into-a2aserverbuilder), the wiring is automatic - the builder constructs a single `TaskCancellationRegistry`, passes it to both handlers, and the streaming handler registers its internal `AbortController` against `task.id` before invoking the executor and unregisters it once the task settles.
+
+The end-to-end sequence when an external `tasks/cancel` arrives mid-stream:
+
+1. The cancel handler calls `registry.cancel(taskId, reason)`, aborting the streaming handler's controller (the `reason` is a `DOMException('Task cancelled via tasks/cancel', 'AbortError')`).
+2. The streaming handler observes the abort on `StreamingExecutorContext.signal`, lets the executor unwind, and emits the final `adk.agent.task.status.changed` frame with `status.state = 'TASK_STATE_CANCELLED'` and `final: true`.
+3. The cancel handler also writes the task to the dead-letter store synchronously, before the streaming handler's own cleanup runs. The streaming handler's cleanup respects an existing dead-letter entry rather than overwriting it, so the timestamp on the stored task reflects when `tasks/cancel` was received, not when the executor finished unwinding.
+
+The result is byte-identical to a client-side abort from the streaming consumer's perspective - the same `TASK_STATE_CANCELLED` SSE frame, the same dead-letter record - so clients do not need a separate code path for "I aborted my own stream" vs. "someone else cancelled my task."
 
 ### Validation and JSON-RPC error mapping
 
@@ -1085,6 +1349,7 @@ The TypeScript ADK is being grown in lockstep with the [Go ADK](https://github.c
 
 - The handler name, params shape, id semantics, validation rules, and synchronous return contract are **identical** to the Go implementation's `HandleMessageSend` / `CreateTaskFromMessage`.
 - Internal storage state (`PENDING`) and wire state (`TASK_STATE_SUBMITTED`) follow the same mapping as the Go ADK.
+- `tasks/cancel` mirrors the Go ADK's `CancelTask` in [`adk/server/task_manager.go`](https://github.com/inference-gateway/adk/blob/main/server/task_manager.go) - same per-state branch table (`PENDING` dropped from the queue; `IN_PROGRESS` / `INPUT_REQUIRED` aborted via the shared registry; terminal / unknown surfaced as JSON-RPC `-32602`), and same dead-letter on completion. The TypeScript ADK's [`TaskCancellationRegistry`](#taskcancellationregistry) is the structural equivalent of the Go ADK's `RegisterTaskCancelFunc` / `UnregisterTaskCancelFunc` / `runningTasks` map on `DefaultTaskManager`.
 - The `message/stream` SSE wire format - CloudEvents v1.0 envelopes, `source = 'adk/agent'`, `subject = taskId`, and the `AGENT_EVENT_TYPE.*` constants - is **byte-identical** to the Go ADK's emitter in `server/agent_streamable.go`. Client implementations target one canonical wire contract regardless of which ADK the agent is built with.
 - `STREAMING_STATUS_UPDATE_INTERVAL` shares its name, default (`1s`), and accepted format with the Go ADK's `server/config/config.go`.
 - `DefaultBackgroundTaskHandler` mirrors the Go ADK's [`DefaultBackgroundTaskHandler`](https://github.com/inference-gateway/adk/blob/main/server/task_handler.go) - same iteration cap default (`50`), same `MAX_CHAT_COMPLETION_ITERATIONS` env var name, same reserved `input_required` tool and `message` / `prompt` / `question` arg-key fallback, and the same `execution_stats` / `usage` metadata shape on `task.metadata`.
