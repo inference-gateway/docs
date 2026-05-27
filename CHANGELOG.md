@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.39](https://github.com/inference-gateway/docs/compare/0.6.38...0.6.39) (2026-05-27)
+
+### 🐛 Bug Fixes
+
+* use apache 2.0 license to match the actual license ([f51e627](https://github.com/inference-gateway/docs/commit/f51e62731b2c123954fdc352ab77742118c5d430))
+
 ## [0.6.38](https://github.com/inference-gateway/docs/compare/0.6.37...0.6.38) (2026-05-27)
 
 ### 🔧 Miscellaneous
