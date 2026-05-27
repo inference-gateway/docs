@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.40](https://github.com/inference-gateway/docs/compare/0.6.39...0.6.40) (2026-05-27)
+
+### 🔧 Miscellaneous
+
+* **urls:** add missing slash at the end and missing items in sitemap.xml ([7fa1d21](https://github.com/inference-gateway/docs/commit/7fa1d2138fe1db29c83dd34acc3806d5ae42cd02))
+
 ## [0.6.39](https://github.com/inference-gateway/docs/compare/0.6.38...0.6.39) (2026-05-27)
 
 ### 🐛 Bug Fixes
