@@ -1,6 +1,6 @@
 ---
 title: TypeScript ADK
-description: Build A2A-compatible agents in TypeScript with the @inference-gateway/adk package. Handler registration, JSON-RPC message/send and message/stream, SSE event sequence, CloudEvents v1.0 envelopes, STREAMING_STATUS_UPDATE_INTERVAL, validation contract, id semantics, cancellation, and runnable client samples.
+description: Build A2A-compatible agents in TypeScript with the @inference-gateway/adk package. Handler registration, JSON-RPC message/send and message/stream, SSE event sequence, CloudEvents v1.0 envelopes, STREAMING_STATUS_UPDATE_INTERVAL, DefaultBackgroundTaskHandler agentic loop with tool dispatch and usage metadata, MAX_CHAT_COMPLETION_ITERATIONS cap, reserved input_required tool, validation contract, id semantics, cancellation, and runnable client samples.
 ---
 
 # TypeScript ADK
@@ -31,7 +31,8 @@ The ADK currently exposes the HTTP server core and the first A2A JSON-RPC method
 | `createMessageSendHandler`          | Available | Synchronous `message/send` handler.                                                      |
 | `createMessageStreamHandler`        | Available | Streaming `message/stream` handler. SSE response wrapped in CloudEvents v1.0 envelopes.  |
 | `tasks/get`, etc.                   | Not yet   | Additional A2A methods land in subsequent releases.                                      |
-| LLM agent loop / tool dispatch      | Not yet   | The server core is deliberately decoupled from any LLM client.                           |
+| `DefaultBackgroundTaskHandler`      | Available | LLM-driven agentic loop with tool dispatch, history truncation, and an iteration cap.    |
+| `A2AServerBuilder`                  | Available | Fluent server builder; validates that the agent card's capabilities match the handlers.  |
 
 ## The `message/send` JSON-RPC method
 
@@ -570,6 +571,306 @@ The same code works in browsers (no Node-specific APIs are used beyond the optio
 
 Integration tests covering every conformance assertion above (event ordering, envelope shape, validation, cancellation, periodic re-emit cadence) live at [`tests/server/message-stream-conformance.test.ts`](https://github.com/inference-gateway/typescript-adk/blob/main/tests/server/message-stream-conformance.test.ts) in the source repo.
 
+## Background task handler (`DefaultBackgroundTaskHandler`)
+
+`DefaultBackgroundTaskHandler` is the LLM-driven agentic loop the TypeScript ADK ships out of the box. It owns the conversation history, dispatches tool calls returned by the model, feeds the results back into the next LLM call, and drives the task through to one of the three terminal A2A states (`COMPLETED`, `INPUT_REQUIRED`, `FAILED`) - or `CANCELLED` when the originating request's `AbortSignal` fires.
+
+It mirrors the Go ADK's `DefaultBackgroundTaskHandler` in [`adk/server/task_handler.go`](https://github.com/inference-gateway/adk/blob/main/server/task_handler.go). The TypeScript variant inlines the iteration loop because the early-bootstrap TS surface does not yet ship a stream-based agent abstraction; callers wire it into [`A2AServerBuilder`](#wiring-into-a2aserverbuilder) via the `withBackgroundTaskHandler` hook.
+
+The handler depends only on the structural `LLMClient` and `ToolBox` interfaces - concrete implementations land separately in [typescript-adk#27](https://github.com/inference-gateway/typescript-adk/issues/27) (HTTP-backed LLM client) and [typescript-adk#31](https://github.com/inference-gateway/typescript-adk/issues/31) (tool registry). Until those ship, supply your own implementations of the two interfaces below.
+
+### Constructor
+
+```ts
+import { DefaultBackgroundTaskHandler } from '@inference-gateway/adk';
+
+const handler = new DefaultBackgroundTaskHandler({
+  llmClient,
+  toolBox,
+  systemPrompt: 'You are a helpful assistant.',
+  maxIterations: 25,
+  maxConversationHistory: 40,
+});
+```
+
+#### Options
+
+| Option                   | Required | Default                                             | Description                                                                                                                                                              |
+| ------------------------ | -------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `llmClient`              | Yes      | -                                                   | OpenAI-compatible chat-completion client. Throws `TypeError` at construction time if omitted.                                                                            |
+| `toolBox`                | No       | `undefined`                                         | Tool registry consulted on every iteration. Without one the handler runs a tool-free loop and stops after the first assistant message.                                   |
+| `systemPrompt`           | No       | `undefined`                                         | Prepended verbatim to every LLM call as a `system` message. Not counted against `maxConversationHistory`.                                                                |
+| `maxIterations`          | No       | `MAX_CHAT_COMPLETION_ITERATIONS` env var, else `50` | Upper bound on the LLM-call / tool-dispatch loop. Must be a positive integer; non-positive values throw `RangeError`.                                                    |
+| `maxConversationHistory` | No       | `20`                                                | Upper bound on the number of conversation messages forwarded to the LLM per iteration. Older messages are dropped (oldest first); the system prompt is always preserved. |
+| `logger`                 | No       | `NOOP_LOGGER`                                       | Structural logger (`debug` / `info` / `warn` / `error`). Use `console` or a `pino`-compatible logger to surface iteration diagnostics and tool-execution failures.       |
+| `env`                    | No       | `process.env`                                       | Override the environment-variable source. Mainly a test seam.                                                                                                            |
+
+### `LLMClient` and `ToolBox` interfaces
+
+The handler is decoupled from any specific LLM provider or tool runtime - it depends only on these two structural interfaces:
+
+```ts
+interface LLMClient {
+  createCompletion(options: CreateCompletionOptions): Promise<CompletionResult>;
+}
+
+interface CreateCompletionOptions {
+  readonly messages: readonly ChatMessage[];
+  readonly tools?: readonly ToolDefinition[];
+  readonly signal?: AbortSignal;
+}
+
+interface CompletionResult {
+  readonly message: AssistantMessage;
+  readonly usage?: CompletionUsage;
+}
+
+interface AssistantMessage {
+  readonly content?: string;
+  readonly toolCalls?: readonly ToolCall[];
+}
+
+interface CompletionUsage {
+  readonly promptTokens: number;
+  readonly completionTokens: number;
+  readonly totalTokens?: number;
+}
+
+interface ToolBox {
+  list(): readonly ToolDefinition[];
+  execute(name: string, args: string, context: ToolExecutionContext): Promise<string>;
+}
+
+interface ToolDefinition {
+  readonly name: string;
+  readonly description: string;
+  readonly parameters: Struct; // JSON Schema for the tool arguments
+}
+
+interface ToolCall {
+  readonly id: string;
+  readonly name: string;
+  readonly arguments: string; // JSON-encoded blob, OpenAI convention
+}
+
+interface ToolExecutionContext {
+  readonly task: ManagedTask;
+  readonly signal: AbortSignal;
+}
+```
+
+`ChatMessage` is a discriminated union covering the four OpenAI-style roles - `system`, `user`, `assistant` (with optional `toolCalls`), and `tool` (with the originating `toolCallId`). The handler manages the array internally; callers do not construct these directly.
+
+> **Concrete implementations.** A first-party HTTP-backed `LLMClient` lands in [typescript-adk#27](https://github.com/inference-gateway/typescript-adk/issues/27); a tool registry built around the same JSON Schema surface lands in [typescript-adk#31](https://github.com/inference-gateway/typescript-adk/issues/31). Until then, supply your own - the interfaces are deliberately small.
+
+### Iteration loop
+
+Every `handle()` call walks the task through this loop. The handler enters the loop in `IN_PROGRESS` (transitioning from `PENDING` if necessary) and exits in exactly one of `COMPLETED`, `INPUT_REQUIRED`, `FAILED`, or `CANCELLED`.
+
+```mermaid
+flowchart TD
+    Start(["handle(context)"])
+    Pending{"task.state == PENDING?"}
+    Promote["transition -> IN_PROGRESS"]
+    Build["Build conversation:\nsystemPrompt + task.messages"]
+    Iter{"iteration < maxIterations?"}
+    Abort{"signal.aborted?"}
+    Truncate["Truncate to maxConversationHistory\n(system always kept)"]
+    Call["llmClient.createCompletion(messages, tools)"]
+    NoTools{"toolCalls.length == 0?"}
+    InputReq{"any toolCall.name == 'input_required'?"}
+    Dispatch["For each tool call:\ntoolBox.execute(name, args, ctx)\nappend result to conversation"]
+    Completed(["finalize COMPLETED"])
+    InputRequired(["finalize INPUT_REQUIRED"])
+    Cancelled(["finalize CANCELLED"])
+    Failed(["finalize FAILED\n(iteration cap or thrown error)"])
+
+    Start --> Pending
+    Pending -- yes --> Promote
+    Pending -- no --> Build
+    Promote --> Build
+    Build --> Iter
+    Iter -- yes --> Abort
+    Iter -- no --> Failed
+    Abort -- yes --> Cancelled
+    Abort -- no --> Truncate
+    Truncate --> Call
+    Call --> NoTools
+    NoTools -- yes --> Completed
+    NoTools -- no --> InputReq
+    InputReq -- yes --> InputRequired
+    InputReq -- no --> Dispatch
+    Dispatch --> Iter
+```
+
+Numbered walkthrough of the same loop:
+
+1. **Promote `PENDING` → `IN_PROGRESS`.** Already-terminal tasks short-circuit and are returned unchanged.
+2. **Build the initial conversation** from `task.messages`, converting A2A `ROLE_USER` / `ROLE_AGENT` messages into OpenAI `user` / `assistant` chat messages. The configured `systemPrompt` is prepended (and is always preserved across truncations).
+3. **For each iteration up to `maxIterations`:**
+   1. If `context.signal` has been aborted, finalize the task as **`CANCELLED`** and return.
+   2. Truncate the conversation to the last `maxConversationHistory` non-system messages.
+   3. Call `llmClient.createCompletion({ messages, tools, signal })`. Token usage (when returned) accumulates into the internal `UsageTracker`.
+   4. Append the assistant message to the conversation.
+   5. **No tool calls** → write the assistant text back to `task.messages` and finalize as **`COMPLETED`** (text defaults to `'Done.'` when the assistant returned empty content).
+   6. **Any tool call named `input_required`** → finalize as **`INPUT_REQUIRED`** with the extracted prompt as the agent message; no further tool calls in that iteration are executed.
+   7. Otherwise dispatch every tool call through `toolBox.execute(name, args, { task, signal })`. Append each result as a `tool` message keyed by `toolCallId`, and re-enter the loop.
+4. **If the iteration cap is hit** without reaching a terminal branch, finalize as **`FAILED`** with the message `"Iteration cap reached (<n>) without completion."`.
+5. **If the LLM call or any tool throws**, the loop is unwound: if the signal is aborted the task finalizes as `CANCELLED`, otherwise it finalizes as `FAILED` with the error message. Tool-execution errors are **not** thrown - they are caught, formatted as `Error executing tool "<name>": <message>`, and fed back as a `tool` message so the model can recover.
+
+`handle()` always resolves with the updated `ManagedTask` - it never rejects.
+
+### `MAX_CHAT_COMPLETION_ITERATIONS` environment variable
+
+| Variable                         | Default | Format                                                                                | Effect                                                                                                                                                          |
+| -------------------------------- | ------- | ------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `MAX_CHAT_COMPLETION_ITERATIONS` | `50`    | Positive integer parsed by `parseInt(_, 10)`. Non-positive or non-numeric falls back. | Upper bound on the LLM-call / tool-dispatch loop. An explicit `maxIterations` constructor option always wins; the env var is consulted only when it is omitted. |
+
+The variable name and default match the Go ADK's `config.MaxChatCompletionIterations` in [`server/config/config.go`](https://github.com/inference-gateway/adk/blob/main/server/config/config.go), so a deployment that pins `MAX_CHAT_COMPLETION_ITERATIONS=10` produces the same agentic-loop budget regardless of which ADK is serving.
+
+### Reserved `input_required` tool
+
+The handler reserves the tool name `input_required` (exported as `INPUT_REQUIRED_TOOL`) to pause a task without consuming an iteration. When the assistant returns a tool call with this name, the handler:
+
+1. Skips the configured `ToolBox` entirely - the tool is **never** dispatched through `toolBox.execute`.
+2. Extracts a human-readable prompt from the `arguments` blob (see below).
+3. Appends a `ROLE_AGENT` message carrying the prompt to `task.messages`.
+4. Transitions the task to `TASK_STATE_INPUT_REQUIRED` and returns. The originating `message/send` task is now paused; the client resumes by submitting a follow-up `message/send` against the same `contextId`.
+
+Prompt extraction from `arguments`:
+
+| Shape of `arguments`                                    | Extracted prompt                                                                |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| JSON object with a non-empty string `message` key       | `arguments.message`                                                             |
+| JSON object with a non-empty string `prompt` key        | `arguments.prompt` (fallback when `message` is absent or empty)                 |
+| JSON object with a non-empty string `question` key      | `arguments.question` (fallback when `message` and `prompt` are absent or empty) |
+| JSON object without any of those keys / empty arguments | `"Additional input required."`                                                  |
+| String that is not valid JSON                           | The raw string verbatim                                                         |
+
+The arg-key fallback order is `message` → `prompt` → `question`. This means a tool definition exposed to the model with parameters `{ "message": "string" }`, `{ "prompt": "string" }`, or `{ "question": "string" }` all work; the model can use whichever key best fits the conversation.
+
+```ts
+import { INPUT_REQUIRED_TOOL } from '@inference-gateway/adk';
+
+const inputRequiredTool = {
+  name: INPUT_REQUIRED_TOOL, // resolves to 'input_required'
+  description: 'Ask the user a clarifying question and pause the task.',
+  parameters: {
+    type: 'object',
+    properties: {
+      message: { type: 'string', description: 'Question to surface to the user.' },
+    },
+    required: ['message'],
+  },
+};
+```
+
+Reserve this tool by exposing it via your `ToolBox.list()` implementation - the handler does **not** advertise it automatically. The Go ADK uses the same reserved name, so the prompt-extraction conventions transfer between implementations.
+
+### Usage metadata (`setEnableUsageMetadata`)
+
+Usage tracking is off by default. Toggle it with `setEnableUsageMetadata(true)`:
+
+```ts
+const handler = new DefaultBackgroundTaskHandler({ llmClient, toolBox });
+handler.setEnableUsageMetadata(true);
+handler.isUsageMetadataEnabled(); // true
+```
+
+When enabled, every terminal transition (`COMPLETED`, `INPUT_REQUIRED`, `FAILED`, `CANCELLED`) merges the accumulated metadata into `task.metadata`:
+
+```jsonc
+{
+  "metadata": {
+    "execution_stats": {
+      "iterations": 3,
+      "tool_calls": 5,
+      "failed_tools": 1,
+    },
+    "usage": {
+      "prompt_tokens": 1240,
+      "completion_tokens": 318,
+      "total_tokens": 1558,
+    },
+  },
+}
+```
+
+Field meanings:
+
+| Key                            | Description                                                                                                                                |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `execution_stats.iterations`   | Number of LLM-call iterations executed in the loop (incremented before each call, so an iteration that was aborted or threw still counts). |
+| `execution_stats.tool_calls`   | Total tool calls returned by the model and dispatched through the toolbox. The reserved `input_required` tool does **not** count here.     |
+| `execution_stats.failed_tools` | Subset of `tool_calls` whose `toolBox.execute` threw, or that were attempted while no toolbox was configured.                              |
+| `usage.prompt_tokens`          | Sum of `usage.promptTokens` across every completion the LLM client reported. Omitted if the LLM client never returned a `usage` block.     |
+| `usage.completion_tokens`      | Sum of `usage.completionTokens` across every completion the LLM client reported.                                                           |
+| `usage.total_tokens`           | Sum of `usage.totalTokens` when reported; otherwise falls back to `promptTokens + completionTokens` per call.                              |
+
+Edge-case behaviour:
+
+- The `usage` block is omitted entirely when the LLM client never returned a `usage` field (so the totals stayed at zero). `execution_stats` is always present once any iteration has run.
+- Existing `task.metadata` keys are preserved on merge; the `execution_stats` and `usage` keys overwrite any same-named keys already on the task.
+- If `setEnableUsageMetadata(true)` is called but the handler returns before the first iteration (already-terminal task on entry), no metadata is attached because there is nothing to report.
+
+The underlying counters are exposed as the `UsageTracker` class for direct use in tests and downstream tooling that wants to surface a running tally between iterations.
+
+### Wiring into `A2AServerBuilder`
+
+`A2AServerBuilder.withBackgroundTaskHandler` consumes a `BackgroundTaskHandler` function (`(context) => Promise<ManagedTask>`), not a class instance. Use the `asHandler()` adapter to bridge them:
+
+```ts
+import {
+  A2AServerBuilder,
+  DefaultBackgroundTaskHandler,
+  type AgentCard,
+  type LLMClient,
+  type ToolBox,
+} from '@inference-gateway/adk';
+
+// Wire up your concrete LLM client and tool registry. The interfaces are
+// structural - any implementation that satisfies them will do.
+declare const llmClient: LLMClient;
+declare const toolBox: ToolBox;
+
+const card: AgentCard = {
+  name: 'support-agent',
+  description: 'Answers product questions and looks up account state.',
+  version: '0.1.0',
+  protocolVersion: '1.0',
+  defaultInputModes: ['text/plain'],
+  defaultOutputModes: ['text/plain'],
+  capabilities: { streaming: false },
+  skills: [
+    {
+      id: 'support',
+      name: 'Customer support',
+      description: 'Answer questions using account-lookup tools.',
+      tags: [],
+    },
+  ],
+};
+
+const handler = new DefaultBackgroundTaskHandler({
+  llmClient,
+  toolBox,
+  systemPrompt: 'You are a customer-support agent. Use the tools when you need account state.',
+  maxIterations: 25,
+});
+handler.setEnableUsageMetadata(true);
+
+const server = new A2AServerBuilder()
+  .withAgentCard(card)
+  .withBackgroundTaskHandler(handler.asHandler())
+  .build();
+
+await server.listen(8080, '0.0.0.0');
+```
+
+Because the agent card above advertises `capabilities.streaming: false`, the builder only requires a background handler. To support `message/stream` as well, add `.withStreamingTaskHandler(...)` and flip the capability to `true` - the builder validates the handler-vs-capability pairing at `build()` time and throws `A2AServerBuilderError` on a mismatch.
+
+> **Why `asHandler()` instead of passing `handler` directly?** The builder type signature is `withBackgroundTaskHandler(handler: BackgroundTaskHandler)`, where `BackgroundTaskHandler` is a plain function. `asHandler()` returns a closure that forwards each invocation to `handler.handle(context)`, so the same handler instance (and its accumulated usage tracker state) serves every dequeued task.
+
 ## Parity with the Go ADK
 
 The TypeScript ADK is being grown in lockstep with the [Go ADK](https://github.com/inference-gateway/adk). The intent is that any A2A agent capability you can read about in the Go ADK reference applies semantically to the TypeScript ADK once the corresponding handler ships:
@@ -578,6 +879,7 @@ The TypeScript ADK is being grown in lockstep with the [Go ADK](https://github.c
 - Internal storage state (`PENDING`) and wire state (`TASK_STATE_SUBMITTED`) follow the same mapping as the Go ADK.
 - The `message/stream` SSE wire format - CloudEvents v1.0 envelopes, `source = 'adk/agent'`, `subject = taskId`, and the `AGENT_EVENT_TYPE.*` constants - is **byte-identical** to the Go ADK's emitter in `server/agent_streamable.go`. Client implementations target one canonical wire contract regardless of which ADK the agent is built with.
 - `STREAMING_STATUS_UPDATE_INTERVAL` shares its name, default (`1s`), and accepted format with the Go ADK's `server/config/config.go`.
+- `DefaultBackgroundTaskHandler` mirrors the Go ADK's [`DefaultBackgroundTaskHandler`](https://github.com/inference-gateway/adk/blob/main/server/task_handler.go) - same iteration cap default (`50`), same `MAX_CHAT_COMPLETION_ITERATIONS` env var name, same reserved `input_required` tool and `message` / `prompt` / `question` arg-key fallback, and the same `execution_stats` / `usage` metadata shape on `task.metadata`.
 - The generated `Message`, `Task`, and `Part` types are produced from the same `inference-gateway/schemas` source of truth, regenerated via `pnpm generate:types` and pinned to a specific schema commit.
 
 Where the TypeScript ADK has not yet shipped a handler that the Go ADK has, cross-referencing the Go source is the safest reference point.
