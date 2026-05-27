@@ -1044,6 +1044,60 @@ The same code works in browsers (no Node-specific APIs are used beyond the optio
 
 Integration tests covering every conformance assertion above (event ordering, envelope shape, validation, cancellation, periodic re-emit cadence) live at [`tests/server/message-stream-conformance.test.ts`](https://github.com/inference-gateway/typescript-adk/blob/main/tests/server/message-stream-conformance.test.ts) in the source repo.
 
+### End-to-end runnable example
+
+The [`examples/ai-powered-streaming/`](https://github.com/inference-gateway/typescript-adk/tree/main/examples/ai-powered-streaming) folder in the source repo is the canonical runnable counterpart of every assertion above. It wires `OpenAICompatibleLLMClient` + `DefaultToolBox` (weather + time tools) into `DefaultStreamingTaskHandler`, registers `message/stream` via [`createMessageStreamHandler`](#registering-the-handler), and ships a `client.ts` that consumes the SSE response, decodes the CloudEvents v1.0 envelopes, and prints `delta` tokens and tool events as they arrive. It mirrors the Go ADK's [`examples/ai-powered-streaming/`](https://github.com/inference-gateway/adk/tree/main/examples/ai-powered-streaming) for cross-language consistency.
+
+What the example covers, by file:
+
+| File                                                                                                                       | Role                                                                                                                                                                                        |
+| -------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`server.ts`](https://github.com/inference-gateway/typescript-adk/blob/main/examples/ai-powered-streaming/server.ts)       | Boots an `A2AServer` with `capabilities.streaming = true`, registers `message/stream` via `createMessageStreamHandler`, and drives the loop with `DefaultStreamingTaskHandler.asHandler()`. |
+| [`client.ts`](https://github.com/inference-gateway/typescript-adk/blob/main/examples/ai-powered-streaming/client.ts)       | Plain `fetch`-based SSE consumer. Decodes each CloudEvents v1.0 frame inline, accumulates `delta` text, and surfaces `tool.*` and `task.status.changed` transitions live.                   |
+| [`.env.example`](https://github.com/inference-gateway/typescript-adk/blob/main/examples/ai-powered-streaming/.env.example) | Per-provider configuration template. Set `A2A_AGENT_CLIENT_PROVIDER`, `A2A_AGENT_CLIENT_MODEL`, and the matching `<PROVIDER>_API_KEY` to switch models without touching code.               |
+| [`README.md`](https://github.com/inference-gateway/typescript-adk/blob/main/examples/ai-powered-streaming/README.md)       | Full walkthrough: layout, running it, configuration matrix, expected event order, troubleshooting, and "how the pieces fit together."                                                       |
+
+#### Expected event order
+
+For a single user prompt that triggers one tool call before the final answer, the SSE stream emits this exact sequence (UUIDs and timestamps differ per run):
+
+1. `adk.agent.task.status.changed` - `state=TASK_STATE_WORKING`, `final=false`. First frame; marks the transition out of `PENDING`.
+2. Zero or more periodic `adk.agent.task.status.changed` keep-alive frames at [`STREAMING_STATUS_UPDATE_INTERVAL`](#streaming_status_update_interval-environment-variable) (default `1s`), `final=false`.
+3. `adk.agent.delta` - first assistant token batch, if the model emits text before the tool call. May be absent when the model jumps straight to a tool call.
+4. `adk.agent.tool.started` - the model requested `get_weather`. Payload carries the JSON-stringified `arguments`.
+5. `adk.agent.tool.completed` - the tool finished. (`adk.agent.tool.failed` is emitted instead when the tool throws.)
+6. `adk.agent.tool.result` - payload carries the raw string the tool returned (fed back into the LLM conversation). `isError` distinguishes the two outcomes.
+7. `adk.agent.iteration.completed` - closes iteration 1.
+8. `adk.agent.delta` - the model's final natural-language answer, emitted as one or more frames depending on the provider's streaming granularity.
+9. `adk.agent.iteration.completed` - closes the final iteration.
+10. `adk.agent.task.status.changed` - `state=TASK_STATE_COMPLETED`, `final=true`. Last frame; the stream closes immediately after.
+
+Other terminal states are possible:
+
+- `state=TASK_STATE_INPUT_REQUIRED` if the LLM invokes the reserved [`input_required`](#reserved-input_required-tool) tool. An `adk.agent.input.required` frame carrying the prompt precedes the terminal status frame; the task stays in storage so a subsequent `message/stream` or `message/send` against the same `contextId` resumes it.
+- `state=TASK_STATE_CANCELLED` if the client disconnects, the server shuts down, or [`tasks/cancel`](#the-tasks-cancel-json-rpc-method) fires during the run.
+- `state=TASK_STATE_FAILED` if the iteration cap is hit or the executor throws. The terminal frame embeds the error text in `status.message`.
+
+The full event-type matrix exposed on `AGENT_EVENT_TYPE` is documented in [CloudEvents v1.0 envelope shape](#cloudevents-v10-envelope-shape).
+
+#### Switching providers and models
+
+`server.ts` is provider-agnostic. To swap models, change `A2A_AGENT_CLIENT_PROVIDER` and `A2A_AGENT_CLIENT_MODEL` and supply the matching API key - no code edits:
+
+| Provider     | `A2A_AGENT_CLIENT_PROVIDER` | Example `A2A_AGENT_CLIENT_MODEL` | API key env var                                       |
+| ------------ | --------------------------- | -------------------------------- | ----------------------------------------------------- |
+| OpenAI       | `openai`                    | `gpt-4o-mini`                    | `OPENAI_API_KEY`                                      |
+| Anthropic    | `anthropic`                 | `claude-3-5-sonnet-latest`       | `ANTHROPIC_API_KEY`                                   |
+| Groq         | `groq`                      | `llama-3.3-70b-versatile`        | `GROQ_API_KEY`                                        |
+| DeepSeek     | `deepseek`                  | `deepseek-chat`                  | `DEEPSEEK_API_KEY`                                    |
+| Cohere       | `cohere`                    | `command-r-plus`                 | `COHERE_API_KEY`                                      |
+| Mistral      | `mistral`                   | `mistral-large-latest`           | `MISTRAL_API_KEY`                                     |
+| Google       | `google`                    | `gemini-2.5-flash`               | `GOOGLE_API_KEY`                                      |
+| Cloudflare   | `cloudflare`                | `@cf/meta/llama-3.1-8b-instruct` | `CLOUDFLARE_API_KEY`                                  |
+| Local Ollama | `ollama`                    | `llama3.2`                       | none (set `A2A_AGENT_CLIENT_BASE_URL` to your Ollama) |
+
+Set `A2A_AGENT_CLIENT_API_KEY` to override the per-provider lookup, and `A2A_AGENT_CLIENT_BASE_URL` to point at the [Inference Gateway](https://github.com/inference-gateway/inference-gateway) (recommended - it normalizes provider quirks so the same agent code talks to every provider unchanged) or any other OpenAI-compatible endpoint. The full configuration matrix, troubleshooting checklist, and example client output live in the example's [`README.md`](https://github.com/inference-gateway/typescript-adk/blob/main/examples/ai-powered-streaming/README.md).
+
 ## Background task handler (`DefaultBackgroundTaskHandler`)
 
 `DefaultBackgroundTaskHandler` is the LLM-driven agentic loop the TypeScript ADK ships out of the box. It owns the conversation history, dispatches tool calls returned by the model, feeds the results back into the next LLM call, and drives the task through to one of the three terminal A2A states (`COMPLETED`, `INPUT_REQUIRED`, `FAILED`) - or `CANCELLED` when the originating request's `AbortSignal` fires.
@@ -1590,7 +1644,7 @@ function toWireTool(tool: ToolDefinition): LLMTool {
 }
 ```
 
-The same adapter ships verbatim in the [`examples/ai-powered/server.ts`](https://github.com/inference-gateway/typescript-adk/blob/main/examples/ai-powered/server.ts) reference example. When the bridge is published from the package itself the adapter goes away; the rest of the wiring below does not change.
+The same adapter ships verbatim in the [`examples/ai-powered/server.ts`](https://github.com/inference-gateway/typescript-adk/blob/main/examples/ai-powered/server.ts) reference example, and in the streaming counterpart at [`examples/ai-powered-streaming/server.ts`](https://github.com/inference-gateway/typescript-adk/blob/main/examples/ai-powered-streaming/server.ts) (see [End-to-end runnable example](#end-to-end-runnable-example)). When the bridge is published from the package itself the adapter goes away; the rest of the wiring below does not change.
 
 ### End-to-end example
 
@@ -1687,7 +1741,7 @@ const server = new A2AServerBuilder()
 await server.listen(8080, '0.0.0.0');
 ```
 
-The full, runnable counterpart - including the `adaptLLMClient` helper from [Bridging to `DefaultBackgroundTaskHandler`](#bridging-to-defaultbackgroundtaskhandler), an in-process dequeue worker that drives `handler.handle(...)`, and a matching client - lives at [`examples/ai-powered/`](https://github.com/inference-gateway/typescript-adk/tree/main/examples/ai-powered) in the source repo. It mirrors the Go ADK's [`examples/ai-powered/`](https://github.com/inference-gateway/adk/tree/main/examples/ai-powered) for cross-language consistency.
+The full, runnable counterpart - including the `adaptLLMClient` helper from [Bridging to `DefaultBackgroundTaskHandler`](#bridging-to-defaultbackgroundtaskhandler), an in-process dequeue worker that drives `handler.handle(...)`, and a matching client - lives at [`examples/ai-powered/`](https://github.com/inference-gateway/typescript-adk/tree/main/examples/ai-powered) in the source repo. It mirrors the Go ADK's [`examples/ai-powered/`](https://github.com/inference-gateway/adk/tree/main/examples/ai-powered) for cross-language consistency. For the streaming variant of the same agent (SSE response, live `delta` / `tool.*` frames, same provider matrix), see [End-to-end runnable example](#end-to-end-runnable-example) under `message/stream`.
 
 ### `AgentBuilderError`
 
