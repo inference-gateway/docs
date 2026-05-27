@@ -1,6 +1,6 @@
 ---
 title: Authentication
-description: Secure Inference Gateway with OpenID Connect (OIDC). Step-by-step Keycloak setup, JWT validation, token flows, and Kubernetes-friendly configuration.
+description: Secure Inference Gateway with OpenID Connect (OIDC). Step-by-step Keycloak setup, JWT validation, token flows, and Kubernetes-friendly configuration. Covers AUTH_OIDC_ISSUER / AUTH_OIDC_CLIENT_ID / AUTH_OIDC_CLIENT_SECRET on the Go gateway, plus AUTH_ENABLE / AUTH_ISSUER_URL / AUTH_CLIENT_ID / AUTH_CLIENT_SECRET on the TypeScript ADK.
 ---
 
 # Authentication
@@ -21,7 +21,7 @@ When authentication is enabled, all requests to the Inference Gateway API must i
 
 ## Configuration
 
-To enable authentication, set the following environment variables:
+To enable authentication on the **Go gateway** ([`inference-gateway/inference-gateway`](https://github.com/inference-gateway/inference-gateway)), set:
 
 ```bash
 AUTH_ENABLE=true
@@ -29,6 +29,21 @@ AUTH_OIDC_ISSUER=https://your-keycloak-instance/realms/your-realm
 AUTH_OIDC_CLIENT_ID=your-client-id
 AUTH_OIDC_CLIENT_SECRET=your-client-secret
 ```
+
+The rest of this page documents the Go gateway. For agents built with the [TypeScript ADK](/typescript-adk#authentication), the same OIDC contract applies but the env-var names are different - see the cross-reference below.
+
+### Env-var naming: Go gateway vs. TypeScript ADK
+
+The Go gateway and the TypeScript ADK ship separately and each pins its own canonical config struct, so the env-var names differ even though the underlying OIDC flow is identical. Use the column that matches whichever surface you're configuring - don't share an `.env` between them without translating.
+
+| Setting                  | Go gateway                | TypeScript ADK ([details](/typescript-adk#authentication)) |
+| ------------------------ | ------------------------- | ---------------------------------------------------------- |
+| Enable / disable         | `AUTH_ENABLE`             | `AUTH_ENABLE`                                              |
+| OIDC issuer URL          | `AUTH_OIDC_ISSUER`        | `AUTH_ISSUER_URL`                                          |
+| OAuth2 client id (`aud`) | `AUTH_OIDC_CLIENT_ID`     | `AUTH_CLIENT_ID`                                           |
+| OAuth2 client secret     | `AUTH_OIDC_CLIENT_SECRET` | `AUTH_CLIENT_SECRET`                                       |
+
+Both surfaces verify Bearer tokens against the issuer's JWKS, reject unauthenticated requests with HTTP `401` + `WWW-Authenticate: Bearer`, and keep their respective health endpoints public. The TypeScript ADK additionally returns a JSON-RPC `-32001` envelope on the JSON-RPC endpoint and leaves `/.well-known/agent-card.json` public so A2A clients can negotiate auth from the advertised security scheme.
 
 ## Keycloak Integration
 
@@ -265,3 +280,4 @@ After setting up authentication, consider:
 - Implementing [Role-Based Access Control (RBAC)](https://www.keycloak.org/docs/latest/server_admin/#roles) in Keycloak
 - Configuring [token exchange](https://www.keycloak.org/docs/latest/server_admin/#_token-exchange) for service-to-service communication
 - Setting up [multi-factor authentication](https://www.keycloak.org/docs/latest/server_admin/#_otp-policies) for enhanced security
+- Protecting an agent built on the [TypeScript ADK](/typescript-adk#authentication) with the same OIDC issuer (note the [different env-var names](#env-var-naming-go-gateway-vs-typescript-adk))
