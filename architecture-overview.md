@@ -48,7 +48,7 @@ flowchart LR
     class Providers provider
 ```
 
-The gateway tier is stateless - replicas scale horizontally behind any load balancer. Per-request state (tool-call iteration, MCP context, A2A delegation) lives in the request lifecycle, not the pod. See [Supported Providers](/supported-providers) for the full provider matrix: OpenAI, Anthropic, Groq, Cohere, Google, Ollama, DeepSeek, Cloudflare, Mistral, and Moonshot.
+The gateway tier is stateless - replicas scale horizontally behind any load balancer. Per-request state (tool-call iteration, MCP context, A2A delegation) lives in the request lifecycle, not the pod. See [Supported Providers](/supported-providers/) for the full provider matrix: OpenAI, Anthropic, Groq, Cohere, Google, Ollama, DeepSeek, Cloudflare, Mistral, and Moonshot.
 
 ## Kubernetes Setup
 
@@ -101,4 +101,4 @@ flowchart LR
     class Providers provider
 ```
 
-Pods are interchangeable. Add capacity with an HPA, remove pods with rolling updates. The `Monitoring Stack` here represents the `ServiceMonitor` + Prometheus + Grafana pipeline kube-prometheus-stack deploys around the gateway - see [Observability](/observability) for the full setup, and the [Kubernetes Operator](/operator) for managing this topology declaratively as Custom Resources.
+Pods are interchangeable. Add capacity with an HPA, remove pods with rolling updates. The `Monitoring Stack` here represents the `ServiceMonitor` + Prometheus + Grafana pipeline kube-prometheus-stack deploys around the gateway - see [Observability](/observability/) for the full setup, and the [Kubernetes Operator](/operator/) for managing this topology declaratively as Custom Resources.

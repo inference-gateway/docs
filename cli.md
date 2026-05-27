@@ -18,7 +18,7 @@ The Inference Gateway CLI (`infer`) is a powerful Go-based command-line tool pro
 - **Smart Safety System** - Configurable approval workflow with diff visualization
 - **Beautiful TUI** - Scrollable interface with syntax highlighting and multiple themes
 - **Web Terminal** - Browser-based interface with tabbed sessions
-- **Remote Messaging Channels** - Control the agent from Telegram and other platforms ([Learn more](/cli-channels))
+- **Remote Messaging Channels** - Control the agent from Telegram and other platforms ([Learn more](/cli-channels/))
 - **Agent Skills** - Reusable, model-readable instruction folders loaded on demand, portable across vendors ([Learn more](#agent-skills))
 - **Cost Tracking** - Real-time token usage and cost calculation
 
@@ -337,15 +337,15 @@ When tools are enabled, LLMs have access to a comprehensive suite across multipl
 
 ### Tool Categories
 
-| Category              | Tools                                                                                             | Description                                                     |
-| --------------------- | ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| **File System**       | Read, Write, Edit, MultiEdit, Delete, Tree, Grep                                                  | File operations and search with safety controls                 |
-| **Command Execution** | Bash, BashOutput, KillShell, ListShells                                                           | Whitelisted shell execution and background shell control        |
-| **Web**               | WebSearch, WebFetch, Github                                                                       | Internet research, content fetching, GitHub API                 |
-| **Workflow**          | TodoWrite, Schedule, RequestPlanApproval                                                          | Task tracking, cron jobs, plan-mode approval                    |
-| **A2A Integration**   | A2A_QueryAgent, A2A_SubmitTask, A2A_QueryTask                                                     | Delegate to specialized agents - see [A2A](/a2a)                |
-| **Computer Use**      | GetLatestScreenshot, MouseMove, MouseClick, MouseScroll, KeyboardType, GetFocusedApp, ActivateApp | GUI automation - see the Computer Use section above             |
-| **MCP**               | `MCP_<server>_<tool>`                                                                             | Dynamically registered tools from MCP servers - see [MCP](/mcp) |
+| Category              | Tools                                                                                             | Description                                                      |
+| --------------------- | ------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| **File System**       | Read, Write, Edit, MultiEdit, Delete, Tree, Grep                                                  | File operations and search with safety controls                  |
+| **Command Execution** | Bash, BashOutput, KillShell, ListShells                                                           | Whitelisted shell execution and background shell control         |
+| **Web**               | WebSearch, WebFetch, Github                                                                       | Internet research, content fetching, GitHub API                  |
+| **Workflow**          | TodoWrite, Schedule, RequestPlanApproval                                                          | Task tracking, cron jobs, plan-mode approval                     |
+| **A2A Integration**   | A2A_QueryAgent, A2A_SubmitTask, A2A_QueryTask                                                     | Delegate to specialized agents - see [A2A](/a2a/)                |
+| **Computer Use**      | GetLatestScreenshot, MouseMove, MouseClick, MouseScroll, KeyboardType, GetFocusedApp, ActivateApp | GUI automation - see the Computer Use section above              |
+| **MCP**               | `MCP_<server>_<tool>`                                                                             | Dynamically registered tools from MCP servers - see [MCP](/mcp/) |
 
 ### File System Tools
 
@@ -682,9 +682,9 @@ The CLI provides built-in shortcuts and supports custom user-defined shortcuts.
 
 ### GitHub Action Setup
 
-The `/init-github-action` shortcut launches an interactive wizard for setting up AI-powered issue automation using GitHub Apps and the [`infer-action` GitHub Action](/github-action). This wizard streamlines the process of creating GitHub Apps, managing credentials, configuring repository secrets, and generating workflows that respond to issue mentions with `@infer`.
+The `/init-github-action` shortcut launches an interactive wizard for setting up AI-powered issue automation using GitHub Apps and the [`infer-action` GitHub Action](/github-action/). This wizard streamlines the process of creating GitHub Apps, managing credentials, configuring repository secrets, and generating workflows that respond to issue mentions with `@infer`.
 
-> For a full reference of `infer-action` inputs, outputs, and workflow recipes (PR review, scheduled summaries, release notes), see the [GitHub Action documentation](/github-action).
+> For a full reference of `infer-action` inputs, outputs, and workflow recipes (PR review, scheduled summaries, release notes), see the [GitHub Action documentation](/github-action/).
 
 **Key Features:**
 
@@ -826,7 +826,7 @@ Once configured, mention `@infer` in any issue or issue comment to activate the 
 @infer Please analyze this bug and suggest a fix
 ```
 
-For more information on the `infer-action` GitHub Action, see the [GitHub Action documentation](/github-action) or the [upstream repository](https://github.com/inference-gateway/infer-action).
+For more information on the `infer-action` GitHub Action, see the [GitHub Action documentation](/github-action/) or the [upstream repository](https://github.com/inference-gateway/infer-action).
 
 ### Custom Shortcuts
 
@@ -1036,7 +1036,7 @@ infer chat
 > "Use the MCP_demo-server_get_time tool to get current time"
 ```
 
-See [MCP documentation](/mcp) for detailed integration guide and server development.
+See [MCP documentation](/mcp/) for detailed integration guide and server development.
 
 ### Agent Skills
 
@@ -1131,7 +1131,7 @@ A skill instructs the model to run shell commands, read files, or call external 
 
 **Publishing a skill:**
 
-To list your skill in the public catalog (so it surfaces in `infer skills search` and on [registry.inference-gateway.com/skills/](https://registry.inference-gateway.com/skills/)), open a one-line PR against [`inference-gateway/skills`](https://github.com/inference-gateway/skills)'s `skills.yaml`. See the [Skills Catalog](/skills) guide for the entry shape, validation rules (kebab-case `name`, 1-1024 char `description`, ADL license enum), and the build/cron cycle.
+To list your skill in the public catalog (so it surfaces in `infer skills search` and on [registry.inference-gateway.com/skills/](https://registry.inference-gateway.com/skills/)), open a one-line PR against [`inference-gateway/skills`](https://github.com/inference-gateway/skills)'s `skills.yaml`. See the [Skills Catalog](/skills/) guide for the entry shape, validation rules (kebab-case `name`, 1-1024 char `description`, ADL license enum), and the build/cron cycle.
 
 ### A2A Integration
 
@@ -1164,7 +1164,7 @@ infer chat
 > /a2a  # View connected agents
 ```
 
-See [A2A documentation](/a2a) for creating custom agents, or use the [ADL CLI](/adl-cli) to scaffold new A2A agents from YAML definitions.
+See [A2A documentation](/a2a/) for creating custom agents, or use the [ADL CLI](/adl-cli/) to scaffold new A2A agents from YAML definitions.
 
 ### Parallel Tool Execution
 
@@ -1366,20 +1366,20 @@ infer chat
 
 ## Command Reference
 
-| Command                           | Description                                                   |
-| --------------------------------- | ------------------------------------------------------------- |
-| `infer init`                      | Initialize project configuration                              |
-| `infer status`                    | Check gateway health and resource usage                       |
-| `infer chat`                      | Interactive chat session (TUI)                                |
-| `infer chat --web`                | Web-based terminal interface                                  |
-| `infer agent <task>`              | Autonomous task execution                                     |
-| `infer skills <subcommand>`       | Manage Agent Skills (list, install, uninstall)                |
-| `infer channels-manager`          | Start the remote messaging daemon ([Channels](/cli-channels)) |
-| `infer config <subcommand>`       | Configuration management                                      |
-| `infer agents <subcommand>`       | A2A agent management                                          |
-| `infer conversation <subcommand>` | Conversation history management                               |
-| `infer --version`                 | Show version information                                      |
-| `infer --help`                    | Display help information                                      |
+| Command                           | Description                                                    |
+| --------------------------------- | -------------------------------------------------------------- |
+| `infer init`                      | Initialize project configuration                               |
+| `infer status`                    | Check gateway health and resource usage                        |
+| `infer chat`                      | Interactive chat session (TUI)                                 |
+| `infer chat --web`                | Web-based terminal interface                                   |
+| `infer agent <task>`              | Autonomous task execution                                      |
+| `infer skills <subcommand>`       | Manage Agent Skills (list, install, uninstall)                 |
+| `infer channels-manager`          | Start the remote messaging daemon ([Channels](/cli-channels/)) |
+| `infer config <subcommand>`       | Configuration management                                       |
+| `infer agents <subcommand>`       | A2A agent management                                           |
+| `infer conversation <subcommand>` | Conversation history management                                |
+| `infer --version`                 | Show version information                                       |
+| `infer --help`                    | Display help information                                       |
 
 ## Support and Resources
 

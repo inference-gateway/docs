@@ -5,7 +5,7 @@ description: A2A Debugger CLI for inspecting, streaming, and replaying tasks on 
 
 # A2A Debugger
 
-The **A2A Debugger** is the ultimate troubleshooting and inspection tool for [Agent-to-Agent (A2A)](/a2a) servers. It's a small Go CLI (`a2a`) that connects to any A2A-compatible agent, lists and streams tasks, replays conversation histories, and inspects agent cards - so you can debug agent behaviour without writing throwaway client code.
+The **A2A Debugger** is the ultimate troubleshooting and inspection tool for [Agent-to-Agent (A2A)](/a2a/) servers. It's a small Go CLI (`a2a`) that connects to any A2A-compatible agent, lists and streams tasks, replays conversation histories, and inspects agent cards - so you can debug agent behaviour without writing throwaway client code.
 
 > **Note:** A2A Debugger is in early development. Breaking changes are expected; pin to a specific version in scripts and watch the [CHANGELOG](https://github.com/inference-gateway/a2a-debugger/blob/main/CHANGELOG.md) for releases.
 
@@ -16,9 +16,9 @@ Use the A2A Debugger when you need to:
 - **Verify an A2A server is reachable** and see what its agent card advertises (skills, streaming support, protocol version).
 - **Inspect live or historical tasks** on an agent - filter by state, dump the full payload, or follow a conversation across messages.
 - **Stream a task end-to-end** and see every status/artifact event as it arrives, plus a final summary with task ID, duration, and event counts.
-- **Validate your own A2A implementation** during development - especially when scaffolding a new agent with the [ADL CLI](/adl-cli).
+- **Validate your own A2A implementation** during development - especially when scaffolding a new agent with the [ADL CLI](/adl-cli/).
 
-It complements the [Inference Gateway CLI](/cli)'s `infer agents` commands: where `infer` manages and chats with agents at a high level, `a2a` gives you raw protocol-level visibility into a single server.
+It complements the [Inference Gateway CLI](/cli/)'s `infer agents` commands: where `infer` manages and chats with agents at a high level, `a2a` gives you raw protocol-level visibility into a single server.
 
 ## Installation
 
@@ -272,8 +272,8 @@ The mock agent is the [`mock-agent`](https://github.com/inference-gateway/mock-a
 
 ## Related
 
-- [A2A Integration](/a2a) - protocol overview and how agents plug into the gateway
-- [ADL CLI](/adl-cli) - scaffold A2A agents you can then debug with `a2a`
-- [Inference Gateway CLI](/cli) - high-level `infer agents` workflows
-- [A2A Registry](/registry) - browse published A2A agents
+- [A2A Integration](/a2a/) - protocol overview and how agents plug into the gateway
+- [ADL CLI](/adl-cli/) - scaffold A2A agents you can then debug with `a2a`
+- [Inference Gateway CLI](/cli/) - high-level `infer agents` workflows
+- [A2A Registry](/registry/) - browse published A2A agents
 - [Repository](https://github.com/inference-gateway/a2a-debugger) - source, issues, and releases

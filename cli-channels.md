@@ -5,7 +5,7 @@ description: Turn the Inference Gateway CLI agent into a remote-controllable bot
 
 # Channels
 
-Channels turn the [Inference Gateway CLI](/cli) agent into a remote-controllable bot accessible from messaging platforms like Telegram. Send a message to your bot and the agent runs as if you launched it locally - with persistent per-sender conversation memory, allowlist-based access control, and optional approval prompts for sensitive tools.
+Channels turn the [Inference Gateway CLI](/cli/) agent into a remote-controllable bot accessible from messaging platforms like Telegram. Send a message to your bot and the agent runs as if you launched it locally - with persistent per-sender conversation memory, allowlist-based access control, and optional approval prompts for sensitive tools.
 
 > **Note:** Channels run as a long-lived daemon started with `infer channels-manager`. Telegram is fully supported today; WhatsApp is planned and Discord/Slack are open for contributions.
 
@@ -237,7 +237,7 @@ Every YAML key has an `INFER_`-prefixed environment variable. Lists are comma-se
 
 ## Related
 
-- [CLI](/cli) - overview of the `infer` command-line tool and agent mode
-- [Configuration](/configuration) - full configuration system across the gateway and CLI
+- [CLI](/cli/) - overview of the `infer` command-line tool and agent mode
+- [Configuration](/configuration/) - full configuration system across the gateway and CLI
 - [Telegram Channel Example](https://github.com/inference-gateway/cli/tree/main/examples/telegram-channel) - Docker Compose stack (gateway + channels-manager + A2A browser agent + optional VNC)
-- [Examples](/examples) - more end-to-end recipes
+- [Examples](/examples/) - more end-to-end recipes

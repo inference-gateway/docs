@@ -7,7 +7,7 @@ description: Official Inference Gateway SDKs for Python, TypeScript, Go, and Rus
 
 Inference Gateway ships official SDKs for Python, TypeScript, Go, and Rust. Each one wraps the gateway's OpenAI-compatible REST API behind typed clients, handles streaming over Server-Sent Events, and exposes the same provider-agnostic surface (chat, tool calls, vision, MCP).
 
-This page is a per-language quick reference. For the canonical REST contract see the [API Reference](/api-reference); for Model Context Protocol setup see [MCP Integration](/mcp); for Agent-to-Agent endpoints see [A2A Integration](/a2a).
+This page is a per-language quick reference. For the canonical REST contract see the [API Reference](/api-reference/); for Model Context Protocol setup see [MCP Integration](/mcp/); for Agent-to-Agent endpoints see [A2A Integration](/a2a/).
 
 ## Picking an SDK
 
@@ -25,7 +25,7 @@ All four SDKs target the same gateway endpoints, so the choice is driven by your
 | Built-in retry/backoff | No     | No         | Yes | No   |
 | A2A JSON-RPC client    | No     | No         | No  | No   |
 
-A2A is a gateway-side capability today and is consumed via raw HTTP / JSON-RPC against the gateway's `/a2a/*` endpoints rather than a typed SDK surface; see the [A2A page](/a2a) for the wire format.
+A2A is a gateway-side capability today and is consumed via raw HTTP / JSON-RPC against the gateway's `/a2a/*` endpoints rather than a typed SDK surface; see the [A2A page](/a2a/) for the wire format.
 
 MCP tools are managed server-side. The SDKs expose `list_tools` for discovery and surface tool-call deltas during streaming; you do not need to ship per-tool client glue. Set `MCP_ENABLE=true` and `MCP_EXPOSE=true` on the gateway to enable the listing endpoint.
 
@@ -624,7 +624,7 @@ let response = client
 
 ## Next steps
 
-- Spin up the gateway: [Getting Started](/getting-started).
-- Wire MCP tools end-to-end: [MCP Integration](/mcp).
-- Talk to agents over JSON-RPC: [A2A Integration](/a2a).
-- Skip the SDKs and call the REST surface directly: [API Reference](/api-reference).
+- Spin up the gateway: [Getting Started](/getting-started/).
+- Wire MCP tools end-to-end: [MCP Integration](/mcp/).
+- Talk to agents over JSON-RPC: [A2A Integration](/a2a/).
+- Skip the SDKs and call the REST surface directly: [API Reference](/api-reference/).

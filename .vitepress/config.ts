@@ -9,6 +9,13 @@ const SITE_DESCRIPTION =
   'Documentation for Inference Gateway, an open-source, cloud-native gateway unifying multiple LLM providers (OpenAI, Anthropic, Groq, Cohere, Ollama, DeepSeek, Cloudflare and more) behind a single API.';
 const OG_IMAGE = `${HOSTNAME}/og-image.webp`;
 const OG_IMAGE_TYPE = 'image/webp';
+const SITEMAP_PAGE_PRIORITY = 0.8;
+const SITEMAP_HOME_PRIORITY = 1.0;
+const SITEMAP_CHANGE_FREQUENCY = 'weekly';
+const withTrailingSlash = (url: string) => (url.endsWith('/') ? url : `${url}/`);
+const pageLink = (url: string) => (url === '/' ? url : withTrailingSlash(url));
+const isHomeUrl = (url: string | undefined) =>
+  !url || url === '/' || url === `${HOSTNAME}/` || url === 'index' || url === '/index';
 
 const structuredData = {
   '@context': 'https://schema.org',
@@ -52,23 +59,43 @@ export default withMermaid(
     titleTemplate: ':title | Inference Gateway',
     description: SITE_DESCRIPTION,
     cleanUrls: true,
+    rewrites(id) {
+      if (!id.endsWith('.md') || id === 'index.md' || id === '404.md') {
+        return id;
+      }
+
+      return id.replace(/\.md$/, '/index.md');
+    },
     lastUpdated: true,
     metaChunk: true,
     srcExclude: ['README.md', 'CHANGELOG.md', 'CLAUDE.md', 'AGENTS.md'],
     sitemap: {
       hostname: HOSTNAME + '/',
       transformItems(items) {
-        return items.filter((item) => !item.url.endsWith('404'));
+        return items
+          .filter((item) => !item.url.endsWith('404'))
+          .map((item) => {
+            const url = item.url ? withTrailingSlash(item.url) : item.url;
+            const isHomePage = isHomeUrl(item.url) || isHomeUrl(url);
+
+            return {
+              ...item,
+              url,
+              changefreq: SITEMAP_CHANGE_FREQUENCY,
+              priority: isHomePage ? SITEMAP_HOME_PRIORITY : SITEMAP_PAGE_PRIORITY,
+            };
+          })
+          .sort((a, b) => {
+            if (isHomeUrl(a.url)) return -1;
+            if (isHomeUrl(b.url)) return 1;
+            return a.url.localeCompare(b.url);
+          });
       },
     },
     buildEnd(siteConfig) {
       writeFileSync(join(siteConfig.outDir, '.nojekyll'), '');
     },
     transformHtml(html) {
-      // Strip <link rel="modulepreload"> tags for mermaid sub-chunks. VitePress
-      // generates these from the Vite manifest for every page, but the homepage
-      // and most pages have no diagrams. The chunks remain in the bundle and
-      // mermaid dynamically imports them on demand.
       return html.replace(
         /<link[^>]+rel="modulepreload"[^>]+href="[^"]*\/assets\/chunks\/(?:[A-Za-z0-9]*Diagram-|diagram-|classDiagram|stateDiagram|wardley(?:Diagram)?-|dagre-|cose-bilkent-|cytoscape\.esm|katex|sankey|kanban-definition|timeline-definition|mindmap-definition|virtual_mermaid)[^"]*"[^>]*>\s*/g,
         ''
@@ -111,9 +138,9 @@ export default withMermaid(
       ],
     ],
     transformPageData(pageData) {
-      const canonicalUrl = `${HOSTNAME}/${pageData.relativePath}`
-        .replace(/index\.md$/, '')
-        .replace(/\.md$/, '');
+      const canonicalUrl = withTrailingSlash(
+        `${HOSTNAME}/${pageData.relativePath}`.replace(/index\.md$/, '').replace(/\.md$/, '')
+      );
       pageData.frontmatter.head ??= [];
       pageData.frontmatter.head.push(['link', { rel: 'canonical', href: canonicalUrl }]);
       pageData.frontmatter.head.push(['meta', { property: 'og:url', content: canonicalUrl }]);
@@ -122,42 +149,46 @@ export default withMermaid(
       logo: '/logo.png',
       siteTitle: SITE_NAME,
       nav: [
-        { text: 'Getting Started', link: '/getting-started', activeMatch: '^/getting-started$' },
+        {
+          text: 'Getting Started',
+          link: pageLink('/getting-started'),
+          activeMatch: '^/getting-started/?$',
+        },
         {
           text: 'Guides',
           items: [
-            { text: 'Architecture Overview', link: '/architecture-overview' },
-            { text: 'Configuration', link: '/configuration' },
-            { text: 'Authentication', link: '/authentication' },
-            { text: 'Deployment', link: '/deployment' },
-            { text: 'Supported Providers', link: '/supported-providers' },
-            { text: 'Examples', link: '/examples' },
-            { text: 'IDEs', link: '/ides' },
-            { text: 'Observability', link: '/observability' },
-            { text: 'Troubleshooting', link: '/troubleshooting' },
+            { text: 'Architecture Overview', link: pageLink('/architecture-overview') },
+            { text: 'Configuration', link: pageLink('/configuration') },
+            { text: 'Authentication', link: pageLink('/authentication') },
+            { text: 'Deployment', link: pageLink('/deployment') },
+            { text: 'Supported Providers', link: pageLink('/supported-providers') },
+            { text: 'Examples', link: pageLink('/examples') },
+            { text: 'IDEs', link: pageLink('/ides') },
+            { text: 'Observability', link: pageLink('/observability') },
+            { text: 'Troubleshooting', link: pageLink('/troubleshooting') },
           ],
         },
         {
           text: 'Reference',
           items: [
-            { text: 'REST API', link: '/api-reference' },
-            { text: 'SDKs', link: '/sdks' },
-            { text: 'CLI', link: '/cli' },
-            { text: 'ADL CLI', link: '/adl-cli' },
-            { text: 'Channels', link: '/cli-channels' },
-            { text: 'Kubernetes Operator', link: '/operator' },
-            { text: 'GitHub Action', link: '/github-action' },
+            { text: 'REST API', link: pageLink('/api-reference') },
+            { text: 'SDKs', link: pageLink('/sdks') },
+            { text: 'CLI', link: pageLink('/cli') },
+            { text: 'ADL CLI', link: pageLink('/adl-cli') },
+            { text: 'Channels', link: pageLink('/cli-channels') },
+            { text: 'Kubernetes Operator', link: pageLink('/operator') },
+            { text: 'GitHub Action', link: pageLink('/github-action') },
           ],
         },
         {
           text: 'Protocols',
           items: [
-            { text: 'MCP Integration', link: '/mcp' },
-            { text: 'A2A Integration', link: '/a2a' },
-            { text: 'TypeScript ADK', link: '/typescript-adk' },
-            { text: 'A2A Debugger', link: '/a2a-debugger' },
-            { text: 'A2A Registry', link: '/registry' },
-            { text: 'Skills Catalog', link: '/skills' },
+            { text: 'MCP Integration', link: pageLink('/mcp') },
+            { text: 'A2A Integration', link: pageLink('/a2a') },
+            { text: 'TypeScript ADK', link: pageLink('/typescript-adk') },
+            { text: 'A2A Debugger', link: pageLink('/a2a-debugger') },
+            { text: 'A2A Registry', link: pageLink('/registry') },
+            { text: 'Skills Catalog', link: pageLink('/skills') },
           ],
         },
       ],
@@ -167,71 +198,71 @@ export default withMermaid(
           collapsed: false,
           items: [
             { text: 'Introduction', link: '/' },
-            { text: 'Getting Started', link: '/getting-started' },
-            { text: 'Architecture Overview', link: '/architecture-overview' },
+            { text: 'Getting Started', link: pageLink('/getting-started') },
+            { text: 'Architecture Overview', link: pageLink('/architecture-overview') },
           ],
         },
         {
           text: 'Core Concepts',
           collapsed: false,
           items: [
-            { text: 'Configuration', link: '/configuration' },
-            { text: 'Authentication', link: '/authentication' },
-            { text: 'Deployment', link: '/deployment' },
-            { text: 'Supported Providers', link: '/supported-providers' },
+            { text: 'Configuration', link: pageLink('/configuration') },
+            { text: 'Authentication', link: pageLink('/authentication') },
+            { text: 'Deployment', link: pageLink('/deployment') },
+            { text: 'Supported Providers', link: pageLink('/supported-providers') },
           ],
         },
         {
           text: 'Kubernetes Operator',
           collapsed: false,
-          items: [{ text: 'Operator', link: '/operator' }],
+          items: [{ text: 'Operator', link: pageLink('/operator') }],
         },
         {
           text: 'Model Context Protocol',
           collapsed: false,
-          items: [{ text: 'MCP Integration', link: '/mcp' }],
+          items: [{ text: 'MCP Integration', link: pageLink('/mcp') }],
         },
         {
           text: 'Agent-To-Agent (A2A)',
           collapsed: false,
           items: [
-            { text: 'A2A Integration', link: '/a2a' },
-            { text: 'TypeScript ADK', link: '/typescript-adk' },
-            { text: 'A2A Debugger', link: '/a2a-debugger' },
-            { text: 'A2A Registry', link: '/registry' },
+            { text: 'A2A Integration', link: pageLink('/a2a') },
+            { text: 'TypeScript ADK', link: pageLink('/typescript-adk') },
+            { text: 'A2A Debugger', link: pageLink('/a2a-debugger') },
+            { text: 'A2A Registry', link: pageLink('/registry') },
           ],
         },
         {
           text: 'Agent Skills',
           collapsed: false,
-          items: [{ text: 'Skills Catalog', link: '/skills' }],
+          items: [{ text: 'Skills Catalog', link: pageLink('/skills') }],
         },
         {
           text: 'API Reference',
           collapsed: false,
           items: [
-            { text: 'REST API', link: '/api-reference' },
-            { text: 'SDKs', link: '/sdks' },
+            { text: 'REST API', link: pageLink('/api-reference') },
+            { text: 'SDKs', link: pageLink('/sdks') },
           ],
         },
         {
           text: 'Tools',
           collapsed: false,
           items: [
-            { text: 'CLI', link: '/cli' },
-            { text: 'ADL CLI', link: '/adl-cli' },
-            { text: 'Channels', link: '/cli-channels' },
-            { text: 'GitHub Action', link: '/github-action' },
+            { text: 'CLI', link: pageLink('/cli') },
+            { text: 'ADL CLI', link: pageLink('/adl-cli') },
+            { text: 'Channels', link: pageLink('/cli-channels') },
+            { text: 'GitHub Action', link: pageLink('/github-action') },
           ],
         },
         {
           text: 'Guides',
           collapsed: false,
           items: [
-            { text: 'Examples', link: '/examples' },
-            { text: 'IDEs', link: '/ides' },
-            { text: 'Observability', link: '/observability' },
-            { text: 'Troubleshooting', link: '/troubleshooting' },
+            { text: 'Examples', link: pageLink('/examples') },
+            { text: 'IDEs', link: pageLink('/ides') },
+            { text: 'Observability', link: pageLink('/observability') },
+            { text: 'Troubleshooting', link: pageLink('/troubleshooting') },
           ],
         },
       ],

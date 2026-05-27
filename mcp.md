@@ -475,4 +475,4 @@ curl http://localhost:8080/v1/mcp/tools
 - [Kubernetes Example](https://github.com/inference-gateway/inference-gateway/tree/main/examples/kubernetes/mcp)
 - [Inference Gateway Repository](https://github.com/inference-gateway/inference-gateway)
 
-Ready to get started? Try our [examples](/examples) or check out the [Getting Started guide](/getting-started) to set up your first MCP-enabled Inference Gateway.
+Ready to get started? Try our [examples](/examples/) or check out the [Getting Started guide](/getting-started/) to set up your first MCP-enabled Inference Gateway.
