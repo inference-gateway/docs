@@ -242,7 +242,7 @@ export default withMermaid(
       },
       footer: {
         message:
-          'Released under the <a href="https://github.com/inference-gateway/docs/blob/main/LICENSE">MIT License</a>.',
+          'Released under the <a href="https://github.com/inference-gateway/docs/blob/main/LICENSE">Apache-2.0 License</a>.',
         copyright:
           'Copyright © 2025 - <a href="https://github.com/inference-gateway">Inference Gateway</a>',
       },
