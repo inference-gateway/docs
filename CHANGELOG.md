@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.33](https://github.com/inference-gateway/docs/compare/0.6.32...0.6.33) (2026-05-27)
+
+### 📚 Documentation
+
+* **typescript-adk:** document tasks/cancel and TaskCancellationRegistry ([#72](https://github.com/inference-gateway/docs/issues/72)) ([8c8a4cd](https://github.com/inference-gateway/docs/commit/8c8a4cd141d629417e0e4049a6c4bda817f11845)), closes [#71](https://github.com/inference-gateway/docs/issues/71)
+* **typescript-adk:** document tasks/get and tasks/list handlers ([#70](https://github.com/inference-gateway/docs/issues/70)) ([376e137](https://github.com/inference-gateway/docs/commit/376e137bb6745bb5e7f4e8e70c7bf9f352fddcb0)), closes [#69](https://github.com/inference-gateway/docs/issues/69)
+
 ## [0.6.32](https://github.com/inference-gateway/docs/compare/0.6.31...0.6.32) (2026-05-27)
 
 ### 📚 Documentation
