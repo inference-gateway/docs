@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.32](https://github.com/inference-gateway/docs/compare/0.6.31...0.6.32) (2026-05-27)
+
+### 📚 Documentation
+
+* document DefaultBackgroundTaskHandler in typescript-adk ([#68](https://github.com/inference-gateway/docs/issues/68)) ([ab33df2](https://github.com/inference-gateway/docs/commit/ab33df21806a40e0ed60f0cfa84ebbc5d9fbea09)), closes [#67](https://github.com/inference-gateway/docs/issues/67)
+
 ## [0.6.31](https://github.com/inference-gateway/docs/compare/0.6.30...0.6.31) (2026-05-27)
 
 ### 📚 Documentation
