@@ -30,7 +30,8 @@ The ADK currently exposes the HTTP server core and the first A2A JSON-RPC method
 | `InMemoryTaskStorage`               | Available | In-process task queue + active task map. Swap for a custom `TaskStorage` in production.  |
 | `createMessageSendHandler`          | Available | Synchronous `message/send` handler.                                                      |
 | `createMessageStreamHandler`        | Available | Streaming `message/stream` handler. SSE response wrapped in CloudEvents v1.0 envelopes.  |
-| `tasks/get`, etc.                   | Not yet   | Additional A2A methods land in subsequent releases.                                      |
+| `createTaskGetHandler`              | Available | Synchronous `tasks/get` handler. Looks up a task across active and dead-letter storage.  |
+| `createTaskListHandler`             | Available | Synchronous `tasks/list` handler. Filterable, keyset-paginated over `(createdAt, id)`.   |
 | `DefaultBackgroundTaskHandler`      | Available | LLM-driven agentic loop with tool dispatch, history truncation, and an iteration cap.    |
 | `A2AServerBuilder`                  | Available | Fluent server builder; validates that the agent card's capabilities match the handlers.  |
 
@@ -139,7 +140,7 @@ On success the handler returns the wire-format `Task`:
 
 > **Status mapping.** The task is stored as `PENDING` in the internal `ManagedTask` model, and surfaced on the wire as `TASK_STATE_SUBMITTED`. Both refer to the same lifecycle stage: "accepted, queued, not yet processed." Clients see only the wire form.
 
-The handler returns synchronously - the task is **already enqueued** by the time the caller receives the response. Downstream processing (LLM invocation, tool calls, status transitions) happens out of band and will eventually update the stored task; clients poll or stream subsequent updates via the still-to-land `tasks/get` and `message/stream` methods.
+The handler returns synchronously - the task is **already enqueued** by the time the caller receives the response. Downstream processing (LLM invocation, tool calls, status transitions) happens out of band and will eventually update the stored task; clients poll subsequent updates via [`tasks/get`](#the-tasks-get-json-rpc-method) or stream them via [`message/stream`](#the-message-stream-json-rpc-method).
 
 ### Id semantics
 
@@ -240,6 +241,213 @@ curl -sS -X POST http://localhost:8080/ \
 ```
 
 The integration fixtures backing every example on this page live at [`tests/server/message-send.test.ts`](https://github.com/inference-gateway/typescript-adk/blob/main/tests/server/message-send.test.ts) in the source repo - useful as a copy-paste starting point for your own tests.
+
+## The `tasks/get` JSON-RPC method
+
+`tasks/get` is the synchronous lookup method a client uses to fetch a single task by id. The handler:
+
+1. Validates the JSON-RPC `params` payload against `TaskGetParams`.
+2. Calls `TaskStorage.getTask(taskId)`, which searches the active map first and then the dead-letter store.
+3. Returns the wire-format `Task` - optionally truncating `history` to the most recent `historyLength` messages.
+
+This mirrors the Go ADK's [`HandleTaskGet`](https://github.com/inference-gateway/adk/blob/main/server/task_handler.go) semantics, including the choice to surface a missing task as JSON-RPC `-32602` rather than a custom error code. To enumerate tasks rather than fetch one by id, use [`tasks/list`](#the-tasks-list-json-rpc-method) instead.
+
+### Registering the handler
+
+```ts
+import { TASK_GET_METHOD, createTaskGetHandler } from '@inference-gateway/adk';
+
+server.registerMethod(TASK_GET_METHOD, createTaskGetHandler({ storage }));
+```
+
+> `TASK_GET_METHOD` resolves to the string `'tasks/get'`. Use the exported constant rather than the literal so the registration stays in lockstep with conformance tests.
+
+### Request and response shape
+
+```ts
+interface TaskGetParams {
+  readonly taskId: string; // required, non-empty
+  readonly historyLength?: number; // non-negative integer; omit for full history
+  readonly metadata?: Struct;
+}
+```
+
+On success the handler returns the wire-format `Task` - the same shape `message/send` returns - reflecting the task's current `status`, full or truncated `history`, and any `artifacts` produced so far.
+
+### Validation contract
+
+All failures surface as JSON-RPC error code `-32602 Invalid Params`:
+
+| Failure                                                | Error message contains                              |
+| ------------------------------------------------------ | --------------------------------------------------- |
+| `params` is `null`, an array, or not an object         | `expected TaskGetParams object`                     |
+| `taskId` missing, empty, or not a string               | `taskId is required and must be a non-empty string` |
+| `historyLength` present but not a non-negative integer | `historyLength must be a non-negative integer`      |
+| No task exists with the supplied `taskId`              | `task not found`                                    |
+
+The "not found" case is intentionally surfaced as `-32602` (not a custom code) to mirror the Go ADK; both ADKs return the same JSON-RPC envelope for a missing task.
+
+## The `tasks/list` JSON-RPC method
+
+`tasks/list` is the synchronous enumeration method a client uses to page through stored tasks. The handler:
+
+1. Validates the JSON-RPC `params` payload against `TaskListParams`.
+2. Calls `TaskStorage.listTasks(filter)`, which spans both active and dead-letter stores in FIFO `createdAt` order.
+3. Applies the optional `state` / `contextId` filter and a `limit`-bounded keyset slice starting from the supplied `cursor` (if any).
+4. Returns `{ tasks, nextCursor? }` - `nextCursor` is **omitted on the final page**, so clients stop paginating when it's absent.
+
+The wire format and pagination semantics match the Go ADK's task-list handler. Use [`tasks/get`](#the-tasks-get-json-rpc-method) when you already know the id of a single task.
+
+### Registering the handler
+
+```ts
+import { TASK_LIST_METHOD, createTaskListHandler } from '@inference-gateway/adk';
+
+server.registerMethod(TASK_LIST_METHOD, createTaskListHandler({ storage }));
+```
+
+> `TASK_LIST_METHOD` resolves to the string `'tasks/list'`. Use the exported constant rather than the literal so the registration stays in lockstep with conformance tests.
+
+### Handler options
+
+`createTaskListHandler(options)` accepts:
+
+| Option         | Required | Default | Description                                                                                                                                      |
+| -------------- | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `storage`      | Yes      | -       | Implementation of `TaskStorage` used to enumerate tasks.                                                                                         |
+| `defaultLimit` | No       | `100`   | Page size when the caller omits `limit`. Clamped to `[1, maxLimit]` at construction time so a misconfiguration cannot silently exceed the cap.   |
+| `maxLimit`     | No       | `100`   | Hard cap on page size. Requests with `limit` above this are clamped down silently (consistent with the Go ADK's pagination caps - not an error). |
+
+Both `defaultLimit` and `maxLimit` must be positive integers; otherwise the factory throws at registration time.
+
+### Request shape (`TaskListParams`)
+
+```ts
+interface TaskListParams {
+  readonly state?: TaskState; // filter by status.state (e.g., 'TASK_STATE_COMPLETED')
+  readonly contextId?: string; // filter by contextId
+  readonly limit?: number; // positive integer; clamped to maxLimit
+  readonly cursor?: string; // opaque continuation token from a previous nextCursor
+  readonly metadata?: Struct; // free-form per-call metadata
+}
+```
+
+All fields are optional - a request with no params returns the first page of every task in storage.
+
+> **Treat `cursor` as opaque.** The handler encodes the `(createdAt, id)` of the last item on the previous page as a base64url JSON envelope. The encoding is an implementation detail and may change in any release; clients must round-trip `nextCursor` verbatim and never parse, mutate, or construct one by hand.
+
+### Response shape (`TaskListResult`)
+
+```ts
+interface TaskListResult {
+  readonly tasks: Task[]; // wire-format tasks, up to `limit` entries
+  readonly nextCursor?: string; // omitted on the last page - stop when absent
+}
+```
+
+### Pagination semantics
+
+The handler uses **keyset pagination on `(createdAt, id)`** rather than offset/limit. The guarantees:
+
+- **Stable under concurrent inserts.** Tasks created between page fetches appear on later pages without shifting items on earlier ones.
+- **Stable under concurrent deletes.** If the task referenced by the cursor is deleted, pagination resumes from the first task strictly after that `(createdAt, id)` keypair - the response is well-defined even if the cursor's task no longer exists.
+- **No duplicates, no skips.** Each task appears at most once across the full pagination, regardless of insert/delete activity.
+
+This is the same property the Go ADK provides, and is the reason the cursor is keyset-encoded rather than a numeric offset.
+
+### Validation contract
+
+All failures surface as JSON-RPC error code `-32602 Invalid Params` - the same envelope `message/send` and `tasks/get` use:
+
+| Failure                                                                   | Error message contains                                    |
+| ------------------------------------------------------------------------- | --------------------------------------------------------- |
+| `params` is `null`, an array, or not an object                            | `expected TaskListParams object`                          |
+| `state` present but not a non-empty string                                | `state must be a non-empty string`                        |
+| `contextId` present but not a non-empty string                            | `contextId must be a non-empty string`                    |
+| `limit` present but not a positive integer (`0`, negatives, non-integers) | `limit must be a positive integer`                        |
+| `cursor` present but not a non-empty string                               | `cursor must be a non-empty string`                       |
+| `cursor` cannot be base64url-decoded                                      | `cursor is not a valid base64url string`                  |
+| `cursor` decodes to invalid JSON                                          | `cursor payload is not valid JSON`                        |
+| `cursor` decodes to something other than the `{ createdAt, id }` envelope | `cursor payload is malformed` / `missing required fields` |
+| `metadata` present but not an object                                      | `metadata must be an object`                              |
+
+A `limit` above `maxLimit` is **not** an error - it is clamped down silently. A `state` value that doesn't match any stored task yields an empty `tasks` array, also not an error.
+
+### Paginating from a client
+
+The canonical loop: keep calling `tasks/list` with the previous response's `nextCursor` until the response omits it.
+
+```ts
+import type { Task, TaskListResult } from '@inference-gateway/adk';
+
+const all: Task[] = [];
+let cursor: string | undefined;
+
+do {
+  const res = await fetch('http://localhost:8080/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      jsonrpc: '2.0',
+      id: crypto.randomUUID(),
+      method: 'tasks/list',
+      params: {
+        state: 'TASK_STATE_COMPLETED',
+        limit: 50,
+        ...(cursor !== undefined ? { cursor } : {}),
+      },
+    }),
+  });
+  const { result } = (await res.json()) as { result: TaskListResult };
+  all.push(...result.tasks);
+  cursor = result.nextCursor;
+} while (cursor !== undefined);
+```
+
+The same flow works against a `curl` loop or any JSON-RPC client - the cursor is a string, full stop.
+
+A single-page request looks like:
+
+```bash
+curl -sS -X POST http://localhost:8080/ \
+  -H 'Content-Type: application/json' \
+  --data '{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tasks/list",
+    "params": { "state": "TASK_STATE_COMPLETED", "limit": 2 }
+  }'
+```
+
+Response (first page, with a continuation token):
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "tasks": [
+      {
+        "id": "9c8b...",
+        "contextId": "ctx-1",
+        "status": { "state": "TASK_STATE_COMPLETED", "timestamp": "2026-05-26T12:00:00.000Z" },
+        "history": []
+      },
+      {
+        "id": "ab12...",
+        "contextId": "ctx-1",
+        "status": { "state": "TASK_STATE_COMPLETED", "timestamp": "2026-05-26T12:00:01.000Z" },
+        "history": []
+      }
+    ],
+    "nextCursor": "eyJjcmVhdGVkQXQiOiIyMDI2LTA1LTI2VDEyOjAwOjAxLjAwMFoiLCJpZCI6ImFiMTIifQ"
+  }
+}
+```
+
+When the next call returns a `result` without `nextCursor`, the client has exhausted the listing.
+
+The integration fixtures for this handler live at [`tests/server/task-list.test.ts`](https://github.com/inference-gateway/typescript-adk/blob/main/tests/server/task-list.test.ts) in the source repo.
 
 ## The `message/stream` JSON-RPC method
 
