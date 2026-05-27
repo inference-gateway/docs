@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.37](https://github.com/inference-gateway/docs/compare/0.6.36...0.6.37) (2026-05-27)
+
+### 📚 Documentation
+
+* **typescript-adk:** document lifecycle callbacks ([#78](https://github.com/inference-gateway/docs/issues/78)) ([4b9cb31](https://github.com/inference-gateway/docs/commit/4b9cb317001e29988b5d4c9d8876a00b81434085)), closes [#77](https://github.com/inference-gateway/docs/issues/77)
+
 ## [0.6.36](https://github.com/inference-gateway/docs/compare/0.6.35...0.6.36) (2026-05-27)
 
 ### 📚 Documentation
