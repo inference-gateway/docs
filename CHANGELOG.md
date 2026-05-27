@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.36](https://github.com/inference-gateway/docs/compare/0.6.35...0.6.36) (2026-05-27)
+
+### 📚 Documentation
+
+* surface TypeScript ADK ai-powered-streaming example ([#76](https://github.com/inference-gateway/docs/issues/76)) ([f81b5c5](https://github.com/inference-gateway/docs/commit/f81b5c5aa5fce48537a12b717333ca2c1d52c4ba)), closes [inference-gateway/typescript-adk#85](https://github.com/inference-gateway/typescript-adk/issues/85) [inference-gateway/typescript-adk#30](https://github.com/inference-gateway/typescript-adk/issues/30)
+
 ## [0.6.35](https://github.com/inference-gateway/docs/compare/0.6.34...0.6.35) (2026-05-27)
 
 ### 📚 Documentation
