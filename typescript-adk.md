@@ -1,6 +1,6 @@
 ---
 title: TypeScript ADK
-description: Build A2A-compatible agents in TypeScript with the @inference-gateway/adk package. Handler registration, JSON-RPC message/send, message/stream, tasks/get, tasks/list, tasks/cancel with TaskCancellationRegistry, SSE event sequence, CloudEvents v1.0 envelopes, STREAMING_STATUS_UPDATE_INTERVAL, DefaultBackgroundTaskHandler agentic loop with tool dispatch and usage metadata, MAX_CHAT_COMPLETION_ITERATIONS cap, reserved input_required tool, AgentBuilder fluent wiring for OpenAICompatibleAgent with Go-parity defaults and lifecycle Callbacks, validation contract, id semantics, cancellation, and runnable client samples.
+description: Build A2A-compatible agents in TypeScript with the @inference-gateway/adk package. Handler registration, JSON-RPC message/send, message/stream, tasks/get, tasks/list, tasks/cancel with TaskCancellationRegistry, SSE event sequence, CloudEvents v1.0 envelopes, STREAMING_STATUS_UPDATE_INTERVAL, DefaultBackgroundTaskHandler agentic loop with tool dispatch and usage metadata, MAX_CHAT_COMPLETION_ITERATIONS cap, reserved input_required tool, AgentBuilder fluent wiring for OpenAICompatibleAgent with Go-parity defaults, lifecycle callbacks (beforeAgent / afterAgent / beforeModel / afterModel / beforeTool / afterTool) with CallbackContext, short-circuit and chain semantics, sync vs. async, error propagation, caching and guardrail patterns, validation contract, id semantics, cancellation, and runnable client samples.
 ---
 
 # TypeScript ADK
@@ -1122,15 +1122,17 @@ const handler = new DefaultBackgroundTaskHandler({
 
 #### Options
 
-| Option                   | Required | Default                                             | Description                                                                                                                                                              |
-| ------------------------ | -------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `llmClient`              | Yes      | -                                                   | OpenAI-compatible chat-completion client. Throws `TypeError` at construction time if omitted.                                                                            |
-| `toolBox`                | No       | `undefined`                                         | Tool registry consulted on every iteration. Without one the handler runs a tool-free loop and stops after the first assistant message.                                   |
-| `systemPrompt`           | No       | `undefined`                                         | Prepended verbatim to every LLM call as a `system` message. Not counted against `maxConversationHistory`.                                                                |
-| `maxIterations`          | No       | `MAX_CHAT_COMPLETION_ITERATIONS` env var, else `50` | Upper bound on the LLM-call / tool-dispatch loop. Must be a positive integer; non-positive values throw `RangeError`.                                                    |
-| `maxConversationHistory` | No       | `20`                                                | Upper bound on the number of conversation messages forwarded to the LLM per iteration. Older messages are dropped (oldest first); the system prompt is always preserved. |
-| `logger`                 | No       | `NOOP_LOGGER`                                       | Structural logger (`debug` / `info` / `warn` / `error`). Use `console` or a `pino`-compatible logger to surface iteration diagnostics and tool-execution failures.       |
-| `env`                    | No       | `process.env`                                       | Override the environment-variable source. Mainly a test seam.                                                                                                            |
+| Option                   | Required | Default                                             | Description                                                                                                                                                                                                                                |
+| ------------------------ | -------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `llmClient`              | Yes      | -                                                   | OpenAI-compatible chat-completion client. Throws `TypeError` at construction time if omitted.                                                                                                                                              |
+| `toolBox`                | No       | `undefined`                                         | Tool registry consulted on every iteration. Without one the handler runs a tool-free loop and stops after the first assistant message.                                                                                                     |
+| `systemPrompt`           | No       | `undefined`                                         | Prepended verbatim to every LLM call as a `system` message. Not counted against `maxConversationHistory`.                                                                                                                                  |
+| `maxIterations`          | No       | `MAX_CHAT_COMPLETION_ITERATIONS` env var, else `50` | Upper bound on the LLM-call / tool-dispatch loop. Must be a positive integer; non-positive values throw `RangeError`.                                                                                                                      |
+| `maxConversationHistory` | No       | `20`                                                | Upper bound on the number of conversation messages forwarded to the LLM per iteration. Older messages are dropped (oldest first); the system prompt is always preserved.                                                                   |
+| `logger`                 | No       | `NOOP_LOGGER`                                       | Structural logger (`debug` / `info` / `warn` / `error`). Use `console` or a `pino`-compatible logger to surface iteration diagnostics and tool-execution failures. Also surfaced on `CallbackContext.logger`.                              |
+| `agentName`              | No       | `''`                                                | Name surfaced on `CallbackContext.agentName` for use inside lifecycle callbacks and tool executions. Diagnostic only - the handler itself does not branch on it.                                                                           |
+| `callbacks`              | No       | `undefined`                                         | [Lifecycle callbacks](#lifecycle-callbacks) invoked around the agent run (`beforeAgent` / `afterAgent`), every LLM call (`beforeModel` / `afterModel`), and every tool dispatch (`beforeTool` / `afterTool`). See the section for details. |
+| `env`                    | No       | `process.env`                                       | Override the environment-variable source. Mainly a test seam.                                                                                                                                                                              |
 
 ### `LLMClient` and `ToolBox` interfaces
 
@@ -1467,7 +1469,7 @@ Every method returns `this`, so calls compose. The fluent surface:
 | `.withMaxIterations(maxIterations)` | `50` (`DEFAULT_MAX_CHAT_COMPLETION_ITERATIONS`)                    | Chat-completion iteration cap. Must be a positive integer; non-positive values cause `build()` to throw `AgentBuilderError`.                                                                                   |
 | `.withSystemPrompt(systemPrompt)`   | `DEFAULT_AGENT_SYSTEM_PROMPT` (see [Defaults](#defaults) below)    | System prompt prepended verbatim to every LLM call as a `system` message. Not counted against `maxConversationHistory`.                                                                                        |
 | `.withMaxConversationHistory(max)`  | `20` (`DEFAULT_MAX_CONVERSATION_HISTORY`)                          | Upper bound on conversation messages forwarded to the LLM per iteration. Older messages are dropped oldest-first; the system prompt is always preserved. Must be a positive integer.                           |
-| `.withCallbacks(callbacks)`         | `undefined`                                                        | Lifecycle callbacks (`beforeAgent` / `afterAgent` / `beforeModel` / `afterModel` / `beforeTool` / `afterTool`). See [Callbacks](#callbacks) below.                                                             |
+| `.withCallbacks(callbacks)`         | `undefined`                                                        | Lifecycle callbacks (`beforeAgent` / `afterAgent` / `beforeModel` / `afterModel` / `beforeTool` / `afterTool`). See [Lifecycle callbacks](#lifecycle-callbacks) below.                                         |
 | `.withToolBox(toolBox)`             | `undefined`                                                        | Tool registry consulted on every iteration. Omit for a tool-free agent that stops after the first assistant message.                                                                                           |
 | `.withLLMClient(client)`            | builder constructs `OpenAICompatibleLLMClient` from provider/model | Inject a pre-built `OpenAICompatibleLLMClient`. When set, the builder skips internal LLM-client construction and uses this client verbatim; `.withProvider(...)` and `.withModel(...)` are no longer required. |
 | `.build()`                          | -                                                                  | Validate the configuration and return an `OpenAICompatibleAgentImpl`. Throws `AgentBuilderError` on the failures listed below.                                                                                 |
@@ -1524,33 +1526,288 @@ The concrete class exposes accessors for every field the builder wired in:
 
 The agent itself does not run anything. The agentic loop lives in [`DefaultBackgroundTaskHandler`](#background-task-handler-defaultbackgroundtaskhandler) (or in a custom `TaskHandler` you implement) and consumes the agent through these accessors. A future iteration will move the loop onto the agent itself, matching the Go ADK's `OpenAICompatibleAgent.RunWithStream`.
 
-### `Callbacks`
+### Lifecycle callbacks
 
-`Callbacks` is the lifecycle-hook configuration consumed by `.withCallbacks(...)`. Every field is optional and accepts an **array** of callbacks - multiple callbacks at the same lifecycle point execute in order, and the first non-`undefined` return short-circuits the remaining callbacks at that point:
+`Callbacks` is the lifecycle-hook configuration consumed by [`AgentBuilder.withCallbacks(...)`](#builder-methods), and the same `callbacks` option is accepted directly by [`DefaultBackgroundTaskHandler`](#background-task-handler-defaultbackgroundtaskhandler) and `DefaultStreamingTaskHandler`. The hook surface lets you observe, replace, or short-circuit the LLM-driven loop without forking the handler.
 
-| Field         | Signature                                        | When                                           | Return semantics                                                                                                        |
-| ------------- | ------------------------------------------------ | ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `beforeAgent` | `(ctx) => Message \| undefined`                  | Before the agent's main execution loop starts. | Return a `Message` to skip agent execution and use it as the final response; `undefined` proceeds.                      |
-| `afterAgent`  | `(ctx, output) => Message \| undefined`          | After the agent's main execution completes.    | Return a `Message` to replace the agent's output; `undefined` keeps it. Not invoked when `beforeAgent` short-circuited. |
-| `beforeModel` | `(ctx, request) => LLMResponse \| undefined`     | Just before each LLM request.                  | Return an `LLMResponse` to skip the LLM call (caching / guardrails); `undefined` proceeds.                              |
-| `afterModel`  | `(ctx, response) => LLMResponse \| undefined`    | Just after each LLM response.                  | Return an `LLMResponse` to replace the upstream response; `undefined` keeps it.                                         |
-| `beforeTool`  | `(ctx, toolCall) => string \| undefined`         | Just before each tool dispatch.                | Return a string to skip execution and use the value as the tool result; `undefined` proceeds.                           |
-| `afterTool`   | `(ctx, toolCall, result) => string \| undefined` | Just after each tool's execution completes.    | Return a string to replace the tool result; `undefined` keeps the original.                                             |
+The contract mirrors the Go ADK's `CallbackConfig` in [`adk/server/callbacks.go`](https://github.com/inference-gateway/adk/blob/main/server/callbacks.go) byte-for-byte; the only Go-specific affordance not carried over is `context.Context` propagation - the TypeScript variant uses the `AbortSignal` on `CallbackContext` for cancellation instead. The hooks shipped in [typescript-adk#87](https://github.com/inference-gateway/typescript-adk/pull/87).
 
-Every callback receives a shared `CallbackContext`:
+#### Hook points
+
+Every field on `Callbacks` is optional and accepts an **array** of callbacks. Multiple callbacks at the same lifecycle point execute in order; `before*` short-circuits on the first non-`undefined` return, `after*` chains so each callback sees the previous replacement.
+
+| Hook          | Fires                                                                   | Signature                                                            | Replacement type                                                                         |
+| ------------- | ----------------------------------------------------------------------- | -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `beforeAgent` | Once per `handle()` call, before the iteration loop begins.             | `(ctx) => Message \| undefined`                                      | `Message` - used as the final agent output; iteration loop is skipped.                   |
+| `afterAgent`  | Once per `handle()` call, after the loop produces a terminal response.  | `(ctx, output: Message) => Message \| undefined`                     | `Message` - replaces the agent's output. NOT invoked when `beforeAgent` short-circuited. |
+| `beforeModel` | Before every LLM call (so once per iteration).                          | `(ctx, request: LLMRequest) => CompletionResult \| undefined`        | `CompletionResult` - used as the LLM response without contacting the provider.           |
+| `afterModel`  | After every LLM response, including a synthetic one from `beforeModel`. | `(ctx, response: CompletionResult) => CompletionResult \| undefined` | `CompletionResult` - replaces the upstream response.                                     |
+| `beforeTool`  | Before every tool dispatch.                                             | `(ctx, toolCall: ToolCall) => string \| undefined`                   | `string` - used as the tool result; `ToolBox.execute` is not called.                     |
+| `afterTool`   | After every tool execution, including a short-circuited one.            | `(ctx, toolCall: ToolCall, result: string) => string \| undefined`   | `string` - replaces the tool result.                                                     |
+
+The `LLMRequest` snapshot exposed to `beforeModel` is read-only:
 
 ```ts
-interface CallbackContext {
-  readonly agentName?: string;
-  readonly invocationId: string;
-  readonly taskId?: string;
-  readonly contextId?: string;
-  readonly state: Record<string, unknown>; // session-scoped scratch data, mutable across callbacks
-  readonly signal: AbortSignal; // honoured by the agent and downstream dispatched work
+interface LLMRequest {
+  readonly messages: readonly ChatMessage[]; // conversation after truncation
+  readonly tools?: readonly ToolDefinition[]; // tools advertised this iteration
 }
 ```
 
-Each callback can return synchronously or as a `Promise`. The contract mirrors the Go ADK's `CallbackConfig` in [`adk/server/callbacks.go`](https://github.com/inference-gateway/adk/blob/main/server/callbacks.go); the only Go-specific affordance not carried over is `context.Context` propagation - the TS variant uses the `AbortSignal` on `CallbackContext` for cancellation instead.
+`Message`, `CompletionResult`, `AssistantMessage`, `ToolCall`, and `ToolDefinition` are the same shapes used by the rest of the handler - see [`LLMClient` and `ToolBox` interfaces](#llmclient-and-toolbox-interfaces) for the structural definitions.
+
+#### Fire order in a single `handle()` call
+
+```text
+beforeAgent
+  loop (one iteration per LLM call):
+    beforeModel
+    [provider chat completion, unless beforeModel short-circuited]
+    afterModel
+    for each tool call in the model response:
+      beforeTool
+      [ToolBox.execute, unless beforeTool short-circuited]
+      afterTool     <- runs even when beforeTool short-circuited
+  afterAgent        <- skipped when beforeAgent short-circuited
+```
+
+Both `DefaultBackgroundTaskHandler` and `DefaultStreamingTaskHandler` enforce this order identically; the only difference between the two is how they surface the agent's output (single final message vs. SSE deltas). Callback observers see the same sequence in both.
+
+#### `CallbackContext`
+
+Every callback (and every tool dispatched during the same `handle()` call) receives the same `CallbackContext` reference:
+
+```ts
+interface CallbackContext {
+  readonly agentName: string;
+  readonly invocationId: string;
+  readonly taskId: string;
+  readonly contextId: string;
+  readonly state: Record<string, unknown>;
+  readonly logger: Logger;
+  readonly signal: AbortSignal;
+}
+```
+
+| Field          | Type                      | Description                                                                                                                                                                                                               |
+| -------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `agentName`    | `string`                  | Sourced from the `agentName` option on the surrounding handler. Empty string when not configured. Diagnostic only - the handlers do not branch on it.                                                                     |
+| `invocationId` | `string`                  | Fresh UUID minted at the top of every `handle()` call. Stable across all callbacks for that invocation, distinct between invocations even when `taskId` repeats (e.g. retries).                                           |
+| `taskId`       | `string`                  | The `task.id` for the current invocation.                                                                                                                                                                                 |
+| `contextId`    | `string`                  | The `task.contextId` - the conversation thread the task belongs to.                                                                                                                                                       |
+| `state`        | `Record<string, unknown>` | Mutable, session-scoped scratch bag. Same reference passed to `ToolBox.execute` via `ToolExecutionContext.state`, so a `beforeModel` callback can stash data a later `beforeTool` callback (or a tool itself) reads back. |
+| `logger`       | `Logger`                  | The same structural logger configured on the handler (`debug` / `info` / `warn` / `error`). Use it instead of `console` to keep callback diagnostics on the handler's log stream.                                         |
+| `signal`       | `AbortSignal`             | The originating request's cancellation signal. Honour it inside long-running callbacks; the handler itself aborts mid-iteration when it fires. Replaces the Go ADK's `context.Context` for the same job.                  |
+
+#### Short-circuit and chain semantics
+
+`before*` callbacks **race to short-circuit**: the iterator runs them in order and returns the first non-`undefined` value, skipping the rest of the chain _and_ the default operation that would have followed. `afterTool` is the deliberate exception - it runs even when its paired `beforeTool` short-circuited the dispatch, so audit / post-processing logic stays uniform regardless of how the tool result was produced.
+
+`after*` callbacks **chain replacements**: the iterator runs them in order, threading the (possibly replaced) value through each one. Returning `undefined` keeps the current value; returning a fresh value replaces it for the next callback in the chain. The handler ultimately uses the last replacement (or the original if every callback returned `undefined`).
+
+```ts
+const callbacks: Callbacks = {
+  afterModel: [
+    (_ctx, response) => stripPII(response), // replaces response if any PII found
+    (_ctx, response) =>
+      response.message.content?.startsWith('Refusal:')
+        ? { message: { content: 'I cannot help with that.' } }
+        : undefined, // sees PII-stripped response; may replace again
+  ],
+};
+```
+
+`afterAgent` is **never invoked** when `beforeAgent` short-circuited - the chain only runs over actual agent output, not over a synthetic short-circuit message.
+
+#### Sync vs. async
+
+Every callback type is declared as `T | Promise<T>` and awaited by the handler:
+
+```ts
+type BeforeModelCallback = (
+  ctx: CallbackContext,
+  request: LLMRequest
+) => CompletionResult | undefined | Promise<CompletionResult | undefined>;
+```
+
+Sync callbacks return the value directly; async callbacks return a `Promise` and may `await` I/O (a cache hit, a moderation API, a policy lookup). The handler awaits each callback before moving on, so within a single chain ordering is preserved even when individual callbacks are async.
+
+#### Error propagation
+
+Callback errors are **not caught** by the framework. A thrown error - or a rejected `Promise` - propagates out of the callback runner, out of the surrounding `handle()` call, and surfaces as a `FAILED` task transition carrying the error message. If a callback's failure should be recoverable (a cache miss that should fall through to the real LLM call, a logging sink that should not fail the turn), catch it inside the callback and return `undefined`:
+
+```ts
+const callbacks: Callbacks = {
+  beforeModel: [
+    async (ctx, request) => {
+      try {
+        return await cache.get(fingerprint(request));
+      } catch (err) {
+        ctx.logger.warn({ err }, 'cache lookup failed; falling through to LLM');
+        return undefined; // proceed with the real call
+      }
+    },
+  ],
+};
+```
+
+This matches the Go ADK behaviour: callback errors are treated as agent failures unless explicitly recovered.
+
+#### Wiring callbacks into the handlers
+
+The `callbacks` option is accepted by both default task handlers. They are independent constructors - you do not need `AgentBuilder` to use callbacks.
+
+```ts
+import {
+  DefaultBackgroundTaskHandler,
+  DefaultStreamingTaskHandler,
+  type Callbacks,
+} from '@inference-gateway/adk';
+
+const callbacks: Callbacks = {
+  beforeAgent: [auditEntry],
+  beforeModel: [cacheLookup],
+  afterModel: [stripPII],
+  beforeTool: [policyGate],
+  afterTool: [auditToolResult],
+  afterAgent: [auditExit],
+};
+
+// Background (non-streaming) handler:
+const backgroundHandler = new DefaultBackgroundTaskHandler({
+  llmClient,
+  toolBox,
+  agentName: 'support-agent',
+  callbacks,
+});
+
+// Streaming handler - identical callbacks option:
+const streamingHandler = new DefaultStreamingTaskHandler({
+  llmClient,
+  toolBox,
+  agentName: 'support-agent',
+  callbacks,
+});
+```
+
+When wiring through `AgentBuilder`, pass the same `Callbacks` object to `.withCallbacks(...)` and forward it from the agent to whichever handler you construct - the builder does not implicitly install it on a handler:
+
+```ts
+const agent = new AgentBuilder()
+  .withProvider('openai')
+  .withModel('gpt-4o-mini')
+  .withCallbacks(callbacks)
+  .build();
+
+const handler = new DefaultBackgroundTaskHandler({
+  llmClient: adaptLLMClient(agent.getLLMClient()),
+  toolBox: agent.getToolBox(),
+  systemPrompt: agent.getSystemPrompt(),
+  callbacks: agent.getCallbacks(),
+});
+```
+
+#### Example: caching via `beforeModel`
+
+Return a synthetic `CompletionResult` to skip the LLM call when a previous response is cached. The handler treats the returned value as if it had come from the provider - `afterModel` callbacks still run, and any `toolCalls` in the synthetic response are dispatched normally.
+
+```ts
+import type { Callbacks, CompletionResult, LLMRequest } from '@inference-gateway/adk';
+
+const cache = new Map<string, CompletionResult>();
+
+function fingerprint(request: LLMRequest): string {
+  return JSON.stringify({
+    messages: request.messages,
+    tools: request.tools?.map((t) => t.name),
+  });
+}
+
+const callbacks: Callbacks = {
+  beforeModel: [
+    (ctx, request) => {
+      const key = fingerprint(request);
+      ctx.state['__cache_key'] = key; // stash for the paired afterModel
+      const hit = cache.get(key);
+      if (hit !== undefined) {
+        ctx.logger.debug({ invocationId: ctx.invocationId }, 'cache hit');
+        return hit; // skip provider call, use cached completion
+      }
+      return undefined; // miss -> proceed to provider
+    },
+  ],
+  afterModel: [
+    (ctx, response) => {
+      const key = ctx.state['__cache_key'] as string | undefined;
+      if (key !== undefined) {
+        cache.set(key, response);
+      }
+      return undefined; // keep the upstream response
+    },
+  ],
+};
+```
+
+Because `state` is the same reference threaded through every callback in the invocation, the `__cache_key` stashed by `beforeModel` is the one `afterModel` reads back - even when the two run iterations apart in a multi-turn loop.
+
+#### Example: audit logging via `afterTool`
+
+Post-process every tool result for compliance / observability without replacing it. Returning `undefined` keeps the original result intact; returning a string replaces it.
+
+```ts
+import type { AfterToolCallback } from '@inference-gateway/adk';
+
+const auditToolResult: AfterToolCallback = async (ctx, toolCall, result) => {
+  await auditLog.append({
+    invocationId: ctx.invocationId,
+    taskId: ctx.taskId,
+    contextId: ctx.contextId,
+    agentName: ctx.agentName,
+    toolName: toolCall.name,
+    toolArguments: toolCall.arguments,
+    toolResultPreview: result.slice(0, 512),
+    at: new Date().toISOString(),
+  });
+  return undefined; // keep the original result
+};
+```
+
+Because `afterTool` runs even when `beforeTool` short-circuited the dispatch (e.g. a policy gate returned a canned refusal), this callback sees both real and synthetic results - the audit trail stays uniform.
+
+#### Example: prompt-injection guardrail via `beforeAgent`
+
+Inspect the inbound task before the agent loop runs. Return a `Message` to skip the LLM entirely and use it as the final response. `afterAgent` is **not** invoked in this path, so the short-circuit message ships verbatim.
+
+```ts
+import type { BeforeAgentCallback } from '@inference-gateway/adk';
+
+const PROMPT_INJECTION_PATTERNS: readonly RegExp[] = [
+  /ignore (all )?previous instructions/i,
+  /you are now (a |an )?[a-z]+ assistant/i,
+  /reveal your system prompt/i,
+];
+
+const promptInjectionGuard: BeforeAgentCallback = (ctx) => {
+  const flagged = ctx.state['inboundText'] as string | undefined;
+  if (flagged === undefined) {
+    return undefined; // nothing to inspect, proceed normally
+  }
+  if (PROMPT_INJECTION_PATTERNS.some((re) => re.test(flagged))) {
+    ctx.logger.warn(
+      { taskId: ctx.taskId, invocationId: ctx.invocationId },
+      'prompt-injection pattern detected; refusing to run agent'
+    );
+    return {
+      role: 'agent',
+      messageId: crypto.randomUUID(),
+      parts: [{ kind: 'text', text: "I can't help with that request." }],
+    };
+  }
+  return undefined;
+};
+```
+
+Populate `ctx.state['inboundText']` from your task handler (or a prior callback) - `state` is the same reference threaded through every callback and tool execution in the invocation, which makes it the canonical place to share derived inputs between hooks.
 
 ### Bridging to `DefaultBackgroundTaskHandler`
 
