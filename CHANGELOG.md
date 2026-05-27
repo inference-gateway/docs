@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.31](https://github.com/inference-gateway/docs/compare/0.6.30...0.6.31) (2026-05-27)
+
+### 📚 Documentation
+
+* **typescript-adk:** document message/stream SSE event sequence ([#66](https://github.com/inference-gateway/docs/issues/66)) ([c7e6c76](https://github.com/inference-gateway/docs/commit/c7e6c76a2b5a3f5bc670c8c77c540c166979ce45)), closes [#65](https://github.com/inference-gateway/docs/issues/65)
+
 ## [0.6.30](https://github.com/inference-gateway/docs/compare/0.6.29...0.6.30) (2026-05-26)
 
 ### 📚 Documentation
