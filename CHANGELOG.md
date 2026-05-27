@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.38](https://github.com/inference-gateway/docs/compare/0.6.37...0.6.38) (2026-05-27)
+
+### 🔧 Miscellaneous
+
+* **lighthouse:** improve score by increasing font visiblity ([958b06e](https://github.com/inference-gateway/docs/commit/958b06e9500656384eb2721e21c014bb7ac4328e))
+
 ## [0.6.37](https://github.com/inference-gateway/docs/compare/0.6.36...0.6.37) (2026-05-27)
 
 ### 📚 Documentation
