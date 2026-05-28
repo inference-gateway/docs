@@ -1,6 +1,6 @@
 ---
 title: TypeScript ADK
-description: Build A2A-compatible agents in TypeScript with the @inference-gateway/adk package. Handler registration, JSON-RPC message/send, message/stream, tasks/get, tasks/list, tasks/cancel with TaskCancellationRegistry, agent/getAuthenticatedExtendedCard with the extended-card vs. public-card discovery convention (supportsExtendedAgentCard), withAuthConfig auto-registration, OIDC auth gating with -32001 envelope, SSE event sequence, CloudEvents v1.0 envelopes, STREAMING_STATUS_UPDATE_INTERVAL, DefaultBackgroundTaskHandler agentic loop with tool dispatch and usage metadata, MAX_CHAT_COMPLETION_ITERATIONS cap, reserved input_required tool, AgentBuilder fluent wiring for OpenAICompatibleAgent with Go-parity defaults, lifecycle callbacks (beforeAgent / afterAgent / beforeModel / afterModel / beforeTool / afterTool) with CallbackContext, short-circuit and chain semantics, sync vs. async, error propagation, caching and guardrail patterns, validation contract, id semantics, cancellation, and runnable client samples.
+description: Build A2A-compatible agents in TypeScript with the @inference-gateway/adk package. Handler registration, JSON-RPC message/send, message/stream, tasks/get, tasks/list, tasks/cancel with TaskCancellationRegistry, agent/getAuthenticatedExtendedCard with the extended-card vs. public-card discovery convention (supportsExtendedAgentCard), withAuthConfig auto-registration, OIDC auth gating with -32001 envelope, SSE event sequence, CloudEvents v1.0 envelopes, STREAMING_STATUS_UPDATE_INTERVAL, DefaultBackgroundTaskHandler agentic loop with tool dispatch and usage metadata, MAX_CHAT_COMPLETION_ITERATIONS cap, reserved input_required tool, AgentBuilder fluent wiring for OpenAICompatibleAgent with Go-parity defaults, lifecycle callbacks (beforeAgent / afterAgent / beforeModel / afterModel / beforeTool / afterTool) with CallbackContext, short-circuit and chain semantics, sync vs. async, error propagation, caching and guardrail patterns, HTTPPushNotificationSender webhook delivery primitive with TaskUpdateNotification wire payload, sendTaskUpdate one-shot and deliverTaskUpdate fan-out helpers, exponential-backoff retry config, bearer / basic auth resolution, and per-task pushNotificationConfig on MessageSendConfiguration, validation contract, id semantics, cancellation, and runnable client samples.
 ---
 
 # TypeScript ADK
@@ -23,21 +23,22 @@ pnpm add @inference-gateway/adk
 
 The ADK currently exposes the HTTP server core and the first A2A JSON-RPC method handler:
 
-| Surface                                     | Status    | Notes                                                                                           |
-| ------------------------------------------- | --------- | ----------------------------------------------------------------------------------------------- |
-| `A2AServer` / `createA2AServer`             | Available | Hono-backed HTTP server. Serves `/.well-known/agent-card.json`, `/health`, and JSON-RPC.        |
-| `MethodRegistry` / `registerMethod`         | Available | Per-server JSON-RPC method dispatch table.                                                      |
-| `InMemoryTaskStorage`                       | Available | In-process task queue + active task map. Swap for a custom `TaskStorage` in production.         |
-| `createMessageSendHandler`                  | Available | Synchronous `message/send` handler.                                                             |
-| `createMessageStreamHandler`                | Available | Streaming `message/stream` handler. SSE response wrapped in CloudEvents v1.0 envelopes.         |
-| `createTaskGetHandler`                      | Available | Synchronous `tasks/get` handler. Looks up a task across active and dead-letter storage.         |
-| `createTaskListHandler`                     | Available | Synchronous `tasks/list` handler. Filterable, keyset-paginated over `(createdAt, id)`.          |
-| `createTaskCancelHandler`                   | Available | Synchronous `tasks/cancel` handler. Drops `PENDING` from the queue, aborts in-flight.           |
-| `TaskCancellationRegistry`                  | Available | Shared `taskId -> AbortController` map bridging `tasks/cancel` and streaming handlers.          |
-| `DefaultBackgroundTaskHandler`              | Available | LLM-driven agentic loop with tool dispatch, history truncation, and an iteration cap.           |
-| `AgentBuilder`                              | Available | Fluent builder for an `OpenAICompatibleAgent`; defaults match the Go ADK byte-for-byte.         |
-| `A2AServerBuilder`                          | Available | Fluent server builder; validates that the agent card's capabilities match the handlers.         |
-| `createGetAuthenticatedExtendedCardHandler` | Available | Synchronous `agent/getAuthenticatedExtendedCard` handler; returns the configured extended card. |
+| Surface                                     | Status    | Notes                                                                                            |
+| ------------------------------------------- | --------- | ------------------------------------------------------------------------------------------------ |
+| `A2AServer` / `createA2AServer`             | Available | Hono-backed HTTP server. Serves `/.well-known/agent-card.json`, `/health`, and JSON-RPC.         |
+| `MethodRegistry` / `registerMethod`         | Available | Per-server JSON-RPC method dispatch table.                                                       |
+| `InMemoryTaskStorage`                       | Available | In-process task queue + active task map. Swap for a custom `TaskStorage` in production.          |
+| `createMessageSendHandler`                  | Available | Synchronous `message/send` handler.                                                              |
+| `createMessageStreamHandler`                | Available | Streaming `message/stream` handler. SSE response wrapped in CloudEvents v1.0 envelopes.          |
+| `createTaskGetHandler`                      | Available | Synchronous `tasks/get` handler. Looks up a task across active and dead-letter storage.          |
+| `createTaskListHandler`                     | Available | Synchronous `tasks/list` handler. Filterable, keyset-paginated over `(createdAt, id)`.           |
+| `createTaskCancelHandler`                   | Available | Synchronous `tasks/cancel` handler. Drops `PENDING` from the queue, aborts in-flight.            |
+| `TaskCancellationRegistry`                  | Available | Shared `taskId -> AbortController` map bridging `tasks/cancel` and streaming handlers.           |
+| `DefaultBackgroundTaskHandler`              | Available | LLM-driven agentic loop with tool dispatch, history truncation, and an iteration cap.            |
+| `AgentBuilder`                              | Available | Fluent builder for an `OpenAICompatibleAgent`; defaults match the Go ADK byte-for-byte.          |
+| `A2AServerBuilder`                          | Available | Fluent server builder; validates that the agent card's capabilities match the handlers.          |
+| `createGetAuthenticatedExtendedCardHandler` | Available | Synchronous `agent/getAuthenticatedExtendedCard` handler; returns the configured extended card.  |
+| `HTTPPushNotificationSender`                | Available | HTTP webhook delivery primitive for `task_update` payloads, with retry / auth / fan-out helpers. |
 
 ## The `message/send` JSON-RPC method
 
@@ -2341,6 +2342,370 @@ try {
 }
 ```
 
+## Push notifications (`HTTPPushNotificationSender`)
+
+`HTTPPushNotificationSender` is the HTTP webhook delivery primitive the TypeScript ADK ships for pushing `task_update` notifications to URLs a client has registered against a task. A client that cannot keep an SSE connection open (mobile background, batch worker, server-to-server fan-out) registers one or more webhook URLs at `message/send` time; on every task state transition, the sender POSTs a JSON-encoded `TaskUpdateNotification` to each URL with retries, per-attempt timeouts, and exponential backoff.
+
+It mirrors the Go ADK's `HTTPPushNotificationSender` in [`adk/server/push_notification_sender.go`](https://github.com/inference-gateway/adk/blob/main/server/push_notification_sender.go) - same wire payload, same auth-header resolution order, same retry classification - so a webhook receiver written against either ADK accepts deliveries from the other unchanged.
+
+> **Delivery primitive only.** This section documents the sender. As of [typescript-adk#93](https://github.com/inference-gateway/typescript-adk/pull/93) the sender is **not yet wired into the task-state-transition pipeline automatically**. Subscribing to `TaskEventBus` `TASK_STATUS_CHANGED` and calling `deliverTaskUpdate` is a follow-up integration step - see [Bridging into the state-transition pipeline](#bridging-into-the-state-transition-pipeline-follow-up) below.
+
+### Wire payload (`TaskUpdateNotification`)
+
+Every POST carries a JSON body matching this shape:
+
+```ts
+interface TaskUpdateNotification {
+  readonly type: 'task_update';
+  readonly taskId: string; // task.id
+  readonly state: TaskState; // task.status.state at the moment of emission
+  readonly timestamp: string; // RFC 3339 / ISO 8601 with a trailing 'Z'
+  readonly task: Task; // full wire-format task snapshot
+}
+```
+
+Concrete example:
+
+```json
+{
+  "type": "task_update",
+  "taskId": "9c8b8b7e-3f4a-4b6e-9a1d-1b2c3d4e5f60",
+  "state": "TASK_STATE_COMPLETED",
+  "timestamp": "2026-05-28T12:00:03.250Z",
+  "task": {
+    "id": "9c8b8b7e-3f4a-4b6e-9a1d-1b2c3d4e5f60",
+    "contextId": "ctx-1",
+    "status": {
+      "state": "TASK_STATE_COMPLETED",
+      "timestamp": "2026-05-28T12:00:03.250Z"
+    },
+    "history": [
+      /* ... */
+    ]
+  }
+}
+```
+
+Field notes:
+
+- `type` is always `'task_update'`. Reserve the value so receivers can multiplex multiple event kinds on the same endpoint later without a breaking change.
+- `state` is the wire-format `TaskState` enum (`TASK_STATE_SUBMITTED`, `TASK_STATE_WORKING`, `TASK_STATE_COMPLETED`, `TASK_STATE_FAILED`, `TASK_STATE_CANCELLED`, `TASK_STATE_INPUT_REQUIRED`, ...) - the same value visible on `task.status.state`.
+- `task` is the full wire-format task snapshot, so receivers do not need a follow-up [`tasks/get`](#the-tasks-get-json-rpc-method) to reconstruct context.
+- `timestamp` is the moment the sender emitted the POST (`new Date().toISOString()`), not the moment the task transitioned. Receivers that need the transition time read `task.status.timestamp` instead.
+
+The same shape is emitted by the Go ADK, so a webhook receiver targeting one ADK accepts deliveries from the other unchanged.
+
+Notifications are emitted **on every task state transition** - exactly the same set of transitions the SSE [`message/stream`](#the-message-stream-json-rpc-method) handler reports, so push receivers see the same lifecycle as streaming receivers without needing to keep a connection open.
+
+### Outbound request shape
+
+Every POST is constructed as:
+
+| Header                                              | Value                                                                                                                                |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `Content-Type`                                      | `application/json`                                                                                                                   |
+| `Accept`                                            | `application/json`                                                                                                                   |
+| `User-Agent`                                        | `<package-name>/<package-version>` (e.g. `@inference-gateway/adk/0.x.x`). Override via `HTTPPushNotificationSenderConfig.userAgent`. |
+| `Authorization` (when an auth source is configured) | Resolved as [Auth header resolution](#auth-header-resolution) below.                                                                 |
+
+The request body is the JSON-encoded `TaskUpdateNotification`. No query parameters, no extra request envelope.
+
+### Constructor
+
+```ts
+import {
+  DEFAULT_PUSH_NOTIFICATION_CONCURRENCY,
+  DEFAULT_PUSH_NOTIFICATION_RETRY_CONFIG,
+  DEFAULT_PUSH_NOTIFICATION_TIMEOUT_MS,
+  HTTPPushNotificationSender,
+} from '@inference-gateway/adk';
+
+const sender = new HTTPPushNotificationSender({
+  // Every field is optional. Defaults mirror the Go ADK's HTTPPushNotificationSender.
+  // fetch: customFetch,
+  // logger: pinoLogger,
+  // userAgent: 'my-agent/1.0',
+  // timeoutMs: 10_000,
+  // retry: { maxRetries: 5, initialDelayMs: 250 },
+});
+```
+
+#### Options (`HTTPPushNotificationSenderConfig`)
+
+| Option      | Required | Default                                                                                                 | Description                                                                                                                                                                                                         |
+| ----------- | -------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `fetch`     | No       | `globalThis.fetch` (undici on Node 22+)                                                                 | `fetch`-compatible function used to issue the POST. Inject for tests or to plug in a proxy / undici agent. The aliased export `PushNotificationFetchLike` is the type to satisfy.                                   |
+| `logger`    | No       | No-op logger                                                                                            | Structural logger (`debug` / `info` / `warn` / `error`). Successful deliveries log at `info`; failed deliveries through `deliverTaskUpdate` log at `warn`.                                                          |
+| `userAgent` | No       | `<package-name>/<package-version>`                                                                      | Value for the outbound `User-Agent` header.                                                                                                                                                                         |
+| `timeoutMs` | No       | `DEFAULT_PUSH_NOTIFICATION_TIMEOUT_MS` (30 s)                                                           | Per-attempt timeout, in milliseconds. Each retry gets its own budget - the timeout is **not** shared across attempts. Set to `0` to disable.                                                                        |
+| `retry`     | No       | `DEFAULT_PUSH_NOTIFICATION_RETRY_CONFIG` (`{ maxRetries: 3, initialDelayMs: 500, maxDelayMs: 30_000 }`) | Retry policy (see [Retry policy](#retry-policy) below). Pass a partial override (`{ maxRetries: 5 }`) to tune individual fields, or the literal `false` to disable retries entirely (a single attempt, no backoff). |
+
+Construction throws `TypeError` when no `fetch` implementation can be resolved (neither `config.fetch` nor `globalThis.fetch`).
+
+### `sendTaskUpdate(config, task, options?)` - one-shot delivery
+
+Use this when you already know which webhook a single notification should be sent to (e.g., the per-task config from `MessageSendConfiguration.pushNotificationConfig`).
+
+```ts
+import type { PushNotificationConfig, Task } from '@inference-gateway/adk';
+
+declare const sender: HTTPPushNotificationSender;
+declare const task: Task;
+
+const config: PushNotificationConfig = {
+  url: 'https://example.com/webhooks/a2a',
+  token: 'wh-secret-token', // -> sent as "Authorization: Bearer wh-secret-token"
+};
+
+try {
+  await sender.sendTaskUpdate(config, task);
+  // 2xx received (possibly after retries).
+} catch (err) {
+  // PushNotificationSendError - all retries exhausted, or non-retryable failure hit.
+}
+```
+
+Resolves on any 2xx response (after any retries) and rejects with [`PushNotificationSendError`](#pushnotificationsenderror) on permanent failure. Pass `options.signal` to abort an in-flight POST (and its pending retry delay) cooperatively.
+
+### `deliverTaskUpdate(configs, task, options?)` - fan-out
+
+Use this from the state-transition listener that fires for every task transition - it is the contract `HTTPPushNotificationSender` is designed around.
+
+```ts
+import type { DeliveryResult, PushNotificationConfig, Task } from '@inference-gateway/adk';
+
+declare const sender: HTTPPushNotificationSender;
+declare const task: Task;
+declare const configs: readonly PushNotificationConfig[];
+
+const results: DeliveryResult[] = await sender.deliverTaskUpdate(configs, task, {
+  concurrency: 16, // overrides DEFAULT_PUSH_NOTIFICATION_CONCURRENCY (8)
+});
+
+for (const result of results) {
+  if (!result.ok) {
+    // Already logged via the configured logger at warn. The failure has
+    // not - and will never - surface as a thrown error from this call.
+    console.warn(`webhook ${result.url} failed: ${result.error.message}`);
+  }
+}
+```
+
+Contract:
+
+- **Never throws on per-config failure.** A slow or broken webhook cannot fail the task that triggered the notification - the failure is logged via the configured `logger` at `warn` and surfaced in the returned [`DeliveryResult`](#deliveryresult) array.
+- **Caps in-flight POSTs.** Defaults to `DEFAULT_PUSH_NOTIFICATION_CONCURRENCY` (8). Pass `concurrency` to override; values are clamped to `>= 1`. Set high enough that small fan-outs run fully in parallel, low enough that a misconfigured task with hundreds of webhooks does not stampede local egress.
+- **Empty input is a no-op.** `configs.length === 0` returns `[]` synchronously without invoking `fetch` or the logger.
+- **Stable ordering.** The returned `DeliveryResult[]` is index-aligned with the input `configs[]`, so callers can correlate failures back to the originating config.
+
+#### `DeliveryResult`
+
+```ts
+type DeliveryResult =
+  | {
+      readonly ok: true;
+      readonly configId: string | undefined; // PushNotificationConfig.id
+      readonly url: string;
+    }
+  | {
+      readonly ok: false;
+      readonly configId: string | undefined;
+      readonly url: string;
+      readonly error: PushNotificationSendError;
+    };
+```
+
+`configId` is the optional `PushNotificationConfig.id` (typically a UUID assigned by the client when the config was registered). `url` is always populated so the caller has a stable identifier for the destination even when no `id` was supplied.
+
+### Retry policy
+
+The sender retries transient HTTP failures with exponential backoff. Defaults: **3 retries** after the initial attempt (so up to 4 total attempts), starting at **500 ms** and capped at **30 s**.
+
+| Retry-config field | Default  | Effect                                                                                                               |
+| ------------------ | -------- | -------------------------------------------------------------------------------------------------------------------- |
+| `maxRetries`       | `3`      | Maximum retry attempts **after** the initial try. `0` disables retries entirely (a single attempt, no backoff).      |
+| `initialDelayMs`   | `500`    | Base delay before the first retry, in milliseconds. Per-attempt delay is `initialDelayMs * 2^attempt`, capped below. |
+| `maxDelayMs`       | `30_000` | Upper bound on the per-attempt delay, in milliseconds.                                                               |
+
+Override per-field via the constructor:
+
+```ts
+const sender = new HTTPPushNotificationSender({
+  retry: { maxRetries: 5, initialDelayMs: 250 }, // partial override - maxDelayMs keeps default
+});
+```
+
+Disable retries entirely with the literal `false`:
+
+```ts
+const sender = new HTTPPushNotificationSender({ retry: false });
+// One attempt per send, no backoff.
+```
+
+#### Retryable vs non-retryable
+
+The classifier mirrors the Go ADK's policy:
+
+| Outcome                                                                 | Retryable? | Notes                                                                                                                                                                |
+| ----------------------------------------------------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| HTTP **5xx**                                                            | Yes        | Upstream transient failure.                                                                                                                                          |
+| HTTP **429**                                                            | Yes        | Rate-limited; backoff is the recovery signal.                                                                                                                        |
+| Network error from `fetch` (DNS failure, connection refused, TLS reset) | Yes        | Captured at the `fetch` boundary.                                                                                                                                    |
+| Per-attempt timeout (`AbortSignal.timeout` firing)                      | Yes        | Each attempt gets its own `timeoutMs` budget; a hung response doesn't poison subsequent retries.                                                                     |
+| HTTP **4xx** outside 429                                                | **No**     | The webhook rejected the payload; retrying will not help. Surfaces immediately as `PushNotificationSendError`.                                                       |
+| Caller-supplied `signal` aborted                                        | **No**     | Cooperative cancellation - the sender aborts in-flight requests, drops any pending backoff sleep, and rejects with `PushNotificationSendError` (no further retries). |
+
+The per-attempt backoff sleep is itself abort-aware: aborting `options.signal` between attempts cancels the sleep and rejects immediately rather than waiting for the timer to elapse.
+
+### Auth header resolution
+
+The `Authorization` header is derived from the `PushNotificationConfig` the client supplied. Resolution order (the first source that produces a value wins, but a later source **overrides** an earlier one - last-write-wins across sources):
+
+1. **`config.token`** (string) → `Authorization: Bearer <token>` is set.
+2. **`config.authentication.schemes`** - the sender iterates the schemes in order; the first that matches a known kind wins:
+   - `bearer` (case-insensitive) → `Authorization: Bearer <config.authentication.credentials>` (only when `credentials` is a non-empty string).
+   - `basic` (case-insensitive) → `Authorization: Basic <config.authentication.credentials>` (the value is taken verbatim - the client is responsible for the `base64(user:pass)` encoding).
+   - Any other scheme name → ignored (no header emitted for that scheme).
+3. **Neither source is present (or both produced no value)** → no `Authorization` header is sent; the POST goes out unauthenticated. The webhook is responsible for rejecting unauthenticated requests (e.g., HTTP 401) if it needs them gated.
+
+Because `config.authentication.schemes` is applied **after** `config.token`, supplying both will let the schemes value override the token-derived header. In practice, clients typically use one source or the other; the override exists so a server can rewrite the auth shape at config-set time without losing per-task state.
+
+This is the same resolution order as the Go ADK; configurations transfer between languages unchanged.
+
+### `PushNotificationSendError`
+
+```ts
+class PushNotificationSendError extends Error {
+  override readonly name = 'PushNotificationSendError';
+  readonly url: string;
+  readonly attempts: number; // total attempts made (1 = first attempt failed non-retryably)
+  readonly status: number | undefined; // last HTTP status observed, if any
+}
+```
+
+Thrown by `sendTaskUpdate` (and surfaced via `DeliveryResult.error` from `deliverTaskUpdate`). The error wraps the underlying cause (network error, non-2xx HTTP response, timeout, abort) with enough context (URL, last status, attempt count) for operators to triage.
+
+The error's `cause` (when set) is the original `Error` raised by `fetch`, the `AbortSignal.reason`, or the prior `PushNotificationSendError` instance.
+
+### Configuring push notifications per task
+
+Clients register push notifications on the initial `message/send` call via `SendMessageConfiguration.pushNotificationConfig`. The configuration is per-task and is the source `HTTPPushNotificationSender.deliverTaskUpdate` reads from once the [integration step](#bridging-into-the-state-transition-pipeline-follow-up) is in place.
+
+The `PushNotificationConfig` shape (from the generated A2A schema):
+
+```ts
+interface PushNotificationConfig {
+  /** Webhook URL to POST every `task_update` notification to. */
+  url: string;
+  /** Optional unique identifier (e.g. UUID) for this config. Surfaced on `DeliveryResult.configId`. */
+  id?: string;
+  /** Shorthand: -> `Authorization: Bearer <token>`. */
+  token?: string;
+  /** Richer auth metadata. Overrides `token` when present. */
+  authentication?: AuthenticationInfo;
+}
+
+interface AuthenticationInfo {
+  /** First-match-wins order. Supported: 'bearer', 'basic' (case-insensitive). */
+  schemes: string[];
+  /** Credential payload. Bearer: raw token. Basic: pre-encoded `base64(user:pass)`. */
+  credentials?: string;
+}
+```
+
+#### Minimal example
+
+`message/send` with a registered webhook:
+
+```bash
+curl -sS -X POST http://localhost:8080/ \
+  -H 'Content-Type: application/json' \
+  --data '{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "message/send",
+    "params": {
+      "message": {
+        "messageId": "client-msg",
+        "role": "ROLE_USER",
+        "contextId": "ctx-1",
+        "parts": [{ "text": "long-running job" }]
+      },
+      "configuration": {
+        "blocking": false,
+        "pushNotificationConfig": {
+          "url": "https://example.com/webhooks/a2a",
+          "token": "wh-secret-token"
+        }
+      }
+    }
+  }'
+```
+
+`message/send` returns the freshly minted `Task` as usual; the registered config is persisted alongside the task and consulted on every state transition:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "id": "9c8b8b7e-3f4a-4b6e-9a1d-1b2c3d4e5f60",
+    "contextId": "ctx-1",
+    "status": {
+      "state": "TASK_STATE_SUBMITTED",
+      "timestamp": "2026-05-28T12:00:00.000Z"
+    },
+    "history": [
+      {
+        "messageId": "client-msg",
+        "role": "ROLE_USER",
+        "contextId": "ctx-1",
+        "parts": [{ "text": "long-running job" }]
+      }
+    ]
+  }
+}
+```
+
+Each subsequent state transition (`SUBMITTED` -> `WORKING` -> `COMPLETED` / `FAILED` / `CANCELLED` / `INPUT_REQUIRED`) produces one POST per registered config carrying the [`TaskUpdateNotification`](#wire-payload-taskupdatenotification) payload.
+
+> **Clients can register multiple configs per task** via the `tasks/pushNotificationConfig/set` JSON-RPC method; the sender's [`deliverTaskUpdate`](#delivertaskupdateconfigs-task-options---fan-out) helper handles the fan-out. The config-management handlers (`set` / `get` / `list` / `delete`) ship in `@inference-gateway/adk` alongside the sender and are exported from the server barrel.
+
+### Bridging into the state-transition pipeline (follow-up)
+
+As of [typescript-adk#93](https://github.com/inference-gateway/typescript-adk/pull/93), `HTTPPushNotificationSender` is the **delivery primitive only**. Wiring it into the task-state-transition pipeline - subscribing to the `TaskEventBus`'s `TASK_STATUS_CHANGED` events and calling `deliverTaskUpdate` with the per-task configs - is a follow-up integration step that is **not done automatically**.
+
+Until that wiring lands in the ADK itself, application code that wants to emit push notifications must subscribe to state transitions and invoke the sender by hand. The sketch:
+
+```ts
+import {
+  HTTPPushNotificationSender,
+  type PushNotificationConfig,
+  type Task,
+} from '@inference-gateway/adk';
+
+declare function getConfigsForTask(taskId: string): readonly PushNotificationConfig[];
+declare const taskEventBus: { on(event: string, listener: (task: Task) => void): void };
+
+const sender = new HTTPPushNotificationSender({ logger: console });
+
+taskEventBus.on('TASK_STATUS_CHANGED', (task) => {
+  const configs = getConfigsForTask(task.id);
+  if (configs.length === 0) return;
+  // `deliverTaskUpdate` never throws on per-config failure, so we don't need a catch.
+  void sender.deliverTaskUpdate(configs, task);
+});
+```
+
+Track [typescript-adk#38](https://github.com/inference-gateway/typescript-adk/issues/38) for the automatic wiring follow-up.
+
+### Cross-reference
+
+- **Go ADK equivalent.** `HTTPPushNotificationSender` in [`adk/server/push_notification_sender.go`](https://github.com/inference-gateway/adk/blob/main/server/push_notification_sender.go). Same `TaskUpdateNotification` shape, same auth-header resolution, same retryable-vs-non-retryable classification.
+- **TypeScript source.** [`src/server/push-notification-sender.ts`](https://github.com/inference-gateway/typescript-adk/blob/main/src/server/push-notification-sender.ts) in the `inference-gateway/typescript-adk` repo.
+- **Originating issue.** [typescript-adk#38](https://github.com/inference-gateway/typescript-adk/issues/38) (delivery primitive + follow-up wiring).
+- **Originating PR.** [typescript-adk#93](https://github.com/inference-gateway/typescript-adk/pull/93).
+
 ## Parity with the Go ADK
 
 The TypeScript ADK is being grown in lockstep with the [Go ADK](https://github.com/inference-gateway/adk). The intent is that any A2A agent capability you can read about in the Go ADK reference applies semantically to the TypeScript ADK once the corresponding handler ships:
@@ -2353,6 +2718,7 @@ The TypeScript ADK is being grown in lockstep with the [Go ADK](https://github.c
 - `DefaultBackgroundTaskHandler` mirrors the Go ADK's [`DefaultBackgroundTaskHandler`](https://github.com/inference-gateway/adk/blob/main/server/task_handler.go) - same iteration cap default (`50`), same `MAX_CHAT_COMPLETION_ITERATIONS` env var name, same reserved `input_required` tool and `message` / `prompt` / `question` arg-key fallback, and the same `execution_stats` / `usage` metadata shape on `task.metadata`.
 - [`AgentBuilder`](#agent-builder-agentbuilder) mirrors the Go ADK's [`AgentBuilder`](https://github.com/inference-gateway/adk/blob/main/server/agent_builder.go) - same fluent surface (`withProvider` / `withModel` / `withTemperature` / `withTopP` / `withMaxTokens` / `withMaxIterations` / `withSystemPrompt` / `withMaxConversationHistory` / `withCallbacks` / `withToolBox` / `withLLMClient` / `build`), same defaults (`maxIterations: 50`, `maxConversationHistory: 20`), and a `systemPrompt` default that is a byte-for-byte copy of `AgentConfig.SystemPrompt` from [`server/config/config.go`](https://github.com/inference-gateway/adk/blob/main/server/config/config.go). The TS variant surfaces each LLM-config field as its own builder method instead of a single `WithConfig` call.
 - [`agent/getAuthenticatedExtendedCard`](#the-agent-getauthenticatedextendedcard-json-rpc-method) mirrors the Go ADK's [`HandleGetAuthenticatedExtendedCard`](https://github.com/inference-gateway/adk/blob/main/server/task_handler.go) - same JSON-RPC method name, same optional `tenant` param, same "return the configured extended card verbatim" contract, same fail-closed behaviour when no extended card is configured (`-32601 method not found`). Both ADKs leave the public well-known card undecorated and surface auth schemes only on the extended endpoint; the public card sets `supportsExtendedAgentCard: true` to signal availability. The TS handler is auto-registered by [`A2AServerBuilder.withAuthConfig(...)`](#via-a2aserverbuilder-withauthconfig) when paired with an authenticator, matching the Go ADK's `A2AServerBuilder.WithAuthConfig` wiring.
+- [`HTTPPushNotificationSender`](#push-notifications-httppushnotificationsender) mirrors the Go ADK's [`HTTPPushNotificationSender`](https://github.com/inference-gateway/adk/blob/main/server/push_notification_sender.go) - same `TaskUpdateNotification` JSON payload (`type` / `taskId` / `state` / `timestamp` / `task`), same auth-header resolution order (`config.token` first, then bearer / basic in `config.authentication.schemes`), and the same retryable-vs-non-retryable classification (5xx / 429 / network / per-attempt timeout retryable; 4xx and caller abort non-retryable). The TypeScript sender ships `deliverTaskUpdate` as a fan-out helper with a default concurrency cap of `8`; both ADKs' senders are delivery primitives only and depend on the lifecycle layer for invocation.
 - The generated `Message`, `Task`, and `Part` types are produced from the same `inference-gateway/schemas` source of truth, regenerated via `pnpm generate:types` and pinned to a specific schema commit.
 
 Where the TypeScript ADK has not yet shipped a handler that the Go ADK has, cross-referencing the Go source is the safest reference point.
