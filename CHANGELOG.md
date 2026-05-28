@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.42](https://github.com/inference-gateway/docs/compare/0.6.41...0.6.42) (2026-05-28)
+
+### 📚 Documentation
+
+* document OIDC/OAuth2 authentication middleware in the TypeScript ADK ([#81](https://github.com/inference-gateway/docs/issues/81)) ([9472edd](https://github.com/inference-gateway/docs/commit/9472eddbef5a413646f008b951de0f85de2167d5)), closes [#79](https://github.com/inference-gateway/docs/issues/79)
+
 ## [0.6.41](https://github.com/inference-gateway/docs/compare/0.6.40...0.6.41) (2026-05-28)
 
 ### 👷 CI
