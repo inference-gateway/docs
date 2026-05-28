@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.43](https://github.com/inference-gateway/docs/compare/0.6.42...0.6.43) (2026-05-28)
+
+### 📚 Documentation
+
+* **typescript-adk:** document agent/getAuthenticatedExtendedCard ([#82](https://github.com/inference-gateway/docs/issues/82)) ([7e4123c](https://github.com/inference-gateway/docs/commit/7e4123c508eb6767101ffb96ca9ab753c706233b)), closes [typescript-adk#36](https://github.com/inference-gateway/typescript-adk/issues/36) [#80](https://github.com/inference-gateway/docs/issues/80)
+
 ## [0.6.42](https://github.com/inference-gateway/docs/compare/0.6.41...0.6.42) (2026-05-28)
 
 ### 📚 Documentation
