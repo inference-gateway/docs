@@ -1,6 +1,6 @@
 ---
 title: TypeScript ADK
-description: Build A2A-compatible agents in TypeScript with the @inference-gateway/adk package. Handler registration, JSON-RPC message/send, message/stream, tasks/get, tasks/list, tasks/cancel with TaskCancellationRegistry, SSE event sequence, CloudEvents v1.0 envelopes, STREAMING_STATUS_UPDATE_INTERVAL, DefaultBackgroundTaskHandler agentic loop with tool dispatch and usage metadata, MAX_CHAT_COMPLETION_ITERATIONS cap, reserved input_required tool, AgentBuilder fluent wiring for OpenAICompatibleAgent with Go-parity defaults, lifecycle callbacks (beforeAgent / afterAgent / beforeModel / afterModel / beforeTool / afterTool) with CallbackContext, short-circuit and chain semantics, sync vs. async, error propagation, caching and guardrail patterns, OIDC / OAuth2 Bearer-token authentication middleware (AUTH_ENABLE, AUTH_ISSUER_URL, AUTH_CLIENT_ID, AUTH_CLIENT_SECRET) with JWKS verification, agent-card decoration, JSON-RPC -32001 / HTTP 401 rejection contract, validation contract, id semantics, cancellation, and runnable client samples.
+description: Build A2A-compatible agents in TypeScript with the @inference-gateway/adk package. Handler registration, JSON-RPC message/send, message/stream, tasks/get, tasks/list, tasks/cancel with TaskCancellationRegistry, agent/getAuthenticatedExtendedCard with the extended-card vs. public-card discovery convention (supportsExtendedAgentCard), withAuthConfig auto-registration, OIDC auth gating with -32001 envelope, SSE event sequence, CloudEvents v1.0 envelopes, STREAMING_STATUS_UPDATE_INTERVAL, DefaultBackgroundTaskHandler agentic loop with tool dispatch and usage metadata, MAX_CHAT_COMPLETION_ITERATIONS cap, reserved input_required tool, AgentBuilder fluent wiring for OpenAICompatibleAgent with Go-parity defaults, lifecycle callbacks (beforeAgent / afterAgent / beforeModel / afterModel / beforeTool / afterTool) with CallbackContext, short-circuit and chain semantics, sync vs. async, error propagation, caching and guardrail patterns, validation contract, id semantics, cancellation, and runnable client samples.
 ---
 
 # TypeScript ADK
@@ -23,21 +23,21 @@ pnpm add @inference-gateway/adk
 
 The ADK currently exposes the HTTP server core and the first A2A JSON-RPC method handler:
 
-| Surface                                     | Status    | Notes                                                                                      |
-| ------------------------------------------- | --------- | ------------------------------------------------------------------------------------------ |
-| `A2AServer` / `createA2AServer`             | Available | Hono-backed HTTP server. Serves `/.well-known/agent-card.json`, `/health`, and JSON-RPC.   |
-| `MethodRegistry` / `registerMethod`         | Available | Per-server JSON-RPC method dispatch table.                                                 |
-| `InMemoryTaskStorage`                       | Available | In-process task queue + active task map. Swap for a custom `TaskStorage` in production.    |
-| `createMessageSendHandler`                  | Available | Synchronous `message/send` handler.                                                        |
-| `createMessageStreamHandler`                | Available | Streaming `message/stream` handler. SSE response wrapped in CloudEvents v1.0 envelopes.    |
-| `createTaskGetHandler`                      | Available | Synchronous `tasks/get` handler. Looks up a task across active and dead-letter storage.    |
-| `createTaskListHandler`                     | Available | Synchronous `tasks/list` handler. Filterable, keyset-paginated over `(createdAt, id)`.     |
-| `createTaskCancelHandler`                   | Available | Synchronous `tasks/cancel` handler. Drops `PENDING` from the queue, aborts in-flight.      |
-| `TaskCancellationRegistry`                  | Available | Shared `taskId -> AbortController` map bridging `tasks/cancel` and streaming handlers.     |
-| `DefaultBackgroundTaskHandler`              | Available | LLM-driven agentic loop with tool dispatch, history truncation, and an iteration cap.      |
-| `AgentBuilder`                              | Available | Fluent builder for an `OpenAICompatibleAgent`; defaults match the Go ADK byte-for-byte.    |
-| `A2AServerBuilder`                          | Available | Fluent server builder; validates that the agent card's capabilities match the handlers.    |
-| `createAuthenticator` / `OIDCAuthenticator` | Available | OIDC / OAuth2 Bearer-token middleware. Disabled by default; opt in via `AUTH_ENABLE=true`. |
+| Surface                                     | Status    | Notes                                                                                           |
+| ------------------------------------------- | --------- | ----------------------------------------------------------------------------------------------- |
+| `A2AServer` / `createA2AServer`             | Available | Hono-backed HTTP server. Serves `/.well-known/agent-card.json`, `/health`, and JSON-RPC.        |
+| `MethodRegistry` / `registerMethod`         | Available | Per-server JSON-RPC method dispatch table.                                                      |
+| `InMemoryTaskStorage`                       | Available | In-process task queue + active task map. Swap for a custom `TaskStorage` in production.         |
+| `createMessageSendHandler`                  | Available | Synchronous `message/send` handler.                                                             |
+| `createMessageStreamHandler`                | Available | Streaming `message/stream` handler. SSE response wrapped in CloudEvents v1.0 envelopes.         |
+| `createTaskGetHandler`                      | Available | Synchronous `tasks/get` handler. Looks up a task across active and dead-letter storage.         |
+| `createTaskListHandler`                     | Available | Synchronous `tasks/list` handler. Filterable, keyset-paginated over `(createdAt, id)`.          |
+| `createTaskCancelHandler`                   | Available | Synchronous `tasks/cancel` handler. Drops `PENDING` from the queue, aborts in-flight.           |
+| `TaskCancellationRegistry`                  | Available | Shared `taskId -> AbortController` map bridging `tasks/cancel` and streaming handlers.          |
+| `DefaultBackgroundTaskHandler`              | Available | LLM-driven agentic loop with tool dispatch, history truncation, and an iteration cap.           |
+| `AgentBuilder`                              | Available | Fluent builder for an `OpenAICompatibleAgent`; defaults match the Go ADK byte-for-byte.         |
+| `A2AServerBuilder`                          | Available | Fluent server builder; validates that the agent card's capabilities match the handlers.         |
+| `createGetAuthenticatedExtendedCardHandler` | Available | Synchronous `agent/getAuthenticatedExtendedCard` handler; returns the configured extended card. |
 
 ## The `message/send` JSON-RPC method
 
@@ -1099,6 +1099,327 @@ The full event-type matrix exposed on `AGENT_EVENT_TYPE` is documented in [Cloud
 
 Set `A2A_AGENT_CLIENT_API_KEY` to override the per-provider lookup, and `A2A_AGENT_CLIENT_BASE_URL` to point at the [Inference Gateway](https://github.com/inference-gateway/inference-gateway) (recommended - it normalizes provider quirks so the same agent code talks to every provider unchanged) or any other OpenAI-compatible endpoint. The full configuration matrix, troubleshooting checklist, and example client output live in the example's [`README.md`](https://github.com/inference-gateway/typescript-adk/blob/main/examples/ai-powered-streaming/README.md).
 
+## The `agent/getAuthenticatedExtendedCard` JSON-RPC method
+
+`agent/getAuthenticatedExtendedCard` is the synchronous lookup an authenticated client uses to fetch the **extended** agent card - a richer descriptor that lives alongside the public `/.well-known/agent-card.json` and carries metadata the agent only exposes once the caller has proven who they are. The handler:
+
+1. Validates the JSON-RPC `params` payload against `GetAuthenticatedExtendedCardParams` (every field optional; `params` itself may be omitted).
+2. Returns the configured extended `AgentCard` verbatim - it does **not** mutate, filter, or re-decorate the card.
+
+Authentication is **not** enforced inside the handler; it relies on the authenticator wired into the JSON-RPC route (`A2AServerConfig.authenticator`) to reject unauthenticated requests with HTTP `401` + JSON-RPC [`-32001`](#unauthenticated-request) before dispatch ever runs.
+
+This mirrors the Go ADK's [`HandleGetAuthenticatedExtendedCard`](https://github.com/inference-gateway/adk/blob/main/server/task_handler.go) in `server/task_handler.go`, including the optional `tenant` parameter and the choice to leak no card data when auth is misconfigured (the method is simply not registered).
+
+### Why an extended card
+
+The public well-known card (`GET /.well-known/agent-card.json`) is served unauthenticated so any prospective client can discover what the agent does. The extended card is the place to surface anything that should only be visible to authenticated callers:
+
+- **Auth schemes** (`securitySchemes` / `security`) - keep credential requirements off the public card so the public card can stay infrastructure-neutral and cacheable.
+- **Private capabilities and skills** - admin-only tools, paid-tier skills, internal endpoints, or anything else the agent only advertises after authentication.
+- **Per-tenant variations** - the optional `tenant` param is forwarded to logs and can be threaded through your own card builder if the extended card needs to vary per caller. The bundled handler returns the configured card verbatim; tenant-aware variation is a layer you build on top.
+
+The public card signals that an extended variant exists by setting `supportsExtendedAgentCard: true`. Clients that respect the agent card discovery convention check this flag and only then attempt the JSON-RPC call against the authenticated endpoint.
+
+### Registering the handler
+
+The handler is **auto-registered** when an extended card is configured on the server - manual registration is rarely needed. The two recommended wiring paths:
+
+#### Via `A2AServerBuilder.withAuthConfig(...)`
+
+The fluent path: install an authenticator, supply the auth config, and the builder produces the decorated extended card and registers the handler for you. The public well-known card is left undecorated and gets `supportsExtendedAgentCard: true`.
+
+```ts
+import {
+  A2AServerBuilder,
+  createAuthenticator,
+  loadAuthConfigFromEnv,
+  type AgentCard,
+} from '@inference-gateway/adk';
+
+const authConfig = loadAuthConfigFromEnv(); // AUTH_ENABLE / AUTH_ISSUER_URL / AUTH_CLIENT_ID / AUTH_CLIENT_SECRET
+const authenticator = await createAuthenticator({ config: authConfig });
+
+const card: AgentCard = {
+  name: 'support-agent',
+  description: 'Answers product questions and looks up account state.',
+  version: '0.1.0',
+  protocolVersion: '1.0',
+  defaultInputModes: ['text/plain'],
+  defaultOutputModes: ['text/plain'],
+  capabilities: { streaming: false },
+  skills: [{ id: 'support', name: 'Support', description: 'Answer questions.', tags: [] }],
+};
+
+const server = new A2AServerBuilder()
+  .withAgentCard(card)
+  .withAuthenticator(authenticator)
+  .withAuthConfig(authConfig)
+  .withDefaultBackgroundTaskHandler()
+  .build();
+
+await server.listen(8080, '0.0.0.0');
+```
+
+What the builder does at `build()` time when both `withAuthenticator(...)` and `withAuthConfig(...)` are supplied:
+
+1. Calls `decorateAgentCardWithAuth(card, authConfig)` to produce the **extended** card - the public card plus an `openIdConnectSecurityScheme` entry (`securitySchemes.oidc`) pointing at `<issuerUrl>/.well-known/openid-configuration`, and a matching `security` requirement naming the same scheme.
+2. Clones the **public** card and sets `supportsExtendedAgentCard: true` on the clone (the original card stays untouched, auth schemes never appear on the public card).
+3. Constructs the `A2AServer` with both `card` (public) and `extendedCard`, which causes the server to auto-register `agent/getAuthenticatedExtendedCard` against the extended card.
+4. Wires the authenticator's middleware on the JSON-RPC route, so the handler's "trust upstream auth" contract holds.
+
+> **Behavior change vs. prior versions.** Earlier releases of the TypeScript ADK decorated the **public** card with auth schemes when `withAuthConfig(...)` was supplied. As of [typescript-adk#36](https://github.com/inference-gateway/typescript-adk/pull/36) the public card is left undecorated; auth schemes live only on the extended card. Clients that relied on parsing `securitySchemes` from the well-known card must either switch to fetching the extended card after authentication, or look for the `supportsExtendedAgentCard: true` flag and then negotiate. The Go ADK has always behaved this way; the TS ADK is now aligned.
+
+#### Via `A2AServer` directly
+
+For callers assembling an `A2AServer` without the builder (custom card pipelines, tests, advanced wiring), pass `extendedCard` on the config. The server auto-registers the handler when the field is present:
+
+```ts
+import {
+  AGENT_CARD_PATH,
+  createA2AServer,
+  decorateAgentCardWithAuth,
+  loadAuthConfigFromEnv,
+  type AgentCard,
+} from '@inference-gateway/adk';
+
+const authConfig = loadAuthConfigFromEnv();
+const publicCard: AgentCard = {
+  /* ... */
+  // signal availability:
+  supportsExtendedAgentCard: true,
+};
+const extendedCard = decorateAgentCardWithAuth(publicCard, authConfig);
+
+const server = createA2AServer({
+  card: publicCard,
+  extendedCard,
+  // authenticator: ... // wire the same middleware that protects your JSON-RPC route
+});
+```
+
+When `extendedCard` is **omitted**, the server does not register the method; a JSON-RPC call against it receives the standard `-32601 method not found` envelope.
+
+> **Pair `extendedCard` with an enabled authenticator.** The handler trusts that the upstream middleware has already verified the bearer token - registering the extended card without an authenticator lets anonymous callers fetch the very metadata the extended endpoint is meant to gate. The builder enforces this pairing by design (`withAuthConfig(...)` only produces an extended card when paired with `withAuthenticator(...)`); direct `A2AServer` callers must wire both themselves.
+
+### Manual registration
+
+If you need to register the handler against a custom card pipeline (e.g., per-tenant card built on demand from a request-scoped context), import the factory directly and register it on a fresh `A2AServer`:
+
+```ts
+import {
+  GET_AUTHENTICATED_EXTENDED_CARD_METHOD,
+  createA2AServer,
+  createGetAuthenticatedExtendedCardHandler,
+  type AgentCard,
+} from '@inference-gateway/adk';
+
+const extendedCard: AgentCard = {
+  /* ... */
+};
+
+const server = createA2AServer({ card: publicCard /* ...authenticator */ });
+server.registerMethod(
+  GET_AUTHENTICATED_EXTENDED_CARD_METHOD,
+  createGetAuthenticatedExtendedCardHandler({ card: extendedCard })
+);
+```
+
+> **Use the exported method-name constant.** `GET_AUTHENTICATED_EXTENDED_CARD_METHOD` resolves to the string `'agent/getAuthenticatedExtendedCard'`. Importing it (rather than hard-coding the literal) keeps the registration in lockstep with conformance tests and other consumers.
+
+### Handler options
+
+`createGetAuthenticatedExtendedCardHandler(options)` accepts:
+
+| Option | Required | Default | Description                                                                                                                                                                                                        |
+| ------ | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `card` | Yes      | -       | The `AgentCard` returned verbatim to every authenticated caller. The handler does not mutate or filter it; ensure the card itself does not leak data the caller should not see (per-tenant variation is your job). |
+
+### Request shape (`GetAuthenticatedExtendedCardParams`)
+
+The JSON-RPC `params` object - all fields optional, and the entire `params` field may be omitted from the request:
+
+```ts
+interface GetAuthenticatedExtendedCardParams {
+  readonly tenant?: string; // opaque to the framework; forwarded to logs only
+}
+```
+
+`tenant` mirrors the Go ADK's `types.GetAuthenticatedExtendedCardParams.Tenant`. The bundled handler does not branch on its value - it is provided so wrapper handlers, observability layers, and per-tenant card builders downstream can correlate calls. Anything the caller relies on must be enforced by the layer that constructs the extended card, not by the handler.
+
+### Response shape
+
+On success the handler returns the configured `AgentCard` verbatim:
+
+```jsonc
+{
+  "name": "support-agent",
+  "description": "Answers product questions and looks up account state.",
+  "version": "0.1.0",
+  "protocolVersion": "1.0",
+  "defaultInputModes": ["text/plain"],
+  "defaultOutputModes": ["text/plain"],
+  "capabilities": { "streaming": false },
+  "skills": [
+    { "id": "support", "name": "Support", "description": "Answer questions.", "tags": [] },
+  ],
+  "securitySchemes": {
+    "oidc": {
+      "openIdConnectSecurityScheme": {
+        "openIdConnectUrl": "https://issuer.example.com/.well-known/openid-configuration",
+        "description": "OpenID Connect authentication via JWT Bearer tokens.",
+      },
+    },
+  },
+  "security": [{ "schemes": { "oidc": { "list": [] } } }],
+}
+```
+
+When `decorateAgentCardWithAuth(...)` produces the card (the `A2AServerBuilder.withAuthConfig(...)` path), the `securitySchemes.oidc` and `security` entries above are the only fields it adds; every other field is copied from the public card unchanged. Manual extended cards are returned verbatim, so any private skills / capabilities / metadata you want gated behind auth go directly on the card you pass to `extendedCard`.
+
+### Validation contract
+
+All validation failures surface as JSON-RPC error code `-32602 Invalid Params`:
+
+| Failure                                        | Error message contains                               |
+| ---------------------------------------------- | ---------------------------------------------------- |
+| `params` is an array or a non-object primitive | `expected GetAuthenticatedExtendedCardParams object` |
+| `params.tenant` is present but not a string    | `tenant must be a string when provided`              |
+
+Omitting `params` entirely, passing `null`, or passing an empty object are all valid and produce a successful response. The validator only rejects `params` shapes that JSON-RPC clients should never construct in practice.
+
+### Method-not-found
+
+When the server is built **without** an extended card configured, the method is not registered. A call against it receives the standard JSON-RPC `-32601 method not found` envelope:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "error": {
+    "code": -32601,
+    "message": "method not found: agent/getAuthenticatedExtendedCard"
+  }
+}
+```
+
+This is a deliberate fail-closed default: a misconfigured server (auth wired without a card, or vice versa) returns `-32601` instead of accidentally leaking a card the auth layer was meant to gate.
+
+### Unauthenticated request
+
+When the JSON-RPC route is protected by an enabled `Authenticator` (e.g., the bundled `OIDCAuthenticator`), requests without an `Authorization: Bearer <token>` header - or with a token the verifier rejects - never reach the handler. The middleware short-circuits with HTTP `401` and a JSON-RPC error envelope carrying the application-defined code `-32001` (exported as `AUTHENTICATION_REQUIRED_ERROR_CODE`):
+
+```jsonc
+// HTTP/1.1 401 Unauthorized
+// WWW-Authenticate: Bearer
+// Content-Type: application/json; charset=utf-8
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "error": {
+    "code": -32001,
+    "message": "missing authorization header",
+    "data": { "reason": "missing" },
+  },
+}
+```
+
+`error.data.reason` is one of `missing`, `malformed`, or the `TokenVerificationError.reason` the OIDC verifier emitted (e.g., `expired`, `signature`, `audience`). The envelope shape is the same for every JSON-RPC method on the server; this section just spells it out because the extended-card endpoint is the one clients are most likely to encounter it on.
+
+### Runnable example
+
+Start a server with an extended card configured (the `withAuthConfig` snippet above), then hit the method.
+
+#### Authenticated request, no params
+
+```bash
+curl -sS -X POST http://localhost:8080/ \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer <id_token>' \
+  --data '{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "agent/getAuthenticatedExtendedCard"
+  }'
+```
+
+Response (the extended card, verbatim):
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "name": "support-agent",
+    "description": "Answers product questions and looks up account state.",
+    "version": "0.1.0",
+    "protocolVersion": "1.0",
+    "defaultInputModes": ["text/plain"],
+    "defaultOutputModes": ["text/plain"],
+    "capabilities": { "streaming": false },
+    "skills": [
+      { "id": "support", "name": "Support", "description": "Answer questions.", "tags": [] }
+    ],
+    "securitySchemes": {
+      "oidc": {
+        "openIdConnectSecurityScheme": {
+          "openIdConnectUrl": "https://issuer.example.com/.well-known/openid-configuration",
+          "description": "OpenID Connect authentication via JWT Bearer tokens."
+        }
+      }
+    },
+    "security": [{ "schemes": { "oidc": { "list": [] } } }]
+  }
+}
+```
+
+#### Authenticated request, with `tenant`
+
+The optional `tenant` param is accepted unchanged. The bundled handler returns the same card; downstream observability sees the tenant value on the wire:
+
+```bash
+curl -sS -X POST http://localhost:8080/ \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer <id_token>' \
+  --data '{
+    "jsonrpc": "2.0",
+    "id": 2,
+    "method": "agent/getAuthenticatedExtendedCard",
+    "params": { "tenant": "acme-prod" }
+  }'
+```
+
+The response shape is identical to the no-params call above.
+
+#### Unauthenticated request
+
+```bash
+curl -sS -i -X POST http://localhost:8080/ \
+  -H 'Content-Type: application/json' \
+  --data '{
+    "jsonrpc": "2.0",
+    "id": 3,
+    "method": "agent/getAuthenticatedExtendedCard"
+  }'
+```
+
+```text
+HTTP/1.1 401 Unauthorized
+WWW-Authenticate: Bearer
+Content-Type: application/json; charset=utf-8
+
+{
+  "jsonrpc": "2.0",
+  "id": 3,
+  "error": {
+    "code": -32001,
+    "message": "missing authorization header",
+    "data": { "reason": "missing" }
+  }
+}
+```
+
+The integration fixtures backing every assertion above (handler contract, validation, public-vs-extended card decoration, builder wiring, conformance over the JSON-RPC wire) live at [`tests/server/agent-extended-card.test.ts`](https://github.com/inference-gateway/typescript-adk/blob/main/tests/server/agent-extended-card.test.ts) and [`tests/server/agent-extended-card-conformance.test.ts`](https://github.com/inference-gateway/typescript-adk/blob/main/tests/server/agent-extended-card-conformance.test.ts) in the source repo.
+
 ## Background task handler (`DefaultBackgroundTaskHandler`)
 
 `DefaultBackgroundTaskHandler` is the LLM-driven agentic loop the TypeScript ADK ships out of the box. It owns the conversation history, dispatches tool calls returned by the model, feeds the results back into the next LLM call, and drives the task through to one of the three terminal A2A states (`COMPLETED`, `INPUT_REQUIRED`, `FAILED`) - or `CANCELLED` when the originating request's `AbortSignal` fires.
@@ -2020,242 +2341,6 @@ try {
 }
 ```
 
-## Authentication
-
-The TypeScript ADK ships an OIDC / OAuth2 Bearer-token authentication middleware that mounts on the JSON-RPC endpoint. It mirrors the Go ADK's `server/middlewares/auth.go`: same opt-in env-var contract, same well-known agent-card / health endpoints stay public, same JSON-RPC `-32001` + HTTP `401` rejection envelope. Token verification is built on [`jose@^6`](https://www.npmjs.com/package/jose); the JWKS is fetched from the issuer's OIDC discovery document at boot, cached with a TTL, and transparently refreshed on a `kid` miss.
-
-The feature is **disabled by default**. Until you set `AUTH_ENABLE=true`, the middleware is a zero-overhead no-op (`NoopAuthenticator`) and the agent card is served exactly as you defined it.
-
-For the platform-level OIDC integration story (Keycloak setup, token flows, Kubernetes wiring, certificate handling), see the [Authentication](/authentication) reference - this section focuses on what the TypeScript ADK ships and how to wire it into your agent.
-
-### Configuration
-
-The middleware is configured entirely through environment variables. `loadAuthConfigFromEnv()` reads them once at boot and returns an `AuthConfig` record:
-
-| Variable             | Required when `AUTH_ENABLE=true` | Description                                                                                                                                                          |
-| -------------------- | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `AUTH_ENABLE`        | -                                | `true` / `1` / `yes` / `on` enables the middleware. Anything else (including unset) leaves it disabled. Default: `false`.                                            |
-| `AUTH_ISSUER_URL`    | Yes                              | OIDC issuer URL. The verifier fetches `${AUTH_ISSUER_URL}/.well-known/openid-configuration` at boot to resolve the JWKS endpoint and to match incoming `iss` claims. |
-| `AUTH_CLIENT_ID`     | Yes                              | OAuth2 client id. Used as the **expected `aud` claim** on incoming tokens - reject anything that doesn't match.                                                      |
-| `AUTH_CLIENT_SECRET` | Yes                              | OAuth2 client secret. Held by the server; not surfaced to clients.                                                                                                   |
-
-> **Env-var naming is intentionally different from the Go gateway.** The Go gateway ([`inference-gateway`](https://github.com/inference-gateway/inference-gateway)) uses `AUTH_OIDC_ISSUER` / `AUTH_OIDC_CLIENT_ID` / `AUTH_OIDC_CLIENT_SECRET`; the TypeScript ADK uses `AUTH_ISSUER_URL` / `AUTH_CLIENT_ID` / `AUTH_CLIENT_SECRET`. Each name lines up with its respective canonical config struct. Don't share an env file across both surfaces without translating the names.
-
-If `AUTH_ENABLE=true` but any of the three required fields is missing, `createAuthenticator()` logs a warning and degrades to a `NoopAuthenticator`. This mirrors the Go ADK's permissive boot behaviour - an incomplete auth config never prevents the server from starting.
-
-### Minimal opt-in
-
-```ts
-import {
-  A2AServerBuilder,
-  createAuthenticator,
-  loadAuthConfigFromEnv,
-  type AgentCard,
-} from '@inference-gateway/adk';
-
-const card: AgentCard = {
-  name: 'authenticated-agent',
-  description: 'Echoes user input back, behind OIDC auth.',
-  version: '0.1.0',
-  protocolVersion: '1.0',
-  defaultInputModes: ['text/plain'],
-  defaultOutputModes: ['text/plain'],
-  capabilities: { streaming: false },
-  skills: [{ id: 'echo', name: 'Echo', description: 'Echo input.', tags: [] }],
-};
-
-// Reads AUTH_ENABLE / AUTH_ISSUER_URL / AUTH_CLIENT_ID / AUTH_CLIENT_SECRET
-// from process.env.
-const authConfig = loadAuthConfigFromEnv();
-
-// OIDC discovery runs here - resolve at boot, reuse the result.
-const authenticator = await createAuthenticator({ config: authConfig, logger: console });
-
-const server = new A2AServerBuilder()
-  .withAgentCard(card)
-  .withBackgroundTaskHandler(/* ... your handler ... */ undefined as never)
-  .withAuthenticator(authenticator)
-  .build();
-
-await server.listen(8080, '0.0.0.0');
-```
-
-Run with `AUTH_ENABLE=true AUTH_ISSUER_URL=https://keycloak.example.com/realms/my-realm AUTH_CLIENT_ID=my-agent AUTH_CLIENT_SECRET=... node ./dist/server.js`. Run without those env vars and the same code boots in disabled mode.
-
-### Builder wiring
-
-`A2AServerBuilder` exposes two builder methods for auth:
-
-| Method                              | Effect                                                                                                                                                                                                                                                                                 |
-| ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `.withAuthenticator(authenticator)` | Mounts `authenticator.middleware()` on the JSON-RPC endpoint when `authenticator.enabled === true`. A disabled authenticator is accepted unchanged and treated as a pass-through.                                                                                                      |
-| `.withAuthConfig(config)`           | Stores the `AuthConfig` so the builder can decorate the advertised agent card with the OIDC security scheme at `build()` time via [`decorateAgentCardWithAuth()`](#card-decoration). Optional - omit if you want to manage card decoration manually or keep auth out of card metadata. |
-
-The recommended pattern is to call **both**, so clients discovering the agent see the security scheme on the card and the server actually enforces what the card advertises:
-
-```ts
-import {
-  A2AServerBuilder,
-  createAuthenticator,
-  loadAuthConfigFromEnv,
-} from '@inference-gateway/adk';
-
-const authConfig = loadAuthConfigFromEnv();
-const authenticator = await createAuthenticator({ config: authConfig, logger: console });
-
-const server = new A2AServerBuilder()
-  .withAgentCard(card)
-  .withBackgroundTaskHandler(handler.asHandler())
-  .withAuthenticator(authenticator)
-  .withAuthConfig(authConfig) // also advertises the OIDC scheme on the card
-  .build();
-```
-
-The middleware is mounted **only on the JSON-RPC endpoint** (`POST /` by default). The two discovery / liveness endpoints stay public regardless of whether auth is enabled:
-
-| Path                               | Auth required                             |
-| ---------------------------------- | ----------------------------------------- |
-| `POST /` (JSON-RPC)                | Yes, when the authenticator is `enabled`. |
-| `GET /.well-known/agent-card.json` | No.                                       |
-| `GET /health`                      | No.                                       |
-
-Keeping card discovery and health checks public matches the Go ADK and lets clients negotiate auth from the advertised security scheme without first authenticating.
-
-### Reading claims from a handler
-
-A successful verification attaches an `AuthContext` to the Hono request context under the key `auth` (also exported as `AUTH_CONTEXT_KEY`). Downstream JSON-RPC handlers - and any custom middleware mounted after the authenticator - can read it via `c.get('auth')`:
-
-```ts
-import type { Context } from 'hono';
-import type { AuthContext } from '@inference-gateway/adk';
-
-function requireSubject(c: Context): string {
-  // `c.get('auth')` is undefined when the middleware is the NoopAuthenticator
-  // (auth disabled). With auth enabled, it is always populated on the success
-  // path - the middleware rejects unauthenticated requests before they reach
-  // your handler.
-  const auth = c.get('auth') as AuthContext | undefined;
-  const sub = auth?.claims.sub;
-  if (typeof sub !== 'string' || sub.length === 0) {
-    throw new Error('no subject on token');
-  }
-  return sub;
-}
-```
-
-The `AuthContext` shape:
-
-```ts
-interface AuthContext {
-  readonly token: string; // raw Bearer token (without the "Bearer " prefix)
-  readonly claims: JWTPayload; // decoded claims (sub, iss, aud, exp, custom, ...)
-  readonly result: JWTVerifyResult<JWTPayload>; // full jose result, including protectedHeader
-}
-```
-
-Treat it as read-only. The handler does not deep-freeze the object, but mutating it has no defined semantics.
-
-### Rejection contract
-
-When the middleware rejects a request, it returns:
-
-- **HTTP status:** `401 Unauthorized`.
-- **`WWW-Authenticate: Bearer`** header (per RFC 6750), so clients know to retry with credentials.
-- **JSON-RPC error envelope** with code `-32001` (`AUTHENTICATION_REQUIRED_ERROR_CODE`, in the JSON-RPC 2.0 server-error range reserved for application use). The envelope's `id` is `null` when the middleware cannot peek the inbound `id` (the success path does not consume the body, so a synchronous peek isn't possible) - this is spec-compliant per JSON-RPC 2.0 §5.
-
-A rejected request looks like:
-
-```http
-HTTP/1.1 401 Unauthorized
-Content-Type: application/json; charset=utf-8
-WWW-Authenticate: Bearer
-
-{
-  "jsonrpc": "2.0",
-  "id": null,
-  "error": {
-    "code": -32001,
-    "message": "token expired",
-    "data": { "reason": "expired" }
-  }
-}
-```
-
-`error.data.reason` is a short stable code suitable for client-side branching and server-side metrics:
-
-| `reason`              | Triggered by                                                                                          |
-| --------------------- | ----------------------------------------------------------------------------------------------------- |
-| `missing`             | `Authorization` header absent or empty.                                                               |
-| `malformed`           | `Authorization` header present but does not start with the `Bearer` prefix, or the token isn't a JWT. |
-| `expired`             | `exp` claim is in the past (subject to `clockToleranceSeconds`).                                      |
-| `invalid_signature`   | JWS signature did not verify against any key in the JWKS.                                             |
-| `invalid_issuer`      | `iss` claim does not match `AUTH_ISSUER_URL`.                                                         |
-| `invalid_audience`    | `aud` claim does not match `AUTH_CLIENT_ID`.                                                          |
-| `verification_failed` | Any other validation failure (catch-all).                                                             |
-| `unknown`             | Internal verifier error not covered by the cases above (very rare; reported via the logger).          |
-
-The message text is safe to surface to operators; production clients should branch on `reason` rather than parsing the message string.
-
-### Card decoration
-
-When `withAuthConfig(config)` is supplied, the builder runs the agent card through `decorateAgentCardWithAuth(card, config)` at `build()` time. The decoration:
-
-1. Adds (or preserves) `card.securitySchemes.oidc` pointing at `${AUTH_ISSUER_URL}/.well-known/openid-configuration` with a `openIdConnectSecurityScheme` description of `OpenID Connect authentication via JWT Bearer tokens.`
-2. Appends a `card.security` entry requiring the `oidc` scheme (unless one already requires it).
-
-A decorated card excerpt:
-
-```jsonc
-{
-  "name": "authenticated-agent",
-  "version": "0.1.0",
-  "protocolVersion": "1.0",
-  "capabilities": { "streaming": false },
-  "skills": [
-    /* ... */
-  ],
-  "securitySchemes": {
-    "oidc": {
-      "openIdConnectSecurityScheme": {
-        "openIdConnectUrl": "https://keycloak.example.com/realms/my-realm/.well-known/openid-configuration",
-        "description": "OpenID Connect authentication via JWT Bearer tokens.",
-      },
-    },
-  },
-  "security": [{ "schemes": { "oidc": { "list": [] } } }],
-}
-```
-
-Decoration is a **no-op** when `config.enable === false` or `config.issuerUrl` is empty - the card is returned verbatim, so calling `withAuthConfig(loadAuthConfigFromEnv())` unconditionally is safe even in dev environments where auth is off.
-
-The scheme key defaults to `'oidc'` and is overridable via the `schemeName` option when calling `decorateAgentCardWithAuth()` directly:
-
-```ts
-import { decorateAgentCardWithAuth, loadAuthConfigFromEnv } from '@inference-gateway/adk';
-
-const advertisedCard = decorateAgentCardWithAuth(card, loadAuthConfigFromEnv(), {
-  schemeName: 'keycloak',
-});
-```
-
-Use this when you need the card to advertise a non-default scheme name (e.g., to match an existing OpenAPI security registry).
-
-### Opting out: `NoopAuthenticator`
-
-Skipping auth is the default - leaving `AUTH_ENABLE` unset or false produces a `NoopAuthenticator` from `createAuthenticator()`. If you want to inject the no-op explicitly (tests, conditional wiring, a feature-flag toggle), construct one directly:
-
-```ts
-import { A2AServerBuilder, NoopAuthenticator } from '@inference-gateway/adk';
-
-const server = new A2AServerBuilder()
-  .withAgentCard(card)
-  .withBackgroundTaskHandler(handler.asHandler())
-  .withAuthenticator(new NoopAuthenticator())
-  .build();
-```
-
-`NoopAuthenticator.enabled === false`, so the builder accepts it without mounting any middleware on the JSON-RPC endpoint - identical behaviour to omitting `.withAuthenticator(...)` entirely. The explicit form is mostly useful as documentation in the call site.
-
 ## Parity with the Go ADK
 
 The TypeScript ADK is being grown in lockstep with the [Go ADK](https://github.com/inference-gateway/adk). The intent is that any A2A agent capability you can read about in the Go ADK reference applies semantically to the TypeScript ADK once the corresponding handler ships:
@@ -2266,8 +2351,8 @@ The TypeScript ADK is being grown in lockstep with the [Go ADK](https://github.c
 - The `message/stream` SSE wire format - CloudEvents v1.0 envelopes, `source = 'adk/agent'`, `subject = taskId`, and the `AGENT_EVENT_TYPE.*` constants - is **byte-identical** to the Go ADK's emitter in `server/agent_streamable.go`. Client implementations target one canonical wire contract regardless of which ADK the agent is built with.
 - `STREAMING_STATUS_UPDATE_INTERVAL` shares its name, default (`1s`), and accepted format with the Go ADK's `server/config/config.go`.
 - `DefaultBackgroundTaskHandler` mirrors the Go ADK's [`DefaultBackgroundTaskHandler`](https://github.com/inference-gateway/adk/blob/main/server/task_handler.go) - same iteration cap default (`50`), same `MAX_CHAT_COMPLETION_ITERATIONS` env var name, same reserved `input_required` tool and `message` / `prompt` / `question` arg-key fallback, and the same `execution_stats` / `usage` metadata shape on `task.metadata`.
-- [Authentication](#authentication) mirrors the Go ADK's `server/middlewares/auth.go` - same opt-in `AUTH_ENABLE` toggle, same OIDC discovery + JWKS verification (with TTL cache and `kid`-miss refresh), same `WWW-Authenticate: Bearer` + JSON-RPC `-32001` rejection envelope, and same "card discovery and `/health` stay public" carve-out. The env-var names differ between the two ADKs (`AUTH_ISSUER_URL` / `AUTH_CLIENT_ID` / `AUTH_CLIENT_SECRET` in TypeScript; `AUTH_OIDC_ISSUER` / `AUTH_OIDC_CLIENT_ID` / `AUTH_OIDC_CLIENT_SECRET` in the Go gateway) - each lines up with its respective canonical config struct.
 - [`AgentBuilder`](#agent-builder-agentbuilder) mirrors the Go ADK's [`AgentBuilder`](https://github.com/inference-gateway/adk/blob/main/server/agent_builder.go) - same fluent surface (`withProvider` / `withModel` / `withTemperature` / `withTopP` / `withMaxTokens` / `withMaxIterations` / `withSystemPrompt` / `withMaxConversationHistory` / `withCallbacks` / `withToolBox` / `withLLMClient` / `build`), same defaults (`maxIterations: 50`, `maxConversationHistory: 20`), and a `systemPrompt` default that is a byte-for-byte copy of `AgentConfig.SystemPrompt` from [`server/config/config.go`](https://github.com/inference-gateway/adk/blob/main/server/config/config.go). The TS variant surfaces each LLM-config field as its own builder method instead of a single `WithConfig` call.
+- [`agent/getAuthenticatedExtendedCard`](#the-agent-getauthenticatedextendedcard-json-rpc-method) mirrors the Go ADK's [`HandleGetAuthenticatedExtendedCard`](https://github.com/inference-gateway/adk/blob/main/server/task_handler.go) - same JSON-RPC method name, same optional `tenant` param, same "return the configured extended card verbatim" contract, same fail-closed behaviour when no extended card is configured (`-32601 method not found`). Both ADKs leave the public well-known card undecorated and surface auth schemes only on the extended endpoint; the public card sets `supportsExtendedAgentCard: true` to signal availability. The TS handler is auto-registered by [`A2AServerBuilder.withAuthConfig(...)`](#via-a2aserverbuilder-withauthconfig) when paired with an authenticator, matching the Go ADK's `A2AServerBuilder.WithAuthConfig` wiring.
 - The generated `Message`, `Task`, and `Part` types are produced from the same `inference-gateway/schemas` source of truth, regenerated via `pnpm generate:types` and pinned to a specific schema commit.
 
 Where the TypeScript ADK has not yet shipped a handler that the Go ADK has, cross-referencing the Go source is the safest reference point.
