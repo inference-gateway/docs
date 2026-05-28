@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.41](https://github.com/inference-gateway/docs/compare/0.6.40...0.6.41) (2026-05-28)
+
+### 👷 CI
+
+* **claude:** download all maintainer skill assets ([2ab42d3](https://github.com/inference-gateway/docs/commit/2ab42d3d133ab15f794735bc83af9bc2b99bc4d4))
+
 ## [0.6.40](https://github.com/inference-gateway/docs/compare/0.6.39...0.6.40) (2026-05-27)
 
 ### 🔧 Miscellaneous
