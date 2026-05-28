@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.44](https://github.com/inference-gateway/docs/compare/0.6.43...0.6.44) (2026-05-28)
+
+### 📚 Documentation
+
+* **typescript-adk:** document HTTP push notification delivery ([#84](https://github.com/inference-gateway/docs/issues/84)) ([e9498c0](https://github.com/inference-gateway/docs/commit/e9498c0f60d3885bdabe89786a207f328e2a8d42)), closes [inference-gateway/typescript-adk#38](https://github.com/inference-gateway/typescript-adk/issues/38)
+
 ## [0.6.43](https://github.com/inference-gateway/docs/compare/0.6.42...0.6.43) (2026-05-28)
 
 ### 📚 Documentation
