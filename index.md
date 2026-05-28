@@ -14,49 +14,49 @@ hero:
   actions:
     - theme: brand
       text: Get Started
-      link: /getting-started
+      link: /getting-started/
     - theme: alt
       text: View on GitHub
       link: https://github.com/inference-gateway/inference-gateway
     - theme: alt
       text: Architecture
-      link: /architecture-overview
+      link: /architecture-overview/
 
 features:
   - icon: 🚀
     title: Unified API access
     details: Talk to OpenAI, Anthropic, Groq, Cohere, Ollama, DeepSeek, Cloudflare, Google, Mistral and Moonshot through one OpenAI-compatible endpoint.
-    link: /supported-providers
+    link: /supported-providers/
     linkText: Supported providers
   - icon: 🔌
     title: MCP integration
     details: Native Model Context Protocol support. Auto-discover tools from connected MCP servers and execute tool calls server-side.
-    link: /mcp
+    link: /mcp/
     linkText: MCP guide
   - icon: 🤖
     title: Agent-to-Agent (A2A)
     details: Coordinate specialized agents from inside any chat completion. Discover capabilities, delegate tasks, stream results.
-    link: /a2a
+    link: /a2a/
     linkText: A2A guide
   - icon: 🌊
     title: Streaming first-class
     details: Server-Sent Events streaming with token-level deltas, tool-call chunks, and final usage metrics.
-    link: /api-reference
+    link: /api-reference/
     linkText: API reference
   - icon: ☸️
     title: Kubernetes-native
     details: Official Helm chart and Kubernetes Operator with CRDs for gateways, agents, MCP servers, and chat orchestrators.
-    link: /operator
+    link: /operator/
     linkText: Operator guide
   - icon: 📊
     title: OpenTelemetry built-in
     details: Prometheus metrics, OTLP tracing, structured JSON logs, reference Grafana dashboards. Production observability out of the box.
-    link: /observability
+    link: /observability/
     linkText: Observability
   - icon: 🛡️
     title: Enterprise-ready auth
     details: OIDC authentication with Keycloak and any standards-compliant identity provider. JWT validation against the issuer's JWKS.
-    link: /authentication
+    link: /authentication/
     linkText: Authentication
   - icon: 🌿
     title: Lightweight
@@ -73,7 +73,7 @@ Building against multiple LLM providers means juggling SDKs, API quirks, auth sc
 - Switch providers with one config change, no application redeploys.
 - Centralise API keys, rate limiting, and audit logging at the gateway.
 - Add MCP tools or A2A agents once, get them for every model that supports tool calls.
-- Run the same binary in Docker, Kubernetes, or as a Helm chart - or let the [Kubernetes Operator](/operator) manage gateways, agents, MCP servers, and orchestrators as Custom Resources.
+- Run the same binary in Docker, Kubernetes, or as a Helm chart - or let the [Kubernetes Operator](/operator/) manage gateways, agents, MCP servers, and orchestrators as Custom Resources.
 
 ## How it works
 
@@ -103,7 +103,7 @@ curl -X POST http://localhost:8080/v1/chat/completions \
   -d '{"model": "openai/gpt-4o", "messages": [{"role": "user", "content": "List files and search for recent AI news"}]}'
 ```
 
-Learn more about [MCP Integration](/mcp) and explore the [examples](/examples).
+Learn more about [MCP Integration](/mcp/) and explore the [examples](/examples/).
 
 ## Agent-to-Agent (A2A)
 
@@ -129,7 +129,7 @@ infer chat
 > "Check my calendar for conflicts this week"
 ```
 
-Learn more about [A2A Integration](/a2a) and see how to build your own agents.
+Learn more about [A2A Integration](/a2a/) and see how to build your own agents.
 
 ## Community
 

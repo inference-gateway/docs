@@ -5,7 +5,7 @@ description: Browse the Inference Gateway A2A Registry to discover, consume, and
 
 # A2A Registry
 
-The **A2A Registry** is the central catalogue for discovering [Agent-to-Agent (A2A)](/a2a) services in the Inference Gateway ecosystem. It's a static web application - hosted at [registry.inference-gateway.com](https://registry.inference-gateway.com) - that lets you browse containerised A2A agents, inspect their metadata, and pull the OCI images you need into your own gateway deployment.
+The **A2A Registry** is the central catalogue for discovering [Agent-to-Agent (A2A)](/a2a/) services in the Inference Gateway ecosystem. It's a static web application - hosted at [registry.inference-gateway.com](https://registry.inference-gateway.com) - that lets you browse containerised A2A agents, inspect their metadata, and pull the OCI images you need into your own gateway deployment.
 
 > The registry is open-source. The catalogue, schema, and site code all live at [github.com/inference-gateway/registry](https://github.com/inference-gateway/registry).
 
@@ -23,7 +23,7 @@ The current site lets you search across name, description, and tags, and filter 
 
 ## How it relates to ADK-built agents
 
-If you scaffold an agent with the [ADL CLI](/adl-cli), the registry is where you publish it once it's ready for others to consume. The ADL toolchain already produces everything the registry needs:
+If you scaffold an agent with the [ADL CLI](/adl-cli/), the registry is where you publish it once it's ready for others to consume. The ADL toolchain already produces everything the registry needs:
 
 - A container image (built via the generated `Dockerfile` and `Taskfile.yml`).
 - An A2A-compliant agent card at `/.well-known/agent-card.json`.
@@ -39,7 +39,7 @@ Open [registry.inference-gateway.com](https://registry.inference-gateway.com) an
 
 ### 2. Add the agent to your gateway
 
-Use the [Inference Gateway CLI](/cli)'s `infer agents` commands to register the agent with your gateway. The CLI can pull and run the image locally, or just point at an already-running URL:
+Use the [Inference Gateway CLI](/cli/)'s `infer agents` commands to register the agent with your gateway. The CLI can pull and run the image locally, or just point at an already-running URL:
 
 ```bash
 # Register a remote agent already running somewhere
@@ -57,7 +57,7 @@ infer agents add my-agent http://localhost:8080 \
   --environment GOOGLE_API_KEY=...
 ```
 
-See the [A2A Integration guide](/a2a#using-a2a-with-the-inference-gateway-cli) for the full CLI workflow.
+See the [A2A Integration guide](/a2a/#using-a2a-with-the-inference-gateway-cli) for the full CLI workflow.
 
 ### 3. Verify and use the agent
 
@@ -69,7 +69,7 @@ infer chat
 > "What can the calendar agent do?"
 ```
 
-For raw protocol-level inspection (agent card, task streams, conversation replay), use the [A2A Debugger](/a2a-debugger):
+For raw protocol-level inspection (agent card, task streams, conversation replay), use the [A2A Debugger](/a2a-debugger/):
 
 ```bash
 a2a connect --server-url http://localhost:8080
@@ -82,7 +82,7 @@ The registry is a static, build-time site: agent metadata is defined in YAML fil
 
 ### 1. Build and publish your container image
 
-Push your A2A agent's OCI image to a registry such as `ghcr.io/<org>/<agent>:<version>`. If you scaffolded with the [ADL CLI](/adl-cli) and enabled `spec.scm.cd: true`, the generated `cd.yml` workflow already handles versioning, tagging, and publishing on every release.
+Push your A2A agent's OCI image to a registry such as `ghcr.io/<org>/<agent>:<version>`. If you scaffolded with the [ADL CLI](/adl-cli/) and enabled `spec.scm.cd: true`, the generated `cd.yml` workflow already handles versioning, tagging, and publishing on every release.
 
 ### 2. Add a `metadata.yaml`
 
@@ -147,9 +147,9 @@ Submit the new `agents/<id>/metadata.yaml` against the [registry repo](https://g
 
 ## Related
 
-- [A2A Integration](/a2a) - protocol overview and CLI integration
-- [ADL CLI](/adl-cli) - scaffold A2A agents you can publish to the registry
-- [A2A Debugger](/a2a-debugger) - inspect any A2A agent at the protocol level
-- [Inference Gateway CLI](/cli) - register and chat with agents through your gateway
+- [A2A Integration](/a2a/) - protocol overview and CLI integration
+- [ADL CLI](/adl-cli/) - scaffold A2A agents you can publish to the registry
+- [A2A Debugger](/a2a-debugger/) - inspect any A2A agent at the protocol level
+- [Inference Gateway CLI](/cli/) - register and chat with agents through your gateway
 - [Registry repository](https://github.com/inference-gateway/registry) - source, issues, and the catalogue itself
 - [Browse the registry](https://registry.inference-gateway.com) - the live catalogue

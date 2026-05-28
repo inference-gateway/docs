@@ -5,7 +5,7 @@ description: Run the Inference Gateway agent from GitHub Actions with infer-acti
 
 # GitHub Action (`infer-action`)
 
-[`inference-gateway/infer-action`](https://github.com/inference-gateway/infer-action) is the official GitHub Action wrapper for the [`infer` CLI](/cli). It lets you run the Inference Gateway agent from a GitHub Actions workflow so that mentioning a trigger phrase in an issue or comment kicks off an automated, AI-driven response: plan posting, code edits, branch creation, and a pull request - all without leaving GitHub.
+[`inference-gateway/infer-action`](https://github.com/inference-gateway/infer-action) is the official GitHub Action wrapper for the [`infer` CLI](/cli/). It lets you run the Inference Gateway agent from a GitHub Actions workflow so that mentioning a trigger phrase in an issue or comment kicks off an automated, AI-driven response: plan posting, code edits, branch creation, and a pull request - all without leaving GitHub.
 
 > **Current Version:** v0.4.0. Pin to a tagged release (`@v0.4.0`) rather than `@main` in production workflows.
 
@@ -18,7 +18,7 @@ Use `infer-action` when you want CI-driven inference instead of an interactive t
 - **Scheduled agents** - cron-driven release notes, changelog drafts, dependency upgrades, drift reports.
 - **Advisory-only workflows** - run the agent in comment-only mode (`enable-git-operations: false`) to post suggestions without modifying the repo.
 
-For local, interactive use the [CLI](/cli) remains the right tool; `infer-action` is the headless, event-driven counterpart.
+For local, interactive use the [CLI](/cli/) remains the right tool; `infer-action` is the headless, event-driven counterpart.
 
 ## Quick Start
 
@@ -259,7 +259,7 @@ Three principles to follow:
      contents: read
    ```
 
-3. **Prefer a GitHub App over the default `GITHUB_TOKEN` for cross-repo or higher-trust workflows.** The CLI's `/init-github-action` wizard automates the GitHub App setup (see the [CLI docs](/cli#github-action-setup)). Using an App token lets PRs created by the agent trigger downstream CI - PRs opened with the default `GITHUB_TOKEN` do not, by GitHub design.
+3. **Prefer a GitHub App over the default `GITHUB_TOKEN` for cross-repo or higher-trust workflows.** The CLI's `/init-github-action` wizard automates the GitHub App setup (see the [CLI docs](/cli/#github-action-setup)). Using an App token lets PRs created by the agent trigger downstream CI - PRs opened with the default `GITHUB_TOKEN` do not, by GitHub design.
 
 Additional hardening:
 
@@ -270,10 +270,10 @@ Additional hardening:
 
 ## CLI wizard integration
 
-The CLI ships an interactive wizard, [`/init-github-action`](/cli#github-action-setup), that automates everything in this page: creating a GitHub App, registering its credentials as secrets, and writing a workflow file under `.github/workflows/infer.yml`. Use the wizard for first-time setup; come back to this page when you need to customise inputs, write recipes by hand, or harden secrets handling beyond the defaults.
+The CLI ships an interactive wizard, [`/init-github-action`](/cli/#github-action-setup), that automates everything in this page: creating a GitHub App, registering its credentials as secrets, and writing a workflow file under `.github/workflows/infer.yml`. Use the wizard for first-time setup; come back to this page when you need to customise inputs, write recipes by hand, or harden secrets handling beyond the defaults.
 
 ## Related
 
-- [CLI](/cli) - the `infer` binary that `infer-action` installs and drives.
-- [Configuration](/configuration) - environment variables understood by the gateway and CLI.
+- [CLI](/cli/) - the `infer` binary that `infer-action` installs and drives.
+- [Configuration](/configuration/) - environment variables understood by the gateway and CLI.
 - [`infer-action` repository](https://github.com/inference-gateway/infer-action) - source, releases, and issue tracker.

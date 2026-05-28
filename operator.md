@@ -5,7 +5,7 @@ description: Declarative Kubernetes management of Inference Gateway via Custom R
 
 # Kubernetes Operator
 
-The Inference Gateway Operator is a Kubernetes controller that manages Inference Gateway and related resources declaratively through Custom Resources (CRs). Pick the operator over the [Helm chart](/deployment) when you want to manage gateways, A2A agents, MCP servers, and chat-channel orchestrators as first-class CRs in the same cluster API your other workloads use.
+The Inference Gateway Operator is a Kubernetes controller that manages Inference Gateway and related resources declaratively through Custom Resources (CRs). Pick the operator over the [Helm chart](/deployment/) when you want to manage gateways, A2A agents, MCP servers, and chat-channel orchestrators as first-class CRs in the same cluster API your other workloads use.
 
 The operator publishes four CRDs under `core.inference-gateway.com/v1alpha1`:
 
@@ -63,11 +63,11 @@ Deploys the gateway proxy. Source: [`api/v1alpha1/gateway_types.go`](https://git
 | `serviceAccount.{create,name}`                                   | Pod service account.                                                                                                                                                                       |
 | `resources.requests` / `resources.limits`                        | CPU and memory.                                                                                                                                                                            |
 
-Provider env vars referenced via Secrets follow the standard `valueFrom.secretKeyRef` pattern - see [Configuration](/configuration) for the full list of variables each provider accepts.
+Provider env vars referenced via Secrets follow the standard `valueFrom.secretKeyRef` pattern - see [Configuration](/configuration/) for the full list of variables each provider accepts.
 
 ### Agent
 
-Deploys an A2A worker. Agents are dispatched to by an `Orchestrator` (or any A2A client) - the gateway itself does not call agents; it only proxies inference. The agent typically calls back into the gateway for its own LLM completions via `agent.llm.baseURL`. Source: [`api/v1alpha1/agent_types.go`](https://github.com/inference-gateway/operator/blob/main/api/v1alpha1/agent_types.go). See [A2A Integration](/a2a) for protocol background.
+Deploys an A2A worker. Agents are dispatched to by an `Orchestrator` (or any A2A client) - the gateway itself does not call agents; it only proxies inference. The agent typically calls back into the gateway for its own LLM completions via `agent.llm.baseURL`. Source: [`api/v1alpha1/agent_types.go`](https://github.com/inference-gateway/operator/blob/main/api/v1alpha1/agent_types.go). See [A2A Integration](/a2a/) for protocol background.
 
 | Field                                                                                                    | Description                                                                                                            |
 | -------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -87,7 +87,7 @@ The operator publishes the agent's discovered capabilities into `status.card`, w
 
 ### MCP
 
-Deploys a Model Context Protocol server. Source: [`api/v1alpha1/mcp_types.go`](https://github.com/inference-gateway/operator/blob/main/api/v1alpha1/mcp_types.go). See [MCP Integration](/mcp) for protocol background.
+Deploys a Model Context Protocol server. Source: [`api/v1alpha1/mcp_types.go`](https://github.com/inference-gateway/operator/blob/main/api/v1alpha1/mcp_types.go). See [MCP Integration](/mcp/) for protocol background.
 
 | Field                             | Description                                                           |
 | --------------------------------- | --------------------------------------------------------------------- |
@@ -186,7 +186,7 @@ The `Gateway` status surfaces:
 - `providerSummary` - comma-separated list of enabled providers.
 - `conditions[]` - standard `Available` / `Progressing` / `ReplicaFailure` conditions.
 
-`Agent`, `MCP`, and `Orchestrator` expose the standard `metav1.Condition` slice plus a boolean `ready`. `Orchestrator` additionally exposes `discoveredAgents[]` and `discoveredAgentCount` when service discovery is enabled. See [Observability](/observability) for end-to-end metrics and tracing setup.
+`Agent`, `MCP`, and `Orchestrator` expose the standard `metav1.Condition` slice plus a boolean `ready`. `Orchestrator` additionally exposes `discoveredAgents[]` and `discoveredAgentCount` when service discovery is enabled. See [Observability](/observability/) for end-to-end metrics and tracing setup.
 
 ## Cleanup
 

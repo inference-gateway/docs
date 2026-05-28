@@ -91,6 +91,6 @@ Past indexing problems traced to:
 
 1. **Client-rendered content** - VitePress now SSRs the full body into `dist/<page>.html`. Never wrap content in client-only Vue components without thinking about whether Google sees the prose in the first-pass HTML.
 2. **Deploy trigger** - the old `release.yml` only redeployed when `release.yml` itself changed, so content pushes never shipped. The new `deploy.yml` watches `**/*.md` and `.vitepress/**`.
-3. **Trailing slashes** - `cleanUrls: true` means both `/foo` and `/foo.html` work; the sitemap lists the canonical no-slash form.
+3. **Trailing slashes** - `cleanUrls: true` means both `/foo/` and `/foo.html` work; the sitemap lists the canonical trailing-slash form.
 4. **404s** - `404.md` exists; the build emits a real `404.html`.
 5. **HTTPS enforcement and Search Console verification** are repo/external-dashboard concerns, not code. Confirm `Settings → Pages → Enforce HTTPS` is on, and verify the `inference-gateway.com` domain property in Search Console via DNS TXT.

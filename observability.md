@@ -332,4 +332,4 @@ Both bring up the gateway with `TELEMETRY_ENABLE=true`, scrape `/metrics`, provi
 - **Traces missing** - verify `OTEL_EXPORTER_OTLP_ENDPOINT` resolves from inside the gateway pod and that the collector is listening on the expected protocol (`grpc` on 4317 vs `http` on 4318).
 - **Logs not appearing in Loki** - check that Promtail is running as a DaemonSet on the gateway's node and that its scrape config matches the gateway's namespace/labels.
 
-For broader operational issues (auth, MCP, vision, provider 4xx debugging), see [Troubleshooting](/troubleshooting).
+For broader operational issues (auth, MCP, vision, provider 4xx debugging), see [Troubleshooting](/troubleshooting/).

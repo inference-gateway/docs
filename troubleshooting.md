@@ -9,8 +9,8 @@ This page collects the most frequent operational issues hit when running Inferen
 
 If you do not find your issue here, check:
 
-- [Observability](/observability) for log/metric correlation.
-- [Configuration](/configuration) for the complete environment-variable reference.
+- [Observability](/observability/) for log/metric correlation.
+- [Configuration](/configuration/) for the complete environment-variable reference.
 - The [issue tracker](https://github.com/inference-gateway/inference-gateway/issues) on GitHub.
 
 ## Authentication
@@ -46,7 +46,7 @@ If you do not find your issue here, check:
 
 4. Run the gateway with `ENVIRONMENT=development` and re-issue a request. Auth failures log the underlying reason (expired token, signature mismatch, unknown issuer).
 
-See [Authentication](/authentication) for the full Keycloak integration walkthrough.
+See [Authentication](/authentication/) for the full Keycloak integration walkthrough.
 
 ## Model Context Protocol (MCP)
 
@@ -84,7 +84,7 @@ MCP_DISABLE_HEALTHCHECK_LOGS=true
 
 If servers stay unreachable, set `MCP_DISABLE_HEALTHCHECK_LOGS=false` temporarily to surface the underlying TCP / TLS / HTTP error in the gateway logs.
 
-For full MCP setup details see [MCP Integration](/mcp).
+For full MCP setup details see [MCP Integration](/mcp/).
 
 ## Vision / Multimodal
 
@@ -137,7 +137,7 @@ After restarting the gateway, retry the request. If it still fails, verify the m
 
    to see which endpoints are 4xx'ing and at what rate.
 
-4. Double-check provider credentials. Each provider reads its API key from a dedicated env var (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GROQ_API_KEY`, etc.) - see [Configuration](/configuration) for the full list.
+4. Double-check provider credentials. Each provider reads its API key from a dedicated env var (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GROQ_API_KEY`, etc.) - see [Configuration](/configuration/) for the full list.
 
 ### Bypass MCP middleware for a single request
 
@@ -191,4 +191,4 @@ ANY /proxy/{provider}/{path}
    kubectl rollout restart deploy/inference-gateway
    ```
 
-See [Configuration](/configuration) for the canonical list of variables and their defaults.
+See [Configuration](/configuration/) for the canonical list of variables and their defaults.

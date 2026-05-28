@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.41](https://github.com/inference-gateway/docs/compare/0.6.40...0.6.41) (2026-05-28)
+
+### 👷 CI
+
+* **claude:** download all maintainer skill assets ([2ab42d3](https://github.com/inference-gateway/docs/commit/2ab42d3d133ab15f794735bc83af9bc2b99bc4d4))
+
+## [0.6.40](https://github.com/inference-gateway/docs/compare/0.6.39...0.6.40) (2026-05-27)
+
+### 🔧 Miscellaneous
+
+* **urls:** add missing slash at the end and missing items in sitemap.xml ([7fa1d21](https://github.com/inference-gateway/docs/commit/7fa1d2138fe1db29c83dd34acc3806d5ae42cd02))
+
+## [0.6.39](https://github.com/inference-gateway/docs/compare/0.6.38...0.6.39) (2026-05-27)
+
+### 🐛 Bug Fixes
+
+* use apache 2.0 license to match the actual license ([f51e627](https://github.com/inference-gateway/docs/commit/f51e62731b2c123954fdc352ab77742118c5d430))
+
+## [0.6.38](https://github.com/inference-gateway/docs/compare/0.6.37...0.6.38) (2026-05-27)
+
+### 🔧 Miscellaneous
+
+* **lighthouse:** improve score by increasing font visiblity ([958b06e](https://github.com/inference-gateway/docs/commit/958b06e9500656384eb2721e21c014bb7ac4328e))
+
 ## [0.6.37](https://github.com/inference-gateway/docs/compare/0.6.36...0.6.37) (2026-05-27)
 
 ### 📚 Documentation

@@ -5,7 +5,7 @@ description: Build A2A-compatible agents in TypeScript with the @inference-gatew
 
 # TypeScript ADK
 
-The TypeScript ADK (`@inference-gateway/adk`) is the Node.js Agent Development Kit for building [A2A (Agent-to-Agent)](/a2a) servers in TypeScript. It mirrors the [Go ADK](https://github.com/inference-gateway/adk) handler semantics and consumes the same canonical A2A schema (pinned from [inference-gateway/schemas](https://github.com/inference-gateway/schemas)), so agents written against either ADK speak the same wire protocol.
+The TypeScript ADK (`@inference-gateway/adk`) is the Node.js Agent Development Kit for building [A2A (Agent-to-Agent)](/a2a/) servers in TypeScript. It mirrors the [Go ADK](https://github.com/inference-gateway/adk) handler semantics and consumes the same canonical A2A schema (pinned from [inference-gateway/schemas](https://github.com/inference-gateway/schemas)), so agents written against either ADK speak the same wire protocol.
 
 > **Pre-1.0 status.** The package is in early bootstrap. The public API is not yet stable and may change between minor versions until `1.0.0` is cut. Pin an exact version in production until then.
 
@@ -2274,9 +2274,9 @@ Where the TypeScript ADK has not yet shipped a handler that the Go ADK has, cros
 
 ## Related resources
 
-- [A2A Integration](/a2a) - protocol overview, CLI usage, custom-agent requirements.
-- [A2A Debugger](/a2a-debugger) - inspect, stream, and replay tasks against any A2A server.
-- [A2A Registry](/registry) - publish your built agent so others can discover and consume it.
-- [ADL CLI](/adl-cli) - scaffold A2A agents from YAML manifests (Go / Rust today; TypeScript planned).
+- [A2A Integration](/a2a/) - protocol overview, CLI usage, custom-agent requirements.
+- [A2A Debugger](/a2a-debugger/) - inspect, stream, and replay tasks against any A2A server.
+- [A2A Registry](/registry/) - publish your built agent so others can discover and consume it.
+- [ADL CLI](/adl-cli/) - scaffold A2A agents from YAML manifests (Go / Rust today; TypeScript planned).
 - Source: [github.com/inference-gateway/typescript-adk](https://github.com/inference-gateway/typescript-adk).
 - Releases: [github.com/inference-gateway/typescript-adk/releases](https://github.com/inference-gateway/typescript-adk/releases).

@@ -389,6 +389,6 @@ MOONSHOT_API_KEY=
 
 Once you've configured Inference Gateway, you might want to:
 
-- Check out the [API Reference](/api-reference) for details on available endpoints
-- Explore [SDK options](/sdks) for integrating with your application
-- Review [Observability](/observability) options for monitoring and logging
+- Check out the [API Reference](/api-reference/) for details on available endpoints
+- Explore [SDK options](/sdks/) for integrating with your application
+- Review [Observability](/observability/) options for monitoring and logging
