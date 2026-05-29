@@ -96,6 +96,7 @@ The override is parsed by the action's trigger-detection step and exported as `I
 | `cohere-api-key`          | No\*     | -         | Required when using a Cohere model.                                                                        |
 | `ollama-api-key`          | No\*     | -         | Required when using a self-hosted Ollama endpoint.                                                         |
 | `ollama-cloud-api-key`    | No\*     | -         | Required when using Ollama Cloud.                                                                          |
+| `moonshot-api-key`        | No\*     | -         | Required when using a Moonshot (Kimi) model.                                                               |
 
 \* Provide the key matching the provider of the chosen `model`. Multiple keys can be supplied so the same workflow handles overrides to different providers.
 
