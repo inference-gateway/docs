@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.47](https://github.com/inference-gateway/docs/compare/0.6.46...0.6.47) (2026-05-29)
+
+### 📚 Documentation
+
+* **github-action:** add moonshot-api-key input ([#89](https://github.com/inference-gateway/docs/issues/89)) ([5534851](https://github.com/inference-gateway/docs/commit/5534851244ecc07eb98b44e1581478c7be1b508b)), closes [inference-gateway/infer-action#27](https://github.com/inference-gateway/infer-action/issues/27)
+
 ## [0.6.46](https://github.com/inference-gateway/docs/compare/0.6.45...0.6.46) (2026-05-29)
 
 ### 📚 Documentation
