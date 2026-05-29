@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.46](https://github.com/inference-gateway/docs/compare/0.6.45...0.6.46) (2026-05-29)
+
+### 📚 Documentation
+
+* **cli:** document infer conversations show subcommand ([#88](https://github.com/inference-gateway/docs/issues/88)) ([9f5f9ce](https://github.com/inference-gateway/docs/commit/9f5f9ce0c98f1c539c8062b0519531a8535939c0)), closes [inference-gateway/cli#547](https://github.com/inference-gateway/cli/issues/547)
+
 ## [0.6.45](https://github.com/inference-gateway/docs/compare/0.6.44...0.6.45) (2026-05-29)
 
 ### 📚 Documentation
