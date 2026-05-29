@@ -974,8 +974,11 @@ Real-time token usage and cost calculation displayed in the status bar.
 infer chat
 # Status bar shows model and current cost
 
-# Export conversation with cost details
-infer conversation export <conversation-id>
+# Inspect a saved conversation's entries (per-entry metadata, including model)
+infer conversations show <session-id>
+
+# Same, as one JSON object per line for piping into jq
+infer conversations show <session-id> --format json | jq .
 ```
 
 ### Model Thinking Visualization
@@ -1006,30 +1009,55 @@ infer chat
 - **SQLite** (default): `.infer/conversations.db`
 - **PostgreSQL**: Shared team database
 - **Redis**: High-performance caching
+- **JSONL**: Append-only files under `.infer/conversations/`
 - **In-memory**: Temporary sessions
 
 **Features:**
 
 - Automatic conversation history
 - AI-generated titles (batch: 10 messages)
-- Search across conversations
-- Export to JSON/Markdown
 - Token optimization with compaction
+- Backend-agnostic inspection via the storage layer (works the same across `jsonl`, `sqlite`,
+  `postgres`, `redis`, and `memory`)
+
+**Subcommands:**
+
+- `list`: List saved conversations with metadata (id, title, message/request counts, tokens, cost).
+- `show <session-id>`: Print a single conversation's entries in chronological order (role,
+  timestamp, content, and `tool_call_id` for tool results).
+
+**`show` flags:**
+
+- `--include-hidden`: Include entries persisted as hidden - system reminders, plan-approval
+  prompts, drained background-task results, and the synthetic verify message injected by
+  `infer agent`. Off by default.
+- `--format text|json`: `text` (default) is human-readable; `json` emits one JSON object per
+  line (NDJSON), matching the `infer agent` stdout shape for piping into `jq` or log scrapers.
+
+**Session id resolution:**
+
+`<session-id>` is resolved the same way as `infer agent --session-id`: a literal UUID is used
+as-is, while any other value is treated as a session group key and resolved to that group's
+current session id (registering the group if it is new). This means you can show a conversation
+by group name such as `channel-telegram-12345`.
 
 **Commands:**
 
 ```bash
-# List conversations
-infer conversation list
+# List conversations to find a session id
+infer conversations list
 
-# Show conversation
-infer conversation show <id>
+# Show a conversation's entries (hidden entries omitted by default)
+infer conversations show 12345678-1234-1234-1234-123456789abc
 
-# Export conversation
-infer conversation export <id>
+# Show by session group name (for example a channel group key)
+infer conversations show channel-telegram-12345
 
-# Delete conversation
-infer conversation delete <id>
+# Include hidden entries such as system reminders
+infer conversations show <session-id> --include-hidden
+
+# One JSON object per line for piping into jq
+infer conversations show <session-id> --format json | jq .
 ```
 
 ### MCP Integration
@@ -1425,20 +1453,20 @@ infer chat
 
 ## Command Reference
 
-| Command                           | Description                                                    |
-| --------------------------------- | -------------------------------------------------------------- |
-| `infer init`                      | Initialize project configuration                               |
-| `infer status`                    | Check gateway health and resource usage                        |
-| `infer chat`                      | Interactive chat session (TUI)                                 |
-| `infer chat --web`                | Web-based terminal interface                                   |
-| `infer agent <task>`              | Autonomous task execution                                      |
-| `infer skills <subcommand>`       | Manage Agent Skills (list, install, uninstall)                 |
-| `infer channels-manager`          | Start the remote messaging daemon ([Channels](/cli-channels/)) |
-| `infer config <subcommand>`       | Configuration management                                       |
-| `infer agents <subcommand>`       | A2A agent management                                           |
-| `infer conversation <subcommand>` | Conversation history management                                |
-| `infer --version`                 | Show version information                                       |
-| `infer --help`                    | Display help information                                       |
+| Command                            | Description                                                    |
+| ---------------------------------- | -------------------------------------------------------------- |
+| `infer init`                       | Initialize project configuration                               |
+| `infer status`                     | Check gateway health and resource usage                        |
+| `infer chat`                       | Interactive chat session (TUI)                                 |
+| `infer chat --web`                 | Web-based terminal interface                                   |
+| `infer agent <task>`               | Autonomous task execution                                      |
+| `infer skills <subcommand>`        | Manage Agent Skills (list, install, uninstall)                 |
+| `infer channels-manager`           | Start the remote messaging daemon ([Channels](/cli-channels/)) |
+| `infer config <subcommand>`        | Configuration management                                       |
+| `infer agents <subcommand>`        | A2A agent management                                           |
+| `infer conversations <subcommand>` | Conversation history management (`list`, `show`)               |
+| `infer --version`                  | Show version information                                       |
+| `infer --help`                     | Display help information                                       |
 
 ## Support and Resources
 
