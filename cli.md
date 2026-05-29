@@ -180,6 +180,65 @@ infer chat
 
 **Important for Auto-Accept:** Ensure clean git working tree and backups.
 
+### Headless Agent Stream Output
+
+`infer agent <task>` runs the agent non-interactively and writes a **newline-delimited JSON (JSONL) stream** to stdout. Each line is one JSON object with a `type` discriminator, intended for programmatic consumers such as the [`infer-action` GitHub Action](/github-action/). The stream is additive: new `type` values may be introduced over time and consumers should ignore any `type` they do not recognize.
+
+```bash
+infer agent "Refactor the authentication module"
+```
+
+#### Session stats summary line
+
+When a session completes, the CLI emits a single `session_stats` line summarizing token usage and computed dollar cost for the run. This lets consumers report real run cost without re-implementing the per-model pricing table.
+
+```json
+{
+  "type": "session_stats",
+  "message": "Session complete",
+  "timestamp": "2026-05-29T17:48:55+02:00",
+  "model": "deepseek/deepseek-v4-flash",
+  "prompt_tokens": 21000,
+  "completion_tokens": 1260,
+  "total_tokens": 22260,
+  "requests": 7,
+  "cost": { "input": 0.0021, "output": 0.0008, "total": 0.0029, "currency": "USD" }
+}
+```
+
+**Fields:**
+
+| Field               | Type   | Description                                                         |
+| ------------------- | ------ | ------------------------------------------------------------------- |
+| `type`              | string | Always `session_stats` for this line.                               |
+| `message`           | string | Human-readable status, currently `Session complete`.                |
+| `timestamp`         | string | RFC 3339 timestamp at which the line was emitted.                   |
+| `model`             | string | Model used for the run. A single model is attributed per run.       |
+| `prompt_tokens`     | number | Sum of input tokens across all requests in the run.                 |
+| `completion_tokens` | number | Sum of output tokens across all requests in the run.                |
+| `total_tokens`      | number | `prompt_tokens + completion_tokens`.                                |
+| `requests`          | number | Number of LLM requests (turns that reported `usage`) in the run.    |
+| `cost`              | object | Computed dollar cost for the run - see [Cost object](#cost-object). |
+
+##### Cost object
+
+| Field      | Type   | Description                                                                |
+| ---------- | ------ | -------------------------------------------------------------------------- |
+| `input`    | number | Cost attributed to `prompt_tokens` using the configured pricing table.     |
+| `output`   | number | Cost attributed to `completion_tokens` using the configured pricing table. |
+| `total`    | number | `input + output`.                                                          |
+| `currency` | string | ISO 4217 currency code from `pricing.currency`. Defaults to `USD`.         |
+
+When `pricing.enabled: false` (or pricing data is unavailable for the model), `input`, `output`, and `total` are all `0` while `currency` is still populated. The `cost` object is always present, giving consumers a stable schema.
+
+**Behavior notes:**
+
+- The line is **additive** - it does not replace any existing stream output.
+- It is **emitted once** per run, at session completion (including on early errors).
+- It is **always emitted in `agent` mode** - there is no flag to enable or disable it.
+- Cost is attributed to a **single model per run**.
+- Consumers should **ignore unknown `type` values** to remain forward-compatible.
+
 ## Computer Use
 
 GUI automation and visual understanding capabilities for interacting with applications and desktop environments.
