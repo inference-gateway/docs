@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.45](https://github.com/inference-gateway/docs/compare/0.6.44...0.6.45) (2026-05-29)
+
+### 📚 Documentation
+
+* **cli:** document the agent stream session_stats summary line ([#86](https://github.com/inference-gateway/docs/issues/86)) ([f8b5aec](https://github.com/inference-gateway/docs/commit/f8b5aec288d5ea414ee48cb4d6ec401ca9f28202)), closes [inference-gateway/cli#553](https://github.com/inference-gateway/cli/issues/553)
+
 ## [0.6.44](https://github.com/inference-gateway/docs/compare/0.6.43...0.6.44) (2026-05-28)
 
 ### 📚 Documentation
