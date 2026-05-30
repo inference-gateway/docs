@@ -185,12 +185,17 @@ export default withMermaid(
           items: [
             { text: 'MCP Integration', link: pageLink('/mcp') },
             { text: 'A2A Integration', link: pageLink('/a2a') },
-            { text: 'TypeScript ADK', link: pageLink('/typescript-adk') },
-            { text: 'Rust ADK', link: pageLink('/rust-adk') },
             { text: 'A2A Debugger', link: pageLink('/a2a-debugger') },
             { text: 'A2A Registry', link: pageLink('/registry') },
+          ],
+        },
+        {
+          text: 'Agents',
+          items: [
             { text: 'n8n Agent', link: pageLink('/n8n-agent') },
             { text: 'Grafana Agent', link: pageLink('/grafana-agent') },
+            { text: 'TypeScript ADK', link: pageLink('/typescript-adk') },
+            { text: 'Rust ADK', link: pageLink('/rust-adk') },
             { text: 'Skills Catalog', link: pageLink('/skills') },
           ],
         },
