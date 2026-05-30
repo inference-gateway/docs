@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.48](https://github.com/inference-gateway/docs/compare/0.6.47...0.6.48) (2026-05-30)
+
+### 👷 CI
+
+* **claude:** standardize workflow + task-based branch prefix ([de00962](https://github.com/inference-gateway/docs/commit/de00962ff65750db89032f7d57673a3f90a38479))
+
 ## [0.6.47](https://github.com/inference-gateway/docs/compare/0.6.46...0.6.47) (2026-05-29)
 
 ### 📚 Documentation
