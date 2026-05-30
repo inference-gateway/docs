@@ -190,6 +190,7 @@ export default withMermaid(
             { text: 'A2A Debugger', link: pageLink('/a2a-debugger') },
             { text: 'A2A Registry', link: pageLink('/registry') },
             { text: 'n8n Agent', link: pageLink('/n8n-agent') },
+            { text: 'Grafana Agent', link: pageLink('/grafana-agent') },
             { text: 'Skills Catalog', link: pageLink('/skills') },
           ],
         },
@@ -236,7 +237,10 @@ export default withMermaid(
         {
           text: 'A2A Agents',
           collapsed: false,
-          items: [{ text: 'n8n Agent', link: pageLink('/n8n-agent') }],
+          items: [
+            { text: 'n8n Agent', link: pageLink('/n8n-agent') },
+            { text: 'Grafana Agent', link: pageLink('/grafana-agent') },
+          ],
         },
         {
           text: 'Agent Development Kit (ADK)',
