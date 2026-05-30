@@ -52,7 +52,7 @@ jobs:
           cache: true
 
       - name: Install golangci-lint
-        uses: golangci/golangci-lint-action@v9.2.0
+        uses: golangci/golangci-lint-action@v9.2.1
         with:
           version: v2.12.2
           args: --help
@@ -77,7 +77,7 @@ jobs:
           task precommit:install
 
       - name: Run Infer Agent
-        uses: inference-gateway/infer-action@v0.4.0
+        uses: inference-gateway/infer-action@v0.9.1
         with:
           github-token: ${{ steps.app_token.outputs.token }}
           trigger-phrase: '@infer'
