@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.53](https://github.com/inference-gateway/docs/compare/0.6.52...0.6.53) (2026-05-30)
+
+### 📚 Documentation
+
+* refresh google-calendar-agent section in a2a.md ([#112](https://github.com/inference-gateway/docs/issues/112)) ([cbfbe0b](https://github.com/inference-gateway/docs/commit/cbfbe0b067ff17cb0421a9216c2b98bfd33e61cc))
+
 ## [0.6.52](https://github.com/inference-gateway/docs/compare/0.6.51...0.6.52) (2026-05-30)
 
 ### 👷 CI
