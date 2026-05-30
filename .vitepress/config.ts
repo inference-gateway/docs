@@ -186,6 +186,7 @@ export default withMermaid(
             { text: 'MCP Integration', link: pageLink('/mcp') },
             { text: 'A2A Integration', link: pageLink('/a2a') },
             { text: 'TypeScript ADK', link: pageLink('/typescript-adk') },
+            { text: 'Rust ADK', link: pageLink('/rust-adk') },
             { text: 'A2A Debugger', link: pageLink('/a2a-debugger') },
             { text: 'A2A Registry', link: pageLink('/registry') },
             { text: 'Skills Catalog', link: pageLink('/skills') },
@@ -227,9 +228,16 @@ export default withMermaid(
           collapsed: false,
           items: [
             { text: 'A2A Integration', link: pageLink('/a2a') },
-            { text: 'TypeScript ADK', link: pageLink('/typescript-adk') },
             { text: 'A2A Debugger', link: pageLink('/a2a-debugger') },
             { text: 'A2A Registry', link: pageLink('/registry') },
+          ],
+        },
+        {
+          text: 'Agent Development Kit (ADK)',
+          collapsed: false,
+          items: [
+            { text: 'TypeScript ADK', link: pageLink('/typescript-adk') },
+            { text: 'Rust ADK', link: pageLink('/rust-adk') },
           ],
         },
         {
