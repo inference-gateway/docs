@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.51](https://github.com/inference-gateway/docs/compare/0.6.50...0.6.51) (2026-05-30)
+
+### 👷 CI
+
+* **deps-dev:** bump vue from 3.5.34 to 3.5.35 in the npm group ([#95](https://github.com/inference-gateway/docs/issues/95)) ([df19b27](https://github.com/inference-gateway/docs/commit/df19b278b9e383eaf0ae6aa27e27a5bd97360321))
+* **deps:** bump the github-actions group with 3 updates ([#94](https://github.com/inference-gateway/docs/issues/94)) ([f0feb22](https://github.com/inference-gateway/docs/commit/f0feb220f8873e9dda11780a4e372a763d31bdb7))
+
 ## [0.6.50](https://github.com/inference-gateway/docs/compare/0.6.49...0.6.50) (2026-05-30)
 
 ### 📚 Documentation
