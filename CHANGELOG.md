@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.54](https://github.com/inference-gateway/docs/compare/0.6.53...0.6.54) (2026-05-30)
+
+### 📚 Documentation
+
+* add n8n-agent page with skill, tools, and runtime ([#113](https://github.com/inference-gateway/docs/issues/113)) ([6d3a0cb](https://github.com/inference-gateway/docs/commit/6d3a0cb039246a59a1c99868c3908af39143be12))
+
 ## [0.6.53](https://github.com/inference-gateway/docs/compare/0.6.52...0.6.53) (2026-05-30)
 
 ### 📚 Documentation
