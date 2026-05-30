@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.55](https://github.com/inference-gateway/docs/compare/0.6.54...0.6.55) (2026-05-30)
+
+### 📚 Documentation
+
+* document the grafana-agent ([#114](https://github.com/inference-gateway/docs/issues/114)) ([a950a01](https://github.com/inference-gateway/docs/commit/a950a010c5b4544ecbc87b3b6e189109ed3e4c69))
+
 ## [0.6.54](https://github.com/inference-gateway/docs/compare/0.6.53...0.6.54) (2026-05-30)
 
 ### 📚 Documentation
