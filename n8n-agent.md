@@ -150,6 +150,7 @@ The agent's [README](https://github.com/inference-gateway/n8n-agent#configuratio
 
 - [A2A Integration](/a2a/) - protocol overview and how agents plug into the gateway
 - [A2A Registry](/registry/) - discover and publish A2A agents
+- [Grafana Agent](/grafana-agent/) - another worked A2A agent, for Grafana dashboards and PromQL
 - [A2A Debugger](/a2a-debugger/) - inspect and stream tasks against the agent
 - [Skills Catalog](/skills/) - how Agent Skills like `n8n-workflow-generation` are authored and indexed
 - [ADL CLI](/adl-cli/) - the toolchain this agent is scaffolded with
