@@ -188,21 +188,40 @@ Learn more about the CLI in our [CLI Documentation](/cli/).
 
 ### Google Calendar Agent
 
-The Google Calendar Agent provides comprehensive calendar management capabilities:
+The Google Calendar Agent provides comprehensive calendar management and scheduling capabilities.
 
-**Skills:**
+**Skill:**
 
-- `list-events`: List calendar events for specified time periods
-- `create-event`: Create new calendar events with natural language parsing
-- `update-event`: Update existing calendar events
-- `delete-event`: Delete calendar events
+The agent advertises a single high-level skill that the LLM discovers and delegates to:
+
+- `schedule-meeting`: Schedule a meeting, book a slot, or find a time that works. Resolves a conflict-free booking by finding open slots, validating that nothing overlaps, and creating the event.
+
+**Tools:**
+
+The `schedule-meeting` skill is backed by a set of calendar tools the agent calls internally:
+
+- `list_calendar_events`: List upcoming events for a time range, with optional free-text search
+- `create_calendar_event`: Create a new event, including attendees and location
+- `update_calendar_event`: Update an existing event by ID
+- `delete_calendar_event`: Delete an event by ID
+- `get_calendar_event`: Retrieve the details of a specific event by ID
+- `find_available_time`: Find open time slots of a given duration within a date range
+- `check_conflicts`: Check for scheduling conflicts in a time range
+- `get_current_datetime`: Return the current date/time and the user's IANA timezone, called first for any time-relative request so events land in the correct timezone
 
 **Features:**
 
-- Natural language date/time parsing ("tomorrow at 2pm", "next Monday")
-- Smart attendee extraction ("meeting with John and Sarah")
-- Location detection and parsing
+- Timezone-aware scheduling: anchors the current time and the user's IANA timezone before emitting RFC3339 timestamps
+- Conflict detection and availability checking
+- Attendee and location handling on event creation and updates
 - Google Calendar API integration
+
+**Configuration:**
+
+These options are set as environment variables, derived from the agent's `googleCalendar` config:
+
+- `mockMode` / `GOOGLE_CALENDAR_MOCK_MODE` (default `false`): serve in-memory mock data instead of calling the Google Calendar API, useful for demos and testing without credentials
+- `timezone` / `GOOGLE_CALENDAR_TIMEZONE` (default `UTC`): default IANA timezone applied when a request does not specify one
 
 **Repository:** [github.com/inference-gateway/google-calendar-agent](https://github.com/inference-gateway/google-calendar-agent)
 
