@@ -189,6 +189,7 @@ export default withMermaid(
             { text: 'Rust ADK', link: pageLink('/rust-adk') },
             { text: 'A2A Debugger', link: pageLink('/a2a-debugger') },
             { text: 'A2A Registry', link: pageLink('/registry') },
+            { text: 'n8n Agent', link: pageLink('/n8n-agent') },
             { text: 'Skills Catalog', link: pageLink('/skills') },
           ],
         },
@@ -230,6 +231,7 @@ export default withMermaid(
             { text: 'A2A Integration', link: pageLink('/a2a') },
             { text: 'A2A Debugger', link: pageLink('/a2a-debugger') },
             { text: 'A2A Registry', link: pageLink('/registry') },
+            { text: 'n8n Agent', link: pageLink('/n8n-agent') },
           ],
         },
         {

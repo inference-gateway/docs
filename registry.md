@@ -148,6 +148,7 @@ Submit the new `agents/<id>/metadata.yaml` against the [registry repo](https://g
 ## Related
 
 - [A2A Integration](/a2a/) - protocol overview and CLI integration
+- [n8n Agent](/n8n-agent/) - a worked example of a published A2A agent and its skill/tools
 - [ADL CLI](/adl-cli/) - scaffold A2A agents you can publish to the registry
 - [A2A Debugger](/a2a-debugger/) - inspect any A2A agent at the protocol level
 - [Inference Gateway CLI](/cli/) - register and chat with agents through your gateway
