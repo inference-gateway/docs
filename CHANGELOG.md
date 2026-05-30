@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.50](https://github.com/inference-gateway/docs/compare/0.6.49...0.6.50) (2026-05-30)
+
+### 📚 Documentation
+
+* add Rust ADK artifacts subsystem page ([#93](https://github.com/inference-gateway/docs/issues/93)) ([fc99fa2](https://github.com/inference-gateway/docs/commit/fc99fa2732c05fcaa8c43c7ec5bda08e29d64795))
+
 ## [0.6.49](https://github.com/inference-gateway/docs/compare/0.6.48...0.6.49) (2026-05-30)
 
 ### 👷 CI
