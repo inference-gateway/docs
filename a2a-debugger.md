@@ -268,7 +268,7 @@ docker compose run --rm a2a-debugger connect
 docker compose run --rm a2a-debugger tasks submit-streaming "Hello"
 ```
 
-The mock agent is the [`mock-agent`](https://github.com/inference-gateway/mock-agent) image, which simulates an LLM client end-to-end.
+The mock agent is the [Mock Agent](/mock-agent/) ([`mock-agent`](https://github.com/inference-gateway/mock-agent)) image, which simulates an LLM client end-to-end - no API keys required. See the [Mock Agent](/mock-agent/) page for its skills and tools.
 
 ## Related
 
@@ -276,4 +276,5 @@ The mock agent is the [`mock-agent`](https://github.com/inference-gateway/mock-a
 - [ADL CLI](/adl-cli/) - scaffold A2A agents you can then debug with `a2a`
 - [Inference Gateway CLI](/cli/) - high-level `infer agents` workflows
 - [A2A Registry](/registry/) - browse published A2A agents
+- [Mock Agent](/mock-agent/) - the zero-config mock A2A server used in the example stack
 - [Repository](https://github.com/inference-gateway/a2a-debugger) - source, issues, and releases
