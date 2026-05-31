@@ -162,6 +162,152 @@ response = client.create_chat_completion(
 
 Base64 data URLs (`data:image/jpeg;base64,...`) are accepted for the `url` field. Detail levels: `auto` (default), `low`, `high`.
 
+### Reasoning
+
+Reasoning-capable models emit their chain-of-thought separately from the answer. The `reasoning_format` request field controls the shape: `raw` leaves think-tags inline in the content, while `parsed` splits the chain-of-thought into the message's `reasoning_content` (also mirrored on `reasoning`). Pass it as a keyword argument and it flows through to the request body.
+
+```python
+from inference_gateway import InferenceGatewayClient, Message
+
+client = InferenceGatewayClient('http://localhost:8080/v1')
+
+response = client.create_chat_completion(
+    model='deepseek/deepseek-reasoner',
+    messages=[Message(role='user', content='How many r are in strawberry?')],
+    reasoning_format='parsed',
+)
+
+message = response.choices[0].message
+print('Reasoning:', message.reasoning_content)
+print('Answer:', message.content.root)
+```
+
+During streaming the same fields ride on each delta. In the Streaming loop above, read them next to the content:
+
+```python
+for choice in stream_response.choices:
+    if choice.delta.reasoning_content:
+        print(choice.delta.reasoning_content, end='', flush=True)
+    if choice.delta.content:
+        print(choice.delta.content, end='', flush=True)
+```
+
+### Provider-specific tool-call metadata
+
+Some providers attach opaque metadata to a tool call that must survive the round-trip. Google Gemini's extended-thinking models return a `thought_signature` on every reasoning-enabled tool call; the gateway surfaces it on `tool_call.extra_content.google.thought_signature` (typed as `ToolCallExtraContent` / `Google`). Gemini rejects the follow-up request unless that signature is echoed back verbatim with the same tool call.
+
+The SDK preserves it for you: append the returned assistant `Message` to your conversation unchanged and `extra_content` round-trips automatically. Inspect it directly only if you need to log or forward it. (Here `messages` and `tools` come from the Tool calls example above, and `run_tool` is your own executor that runs a tool call and returns its result as a string.)
+
+```python
+response = client.create_chat_completion(
+    model='google/gemini-2.5-flash',
+    messages=messages,
+    tools=tools,
+)
+
+assistant_message = response.choices[0].message
+
+for tool_call in assistant_message.tool_calls or []:
+    extra = tool_call.extra_content
+    if extra and extra.google and extra.google.thought_signature:
+        print('thought_signature:', extra.google.thought_signature)
+
+# Append the assistant message unchanged so extra_content (Google's
+# thought_signature) is echoed back verbatim on the follow-up request.
+messages.append(assistant_message)
+for tool_call in assistant_message.tool_calls or []:
+    result = run_tool(tool_call)  # your executor -> str
+    messages.append(Message(role='tool', tool_call_id=tool_call.id, content=result))
+
+final = client.create_chat_completion(
+    model='google/gemini-2.5-flash',
+    messages=messages,
+    tools=tools,
+)
+```
+
+### Models, tools, and health
+
+`list_models` returns every model across configured providers, or a single provider's catalog when you pass `provider=`. `list_tools` enumerates gateway-managed MCP tools and requires MCP to be exposed (`MCP_ENABLE=true` and `MCP_EXPOSE=true`); otherwise the call raises `InferenceGatewayAPIError`. `health_check` probes the gateway and returns a `bool` - it swallows transport errors and returns `False` rather than raising.
+
+```python
+from inference_gateway import InferenceGatewayClient
+
+client = InferenceGatewayClient('http://localhost:8080/v1')
+
+# Liveness probe - True when healthy, False on any error (never raises).
+if not client.health_check():
+    raise RuntimeError('gateway is not healthy')
+
+# Every model across all configured providers.
+models = client.list_models()
+for model in models.data:
+    print('model:', model.id, '->', model.served_by.root)
+
+# Narrow the listing to a single provider.
+openai_models = client.list_models(provider='openai')
+
+# MCP tools (requires MCP exposed on the gateway).
+tools = client.list_tools()
+for tool in tools.data:
+    print(f'tool: {tool.name} (server: {tool.server})')
+```
+
+`list_models` accepts a `Provider` or a plain string; `model.served_by` is a `Provider`, so read its string via `.root`.
+
+### Proxy passthrough
+
+`proxy_request` forwards a raw request to a provider through the gateway's `/proxy/{provider}/{path}` route and returns the parsed JSON body as a `dict`, letting you reach provider endpoints the typed surface doesn't wrap (for example embeddings). Pass `method='POST'` with a `json_data` dict for write calls.
+
+```python
+from inference_gateway import InferenceGatewayClient
+
+client = InferenceGatewayClient('http://localhost:8080/v1')
+
+embeddings = client.proxy_request(
+    provider='openai',
+    path='embeddings',
+    method='POST',
+    json_data={
+        'model': 'text-embedding-3-small',
+        'input': 'Hello world',
+    },
+)
+
+print(embeddings)
+```
+
+`provider` accepts a `Provider` or a plain string; `method` defaults to `GET`.
+
+### Client options
+
+The constructor takes the gateway URL plus three optional settings.
+
+| Parameter   | Type            | Default      | Purpose                                                        |
+| ----------- | --------------- | ------------ | -------------------------------------------------------------- |
+| `base_url`  | `str`           | _(required)_ | Gateway base URL, including the `/v1` suffix.                  |
+| `token`     | `str` \| `None` | `None`       | Sent as an `Authorization: Bearer` header on every request.    |
+| `timeout`   | `float`         | `30.0`       | Per-request timeout in seconds.                                |
+| `use_httpx` | `bool`          | `False`      | Use the `httpx` backend instead of the default `requests` one. |
+
+The client is also a context manager: enter it with `with` and it calls `close()` on exit, which releases the connection pool when you're on the `httpx` backend.
+
+```python
+from inference_gateway import InferenceGatewayClient, Message
+
+with InferenceGatewayClient(
+    'http://localhost:8080/v1',
+    token='your-api-token',
+    timeout=60.0,
+    use_httpx=True,
+) as client:
+    response = client.create_chat_completion(
+        model='openai/gpt-4o-mini',
+        messages=[Message(role='user', content='Hello!')],
+    )
+    print(response.choices[0].message.content.root)
+```
+
 ## TypeScript
 
 The TypeScript SDK targets Node 18+ and runs in any environment with `fetch` and Web Streams (Node, Deno, Bun, modern browsers, edge runtimes).
