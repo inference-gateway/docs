@@ -195,8 +195,6 @@ export default withMermaid(
             { text: 'n8n Agent', link: pageLink('/n8n-agent') },
             { text: 'Grafana Agent', link: pageLink('/grafana-agent') },
             { text: 'Mock Agent', link: pageLink('/mock-agent') },
-            { text: 'TypeScript ADK', link: pageLink('/typescript-adk') },
-            { text: 'Rust ADK', link: pageLink('/rust-adk') },
             { text: 'Skills Catalog', link: pageLink('/skills') },
           ],
         },
