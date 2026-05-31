@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.64](https://github.com/inference-gateway/docs/compare/0.6.63...0.6.64) (2026-05-31)
+
+### 📚 Documentation
+
+* add Go ADK reference page and sidebar entry ([#123](https://github.com/inference-gateway/docs/issues/123)) ([84318b2](https://github.com/inference-gateway/docs/commit/84318b21ba84eaf35dee32a9ffdea0f5a241ed10))
+
 ## [0.6.63](https://github.com/inference-gateway/docs/compare/0.6.62...0.6.63) (2026-05-31)
 
 ### 👷 CI
