@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.56](https://github.com/inference-gateway/docs/compare/0.6.55...0.6.56) (2026-05-31)
+
+### 📚 Documentation
+
+* document mock-agent as an A2A testing aid ([#115](https://github.com/inference-gateway/docs/issues/115)) ([2135a50](https://github.com/inference-gateway/docs/commit/2135a50e8b8a73fc82911960652ab639ec50eba2))
+
 ## [0.6.55](https://github.com/inference-gateway/docs/compare/0.6.54...0.6.55) (2026-05-30)
 
 ### 📚 Documentation
