@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.58](https://github.com/inference-gateway/docs/compare/0.6.57...0.6.58) (2026-05-31)
+
+### 📚 Documentation
+
+* add documentation-agent to registry catalog ([#117](https://github.com/inference-gateway/docs/issues/117)) ([c1fa9cf](https://github.com/inference-gateway/docs/commit/c1fa9cf2da9e4221320e4327d7963a514ac9f2e7))
+
 ## [0.6.57](https://github.com/inference-gateway/docs/compare/0.6.56...0.6.57) (2026-05-31)
 
 ### 📚 Documentation
