@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.70](https://github.com/inference-gateway/docs/compare/0.6.69...0.6.70) (2026-05-31)
+
+### 🔧 Miscellaneous
+
+* **infer:** add infer to prettier ignore file ([9e19bbb](https://github.com/inference-gateway/docs/commit/9e19bbb485b5ee2b9e11cf9e828add8e3f596d2f))
+
 ## [0.6.69](https://github.com/inference-gateway/docs/compare/0.6.68...0.6.69) (2026-05-31)
 
 ### 👷 CI
