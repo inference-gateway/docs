@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.62](https://github.com/inference-gateway/docs/compare/0.6.61...0.6.62) (2026-05-31)
+
+### 📚 Documentation
+
+* expand rust-adk page to cover the full ADK surface ([#121](https://github.com/inference-gateway/docs/issues/121)) ([9882e36](https://github.com/inference-gateway/docs/commit/9882e361c05a85cc7ee1f5e1d54a225e647d797a))
+
 ## [0.6.61](https://github.com/inference-gateway/docs/compare/0.6.60...0.6.61) (2026-05-31)
 
 ### 📚 Documentation
