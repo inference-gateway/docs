@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.71](https://github.com/inference-gateway/docs/compare/0.6.70...0.6.71) (2026-05-31)
+
+### 👷 CI
+
+* centralize infer.yml via reusable workflow ([#129](https://github.com/inference-gateway/docs/issues/129)) ([99804df](https://github.com/inference-gateway/docs/commit/99804df2c8166eb4c0189ae817c2601057c4002b))
+
 ## [0.6.70](https://github.com/inference-gateway/docs/compare/0.6.69...0.6.70) (2026-05-31)
 
 ### 🔧 Miscellaneous
