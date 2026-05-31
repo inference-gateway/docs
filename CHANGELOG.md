@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.67](https://github.com/inference-gateway/docs/compare/0.6.66...0.6.67) (2026-05-31)
+
+### 📚 Documentation
+
+* document missing python sdk features in sdks.md ([#126](https://github.com/inference-gateway/docs/issues/126)) ([2cb3f72](https://github.com/inference-gateway/docs/commit/2cb3f72fdecf6ad75d90051f8d7562a6fccb2088))
+
 ## [0.6.66](https://github.com/inference-gateway/docs/compare/0.6.65...0.6.66) (2026-05-31)
 
 ### 📚 Documentation
