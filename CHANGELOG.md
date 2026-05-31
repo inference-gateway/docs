@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.68](https://github.com/inference-gateway/docs/compare/0.6.67...0.6.68) (2026-05-31)
+
+### 📚 Documentation
+
+* document missing go sdk features in sdks.md ([#127](https://github.com/inference-gateway/docs/issues/127)) ([ad5acf0](https://github.com/inference-gateway/docs/commit/ad5acf039b58b87e3913d963a7ce8fa8d28cc65b))
+
 ## [0.6.67](https://github.com/inference-gateway/docs/compare/0.6.66...0.6.67) (2026-05-31)
 
 ### 📚 Documentation
