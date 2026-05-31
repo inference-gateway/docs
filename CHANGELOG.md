@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.59](https://github.com/inference-gateway/docs/compare/0.6.58...0.6.59) (2026-05-31)
+
+### 📚 Documentation
+
+* correct go proxy passthrough cell, add reasoning note ([#118](https://github.com/inference-gateway/docs/issues/118)) ([1d336e2](https://github.com/inference-gateway/docs/commit/1d336e252a2d490ccb1c52bdf57dbfa6915a35bb))
+
 ## [0.6.58](https://github.com/inference-gateway/docs/compare/0.6.57...0.6.58) (2026-05-31)
 
 ### 📚 Documentation
