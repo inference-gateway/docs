@@ -219,6 +219,7 @@ Submit the new `agents/<id>/metadata.yaml` against the [registry repo](https://g
 - [n8n Agent](/n8n-agent/) - a worked example of a published A2A agent and its skill/tools
 - [Grafana Agent](/grafana-agent/) - an A2A agent that builds Grafana dashboards and PromQL queries
 - [Mock Agent](/mock-agent/) - a zero-config A2A testing aid (mock LLM, no API keys) for exercising clients, gateways, and the debugger
+- [Browser Agent](/browser-agent/) - an A2A agent for browser automation and web testing on Playwright
 - [ADL CLI](/adl-cli/) - scaffold A2A agents you can publish to the registry
 - [A2A Debugger](/a2a-debugger/) - inspect any A2A agent at the protocol level
 - [Inference Gateway CLI](/cli/) - register and chat with agents through your gateway

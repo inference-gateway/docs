@@ -195,6 +195,7 @@ export default withMermaid(
             { text: 'n8n Agent', link: pageLink('/n8n-agent') },
             { text: 'Grafana Agent', link: pageLink('/grafana-agent') },
             { text: 'Mock Agent', link: pageLink('/mock-agent') },
+            { text: 'Browser Agent', link: pageLink('/browser-agent') },
             { text: 'Skills Catalog', link: pageLink('/skills') },
           ],
         },
@@ -245,6 +246,7 @@ export default withMermaid(
             { text: 'n8n Agent', link: pageLink('/n8n-agent') },
             { text: 'Grafana Agent', link: pageLink('/grafana-agent') },
             { text: 'Mock Agent', link: pageLink('/mock-agent') },
+            { text: 'Browser Agent', link: pageLink('/browser-agent') },
           ],
         },
         {
