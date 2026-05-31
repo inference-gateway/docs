@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.66](https://github.com/inference-gateway/docs/compare/0.6.65...0.6.66) (2026-05-31)
+
+### 📚 Documentation
+
+* document missing typescript sdk features in sdks.md ([#125](https://github.com/inference-gateway/docs/issues/125)) ([c1a7d20](https://github.com/inference-gateway/docs/commit/c1a7d20d266c133f4d0711d8377e2ffbd3af21d0))
+
 ## [0.6.65](https://github.com/inference-gateway/docs/compare/0.6.64...0.6.65) (2026-05-31)
 
 ### 📚 Documentation
