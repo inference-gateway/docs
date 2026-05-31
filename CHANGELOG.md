@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.60](https://github.com/inference-gateway/docs/compare/0.6.59...0.6.60) (2026-05-31)
+
+### 📚 Documentation
+
+* add browser-agent page with skills, tools, and config ([#119](https://github.com/inference-gateway/docs/issues/119)) ([3f90b78](https://github.com/inference-gateway/docs/commit/3f90b7861cbf54b59fa4b5c85c37ed14cd773d33))
+
 ## [0.6.59](https://github.com/inference-gateway/docs/compare/0.6.58...0.6.59) (2026-05-31)
 
 ### 📚 Documentation
