@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.65](https://github.com/inference-gateway/docs/compare/0.6.64...0.6.65) (2026-05-31)
+
+### 📚 Documentation
+
+* document missing rust sdk methods in sdks.md ([#124](https://github.com/inference-gateway/docs/issues/124)) ([a21a2dc](https://github.com/inference-gateway/docs/commit/a21a2dc2da2d951dd806f75a8cae1124c49100eb))
+
 ## [0.6.64](https://github.com/inference-gateway/docs/compare/0.6.63...0.6.64) (2026-05-31)
 
 ### 📚 Documentation
