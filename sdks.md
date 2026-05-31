@@ -294,6 +294,150 @@ const response = await client.createChatCompletion({
 console.log(response.choices[0].message.content);
 ```
 
+### Reasoning and MCP tool callbacks
+
+`streamChatCompletion` decodes each SSE delta and fans it out to typed callbacks. Beyond the handlers shown above, the full set covers reasoning models and gateway-managed MCP tools:
+
+| Callback         | Fires on                                                       |
+| ---------------- | -------------------------------------------------------------- |
+| `onOpen`         | the stream connection opening                                  |
+| `onChunk`        | every raw `CreateChatCompletionStreamResponse` delta           |
+| `onReasoning`    | `reasoning` / `reasoning_content` deltas from reasoning models |
+| `onContent`      | assistant content deltas                                       |
+| `onTool`         | a completed tool call you supplied in `request.tools`          |
+| `onMCPTool`      | a completed server-side MCP tool call                          |
+| `onUsageMetrics` | the final usage block (the SDK sets `include_usage` for you)   |
+| `onFinish`       | the stream ending (receives the final chunk or `null`)         |
+| `onError`        | transport failures and mid-stream gateway errors               |
+
+`onReasoning` receives the reasoning text as a plain string. Pair it with the request's `reasoning_format` field (`raw` or `parsed`) to control whether think-tags stay inline or are split into `reasoning_content`.
+
+```typescript
+import { InferenceGatewayClient, MessageRole } from '@inference-gateway/sdk';
+
+const client = new InferenceGatewayClient({
+  baseURL: 'http://localhost:8080/v1',
+});
+
+await client.streamChatCompletion(
+  {
+    model: 'deepseek/deepseek-reasoner',
+    messages: [{ role: MessageRole.User, content: 'How many r are in strawberry?' }],
+  },
+  {
+    onReasoning: (reasoning) => process.stdout.write(reasoning),
+    onContent: (content) => process.stdout.write(content),
+    onFinish: () => console.log('\nDone'),
+  }
+);
+```
+
+`onMCPTool` is distinct from `onTool`. The SDK records every tool name you pass in `request.tools`; a completed tool call whose name matches one of those routes to `onTool`, and any other completed call is treated as a gateway-managed MCP tool and routed to `onMCPTool` once its JSON arguments parse cleanly. MCP tools are discovered and executed server-side, so you never register them on the request - enable them with `MCP_ENABLE=true` and `MCP_EXPOSE=true` on the gateway and they stream in alongside your own tools.
+
+```typescript
+await client.streamChatCompletion(
+  {
+    model: 'openai/gpt-4o',
+    messages: [{ role: MessageRole.User, content: 'What files are in the project root?' }],
+  },
+  {
+    onMCPTool: (toolCall) => {
+      console.log('MCP tool:', toolCall.function.name);
+      console.log('Arguments:', toolCall.function.arguments);
+    },
+    onContent: (content) => process.stdout.write(content),
+    onFinish: () => console.log('\nDone'),
+  }
+);
+```
+
+### Models, tools, and health
+
+`listModels` returns every model across configured providers, or a single provider's catalog when you pass a `Provider`. `listTools` enumerates MCP tools and only resolves when MCP is exposed on the gateway - an un-exposed gateway answers `403 Forbidden`. `healthCheck` probes the gateway's root `/health` endpoint and resolves to a boolean rather than throwing.
+
+```typescript
+import { InferenceGatewayClient, Provider } from '@inference-gateway/sdk';
+
+const client = new InferenceGatewayClient({
+  baseURL: 'http://localhost:8080/v1',
+});
+
+// Liveness probe - true on success, false on any error.
+if (!(await client.healthCheck())) {
+  throw new Error('gateway is not healthy');
+}
+
+// Every model from every configured provider.
+const models = await client.listModels();
+for (const model of models.data) {
+  console.log('model:', model.id);
+}
+
+// Narrow the listing to a single provider.
+const openaiModels = await client.listModels(Provider.openai);
+
+// MCP tools (requires MCP exposed on the gateway).
+const tools = await client.listTools();
+for (const tool of tools.data) {
+  console.log(`tool: ${tool.name} (server: ${tool.server})`);
+}
+```
+
+### Proxy passthrough
+
+`proxy` forwards a raw request to a provider through the gateway's `/proxy/{provider}/{path}` route and returns the parsed JSON body, letting you reach provider endpoints the typed surface doesn't wrap (for example embeddings). The proxy route lives at the gateway root rather than under `/v1`, so point the client at the base host for these calls.
+
+```typescript
+import { InferenceGatewayClient, Provider } from '@inference-gateway/sdk';
+
+// Proxy and health live at the gateway root, not under /v1.
+const client = new InferenceGatewayClient({
+  baseURL: 'http://localhost:8080',
+});
+
+const embeddings = await client.proxy(Provider.openai, 'embeddings', {
+  method: 'POST',
+  body: JSON.stringify({
+    model: 'text-embedding-3-small',
+    input: 'Hello world',
+  }),
+});
+
+console.log(embeddings);
+```
+
+`proxy` is generic (`proxy<T>(...)`), so annotate the call with the provider's response type when you know its shape.
+
+### Client options
+
+The constructor accepts a `ClientOptions` object; every field is optional.
+
+| Option           | Type                     | Default                    | Purpose                                                              |
+| ---------------- | ------------------------ | -------------------------- | -------------------------------------------------------------------- |
+| `baseURL`        | `string`                 | `http://localhost:8080/v1` | Gateway base URL.                                                    |
+| `apiKey`         | `string`                 | -                          | Sent as an `Authorization: Bearer` header on every request.          |
+| `defaultHeaders` | `Record<string, string>` | `{}`                       | Merged into the headers of every request.                            |
+| `defaultQuery`   | `Record<string, string>` | `{}`                       | Merged into the query string of every request.                       |
+| `timeout`        | `number`                 | `60000`                    | Per-request timeout in milliseconds, enforced via `AbortController`. |
+| `fetch`          | `typeof fetch`           | `globalThis.fetch`         | Custom `fetch` implementation for non-standard runtimes.             |
+
+`withOptions` returns a new client with the supplied options merged over the current ones - `defaultHeaders` and `defaultQuery` are shallow-merged while the other fields are replaced - so you can derive a per-call client without mutating the original.
+
+```typescript
+import { InferenceGatewayClient } from '@inference-gateway/sdk';
+
+const client = new InferenceGatewayClient({
+  baseURL: 'http://localhost:8080/v1',
+  apiKey: process.env.INFERENCE_GATEWAY_API_KEY,
+  timeout: 30000,
+});
+
+// Derive a client that adds a tracing header without touching the original.
+const traced = client.withOptions({
+  defaultHeaders: { 'X-Trace-Id': 'checkout-flow' },
+});
+```
+
 ## Go
 
 The Go SDK ships an idiomatic context-aware client with built-in exponential-backoff retries and header chaining.
