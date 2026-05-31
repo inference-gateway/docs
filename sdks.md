@@ -459,6 +459,24 @@ The Rust SDK is async-only (Tokio) and exposes the gateway over a typed `Inferen
 cargo add inference-gateway-sdk
 ```
 
+### Client setup
+
+`InferenceGatewayClient::new(base_url)` targets an explicit gateway URL. `new_default()` instead reads the `INFERENCE_GATEWAY_URL` environment variable, falling back to `http://localhost:8080/v1` when it is unset. Both return an owned client; the `with_token` and `with_max_tokens` builders consume and return `self`, so chain them before issuing a request.
+
+```rust
+use inference_gateway_sdk::InferenceGatewayClient;
+
+// Explicit base URL.
+let client = InferenceGatewayClient::new("http://localhost:8080/v1");
+
+// Or read INFERENCE_GATEWAY_URL (falls back to http://localhost:8080/v1).
+let client = InferenceGatewayClient::new_default()
+    .with_token("my-api-token") // Bearer token sent on every request.
+    .with_max_tokens(Some(1024)); // Cap tokens generated per request.
+```
+
+`with_token` accepts anything that is `Into<String>`; `with_max_tokens` takes an `Option<i64>`, so pass `None` to clear a previously set cap.
+
 ### Chat completion
 
 ```rust
@@ -585,6 +603,25 @@ async fn main() -> Result<(), GatewayError> {
 }
 ```
 
+`function.arguments` arrives as a JSON-encoded string (the OpenAI wire format), not a structured object. Rather than hand-parsing it, call `parse_arguments::<T>()` on the tool-call function to deserialize straight into any `serde::Deserialize` type.
+
+```rust
+use serde::Deserialize;
+
+#[derive(Debug, Deserialize)]
+struct WeatherArgs {
+    location: String,
+}
+
+if let Some(choice) = response.choices.first() {
+    for call in &choice.message.tool_calls {
+        // `arguments` is a JSON string; parse it into your own type.
+        let args: WeatherArgs = call.function.parse_arguments()?;
+        println!("tool: {} location: {}", call.function.name, args.location);
+    }
+}
+```
+
 ### Vision (image input)
 
 `MessageContent` is an enum: `String(...)` for plain text, `Array(Vec<ContentPart>)` for multimodal. Build image messages with `ContentPart::ImageContentPart`.
@@ -622,6 +659,46 @@ let vision_message = Message {
 let response = client
     .generate_content(Provider::Openai, "gpt-4o", vec![vision_message])
     .await?;
+```
+
+### Models, tools, and health
+
+The `InferenceGatewayAPI` trait also exposes discovery and health probes. `list_models` returns every model across all configured providers, while `list_models_by_provider` scopes the listing to one `Provider`. `list_tools` enumerates MCP tools and requires MCP to be exposed on the gateway - an un-exposed gateway answers `403 Forbidden`. `health_check` resolves to a `bool` and probes the gateway's root `/health` endpoint rather than the versioned API path.
+
+```rust
+use inference_gateway_sdk::{
+    GatewayError, InferenceGatewayAPI, InferenceGatewayClient, ListModelsResponse,
+    ListToolsResponse, Provider,
+};
+
+#[tokio::main]
+async fn main() -> Result<(), GatewayError> {
+    let client = InferenceGatewayClient::new_default();
+
+    // Liveness probe - true on HTTP 200.
+    if !client.health_check().await? {
+        eprintln!("gateway is not healthy");
+        return Ok(());
+    }
+
+    // Every model from every configured provider.
+    let models: ListModelsResponse = client.list_models().await?;
+    for model in models.data {
+        println!("model: {}", model.id);
+    }
+
+    // Narrow the listing to a single provider.
+    let groq: ListModelsResponse = client.list_models_by_provider(Provider::Groq).await?;
+    println!("provider: {:?}", groq.provider);
+
+    // MCP tools (requires MCP exposed on the gateway).
+    let tools: ListToolsResponse = client.list_tools().await?;
+    for tool in tools.data {
+        println!("tool: {} (server: {})", tool.name, tool.server);
+    }
+
+    Ok(())
+}
 ```
 
 ## Next steps
