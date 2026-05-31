@@ -1,6 +1,6 @@
 ---
 title: TypeScript ADK
-description: Build A2A-compatible agents in TypeScript with the @inference-gateway/adk package. Handler registration, JSON-RPC message/send, message/stream, tasks/get, tasks/list, tasks/cancel with TaskCancellationRegistry, agent/getAuthenticatedExtendedCard with the extended-card vs. public-card discovery convention (supportsExtendedAgentCard), withAuthConfig auto-registration, OIDC auth gating with -32001 envelope, SSE event sequence, CloudEvents v1.0 envelopes, STREAMING_STATUS_UPDATE_INTERVAL, DefaultBackgroundTaskHandler agentic loop with tool dispatch and usage metadata, MAX_CHAT_COMPLETION_ITERATIONS cap, reserved input_required tool, AgentBuilder fluent wiring for OpenAICompatibleAgent with Go-parity defaults, lifecycle callbacks (beforeAgent / afterAgent / beforeModel / afterModel / beforeTool / afterTool) with CallbackContext, short-circuit and chain semantics, sync vs. async, error propagation, caching and guardrail patterns, HTTPPushNotificationSender webhook delivery primitive with TaskUpdateNotification wire payload, sendTaskUpdate one-shot and deliverTaskUpdate fan-out helpers, exponential-backoff retry config, bearer / basic auth resolution, and per-task pushNotificationConfig on MessageSendConfiguration, validation contract, id semantics, cancellation, and runnable client samples.
+description: Build A2A-compatible agents in TypeScript with the @inference-gateway/adk package. Handler registration, JSON-RPC message/send, message/stream, tasks/get, tasks/list, tasks/cancel with TaskCancellationRegistry, agent/getAuthenticatedExtendedCard with the extended-card vs. public-card discovery convention (supportsExtendedAgentCard), withAuthConfig auto-registration, OIDC auth gating with -32001 envelope, SSE event sequence, CloudEvents v1.0 envelopes, STREAMING_STATUS_UPDATE_INTERVAL, DefaultBackgroundTaskHandler agentic loop with tool dispatch and usage metadata, MAX_CHAT_COMPLETION_ITERATIONS cap, reserved input_required tool, AgentBuilder fluent wiring for OpenAICompatibleAgent with Go-parity defaults, lifecycle callbacks (beforeAgent / afterAgent / beforeModel / afterModel / beforeTool / afterTool) with CallbackContext, short-circuit and chain semantics, sync vs. async, error propagation, caching and guardrail patterns, HTTPPushNotificationSender webhook delivery primitive with TaskUpdateNotification wire payload, sendTaskUpdate one-shot and deliverTaskUpdate fan-out helpers, exponential-backoff retry config, bearer / basic auth resolution, and per-task pushNotificationConfig on MessageSendConfiguration, artifact service with filesystem and MinIO/S3 storage backends and the registerArtifactsRoute download route, OpenTelemetry tracing via TelemetryProvider with OTLP spans, Prometheus metrics with a standalone /metrics server and request middleware, TLS and mutual-TLS server/client configuration, validation contract, id semantics, cancellation, and runnable client samples.
 ---
 
 # TypeScript ADK
@@ -23,22 +23,27 @@ pnpm add @inference-gateway/adk
 
 The ADK currently exposes the HTTP server core and the first A2A JSON-RPC method handler:
 
-| Surface                                     | Status    | Notes                                                                                            |
-| ------------------------------------------- | --------- | ------------------------------------------------------------------------------------------------ |
-| `A2AServer` / `createA2AServer`             | Available | Hono-backed HTTP server. Serves `/.well-known/agent-card.json`, `/health`, and JSON-RPC.         |
-| `MethodRegistry` / `registerMethod`         | Available | Per-server JSON-RPC method dispatch table.                                                       |
-| `InMemoryTaskStorage`                       | Available | In-process task queue + active task map. Swap for a custom `TaskStorage` in production.          |
-| `createMessageSendHandler`                  | Available | Synchronous `message/send` handler.                                                              |
-| `createMessageStreamHandler`                | Available | Streaming `message/stream` handler. SSE response wrapped in CloudEvents v1.0 envelopes.          |
-| `createTaskGetHandler`                      | Available | Synchronous `tasks/get` handler. Looks up a task across active and dead-letter storage.          |
-| `createTaskListHandler`                     | Available | Synchronous `tasks/list` handler. Filterable, keyset-paginated over `(createdAt, id)`.           |
-| `createTaskCancelHandler`                   | Available | Synchronous `tasks/cancel` handler. Drops `PENDING` from the queue, aborts in-flight.            |
-| `TaskCancellationRegistry`                  | Available | Shared `taskId -> AbortController` map bridging `tasks/cancel` and streaming handlers.           |
-| `DefaultBackgroundTaskHandler`              | Available | LLM-driven agentic loop with tool dispatch, history truncation, and an iteration cap.            |
-| `AgentBuilder`                              | Available | Fluent builder for an `OpenAICompatibleAgent`; defaults match the Go ADK byte-for-byte.          |
-| `A2AServerBuilder`                          | Available | Fluent server builder; validates that the agent card's capabilities match the handlers.          |
-| `createGetAuthenticatedExtendedCardHandler` | Available | Synchronous `agent/getAuthenticatedExtendedCard` handler; returns the configured extended card.  |
-| `HTTPPushNotificationSender`                | Available | HTTP webhook delivery primitive for `task_update` payloads, with retry / auth / fan-out helpers. |
+| Surface                                     | Status    | Notes                                                                                                          |
+| ------------------------------------------- | --------- | -------------------------------------------------------------------------------------------------------------- |
+| `A2AServer` / `createA2AServer`             | Available | Hono-backed HTTP server. Serves `/.well-known/agent-card.json`, `/health`, and JSON-RPC.                       |
+| `MethodRegistry` / `registerMethod`         | Available | Per-server JSON-RPC method dispatch table.                                                                     |
+| `InMemoryTaskStorage`                       | Available | In-process task queue + active task map. Swap for a custom `TaskStorage` in production.                        |
+| `createMessageSendHandler`                  | Available | Synchronous `message/send` handler.                                                                            |
+| `createMessageStreamHandler`                | Available | Streaming `message/stream` handler. SSE response wrapped in CloudEvents v1.0 envelopes.                        |
+| `createTaskGetHandler`                      | Available | Synchronous `tasks/get` handler. Looks up a task across active and dead-letter storage.                        |
+| `createTaskListHandler`                     | Available | Synchronous `tasks/list` handler. Filterable, keyset-paginated over `(createdAt, id)`.                         |
+| `createTaskCancelHandler`                   | Available | Synchronous `tasks/cancel` handler. Drops `PENDING` from the queue, aborts in-flight.                          |
+| `TaskCancellationRegistry`                  | Available | Shared `taskId -> AbortController` map bridging `tasks/cancel` and streaming handlers.                         |
+| `DefaultBackgroundTaskHandler`              | Available | LLM-driven agentic loop with tool dispatch, history truncation, and an iteration cap.                          |
+| `AgentBuilder`                              | Available | Fluent builder for an `OpenAICompatibleAgent`; defaults match the Go ADK byte-for-byte.                        |
+| `A2AServerBuilder`                          | Available | Fluent server builder; validates that the agent card's capabilities match the handlers.                        |
+| `createGetAuthenticatedExtendedCardHandler` | Available | Synchronous `agent/getAuthenticatedExtendedCard` handler; returns the configured extended card.                |
+| `HTTPPushNotificationSender`                | Available | HTTP webhook delivery primitive for `task_update` payloads, with retry / auth / fan-out helpers.               |
+| `ArtifactService` + storage backends        | Available | Build text/file/data artifacts; persist via filesystem, MinIO/S3, or in-memory storage.                        |
+| `registerArtifactsRoute`                    | Available | `GET /artifacts/:artifactId/:filename` download route; auto-mounted by `createA2AServer({ artifactStorage })`. |
+| `TelemetryProvider`                         | Available | OpenTelemetry tracing; emits `adk.jsonrpc.request` server spans exported over OTLP.                            |
+| `MetricsRegistry` / `MetricsServer`         | Available | Prometheus `a2a_*` metrics via a standalone `/metrics` server plus a request middleware.                       |
+| TLS server / client                         | Available | HTTPS and mutual TLS for `A2AServer` and the bundled A2A client.                                               |
 
 ## The `message/send` JSON-RPC method
 
@@ -2705,6 +2710,472 @@ Track [typescript-adk#38](https://github.com/inference-gateway/typescript-adk/is
 - **TypeScript source.** [`src/server/push-notification-sender.ts`](https://github.com/inference-gateway/typescript-adk/blob/main/src/server/push-notification-sender.ts) in the `inference-gateway/typescript-adk` repo.
 - **Originating issue.** [typescript-adk#38](https://github.com/inference-gateway/typescript-adk/issues/38) (delivery primitive + follow-up wiring).
 - **Originating PR.** [typescript-adk#93](https://github.com/inference-gateway/typescript-adk/pull/93).
+
+## Artifacts
+
+Artifacts are the A2A mechanism for attaching produced files, text, or structured data to a task. The ADK splits the concern in two:
+
+- An **`ArtifactService`** builds wire-format `Artifact` objects (text / file / data / multi-part) and, for file artifacts, streams the bytes into a storage backend.
+- An **`ArtifactStorageProvider`** persists and retrieves those bytes. Three backends ship: `InMemoryArtifactStorage`, `FilesystemArtifactStorage`, and `MinioArtifactStorage` (S3-compatible).
+
+When a storage backend is wired into the server, `registerArtifactsRoute` exposes a download endpoint so clients can fetch an artifact by id. Everything below is exported from `@inference-gateway/adk`.
+
+### Building artifacts (`ArtifactService`)
+
+`DefaultArtifactService` is the bundled implementation. Construct it with a storage backend:
+
+```ts
+import { DefaultArtifactService, FilesystemArtifactStorage } from '@inference-gateway/adk';
+
+const storage = new FilesystemArtifactStorage({ root: './artifacts' });
+const artifacts = new DefaultArtifactService({ storage });
+```
+
+`DefaultArtifactService(options)` accepts:
+
+| Option        | Required | Default             | Description                                                                 |
+| ------------- | -------- | ------------------- | --------------------------------------------------------------------------- |
+| `storage`     | Yes      | -                   | An `ArtifactStorageProvider` (filesystem, MinIO, in-memory, or custom).     |
+| `idGenerator` | No       | `crypto.randomUUID` | Mints each artifact's `artifactId`. Client-supplied ids are never honoured. |
+
+The service surface:
+
+| Method                                                                              | Description                                                                                                                    |
+| ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `createTextArtifact(name, description, text)`                                       | Synchronous. Builds a text `Artifact`; does not touch storage.                                                                 |
+| `createFileArtifact(name, description, filename, data, options?)`                   | **Async.** Streams `data` (a `Uint8Array`) into storage and returns a file `Artifact` whose `fileWithUri` is the download URL. |
+| `createFileArtifactFromURI(name, description, filename, uri, options?)`             | Synchronous. Wraps an already-hosted file by reference; does not copy bytes.                                                   |
+| `createDataArtifact(name, description, data)`                                       | Synchronous. Builds a structured-data `Artifact`.                                                                              |
+| `createMultiPartArtifact(name, description, parts)`                                 | Synchronous. Builds an `Artifact` from pre-built `Part`s.                                                                      |
+| `getArtifactByID(task, artifactId)`                                                 | Looks an artifact up on a `Task`. Returns `undefined` when absent.                                                             |
+| `getArtifactsByType(task, 'text' \| 'file' \| 'data')`                              | Filters a task's artifacts by part kind.                                                                                       |
+| `createTaskArtifactUpdateEvent(taskId, contextId, artifact, options?)`              | Builds a `TaskArtifactUpdateEvent` (supports `append` / `lastChunk` / `metadata`) for streaming artifact updates.              |
+| `exists(artifactId, filename, signal?)` / `retrieve(artifactId, filename, signal?)` | Existence check / readable stream straight from storage.                                                                       |
+| `cleanupExpired(maxAgeMs, signal?)` / `cleanupOldest(maxCount, signal?)`            | Retention helpers. Return the number of artifacts removed.                                                                     |
+| `close()`                                                                           | Releases the underlying storage (closes pools / clients).                                                                      |
+
+`createFileArtifact` infers a MIME type from the filename extension (`.txt` -> `text/plain`, `.json` -> `application/json`, `.png` -> `image/png`, and so on), falling back to `application/octet-stream`. Pass `options.mimeType` to override. Validation failures throw `ArtifactValidationError`; storage failures throw `ArtifactStorageError`.
+
+### Artifact storage backends
+
+All three backends implement the same `ArtifactStorageProvider` interface (`store` / `retrieve` / `delete` / `exists` / `getMetadata` / `getUrl` / `cleanupExpired` / `cleanupOldest` / `close`), so they are interchangeable.
+
+| Backend                     | Use case                                                                                  |
+| --------------------------- | ----------------------------------------------------------------------------------------- |
+| `InMemoryArtifactStorage`   | Tests and ephemeral demos. Bytes live in process memory and are not externally fetchable. |
+| `FilesystemArtifactStorage` | Single-node deployments. Writes `<root>/<artifactId>/<filename>` plus a metadata sidecar. |
+| `MinioArtifactStorage`      | Production / multi-node. Backed by the AWS S3 SDK; works against MinIO or native AWS S3.  |
+
+**`FilesystemArtifactStorage(options)`** writes each artifact to `<root>/<artifactId>/<filename>` (mode `0600`) alongside a `<filename>.adk-meta.json` sidecar holding the content type and upload timestamp:
+
+| Option                       | Required | Default                    | Description                                                                                                |
+| ---------------------------- | -------- | -------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `root`                       | Yes      | -                          | Base directory (resolved against `process.cwd()`). Created lazily with mode `0700`.                        |
+| `baseUrl`                    | No       | `file://artifacts`         | Prefix for the URL returned in `fileWithUri`. **Set this to your server origin** so download URLs resolve. |
+| `artifactIdPattern`          | No       | `/^[A-Za-z0-9_-]{1,255}$/` | Allowed `artifactId` shape. Guards against path traversal.                                                 |
+| `directoryMode` / `fileMode` | No       | `0o700` / `0o600`          | POSIX modes for created directories / files.                                                               |
+
+**`MinioArtifactStorage(options)`** speaks the S3 API. Note the credentials are a **nested object** (there are no flat `accessKey` / `secretKey` / `port` / `useSSL` options - the scheme and port live in `endpoint`):
+
+| Option                 | Required | Default                       | Description                                                                                                                              |
+| ---------------------- | -------- | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `bucket`               | Yes      | -                             | Target bucket. Must already exist (no auto-create).                                                                                      |
+| `endpoint`             | No       | AWS default                   | e.g. `http://localhost:9000` for MinIO. Omit to hit native AWS S3.                                                                       |
+| `region`               | No       | `us-east-1`                   | S3 region.                                                                                                                               |
+| `credentials`          | No       | SDK default chain             | `{ accessKeyId, secretAccessKey, sessionToken? }`. Omit to use the SDK's default credential chain.                                       |
+| `forcePathStyle`       | No       | `true` when `endpoint` is set | Path-style addressing (required for MinIO).                                                                                              |
+| `prefix`               | No       | none                          | Key prefix for stored objects.                                                                                                           |
+| `mode`                 | No       | `direct`                      | `direct` returns a presigned GET URL from `store()`; `proxy` returns a `baseUrl` URL streamed back through the server's artifacts route. |
+| `baseUrl`              | No       | `minio://<bucket>`            | URL prefix used in `proxy` mode.                                                                                                         |
+| `presignExpirySeconds` | No       | `300`                         | Lifetime of presigned URLs in `direct` mode.                                                                                             |
+
+### Serving artifacts over HTTP (`registerArtifactsRoute`)
+
+`registerArtifactsRoute(app, options)` mounts `GET /artifacts/:artifactId/:filename` on a Hono app. It streams the stored bytes back with `Content-Type`, `Content-Length`, and a `Content-Disposition: attachment` header, and returns `404 { "error": "Not Found" }` when the artifact is missing.
+
+| Option    | Required | Default      | Description                                 |
+| --------- | -------- | ------------ | ------------------------------------------- |
+| `storage` | Yes      | -            | The `ArtifactStorageProvider` to read from. |
+| `path`    | No       | `/artifacts` | Mount path (`DEFAULT_ARTIFACTS_PATH`).      |
+
+You rarely call it directly. Pass `artifactStorage` to `createA2AServer` and the server mounts the route for you:
+
+```ts
+import { createA2AServer } from '@inference-gateway/adk';
+
+const server = createA2AServer({ card, artifactStorage: storage });
+// GET /artifacts/:artifactId/:filename is now served.
+```
+
+> **The route is unauthenticated by default.** Wrap your own middleware on the same path if downloads need access control.
+>
+> **Builder caveat.** `A2AServerBuilder.withArtifactService(service)` stores the service for handler use but does **not** mount the HTTP route - the builder path currently has no equivalent of `createA2AServer({ artifactStorage })`. To expose downloads, construct the server with `createA2AServer` and pass `artifactStorage` (the storage provider), or mount `registerArtifactsRoute` yourself.
+
+### Runnable example: filesystem storage
+
+```ts
+import {
+  DefaultArtifactService,
+  FilesystemArtifactStorage,
+  createA2AServer,
+} from '@inference-gateway/adk';
+
+const HOST = process.env['A2A_SERVER_HOST'] ?? '127.0.0.1';
+const PORT = Number.parseInt(process.env['A2A_SERVER_PORT'] ?? '8080', 10);
+
+const storage = new FilesystemArtifactStorage({
+  root: process.env['ARTIFACTS_ROOT'] ?? './artifacts',
+  baseUrl: `http://${HOST}:${PORT}/artifacts`,
+});
+const artifacts = new DefaultArtifactService({ storage });
+
+// Inside a task handler, attach a produced file to the task:
+const artifact = await artifacts.createFileArtifact(
+  'User note',
+  'Plain-text note persisted to disk.',
+  'note.txt',
+  new TextEncoder().encode('hello from the agent'),
+  { signal }
+);
+task.artifacts = [...(task.artifacts ?? []), artifact];
+// artifact.parts[0].file.fileWithUri -> http://127.0.0.1:8080/artifacts/<id>/note.txt
+
+const server = createA2AServer({ card, artifactStorage: storage });
+await server.listen(PORT, HOST);
+```
+
+Full sources: [`examples/artifacts-filesystem`](https://github.com/inference-gateway/typescript-adk/tree/main/examples/artifacts-filesystem) and [`examples/artifacts-with-default-handlers`](https://github.com/inference-gateway/typescript-adk/tree/main/examples/artifacts-with-default-handlers).
+
+### MinIO / S3 storage
+
+Swap the backend for `MinioArtifactStorage`; the service and route wiring are identical:
+
+```ts
+import {
+  DefaultArtifactService,
+  MinioArtifactStorage,
+  createA2AServer,
+} from '@inference-gateway/adk';
+
+const storage = new MinioArtifactStorage({
+  bucket: process.env['MINIO_BUCKET'] ?? 'artifacts',
+  endpoint: process.env['MINIO_ENDPOINT'] ?? 'http://127.0.0.1:9000',
+  region: process.env['MINIO_REGION'] ?? 'us-east-1',
+  credentials: {
+    accessKeyId: process.env['MINIO_ACCESS_KEY'] ?? 'minioadmin',
+    secretAccessKey: process.env['MINIO_SECRET_KEY'] ?? 'minioadmin',
+  },
+  forcePathStyle: true,
+  mode: 'direct', // presigned download URLs; use 'proxy' to stream through the server
+});
+const artifacts = new DefaultArtifactService({ storage });
+
+const server = createA2AServer({ card, artifactStorage: storage });
+```
+
+The [`examples/artifacts-minio`](https://github.com/inference-gateway/typescript-adk/tree/main/examples/artifacts-minio) directory ships a `docker-compose.yml` that boots MinIO (ports `9000`/`9001`, `minioadmin`/`minioadmin`) and pre-creates the `artifacts` bucket.
+
+### Writing artifacts from a tool
+
+For agentic loops, the [`DefaultBackgroundTaskHandler`](#background-task-handler-defaultbackgroundtaskhandler) can expose a reserved `create_artifact` tool so the model itself emits artifacts. Opt in on the toolbox:
+
+```ts
+import { DefaultToolBox } from '@inference-gateway/adk';
+
+const toolBox = new DefaultToolBox({ enableCreateArtifact: true, artifactService: artifacts });
+```
+
+When the LLM calls `create_artifact`, the handler runs `artifactService.createFileArtifact(...)`, attaches the result to `task.artifacts`, and returns the artifact id and URL to the model. The toggle can also be driven by the `AGENT_CLIENT_TOOLS_CREATE_ARTIFACT=true` environment variable. See [`examples/artifacts-autonomous-tool`](https://github.com/inference-gateway/typescript-adk/tree/main/examples/artifacts-autonomous-tool) for the full loop.
+
+### Artifact environment variables
+
+These are read by the example servers (not the library classes), and are the recommended convention for your own deployments:
+
+| Variable                                | Default                          | Used by                                                           |
+| --------------------------------------- | -------------------------------- | ----------------------------------------------------------------- |
+| `ARTIFACTS_ROOT`                        | OS temp dir                      | Filesystem backend root directory.                                |
+| `ARTIFACTS_BASE_URL`                    | `http://<host>:<port>/artifacts` | URL prefix emitted in `fileWithUri`.                              |
+| `MINIO_ENDPOINT`                        | `http://127.0.0.1:9000`          | MinIO endpoint (omit for AWS S3).                                 |
+| `MINIO_REGION`                          | `us-east-1`                      | S3 region.                                                        |
+| `MINIO_ACCESS_KEY` / `MINIO_SECRET_KEY` | `minioadmin` / `minioadmin`      | S3 credentials.                                                   |
+| `MINIO_BUCKET`                          | `artifacts`                      | Target bucket (must pre-exist).                                   |
+| `ARTIFACTS_MODE`                        | `direct`                         | `direct` (presigned URLs) or `proxy` (stream through the server). |
+| `ARTIFACTS_PRESIGN_EXPIRY`              | `300`                            | Presigned-URL lifetime in seconds (`direct` mode).                |
+
+### Cross-reference
+
+- **TypeScript source.** [`src/artifacts/`](https://github.com/inference-gateway/typescript-adk/tree/main/src/artifacts) (service + storage backends) and [`src/server/artifacts-route.ts`](https://github.com/inference-gateway/typescript-adk/blob/main/src/server/artifacts-route.ts) (download route).
+- **Examples.** [`artifacts-filesystem`](https://github.com/inference-gateway/typescript-adk/tree/main/examples/artifacts-filesystem), [`artifacts-minio`](https://github.com/inference-gateway/typescript-adk/tree/main/examples/artifacts-minio), [`artifacts-autonomous-tool`](https://github.com/inference-gateway/typescript-adk/tree/main/examples/artifacts-autonomous-tool), [`artifacts-with-default-handlers`](https://github.com/inference-gateway/typescript-adk/tree/main/examples/artifacts-with-default-handlers).
+
+## OpenTelemetry tracing
+
+The ADK ships first-class [OpenTelemetry](https://opentelemetry.io/) support. When enabled, the server wraps every JSON-RPC request in a span and exports traces, metrics, and logs over OTLP via the standard `@opentelemetry/sdk-node` pipeline.
+
+### Enabling telemetry
+
+Construct a `TelemetryProvider`, start it, and pass it to the server. **The caller owns the provider lifecycle** - start it before `listen()` and shut it down after `close()`:
+
+```ts
+import { createA2AServer, createTelemetryProvider } from '@inference-gateway/adk';
+
+const telemetry = createTelemetryProvider({
+  config: { enable: true, serviceName: 'my-agent', serviceVersion: '1.0.0' },
+});
+telemetry.start();
+
+const server = createA2AServer({ card, telemetry });
+await server.listen(8080, '0.0.0.0');
+
+// on shutdown:
+await server.close();
+await telemetry.shutdown();
+```
+
+The OTLP exporter endpoint, headers, and protocol are configured through the **standard OpenTelemetry environment variables** (`OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_EXPORTER_OTLP_HEADERS`, `OTEL_EXPORTER_OTLP_PROTOCOL`), consumed directly by the SDK exporter.
+
+There is no `A2AServerBuilder.withTelemetry(...)` method - telemetry is wired through `createA2AServer` (or the `A2AServer` constructor). A **disabled** provider is still safe to pass: it wraps requests with the global no-op tracer, so you can leave the wiring in place and flip `enable` per environment at zero cost.
+
+### `TelemetryConfig` and environment variables
+
+`loadTelemetryConfigFromEnv()` reads the config from the environment so you do not have to hard-code it:
+
+```ts
+import { createTelemetryProvider, loadTelemetryConfigFromEnv } from '@inference-gateway/adk';
+
+const telemetry = createTelemetryProvider({ config: loadTelemetryConfigFromEnv() });
+```
+
+| Variable                      | Default                  | Maps to                                                                        |
+| ----------------------------- | ------------------------ | ------------------------------------------------------------------------------ |
+| `TELEMETRY_ENABLE`            | `false`                  | `config.enable`. Truthy set: `1` / `true` / `yes` / `on`.                      |
+| `OTEL_SERVICE_NAME`           | `@inference-gateway/adk` | `service.name` resource attribute.                                             |
+| `OTEL_SERVICE_VERSION`        | `0.0.0`                  | `service.version` resource attribute.                                          |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | OTel SDK default         | OTLP collector endpoint (consumed by the exporter, not pre-parsed by the ADK). |
+| `OTEL_EXPORTER_OTLP_HEADERS`  | -                        | OTLP exporter headers (e.g. auth).                                             |
+| `OTEL_EXPORTER_OTLP_PROTOCOL` | OTel SDK default         | `http/protobuf`, `http/json`, etc.                                             |
+
+### What gets instrumented
+
+With a started, enabled provider, each POST to the JSON-RPC endpoint emits a server span named **`adk.jsonrpc.request`**, annotated with:
+
+| Attribute                | Value                                          |
+| ------------------------ | ---------------------------------------------- |
+| `adk.jsonrpc.method`     | The JSON-RPC method (e.g. `message/send`).     |
+| `adk.jsonrpc.request_id` | The JSON-RPC request id (coerced to a string). |
+
+Errors are recorded on the span via `recordSpanError`. Node auto-instrumentations (HTTP, etc.) are enabled by default through `@opentelemetry/sdk-node`.
+
+The span-name constants `SPAN_NAME_BACKGROUND_TASK`, `SPAN_NAME_STREAMING_TASK`, and `SPAN_NAME_LLM_COMPLETION`, plus the attribute keys `ATTR_TASK_ID` / `ATTR_CONTEXT_ID`, are exported for your own instrumentation but are not auto-emitted by the server today.
+
+### Span helpers
+
+`TelemetryProvider` exposes `getTracer(name?, version?)` and `withSpan(name, fn, options?)` for instrumenting your own handlers, and `setSpanAttributes(span, attrs)` / `recordSpanError(span, error)` are exported as standalone helpers (`setSpanAttributes` drops `undefined` values before applying them).
+
+### Cross-reference
+
+- **TypeScript source.** [`src/telemetry/`](https://github.com/inference-gateway/typescript-adk/tree/main/src/telemetry).
+
+## Prometheus metrics
+
+Alongside OTLP tracing, the ADK exposes a [Prometheus](https://prometheus.io/) metrics surface backed by `prom-client`. A `MetricsRegistry` owns the counters and histograms; a standalone `MetricsServer` serves them on a dedicated port; and a Hono middleware records per-request metrics.
+
+### Exposed metrics
+
+Every metric is namespaced with the `a2a_` prefix (matching the Go ADK):
+
+| Metric                         | Type      | Labels                     | Meaning                             |
+| ------------------------------ | --------- | -------------------------- | ----------------------------------- |
+| `a2a_request_count_total`      | Counter   | `method`, `path`, `status` | HTTP requests handled.              |
+| `a2a_request_duration_seconds` | Histogram | `method`, `path`, `status` | Request latency.                    |
+| `a2a_tasks_queued_total`       | Counter   | -                          | Tasks enqueued.                     |
+| `a2a_tasks_completed_total`    | Counter   | -                          | Tasks that reached `COMPLETED`.     |
+| `a2a_tasks_failed_total`       | Counter   | -                          | Tasks that reached `FAILED`.        |
+| `a2a_tool_call_failures_total` | Counter   | -                          | Tool-call failures inside the loop. |
+| `a2a_tokens_prompt_total`      | Counter   | -                          | Prompt tokens consumed.             |
+| `a2a_tokens_completion_total`  | Counter   | -                          | Completion tokens produced.         |
+| `a2a_tokens_total`             | Counter   | -                          | Total tokens.                       |
+
+Node.js process metrics (CPU, memory, event-loop lag, GC) are also collected by default. The request-duration histogram uses the buckets `[0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10]` seconds.
+
+### `MetricsServer` (standalone `/metrics` endpoint)
+
+`createMetricsServer` starts an HTTP server **on its own port** (default `9090`), independent of the A2A server, serving `GET /metrics` (Prometheus text exposition) and `GET /health`:
+
+```ts
+import { createMetricsServer } from '@inference-gateway/adk';
+
+const metrics = createMetricsServer({ config: loadMetricsConfigFromEnv() });
+await metrics.start(); // serves http://0.0.0.0:9090/metrics
+
+const registry = metrics.getRegistry(); // share this with your handlers
+
+// on shutdown:
+await metrics.close();
+```
+
+Record task and token activity from your handlers through the shared registry:
+
+```ts
+registry.incrementTasksQueued();
+registry.incrementTasksCompleted();
+registry.incrementTasksFailed();
+registry.incrementToolCallFailures();
+registry.recordTokenUsage({ promptTokens: 120, completionTokens: 80 });
+```
+
+### Request middleware (`createMetricsMiddleware`)
+
+To populate `a2a_request_count_total` and `a2a_request_duration_seconds`, add the Hono middleware to an app you control. (`A2AServer` does not expose its internal Hono app for injection, so this applies when you compose your own Hono app or front the server.)
+
+```ts
+import { Hono } from 'hono';
+import { MetricsRegistry, createMetricsMiddleware } from '@inference-gateway/adk';
+
+const registry = new MetricsRegistry();
+const app = new Hono();
+app.use('*', createMetricsMiddleware({ registry, excludePaths: ['/health'] }));
+```
+
+There is no `A2AServerBuilder.withMetrics(...)` method and no `metrics` field on the server config - the registry, server, and middleware are wired by the consumer.
+
+### `MetricsConfig` and environment variables
+
+`loadMetricsConfigFromEnv()` builds the config from the environment:
+
+| Variable                   | Default    | Description                                                                                                               |
+| -------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `METRICS_ENABLE`           | `false`    | Master switch. Falls back to `TELEMETRY_ENABLE` when unset, so `TELEMETRY_ENABLE=true` turns on both tracing and metrics. |
+| `METRICS_PORT`             | `9090`     | Port for the standalone metrics server (`0` picks an ephemeral port).                                                     |
+| `METRICS_HOST`             | `0.0.0.0`  | Bind host.                                                                                                                |
+| `METRICS_PATH`             | `/metrics` | Exposition path.                                                                                                          |
+| `METRICS_READ_TIMEOUT_MS`  | `5000`     | Header-read timeout.                                                                                                      |
+| `METRICS_WRITE_TIMEOUT_MS` | `10000`    | Request timeout.                                                                                                          |
+| `METRICS_IDLE_TIMEOUT_MS`  | `60000`    | Keep-alive timeout.                                                                                                       |
+
+### Cross-reference
+
+- **TypeScript source.** [`src/metrics/`](https://github.com/inference-gateway/typescript-adk/tree/main/src/metrics).
+
+## TLS
+
+The ADK can serve over HTTPS and verify peers with mutual TLS (mTLS), and ships a matching TLS-aware client. Certificate material is always referenced by **file path** (never raw bytes) on both sides.
+
+### TLS server
+
+TLS is configured at **construction time** - `server.listen()` takes no TLS argument. Pass a `ServerTLSConfig` to `createA2AServer` (or as the `tls` field of `new A2AServerBuilder({ tls })`):
+
+```ts
+import { createA2AServer } from '@inference-gateway/adk';
+
+const server = createA2AServer({
+  card, // set card.url to an https:// origin
+  tls: {
+    certPath: './certs/cert.pem',
+    keyPath: './certs/key.pem',
+  },
+});
+await server.listen(8443, '127.0.0.1'); // now serving https://127.0.0.1:8443
+```
+
+`ServerTLSConfig`:
+
+| Field                | Required | Default                     | Description                                                               |
+| -------------------- | -------- | --------------------------- | ------------------------------------------------------------------------- |
+| `certPath`           | Yes      | -                           | PEM certificate path.                                                     |
+| `keyPath`            | Yes      | -                           | PEM private-key path.                                                     |
+| `caPath`             | No       | -                           | PEM CA bundle used to verify client certificates (mTLS).                  |
+| `passphrase`         | No       | -                           | Unlocks an encrypted `keyPath`.                                           |
+| `requestCert`        | No       | `false`                     | Request a client certificate (enables mTLS).                              |
+| `rejectUnauthorized` | No       | `true` (when `requestCert`) | Reject unverified client certs. Only honoured when `requestCert` is true. |
+| `minVersion`         | No       | Node default (TLS 1.2)      | Minimum TLS version (`node:tls` `SecureVersion`).                         |
+
+> Certificate and key files are read in the `A2AServer` constructor, so an unreadable or missing path throws `TLSConfigError` **immediately** - before `listen()` is reached.
+
+`loadServerTLSConfigFromEnv()` returns a `ServerTLSConfig` (or `undefined` when TLS is off) from these variables:
+
+| Variable          | Required when on | Description                                                                               |
+| ----------------- | ---------------- | ----------------------------------------------------------------------------------------- |
+| `TLS_ENABLE`      | Master switch    | Truthy (`true` / `1` / `yes` / `on`) to enable. Otherwise the loader returns `undefined`. |
+| `TLS_CERT_PATH`   | Yes              | PEM certificate path. Missing while enabled throws `TLSConfigError`.                      |
+| `TLS_KEY_PATH`    | Yes              | PEM private-key path.                                                                     |
+| `TLS_CA_PATH`     | No               | CA bundle for verifying client certs.                                                     |
+| `TLS_PASSPHRASE`  | No               | Private-key passphrase.                                                                   |
+| `TLS_CLIENT_AUTH` | No               | Truthy enables mTLS (sets both `requestCert` and `rejectUnauthorized`).                   |
+
+### Generating a development certificate
+
+The [`examples/tls-server`](https://github.com/inference-gateway/typescript-adk/tree/main/examples/tls-server) directory ships `generate-certs.sh`, which writes a self-signed cert/key (RSA 2048, 10-year validity, SANs for `localhost` + `127.0.0.1`) to `./certs/cert.pem` and `./certs/key.pem`:
+
+```bash
+cd examples/tls-server
+./generate-certs.sh
+TLS_ENABLE=true TLS_CERT_PATH=./certs/cert.pem TLS_KEY_PATH=./certs/key.pem npm start
+```
+
+Because the cert is self-signed it acts as its own CA - which is why the client below trusts it via `caPath`.
+
+### TLS client
+
+The bundled A2A client enables TLS through its `tls` field. `fetch` and `tls` are **mutually exclusive** (supplying both throws `A2AClientError`); to combine them, build your own fetch with `createTLSFetch`.
+
+```ts
+import { createA2AClient } from '@inference-gateway/adk';
+
+const client = createA2AClient({
+  baseURL: 'https://127.0.0.1:8443',
+  tls: { caPath: './certs/cert.pem' }, // trust the self-signed server
+});
+```
+
+`ClientTLSConfig`:
+
+| Field                | Default      | Description                                                                                                 |
+| -------------------- | ------------ | ----------------------------------------------------------------------------------------------------------- |
+| `caPath`             | -            | CA bundle PEM added to the trust roots for verifying the server.                                            |
+| `certPath`           | -            | Client certificate PEM (mTLS). Must be paired with `keyPath`.                                               |
+| `keyPath`            | -            | Client private-key PEM (mTLS). Must be paired with `certPath`.                                              |
+| `passphrase`         | -            | Unlocks an encrypted `keyPath`.                                                                             |
+| `insecureSkipVerify` | `false`      | Disables certificate verification (maps to `rejectUnauthorized: false`). **Dev only** - vulnerable to MITM. |
+| `servername`         | request host | SNI override.                                                                                               |
+
+For the lower-level `fetch`-based client samples elsewhere on this page, `createTLSFetch(config)` returns a `fetch`-compatible function that you can pass anywhere a `fetch` is accepted; `createTLSHttpsAgent(config)` returns a reusable `https.Agent`. Both throw `TLSConfigError` if exactly one of `certPath` / `keyPath` is supplied.
+
+`loadClientTLSConfigFromEnv()` reads `CLIENT_TLS_CERT_PATH`, `CLIENT_TLS_KEY_PATH`, `CLIENT_TLS_CA_PATH`, `CLIENT_TLS_PASSPHRASE`, `CLIENT_TLS_INSECURE_SKIP_VERIFY`, and `CLIENT_TLS_SERVERNAME`, returning `undefined` when none are set.
+
+### Mutual TLS (mTLS)
+
+For mTLS, enable client-cert verification on the server and present a client certificate from the client:
+
+```ts
+// Server: require and verify client certificates
+const server = createA2AServer({
+  card,
+  tls: {
+    certPath: './certs/server-cert.pem',
+    keyPath: './certs/server-key.pem',
+    caPath: './certs/client-ca.pem',
+    requestCert: true,
+    rejectUnauthorized: true,
+  },
+});
+
+// Client: present a key pair signed by the trusted CA
+const client = createA2AClient({
+  baseURL: 'https://127.0.0.1:8443',
+  tls: {
+    caPath: './certs/server-ca.pem',
+    certPath: './certs/client-cert.pem',
+    keyPath: './certs/client-key.pem',
+  },
+});
+```
+
+Setting `TLS_CLIENT_AUTH=true` is the environment-variable shorthand for `requestCert: true` + `rejectUnauthorized: true`.
+
+### Cross-reference
+
+- **TypeScript source.** [`src/tls/`](https://github.com/inference-gateway/typescript-adk/tree/main/src/tls) and the `tls` fields on `A2AServerConfig` / `A2AClientConfig`.
+- **Example.** [`examples/tls-server`](https://github.com/inference-gateway/typescript-adk/tree/main/examples/tls-server).
 
 ## Parity with the Go ADK
 
