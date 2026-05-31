@@ -21,13 +21,15 @@ All four SDKs target the same gateway endpoints, so the choice is driven by your
 | Vision (image input)   | Yes    | Yes        | Yes | Yes  |
 | MCP tools (list)       | Yes    | Yes        | Yes | Yes  |
 | Reasoning content      | Yes    | Yes        | Yes | Yes  |
-| Proxy passthrough      | Yes    | Yes        | Yes | No   |
+| Proxy passthrough      | Yes    | Yes        | No  | No   |
 | Built-in retry/backoff | No     | No         | Yes | No   |
 | A2A JSON-RPC client    | No     | No         | No  | No   |
 
 A2A is a gateway-side capability today and is consumed via raw HTTP / JSON-RPC against the gateway's `/a2a/*` endpoints rather than a typed SDK surface; see the [A2A page](/a2a/) for the wire format.
 
 MCP tools are managed server-side. The SDKs expose `list_tools` for discovery and surface tool-call deltas during streaming; you do not need to ship per-tool client glue. Set `MCP_ENABLE=true` and `MCP_EXPOSE=true` on the gateway to enable the listing endpoint.
+
+Reasoning content is emitted by reasoning-capable models rather than toggled by a dedicated flag: every SDK surfaces `reasoning` and `reasoning_content` on the streaming delta, and the TypeScript SDK adds an `onReasoning` callback. The shared `reasoning_format` request field (`raw` or `parsed`) controls whether think-tags stay inline or are split into `reasoning_content`.
 
 ## Python
 
@@ -294,7 +296,7 @@ console.log(response.choices[0].message.content);
 
 ## Go
 
-The Go SDK ships an idiomatic context-aware client with built-in exponential-backoff retries, header chaining, and middleware bypass for direct-to-provider requests.
+The Go SDK ships an idiomatic context-aware client with built-in exponential-backoff retries and header chaining.
 
 - Module: [`github.com/inference-gateway/sdk`](https://pkg.go.dev/github.com/inference-gateway/sdk) (latest: `v1.16.4`)
 - Repository: [inference-gateway/sdk](https://github.com/inference-gateway/sdk)
