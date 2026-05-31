@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.69](https://github.com/inference-gateway/docs/compare/0.6.68...0.6.69) (2026-05-31)
+
+### 👷 CI
+
+* centralize claude.yml via reusable workflow ([#128](https://github.com/inference-gateway/docs/issues/128)) ([5b5a15b](https://github.com/inference-gateway/docs/commit/5b5a15b594e9991c8466dfa5d4f6668014a64537))
+
 ## [0.6.68](https://github.com/inference-gateway/docs/compare/0.6.67...0.6.68) (2026-05-31)
 
 ### 📚 Documentation
