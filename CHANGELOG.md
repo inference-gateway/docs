@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.57](https://github.com/inference-gateway/docs/compare/0.6.56...0.6.57) (2026-05-31)
+
+### 📚 Documentation
+
+* add google-calendar-agent to registry catalog ([#116](https://github.com/inference-gateway/docs/issues/116)) ([cfd4595](https://github.com/inference-gateway/docs/commit/cfd4595043b50551eabc6d4035f520724a537d1a))
+
 ## [0.6.56](https://github.com/inference-gateway/docs/compare/0.6.55...0.6.56) (2026-05-31)
 
 ### 📚 Documentation
