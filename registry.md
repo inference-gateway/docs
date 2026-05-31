@@ -23,7 +23,7 @@ The current site lets you search across name, description, and tags, and filter 
 
 ## Featured agents
 
-The full catalogue is browsable at [registry.inference-gateway.com](https://registry.inference-gateway.com). The entry below is documented here so you can see the shape of a published agent - its skill, the tools that skill calls, and the configuration it accepts - before pulling the image.
+The full catalogue is browsable at [registry.inference-gateway.com](https://registry.inference-gateway.com). The entries below are documented here so you can see the shape of a published agent - its skill, the tools that skill calls, and the configuration it accepts - before pulling the image.
 
 ### Google Calendar Agent
 
@@ -58,6 +58,36 @@ Pass these as environment variables when you register or run the agent (e.g. `in
 **Repository:** [github.com/inference-gateway/google-calendar-agent](https://github.com/inference-gateway/google-calendar-agent)
 
 For this agent in the context of multi-agent gateway coordination, see the [A2A Integration guide](/a2a/#google-calendar-agent).
+
+### Documentation Agent
+
+Context7-style documentation retrieval, published as the OCI image `ghcr.io/inference-gateway/documentation-agent`. It resolves a library name to a Context7-compatible ID and fetches version-scoped documentation, so other agents can ground their code generation in up-to-date library docs before writing against an unfamiliar API. Register it with your gateway using the [`infer agents add`](#discovering-and-consuming-agents) workflow below.
+
+**Skill:**
+
+- `library-documentation-lookup`: Fetch up-to-date documentation for a third-party library or framework before writing code against it. First resolves the library name to a Context7-compatible ID via `resolve_library_id` (when the caller does not already supply one in the `/org/project` or `/org/project/version` form), then retrieves focused, topic-scoped documentation via `get_library_docs`. Good for filling in unknowns about specific APIs, hooks, configuration options, or version-specific behavior.
+
+**Tools:**
+
+The `library-documentation-lookup` skill is backed by a set of documentation tools the agent calls internally:
+
+- `resolve_library_id`: Resolve an official library name (e.g. `Next.js`, `Three.js`) plus the caller's query into a ranked list of Context7-compatible library IDs
+- `get_library_docs`: Fetch up-to-date, topic-scoped documentation for a Context7-compatible library ID (e.g. `/vercel/next.js`, or version-pinned `/vercel/next.js/v14.3.0-canary.87`), answering a specific question rather than a broad keyword
+- `read`: Read a file from disk by path, optionally sliced by line offset/limit - used to load skill bodies on demand
+
+**Behavior:**
+
+The agent is a Context7-compatible documentation-lookup service. A typical request is two steps: call `resolve_library_id` to turn a human-readable library name into a canonical `/org/project` (optionally `/org/project/version`) identifier, then call `get_library_docs` with that ID and a specific question to retrieve version-scoped documentation. Callers that already know the exact ID can skip straight to `get_library_docs`. Responses are capped at `maxTokens` 4096, so queries should be specific (`How to set up JWT auth in Express.js`, not `auth`).
+
+**Configuration:**
+
+Like any ADK-built agent, point it at an LLM backend with the standard A2A client variables, then toggle the read tool as needed:
+
+- `A2A_AGENT_CLIENT_PROVIDER` / `A2A_AGENT_CLIENT_MODEL` / `A2A_AGENT_CLIENT_API_KEY`: the LLM provider, model, and key the agent uses to drive the lookup (e.g. `openai`, `anthropic`, `ollama`)
+- `A2A_AGENT_CLIENT_MAX_TOKENS` (default `4096`): maximum tokens for the documentation responses the agent returns
+- `TOOLS_READ_ENABLED` (default `true`): enable the `read` tool
+
+**Repository:** [github.com/inference-gateway/documentation-agent](https://github.com/inference-gateway/documentation-agent)
 
 ## How it relates to ADK-built agents
 
