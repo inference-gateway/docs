@@ -28,3 +28,4 @@ AGENTS.md
 
 # CI
 .github/workflows/claude.yml
+.github/workflows/infer.yml
