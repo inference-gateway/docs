@@ -253,6 +253,7 @@ export default withMermaid(
           text: 'Agent Development Kit (ADK)',
           collapsed: false,
           items: [
+            { text: 'Go ADK', link: pageLink('/adk') },
             { text: 'TypeScript ADK', link: pageLink('/typescript-adk') },
             { text: 'Rust ADK', link: pageLink('/rust-adk') },
           ],
