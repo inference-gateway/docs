@@ -737,6 +737,147 @@ resp, err := client.GenerateContent(
 
 Base64 data URLs are accepted as the image URL.
 
+### Models, tools, and health
+
+`ListModels` returns every model across all configured providers, while `ListProviderModels` scopes the listing to a single `Provider`. `ListTools` enumerates gateway-managed MCP tools from the `/mcp/tools` endpoint and requires MCP to be exposed (`MCP_ENABLE=true` and `MCP_EXPOSE=true`); otherwise it returns an error. Unlike the other SDKs, Go's `HealthCheck` returns an `error` rather than a `bool` - it probes the gateway's root `/health` endpoint and returns `nil` when the gateway is healthy.
+
+```go
+client := sdk.NewClient(&sdk.ClientOptions{
+    BaseURL: "http://localhost:8080/v1",
+})
+ctx := context.Background()
+
+// Liveness probe - a nil error means healthy.
+if err := client.HealthCheck(ctx); err != nil {
+    log.Fatalf("gateway is not healthy: %v", err)
+}
+
+// Every model across all configured providers.
+models, err := client.ListModels(ctx)
+if err != nil {
+    log.Fatalf("list models: %v", err)
+}
+for _, model := range models.Data {
+    fmt.Printf("model: %s (served by %s)\n", model.ID, model.ServedBy)
+}
+
+// Narrow the listing to a single provider.
+groqModels, err := client.ListProviderModels(ctx, sdk.Groq)
+if err != nil {
+    log.Fatalf("list provider models: %v", err)
+}
+fmt.Printf("provider: %s\n", *groqModels.Provider)
+
+// MCP tools (requires MCP exposed on the gateway).
+tools, err := client.ListTools(ctx)
+if err != nil {
+    log.Fatalf("list tools: %v", err)
+}
+for _, tool := range tools.Data {
+    fmt.Printf("tool: %s (server: %s)\n", tool.Name, tool.Server)
+}
+```
+
+`ListModelsResponse.Provider` is a `*Provider`, so dereference it (`*groqModels.Provider`) when you read the scoped listing's provider back.
+
+### Middleware bypass
+
+`WithMiddlewareOptions` is a Go-only escape hatch that controls gateway middleware for subsequent requests. `SkipMCP` sends `X-MCP-Bypass: true` to skip MCP processing, and `DirectProvider` sends `X-Direct-Provider: true` to route straight to the upstream provider. Both flags are off by default, and the call clears any bypass header it does not set, so pass every flag you want enabled in a single call.
+
+```go
+resp, err := client.
+    WithMiddlewareOptions(&sdk.MiddlewareOptions{
+        SkipMCP:        true,
+        DirectProvider: true,
+    }).
+    GenerateContent(
+        ctx,
+        sdk.Openai,
+        "openai/gpt-4o",
+        []sdk.Message{
+            {Role: sdk.User, Content: sdk.NewMessageContent("Answer without MCP tooling.")},
+        },
+    )
+```
+
+You can also set the headers yourself, which is handy when you only want one of them:
+
+```go
+resp, err := client.
+    WithHeader("X-MCP-Bypass", "true").
+    GenerateContent(ctx, sdk.Openai, "openai/gpt-4o", messages)
+```
+
+Both headers require a gateway build that honors them; a gateway that does not recognize the bypass runs the full middleware chain anyway. A runnable walkthrough lives in [sdk/examples/middleware-bypass](https://github.com/inference-gateway/sdk/tree/main/examples/middleware-bypass).
+
+### Custom headers
+
+Set headers globally through `ClientOptions.Headers`, or chain them onto an existing client with `WithHeaders` (a map) and `WithHeader` (a single name/value pair). All three apply to every subsequent request, so reach for them when you need tenancy tags, tracing IDs, or provider-specific passthrough headers.
+
+```go
+// Set on construction.
+client := sdk.NewClient(&sdk.ClientOptions{
+    BaseURL: "http://localhost:8080/v1",
+    Headers: map[string]string{
+        "X-Tenant-ID": "acme",
+    },
+})
+
+// Or chain onto an existing client.
+client = client.
+    WithHeader("X-Trace-Id", "checkout-flow").
+    WithHeaders(map[string]string{
+        "X-Env":    "staging",
+        "X-Caller": "batch-job",
+    })
+```
+
+### Retry and backoff
+
+Retries are on by default: every request method runs through an exponential-backoff loop that retries transient transport errors plus the retryable status codes `408`, `429`, `500`, `502`, `503`, and `504`. On a `429` the client honors the response's `Retry-After` header (seconds or an HTTP-date) instead of its computed backoff. Tune or disable all of this through `ClientOptions.RetryConfig`.
+
+| Field                  | Type                                                | Default                        | Purpose                                                            |
+| ---------------------- | --------------------------------------------------- | ------------------------------ | ------------------------------------------------------------------ |
+| `Enabled`              | `bool`                                              | `true`                         | Master switch; set `false` to issue each request exactly once.     |
+| `MaxAttempts`          | `int`                                               | `3`                            | Total attempts, including the initial request.                     |
+| `InitialBackoffSec`    | `int`                                               | `2`                            | Delay before the first retry, in seconds.                          |
+| `MaxBackoffSec`        | `int`                                               | `30`                           | Ceiling for the computed backoff, in seconds.                      |
+| `BackoffMultiplier`    | `int`                                               | `2`                            | Factor the delay grows by on each attempt.                         |
+| `RetryableStatusCodes` | `[]int`                                             | `408, 429, 500, 502, 503, 504` | Status codes that trigger a retry; replaces the defaults when set. |
+| `OnRetry`              | `func(attempt int, err error, delay time.Duration)` | `nil`                          | Callback fired before each retry - handy for logging.              |
+
+```go
+client := sdk.NewClient(&sdk.ClientOptions{
+    BaseURL: "http://localhost:8080/v1",
+    RetryConfig: &sdk.RetryConfig{
+        Enabled:              true,
+        MaxAttempts:          5,
+        InitialBackoffSec:    1,
+        MaxBackoffSec:        20,
+        BackoffMultiplier:    2,
+        RetryableStatusCodes: []int{429, 503},
+        OnRetry: func(attempt int, err error, delay time.Duration) {
+            log.Printf("retry %d after %s: %v", attempt, delay, err)
+        },
+    },
+})
+```
+
+Leave `RetryConfig` nil to inherit the defaults above, or set `Enabled: false` to turn retries off entirely.
+
+### Client options
+
+`NewClient` takes a `ClientOptions` struct; only `BaseURL` is required.
+
+| Field         | Type                    | Default      | Purpose                                                        |
+| ------------- | ----------------------- | ------------ | -------------------------------------------------------------- |
+| `BaseURL`     | `string`                | _(required)_ | Gateway base URL, including the `/v1` suffix.                  |
+| `APIKey`      | `string`                | -            | Sent as an `Authorization: Bearer` header on every request.    |
+| `Timeout`     | `time.Duration`         | none         | Per-request timeout; unset means no client-side timeout.       |
+| `Tools`       | `*[]ChatCompletionTool` | `nil`        | Default tools attached to every request (see Tool calls).      |
+| `Headers`     | `map[string]string`     | `nil`        | Custom headers merged into every request (see Custom headers). |
+| `RetryConfig` | `*RetryConfig`          | _(built-in)_ | Retry/backoff tuning (see Retry and backoff).                  |
+
 ## Rust
 
 The Rust SDK is async-only (Tokio) and exposes the gateway over a typed `InferenceGatewayAPI` trait for easy mocking in tests.
