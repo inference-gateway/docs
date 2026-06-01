@@ -16,6 +16,7 @@ Channels turn the [Inference Gateway CLI](/cli/) agent into a remote-controllabl
 - **Allowlist-only access** - Empty allowlist rejects all messages. Secure by default
 - **Tool approval prompts** - Sensitive tools (Bash, Write, Edit, Delete) ask for confirmation through the channel before running
 - **Image attachments** - Send a photo to the bot and the agent receives it as part of the prompt
+- **Voice transcription** - Inbound voice messages are transcribed to text with Whisper when [speech-to-text](/cli-speech-to-text/) is enabled
 - **Scheduled tasks** - Combine with the Schedule tool to ask the bot for recurring or one-off jobs delivered back through the same chat
 
 ## How Channels Work
@@ -156,6 +157,20 @@ Jobs are persisted as YAML in `~/.infer/schedules/<id>.yaml` and hot-reloaded by
 - **Message splitting** - Telegram caps messages at 4096 characters. The adapter splits longer responses automatically into sequential messages
 - **Image input** - Photos sent to the bot (with or without a caption) are downloaded via the Telegram API and forwarded to the agent as base64-encoded attachments
 - **Image retention** - `channels.image_retention` controls how many recent images are kept per session (default: `5`)
+
+### Voice Messages
+
+When [speech-to-text](/cli-speech-to-text/) is enabled, voice notes sent to the bot are downloaded via the Telegram API, decoded with `ffmpeg` (OGG/Opus to WAV), transcribed locally with Whisper, and forwarded to the agent as text - so you can talk to the agent from your phone.
+
+Voice transcription is gated behind the `speech_to_text.enabled` flag (off by default). When it is disabled, inbound voice messages are **ignored**; text and image messages are unaffected. Enable it in `.infer/config.yaml`:
+
+```yaml
+speech_to_text:
+  enabled: true # off by default
+  model: tiny # tiny | base | small | medium | large-v3-turbo
+```
+
+This requires `whisper.cpp` and `ffmpeg` on the host. See [Speech-to-Text](/cli-speech-to-text/) for prerequisites, the full configuration reference, and model selection.
 
 ### Troubleshooting
 

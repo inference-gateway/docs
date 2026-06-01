@@ -703,14 +703,15 @@ The CLI provides built-in shortcuts and supports custom user-defined shortcuts.
 
 ### Built-in Shortcuts
 
-| Shortcut              | Description                      | Example                                   |
-| --------------------- | -------------------------------- | ----------------------------------------- |
-| `/init`               | Generate AGENTS.md documentation | `/init`                                   |
-| `/init-github-action` | Setup GitHub Action integration  | `/init-github-action`                     |
-| `/git <cmd>`          | Git operations                   | `/git status`, `/git commit`, `/git push` |
-| `/scm <cmd>`          | GitHub operations                | `/scm pr-create`, `/scm issue view 123`   |
-| `/a2a`                | View connected A2A agents        | `/a2a`                                    |
-| `/skills <cmd>`       | Manage Agent Skills              | `/skills list`, `/skills install <url>`   |
+| Shortcut              | Description                                                                                        | Example                                   |
+| --------------------- | -------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| `/init`               | Generate AGENTS.md documentation                                                                   | `/init`                                   |
+| `/init-github-action` | Setup GitHub Action integration                                                                    | `/init-github-action`                     |
+| `/git <cmd>`          | Git operations                                                                                     | `/git status`, `/git commit`, `/git push` |
+| `/scm <cmd>`          | GitHub operations                                                                                  | `/scm pr-create`, `/scm issue view 123`   |
+| `/a2a`                | View connected A2A agents                                                                          | `/a2a`                                    |
+| `/skills <cmd>`       | Manage Agent Skills                                                                                | `/skills list`, `/skills install <url>`   |
+| `/voice [seconds]`    | Record the mic and transcribe to the input field (requires [speech-to-text](/cli-speech-to-text/)) | `/voice`, `/voice 8`                      |
 
 ### Git Shortcuts
 
@@ -738,6 +739,20 @@ The CLI provides built-in shortcuts and supports custom user-defined shortcuts.
 # Create pull request with AI-powered plan
 /scm pr-create
 ```
+
+### Voice Shortcut
+
+The `/voice` shortcut records audio from your microphone, transcribes it locally with [whisper.cpp](https://github.com/ggml-org/whisper.cpp), and places the text into the input field - ready to review and send. It is **disabled by default** and only appears when `speech_to_text.enabled` is `true`.
+
+```bash
+# Record until you go quiet (or the max cap), then transcribe
+/voice
+
+# Record for at most 8 seconds
+/voice 8
+```
+
+Recording stops automatically a couple of seconds after you stop speaking (`speech_to_text.silence_timeout`), at the `max_recording_seconds` cap, or at the per-call override. See [Speech-to-Text](/cli-speech-to-text/) for prerequisites, configuration, and model selection.
 
 ### GitHub Action Setup
 
