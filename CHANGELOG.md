@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.72](https://github.com/inference-gateway/docs/compare/0.6.71...0.6.72) (2026-06-01)
+
+### 👷 CI
+
+* centralize infer.yml + sync .infer config ([#130](https://github.com/inference-gateway/docs/issues/130)) ([63c6b54](https://github.com/inference-gateway/docs/commit/63c6b5450b9d171e6a610cba4bfc5c8fca5dee39))
+
 ## [0.6.71](https://github.com/inference-gateway/docs/compare/0.6.70...0.6.71) (2026-05-31)
 
 ### 👷 CI
