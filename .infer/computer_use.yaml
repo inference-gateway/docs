@@ -16,7 +16,7 @@ screenshot:
   streaming_enabled: true
   capture_interval: 3
   buffer_size: 5
-  temp_dir: ''
+  temp_dir: ""
   log_captures: false
   show_overlay: true
 rate_limit:

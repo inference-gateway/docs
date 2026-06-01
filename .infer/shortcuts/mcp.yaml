@@ -13,22 +13,22 @@
 
 shortcuts:
   - name: mcp
-    description: 'Manage MCP servers'
+    description: "Manage MCP servers"
     command: infer
     args:
       - mcp
     subcommands:
       - name: list
-        description: 'List all configured MCP servers'
+        description: "List all configured MCP servers"
       - name: add
-        description: 'Add a new MCP server (usage: <name> <url> [options])'
+        description: "Add a new MCP server (usage: <name> <url> [options])"
       - name: remove
-        description: 'Remove an MCP server (usage: <name>)'
+        description: "Remove an MCP server (usage: <name>)"
       - name: enable
-        description: 'Enable an MCP server (usage: <name>)'
+        description: "Enable an MCP server (usage: <name>)"
       - name: disable
-        description: 'Disable an MCP server (usage: <name>)'
+        description: "Disable an MCP server (usage: <name>)"
       - name: enable-global
-        description: 'Enable MCP globally'
+        description: "Enable MCP globally"
       - name: disable-global
-        description: 'Disable MCP globally'
+        description: "Disable MCP globally"
