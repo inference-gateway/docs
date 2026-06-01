@@ -12,29 +12,29 @@
 
 shortcuts:
   - name: scm
-    description: 'Source control management operations'
+    description: "Source control management operations"
     command: gh
     subcommands:
       - name: issues
-        description: 'List all GitHub issues for the repository'
+        description: "List all GitHub issues for the repository"
         args:
           - issue
           - list
           - --json
-          - 'number,title,state,author,labels,createdAt,updatedAt'
+          - "number,title,state,author,labels,createdAt,updatedAt"
           - --limit
-          - '20'
+          - "20"
 
       - name: issue
-        description: 'Show details for a specific GitHub issue (usage: <number>)'
+        description: "Show details for a specific GitHub issue (usage: <number>)"
         args:
           - issue
           - view
           - --json
-          - 'number,title,body,state,author,labels,comments,createdAt,updatedAt'
+          - "number,title,body,state,author,labels,comments,createdAt,updatedAt"
 
       - name: pr-create
-        description: 'Generate AI-powered PR plan with LLM (usage: [optional context])'
+        description: "Generate AI-powered PR plan with LLM (usage: [optional context])"
         command: bash
         args:
           - -c

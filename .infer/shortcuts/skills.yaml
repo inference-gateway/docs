@@ -9,14 +9,14 @@
 
 shortcuts:
   - name: skills
-    description: 'Manage Agent Skills'
+    description: "Manage Agent Skills"
     command: infer
     args:
       - skills
     subcommands:
       - name: list
-        description: 'List discovered skills'
+        description: "List discovered skills"
       - name: install
-        description: 'Install a skill (usage: <skill> | <org>/<skill> | <github-url>) [--user] [--overwrite]'
+        description: "Install a skill (usage: <skill> | <org>/<skill> | <github-url>) [--user] [--overwrite]"
       - name: uninstall
-        description: 'Uninstall a skill by name (usage: <name> [--user])'
+        description: "Uninstall a skill by name (usage: <name> [--user])"

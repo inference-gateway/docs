@@ -3,7 +3,7 @@ container_runtime:
   type: docker
 gateway:
   url: http://localhost:8080
-  api_key: ''
+  api_key: ""
   timeout: 200
   oci: ghcr.io/inference-gateway/inference-gateway:latest
   run: true
@@ -43,7 +43,7 @@ client:
       - 504
 logging:
   debug: false
-  dir: ''
+  dir: ""
   stdout: false
 tools:
   enabled: true
@@ -162,9 +162,9 @@ image:
     convert_jpeg: true
 export:
   output_dir: .infer/tmp
-  summary_model: ''
+  summary_model: ""
 agent:
-  model: ''
+  model: ""
   system_prompt_with_defaults: true
   context:
     git_context_enabled: true
@@ -178,7 +178,7 @@ agent:
   max_concurrent_tools: 5
 git:
   commit_message:
-    model: ''
+    model: ""
 storage:
   enabled: true
   type: jsonl
@@ -188,20 +188,20 @@ storage:
     host: localhost
     port: 5432
     database: infer_conversations
-    username: ''
-    password: ''
+    username: ""
+    password: ""
     ssl_mode: prefer
   redis:
     host: localhost
     port: 6379
-    password: ''
+    password: ""
     db: 0
   jsonl:
     path: .infer/conversations
 conversation:
   title_generation:
     enabled: true
-    model: ''
+    model: ""
     batch_size: 10
     interval: 0
 chat:

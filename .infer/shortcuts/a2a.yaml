@@ -11,18 +11,18 @@
 
 shortcuts:
   - name: agents
-    description: 'Manage A2A agents'
+    description: "Manage A2A agents"
     command: infer
     args:
       - agents
     subcommands:
       - name: list
-        description: 'List all configured A2A agents'
+        description: "List all configured A2A agents"
       - name: add
-        description: 'Add a new A2A agent (usage: <name> [url] [options])'
+        description: "Add a new A2A agent (usage: <name> [url] [options])"
       - name: remove
-        description: 'Remove an A2A agent (usage: <name>)'
+        description: "Remove an A2A agent (usage: <name>)"
       - name: enable
-        description: 'Enable an A2A agent (usage: <name>)'
+        description: "Enable an A2A agent (usage: <name>)"
       - name: disable
-        description: 'Disable an A2A agent (usage: <name>)'
+        description: "Disable an A2A agent (usage: <name>)"

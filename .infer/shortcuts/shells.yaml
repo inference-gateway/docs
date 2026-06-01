@@ -6,6 +6,6 @@
 
 shortcuts:
   - name: shells
-    description: 'List all running and recent background shell processes'
+    description: "List all running and recent background shell processes"
     tool: ListShells
     tool_args: {}

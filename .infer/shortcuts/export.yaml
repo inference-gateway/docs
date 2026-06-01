@@ -7,7 +7,7 @@
 
 shortcuts:
   - name: export
-    description: 'Export current conversation to markdown'
+    description: "Export current conversation to markdown"
     command: infer
     args:
       - export
