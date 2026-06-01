@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.77](https://github.com/inference-gateway/docs/compare/0.6.76...0.6.77) (2026-06-01)
+
+### 📚 Documentation
+
+* document github issue references in cli chat ([#139](https://github.com/inference-gateway/docs/issues/139)) ([84a0973](https://github.com/inference-gateway/docs/commit/84a0973436c20e3668fa0a239e670ca5803cdb1b))
+
 ## [0.6.76](https://github.com/inference-gateway/docs/compare/0.6.75...0.6.76) (2026-06-01)
 
 ### 📚 Documentation
