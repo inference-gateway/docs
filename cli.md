@@ -14,7 +14,7 @@ The Inference Gateway CLI (`infer`) is a powerful Go-based command-line tool pro
 - **Zero-Configuration Setup** - Add API keys and start chatting
 - **Autonomous Agent Mode** - Delegate complex tasks with iterative execution
 - **Computer Use Tools** - GUI automation with screenshot, mouse, and keyboard control
-- **Rich Tool Integration** - File operations, code search, web access, GitHub integration
+- **Rich Tool Integration** - File operations, code search, web access, GitHub via the `gh` CLI
 - **Smart Safety System** - Configurable approval workflow with diff visualization
 - **Beautiful TUI** - Scrollable interface with syntax highlighting and multiple themes
 - **Web Terminal** - Browser-based interface with tabbed sessions
@@ -396,15 +396,15 @@ When tools are enabled, LLMs have access to a comprehensive suite across multipl
 
 ### Tool Categories
 
-| Category              | Tools                                                                                             | Description                                                      |
-| --------------------- | ------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| **File System**       | Read, Write, Edit, MultiEdit, Delete, Tree, Grep                                                  | File operations and search with safety controls                  |
-| **Command Execution** | Bash, BashOutput, KillShell, ListShells                                                           | Whitelisted shell execution and background shell control         |
-| **Web**               | WebSearch, WebFetch, Github                                                                       | Internet research, content fetching, GitHub API                  |
-| **Workflow**          | TodoWrite, Schedule, RequestPlanApproval                                                          | Task tracking, cron jobs, plan-mode approval                     |
-| **A2A Integration**   | A2A_QueryAgent, A2A_SubmitTask, A2A_QueryTask                                                     | Delegate to specialized agents - see [A2A](/a2a/)                |
-| **Computer Use**      | GetLatestScreenshot, MouseMove, MouseClick, MouseScroll, KeyboardType, GetFocusedApp, ActivateApp | GUI automation - see the Computer Use section above              |
-| **MCP**               | `MCP_<server>_<tool>`                                                                             | Dynamically registered tools from MCP servers - see [MCP](/mcp/) |
+| Category              | Tools                                                                                             | Description                                                                          |
+| --------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| **File System**       | Read, Write, Edit, MultiEdit, Delete, Tree, Grep                                                  | File operations and search with safety controls                                      |
+| **Command Execution** | Bash, BashOutput, KillShell, ListShells                                                           | Whitelisted shell execution (including `gh` for GitHub) and background shell control |
+| **Web**               | WebSearch, WebFetch                                                                               | Internet research and content fetching                                               |
+| **Workflow**          | TodoWrite, Schedule, RequestPlanApproval                                                          | Task tracking, cron jobs, plan-mode approval                                         |
+| **A2A Integration**   | A2A_QueryAgent, A2A_SubmitTask, A2A_QueryTask                                                     | Delegate to specialized agents - see [A2A](/a2a/)                                    |
+| **Computer Use**      | GetLatestScreenshot, MouseMove, MouseClick, MouseScroll, KeyboardType, GetFocusedApp, ActivateApp | GUI automation - see the Computer Use section above                                  |
+| **MCP**               | `MCP_<server>_<tool>`                                                                             | Dynamically registered tools from MCP servers - see [MCP](/mcp/)                     |
 
 ### File System Tools
 
@@ -537,24 +537,57 @@ tools:
       ttl: 3600
 ```
 
-#### Github
+### GitHub Operations
 
-Read and write GitHub issues, pull requests, and comments via the GitHub API.
+There is **no built-in GitHub tool**. The agent performs all GitHub work - issues, pull requests, releases, repository metadata, and the raw API - through the [`gh` CLI](https://cli.github.com/) run via the [Bash](#bash) tool.
 
-- **Parameters**: `owner`, `repo` (both required unless preconfigured in `tools.github.{owner,repo}`), `resource` (default `issue`; one of `issue`, `issues`, `pull_request`, `comments`, `create_comment`, `update_comment`, `create_pull_request`, `update_pull_request`), `issue_number`, `comment_id`, `comment_body`, `title`, `body`, `head`, `base` (default `main`), `state` (`open` | `closed` | `all`, default `open`), `per_page` (max 100, default 30)
+```bash
+# Issues and pull requests
+gh issue view 123
+gh issue list --state open
+gh pr create --title "fix: handle nil channel" --body "Closes #123"
+gh pr diff 456
+
+# Raw API (read-only / GET)
+gh api repos/inference-gateway/cli/issues
+gh api user --jq .login
+```
+
+**Requirements:** `gh` must be installed and authenticated. It uses the standard `gh` credential chain - run `gh auth login`, or set `GITHUB_TOKEN` (or `GH_TOKEN`). No separate token configuration exists anymore.
+
+#### Default gh whitelist
+
+GitHub operations run through Bash, so they obey the [Bash whitelist](#command-whitelisting). The default config auto-approves common **non-destructive** `gh` commands:
+
+| Auto-approved by default | Examples                                                                             |
+| ------------------------ | ------------------------------------------------------------------------------------ |
+| Read-only reads          | `gh issue list`, `gh pr view 5`, `gh pr diff`, `gh repo view`, `gh release view v1`  |
+| Auth status              | `gh auth status`                                                                     |
+| Issue writes             | `gh issue create`, `gh issue edit 5 --add-label foo`, `gh issue comment 5 --body hi` |
+| PR creation              | `gh pr create --title x --body y`                                                    |
+| Read-only API (GET)      | `gh api repos/o/r/issues`, `gh api user --jq .login`                                 |
+
+`gh api` is auto-approved **only for GET requests** - a bare endpoint optionally followed by read-only flags (`--paginate`, `--jq`, `-q`). Any mutating call - `-X`/`--method`, `-f`/`-F`/`--field`, or `--input` - is **not** auto-approved.
+
+**Destructive operations are deliberately left off the whitelist** - for example `gh pr merge`, `gh pr close`, `gh issue delete`, `gh repo delete`, `gh release create`, `gh run cancel`, `gh auth login`, and any mutating `gh api`. They are **not blocked**; they fall through to the standard approval prompt so you can review and confirm them.
+
+The shipped whitelist patterns:
 
 ```yaml
 tools:
-  github:
-    enabled: true
-    token: '%GITHUB_TOKEN%'
-    base_url: https://api.github.com
-    owner: your-org
-    repo: your-repo
-    safety:
-      timeout: 30
-    require_approval: false
+  bash:
+    whitelist:
+      patterns:
+        - ^gh (issue|pr|repo|release|run|workflow) (list|view|status|diff|checks)( |$)
+        - ^gh auth status( |$)
+        - ^gh issue (create|edit|comment)( |$)
+        - ^gh pr create( |$)
+        - ^gh api [^ -][^ ]*( --paginate| --jq [^ ]+| -q [^ ]+)*$
 ```
+
+#### Migration: the built-in GitHub tool was removed
+
+> **Breaking change.** The built-in `Github` tool was removed in favor of the `gh` CLI ([inference-gateway/cli#572](https://github.com/inference-gateway/cli/pull/572)). The `tools.github` config block and the `infer config tools github` commands no longer exist. Existing configs that still contain a `tools.github` section are **ignored** - unknown keys are dropped, so they do not error and need no manual cleanup. Replace any scripted use of the old tool with the matching `gh` command (for example `gh issue view`, `gh pr create`, `gh api`).
 
 ### Workflow Tools
 
@@ -675,7 +708,7 @@ export INFER_GATEWAY_URL="http://localhost:8080"
 export INFER_GATEWAY_API_KEY="your-api-key"
 export INFER_AGENT_MODEL="openai/gpt-4"
 export INFER_LOGGING_DEBUG="true"
-export GITHUB_TOKEN="your-github-token"
+export GITHUB_TOKEN="your-github-token"  # used by the gh CLI credential chain for GitHub operations
 ```
 
 ### Configuration Commands
@@ -1317,7 +1350,12 @@ tools:
         - ^git status$
         - ^git branch.*$
         - ^npm test$
+        - ^gh (issue|pr|repo|release|run|workflow) (list|view|status|diff|checks)( |$)
+        - ^gh pr create( |$)
+        - ^gh api [^ -][^ ]*( --paginate| --jq [^ ]+| -q [^ ]+)*$
 ```
+
+Non-destructive `gh` operations are whitelisted by default so the agent can work with GitHub out of the box; destructive ones (for example `gh pr merge`, `gh repo delete`) fall through to approval. See [GitHub Operations](#github-operations) for the full list.
 
 ### Protected Paths
 
