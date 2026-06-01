@@ -197,6 +197,11 @@ export default withMermaid(
             { text: 'Grafana Agent', link: pageLink('/grafana-agent') },
             { text: 'Mock Agent', link: pageLink('/mock-agent') },
             { text: 'Browser Agent', link: pageLink('/browser-agent') },
+          ],
+        },
+        {
+          text: 'Skills',
+          items: [
             { text: 'Agent Skills', link: pageLink('/cli-skills') },
             { text: 'Skills Catalog', link: pageLink('/skills') },
           ],
@@ -261,7 +266,7 @@ export default withMermaid(
           ],
         },
         {
-          text: 'Agent Skills',
+          text: 'Skills',
           collapsed: false,
           items: [
             { text: 'Using Skills (CLI)', link: pageLink('/cli-skills') },
