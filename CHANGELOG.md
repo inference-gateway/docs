@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.74](https://github.com/inference-gateway/docs/compare/0.6.73...0.6.74) (2026-06-01)
+
+### 📚 Documentation
+
+* add speech-to-text (whisper) page and /voice docs ([#133](https://github.com/inference-gateway/docs/issues/133)) ([42e2f9d](https://github.com/inference-gateway/docs/commit/42e2f9d5fb8530f4e86547ab7072c5c3c44eb230))
+
 ## [0.6.73](https://github.com/inference-gateway/docs/compare/0.6.72...0.6.73) (2026-06-01)
 
 ### 👷 CI
