@@ -11,7 +11,7 @@ The **Skills Catalog** is the central index of [Agent Skills](https://github.com
 
 ## What's in the catalog
 
-Every entry describes one [Agent Skill](/cli/#agent-skills) - a portable, lazy-loaded folder containing a `SKILL.md` playbook plus optional `references/`, `scripts/`, and `assets/` siblings. Each catalog entry carries:
+Every entry describes one [Agent Skill](/cli-skills/) - a portable, lazy-loaded folder containing a `SKILL.md` playbook plus optional `references/`, `scripts/`, and `assets/` siblings. Each catalog entry carries:
 
 - **Identity**: `name` (kebab-case, unique across the catalog) and `description` (the routing signal the model uses to decide when to load the skill).
 - **Source**: a `source` URL pointing at the upstream `SKILL.md` directory on GitHub (either inside `inference-gateway/skills` for vendored skills, or in a third-party repo for external skills).
@@ -21,7 +21,7 @@ Every entry describes one [Agent Skill](/cli/#agent-skills) - a portable, lazy-l
 The catalog is consumed by:
 
 - [registry.inference-gateway.com/skills/](https://registry.inference-gateway.com/skills/) - human-browsable listing.
-- [registry.inference-gateway.com/skills/index.json](https://registry.inference-gateway.com/skills/index.json) - machine-readable index used by `infer skills search` and `infer skills install <name>` in the [Inference Gateway CLI](/cli/#agent-skills).
+- [registry.inference-gateway.com/skills/index.json](https://registry.inference-gateway.com/skills/index.json) - machine-readable index used by `infer skills search` and `infer skills install <name>` in the [Inference Gateway CLI](/cli-skills/).
 
 The raw catalog is also served at:
 
@@ -191,7 +191,7 @@ If you've contributed to the agents catalog before, the only thing to relearn is
 
 ## Related
 
-- [Agent Skills in the CLI](/cli/#agent-skills) - how `infer skills list / install / uninstall` work on the consumer side.
+- [Agent Skills in the CLI](/cli-skills/) - how `infer skills list / install / uninstall` work on the consumer side.
 - [ADL CLI - Skills](/adl-cli/#skills) - how to declare skills inside an A2A agent project so they get scaffolded into `skills/<id>/SKILL.md`.
 - [A2A Registry](/registry/) - the parallel catalog for A2A agents (containerised services), browseable at [registry.inference-gateway.com](https://registry.inference-gateway.com).
 - [Skills repository](https://github.com/inference-gateway/skills) - source list, build script, vendored skill bodies.

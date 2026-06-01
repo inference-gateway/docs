@@ -19,7 +19,7 @@ The Inference Gateway CLI (`infer`) is a powerful Go-based command-line tool pro
 - **Beautiful TUI** - Scrollable interface with syntax highlighting and multiple themes
 - **Web Terminal** - Browser-based interface with tabbed sessions
 - **Remote Messaging Channels** - Control the agent from Telegram and other platforms ([Learn more](/cli-channels/))
-- **Agent Skills** - Reusable, model-readable instruction folders loaded on demand, portable across vendors ([Learn more](#agent-skills))
+- **Agent Skills** - Reusable, model-readable instruction folders loaded on demand, portable across vendors ([Learn more](/cli-skills/))
 - **Cost Tracking** - Real-time token usage and cost calculation
 
 ## Installation
@@ -1142,48 +1142,7 @@ See [MCP documentation](/mcp/) for detailed integration guide and server develop
 
 ### Agent Skills
 
-Reusable, model-readable instruction folders that the agent loads on demand. The CLI uses the same on-disk format as Claude Code, Gemini CLI, and OpenAI Codex CLI, so a skill authored for any of those tools drops in unchanged.
-
-**Why use skills:**
-
-- **Lazy-loaded**: only the skill list is in the system prompt; bodies are read on demand via the Read tool
-- **Zero cost when off**: disabled by default, no token overhead until you enable
-- **Portable**: drop folders from `github.com/anthropics/skills` or `github.com/google/skills` straight into `.infer/skills/`
-
-**Skill format:**
-
-A skill is a directory containing a `SKILL.md` with YAML frontmatter:
-
-```markdown
----
-name: pdf-helper
-description: Extract text from PDFs. Use when the user asks to read, summarise, or analyse a PDF file.
----
-
-# PDF Helper
-
-1. Use the Bash tool to invoke `pdftotext input.pdf -` and capture stdout.
-2. If the PDF is image-only, fall back to `tesseract` for OCR.
-```
-
-Optional sibling directories (`references/`, `scripts/`, `assets/`) hold supporting material the model reads or executes once the skill is active.
-
-**Frontmatter rules:**
-
-- `name` (required): ≤64 chars, lowercase letters/digits/hyphens only, must equal the directory name, must not contain `infer`, `claude`, `anthropic`, `gemini`, or `openai`
-- `description` (required): non-empty, ≤1024 chars - make it actionable; this is the routing signal
-- Unknown keys (e.g. Anthropic's `allowed-tools:`, Gemini's `disabled:`) are tolerated and ignored
-
-**Locations:**
-
-| Scope         | Path                              | Notes                                  |
-| ------------- | --------------------------------- | -------------------------------------- |
-| Project-local | `.infer/skills/<name>/SKILL.md`   | Overrides user-global of the same name |
-| User-global   | `~/.infer/skills/<name>/SKILL.md` | Personal defaults across projects      |
-
-**Enabling:**
-
-Skills are **disabled by default**. Enable via config or environment variable:
+Reusable, model-readable instruction folders that the agent loads on demand. The CLI uses the same on-disk format as Claude Code, Gemini CLI, and OpenAI Codex CLI, so a skill authored for any of those tools drops into `.infer/skills/` unchanged. Skills are **disabled by default** - zero token cost until you enable them.
 
 ```yaml
 # .infer/config.yaml
@@ -1194,46 +1153,15 @@ agent:
 ```
 
 ```bash
-INFER_AGENT_SKILLS_ENABLED=true infer chat
-```
-
-**Managing skills:**
-
-```bash
-# List discovered skills (works regardless of the enabled flag)
+# Discover, install, and remove skills (also available in chat as /skills ...)
 infer skills list
-infer skills list --format json
-
-# Install from a public GitHub directory URL
-infer skills install https://github.com/anthropics/skills/tree/main/skills/pdf
-infer skills install <url> --user        # install to ~/.infer/skills instead
-infer skills install <url> --overwrite   # replace an existing skill folder
-
-# Uninstall by name
-infer skills uninstall pdf-helper
-infer skills uninstall pdf-helper --user
-
-# Or from inside chat
-> /skills list
-> /skills install <github-url>
-> /skills uninstall <name>
+infer skills install acme/internal-comms   # or a bare name, or a github tree URL
+infer skills uninstall internal-comms
 ```
 
-**GitHub installer notes:**
+Once enabled, invoke a skill explicitly with `/<name>` (for example `/pdf-helper`) or by asking the agent to "use the `<name>` skill"; the CLI deterministically activates it by injecting the skill's metadata and pointing the agent at its `SKILL.md`. Installed skills under `~/.infer/skills` and `./.infer/skills` stay readable by the Read tool through a sandbox carve-out, so they load even when the agent runs outside the project directory (for example in CI).
 
-- URL must point at a directory: `https://github.com/<owner>/<repo>/tree/<ref>/<path>`. URLs at `/blob/` (files) or the repo root are rejected with a clear error.
-- Public repos only - private repos and `GITHUB_TOKEN` auth are not supported in this version.
-- Refs containing `/` (e.g. `feature/foo`) aren't supported; use a tag or single-segment branch.
-- GitHub's unauthenticated API rate limit is 60 req/hour per IP; each install is one tree call plus one raw download per file.
-- Frontmatter is re-validated post-download - a half-installed skill is never left on disk.
-
-**Security:**
-
-A skill instructs the model to run shell commands, read files, or call external APIs. Treat skills like any other piece of executable content - **only install from trusted sources**. The CLI's normal tool-approval system still gates each call, but a malicious skill could craft a plausible-looking Bash command. The `name` validator rejects vendor strings to make impersonating an official skill harder.
-
-**Publishing a skill:**
-
-To list your skill in the public catalog (so it surfaces in `infer skills search` and on [registry.inference-gateway.com/skills/](https://registry.inference-gateway.com/skills/)), open a one-line PR against [`inference-gateway/skills`](https://github.com/inference-gateway/skills)'s `skills.yaml`. See the [Skills Catalog](/skills/) guide for the entry shape, validation rules (kebab-case `name`, 1-1024 char `description`, ADL license enum), and the build/cron cycle.
+See the full **[Agent Skills guide](/cli-skills/)** for the on-disk layout, the `SKILL.md` frontmatter contract, install flags, activation triggers, and the sandbox carve-out. To publish a skill in the shared index, see the [Skills Catalog](/skills/).
 
 ### A2A Integration
 
