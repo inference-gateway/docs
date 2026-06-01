@@ -135,6 +135,23 @@ This documentation helps other AI agents (and developers) quickly understand how
 - Tool result inspection
 - Cost tracking in status bar
 - Collapsible thinking blocks
+- GitHub issue references - type `#` to insert and expand `#N` tokens (see below)
+
+#### GitHub Issue References (`#`)
+
+Type `#` in the chat input to open a dropdown of the current repository's **open issues** - each entry shows the issue number, title, and state. The list is resolved through the [`gh` CLI](#github-operations) from the repo's git remote, newest first. Selecting an issue inserts a highlighted `#N` token into your message.
+
+On submit, every `#N` token is expanded **inline** into that issue's title, body, and most recent comments (up to the latest 20) before the message is sent to the model - so the agent works from full issue context without a redundant `gh issue view` lookup.
+
+```bash
+infer chat
+> Summarize #123 and propose a fix
+# "#123" expands into the issue title, body, and recent comments before sending
+```
+
+**Prerequisite:** the [`gh` CLI](#github-operations) must be installed and authenticated, and the working directory must be a git repository with a remote. The feature **gracefully no-ops** when `gh` is missing, the directory is not a git repo, the repo has no remote, or authentication has expired - the dropdown simply shows nothing.
+
+> Shipped in [inference-gateway/cli#574](https://github.com/inference-gateway/cli/pull/574).
 
 ## Agent Modes
 
