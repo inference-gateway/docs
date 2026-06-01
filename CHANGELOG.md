@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.76](https://github.com/inference-gateway/docs/compare/0.6.75...0.6.76) (2026-06-01)
+
+### 📚 Documentation
+
+* replace built-in GitHub tool with gh CLI guidance ([#137](https://github.com/inference-gateway/docs/issues/137)) ([318ddfd](https://github.com/inference-gateway/docs/commit/318ddfdd0580759dbe7f9abe79cc656de5336464))
+
 ## [0.6.75](https://github.com/inference-gateway/docs/compare/0.6.74...0.6.75) (2026-06-01)
 
 ### 📚 Documentation
