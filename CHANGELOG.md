@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.75](https://github.com/inference-gateway/docs/compare/0.6.74...0.6.75) (2026-06-01)
+
+### 📚 Documentation
+
+* document agent skills activation and sandbox carve-out ([#136](https://github.com/inference-gateway/docs/issues/136)) ([3b9164d](https://github.com/inference-gateway/docs/commit/3b9164d933c056605a6a413947876aa5e273b13c))
+
 ## [0.6.74](https://github.com/inference-gateway/docs/compare/0.6.73...0.6.74) (2026-06-01)
 
 ### 📚 Documentation
