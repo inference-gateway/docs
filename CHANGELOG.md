@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.83](https://github.com/inference-gateway/docs/compare/0.6.82...0.6.83) (2026-06-02)
+
+### 📚 Documentation
+
+* document infer-action direct-prompt and dry-run inputs ([#144](https://github.com/inference-gateway/docs/issues/144)) ([f622732](https://github.com/inference-gateway/docs/commit/f6227324d659e94365aee911de75dc4df38dc07a))
+
 ## [0.6.82](https://github.com/inference-gateway/docs/compare/0.6.81...0.6.82) (2026-06-02)
 
 ### 👷 CI
