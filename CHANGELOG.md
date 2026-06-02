@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.79](https://github.com/inference-gateway/docs/compare/0.6.78...0.6.79) (2026-06-02)
+
+### 📚 Documentation
+
+* document tool-call count and success rate in infer-action ([#143](https://github.com/inference-gateway/docs/issues/143)) ([a045cc3](https://github.com/inference-gateway/docs/commit/a045cc37e44d38da3270041c5d42c4b88b0ca0a5))
+
 ## [0.6.78](https://github.com/inference-gateway/docs/compare/0.6.77...0.6.78) (2026-06-02)
 
 ### 👷 CI
