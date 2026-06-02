@@ -61,7 +61,7 @@ Open an issue (or comment on one) containing `@infer` and the workflow takes ove
 4. **Git config** - sets `git user.name` / `user.email` to the `github-actions[bot]` identity so any commits the agent makes have a valid author.
 5. **Agent run** - executes the agent with the selected `model` and provider API keys. The bash whitelist is augmented with `gh` and `git` unless `enable-git-operations: false`.
 6. **PR creation** - when the agent produces file changes, it creates `fix/issue-{number}`, commits, pushes, and opens a PR titled `Fix #{number}: ...` with `Resolves #{number}` in the body.
-7. **Result posting** - the final comment summarises completed work, the model used, and links the PR if any.
+7. **Result posting** - the final comment summarises completed work and the model used, links the PR if any, and appends a footer with token usage, per-session cost, and the agent's tool-call count and success rate (see [Result comment](#result-comment)).
 
 ### Dynamic model selection
 
@@ -72,6 +72,34 @@ Override the workflow's default model on a per-issue or per-comment basis by inc
 ```
 
 The override is parsed by the action's trigger-detection step and exported as `INFER_AGENT_MODEL` for that run only.
+
+### Result comment
+
+When the run finishes, the action updates its comment with a result footer. Below the status, model, and job link, the footer reports:
+
+- **Tokens** - prompt / completion / total token usage, plus the request count.
+- **Cost** - per-session input / output / total cost, when the CLI reports pricing.
+- **Tool calls** - the total number of tool calls the agent made, with the run's success rate. The rate is `succeeded / total` (where `succeeded = total - failed`), so a run with failures reads its failures in proportion. Any failed calls are listed in a collapsed section just below.
+
+The **Tool calls** line is only rendered when the agent made at least one tool call:
+
+```text
+## ✅ Infer Result: Success
+
+**Model:** `anthropic/claude-sonnet-4` · **Exit Code:** `0` · [View Job](...)
+
+**Tokens:** 18,432 in · 2,106 out · 20,538 total (7 requests)
+
+**Cost:** $0.04 in · $0.02 out · $0.06 total
+
+**Tool calls:** 12 total · 83% success rate
+
+<details><summary>⚠️ 2 failed tool call(s)</summary>
+...
+</details>
+```
+
+The total and failed tool-call counts are also exposed as the `total-tool-calls-count` and `failed-tool-calls-count` [outputs](#outputs) for use in downstream steps.
 
 ## Inputs
 
@@ -102,10 +130,12 @@ The override is parsed by the action's trigger-detection step and exported as `I
 
 ## Outputs
 
-| Output      | Description                                                      |
-| ----------- | ---------------------------------------------------------------- |
-| `result`    | Human-readable summary of the agent execution.                   |
-| `exit-code` | Exit code returned by `infer` - non-zero means the agent failed. |
+| Output                    | Description                                                      |
+| ------------------------- | ---------------------------------------------------------------- |
+| `result`                  | Human-readable summary of the agent execution.                   |
+| `exit-code`               | Exit code returned by `infer` - non-zero means the agent failed. |
+| `failed-tool-calls-count` | Number of failed tool calls detected in the agent output.        |
+| `total-tool-calls-count`  | Total number of tool calls the agent made during the run.        |
 
 Reference outputs in downstream steps via <code v-pre>${{ steps.&lt;id&gt;.outputs.result }}</code>.
 
