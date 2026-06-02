@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.81](https://github.com/inference-gateway/docs/compare/0.6.80...0.6.81) (2026-06-02)
+
+### 👷 CI
+
+* **infer:** update inference workflow to use version v0.5.1 ([f80ef1c](https://github.com/inference-gateway/docs/commit/f80ef1c6271b33481fe00d7299e4dd8d9394a296))
+
 ## [0.6.80](https://github.com/inference-gateway/docs/compare/0.6.79...0.6.80) (2026-06-02)
 
 ### 👷 CI
