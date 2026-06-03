@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.86](https://github.com/inference-gateway/docs/compare/0.6.85...0.6.86) (2026-06-03)
+
+### 🔧 Miscellaneous
+
+* **deps:** bump claude-code 2.1.148 -> 2.1.158 ([#148](https://github.com/inference-gateway/docs/issues/148)) ([7100265](https://github.com/inference-gateway/docs/commit/7100265f7ae1f0e56a75e7ae0ef99cbb742b356d))
+
 ## [0.6.85](https://github.com/inference-gateway/docs/compare/0.6.84...0.6.85) (2026-06-03)
 
 ### 📚 Documentation
