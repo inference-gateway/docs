@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.89](https://github.com/inference-gateway/docs/compare/0.6.88...0.6.89) (2026-06-03)
+
+### 📚 Documentation
+
+* anchor adl-cli schema reference to schema/v1 v0.14.0 ([#153](https://github.com/inference-gateway/docs/issues/153)) ([1ff0f8a](https://github.com/inference-gateway/docs/commit/1ff0f8add4fb1470b472d5e21bfac319c65454c7))
+
 ## [0.6.88](https://github.com/inference-gateway/docs/compare/0.6.87...0.6.88) (2026-06-03)
 
 ### 📚 Documentation
