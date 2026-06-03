@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.85](https://github.com/inference-gateway/docs/compare/0.6.84...0.6.85) (2026-06-03)
+
+### 📚 Documentation
+
+* modernize models across the project ([a464a9a](https://github.com/inference-gateway/docs/commit/a464a9ad8d047f50213db8f9c6dd69a57cbb423b))
+
 ## [0.6.84](https://github.com/inference-gateway/docs/compare/0.6.83...0.6.84) (2026-06-02)
 
 ### 👷 CI
