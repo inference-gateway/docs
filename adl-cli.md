@@ -22,7 +22,7 @@ The ADL CLI is a command-line tool for generating enterprise-ready [A2A (Agent-t
 - **Sandbox Environments** - Flox and DevContainer support for isolated development
 - **Smart Ignore Files** - Protect custom implementations with `.adl-ignore`
 - **Post-Generation Hooks** - Run custom commands after code generation
-- **Multi-Provider AI** - OpenAI, Anthropic, DeepSeek, Ollama, Google AI, Mistral, and Groq
+- **Multi-Provider AI** - OpenAI, Anthropic, DeepSeek, Ollama, Google AI, Mistral, Groq, Cohere, Cloudflare, Moonshot, and Ollama Cloud
 - **Artifacts Support** - Filesystem and MinIO object storage for artifact management
 
 ## Installation
@@ -225,14 +225,14 @@ adl init my-agent \
 
 **Agent Configuration:**
 
-| Flag              | Description                                                                           |
-| ----------------- | ------------------------------------------------------------------------------------- |
-| `--type`          | Agent type: `ai-powered` or `minimal`                                                 |
-| `--provider`      | AI provider: `openai`, `anthropic`, `deepseek`, `ollama`, `google`, `mistral`, `groq` |
-| `--model`         | AI model name                                                                         |
-| `--system-prompt` | System prompt for the agent                                                           |
-| `--max-tokens`    | Maximum tokens (integer)                                                              |
-| `--temperature`   | Temperature (0.0-2.0)                                                                 |
+| Flag              | Description                                                                                                                               |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `--type`          | Agent type: `ai-powered` or `minimal`                                                                                                     |
+| `--provider`      | AI provider: `openai`, `anthropic`, `deepseek`, `ollama`, `google`, `mistral`, `groq`, `cohere`, `cloudflare`, `moonshot`, `ollama_cloud` |
+| `--model`         | AI model name                                                                                                                             |
+| `--system-prompt` | System prompt for the agent                                                                                                               |
+| `--max-tokens`    | Maximum tokens (integer)                                                                                                                  |
+| `--temperature`   | Temperature (0.0-2.0)                                                                                                                     |
 
 **Capabilities:**
 
@@ -589,13 +589,13 @@ Optional A2A agent card configuration that controls how your agent is discovered
 
 AI provider and model settings.
 
-| Field          | Type    | Description                                                                           |
-| -------------- | ------- | ------------------------------------------------------------------------------------- |
-| `provider`     | string  | AI provider: `openai`, `anthropic`, `deepseek`, `ollama`, `google`, `mistral`, `groq` |
-| `model`        | string  | Model name (e.g., `deepseek-v4-flash`, `claude-opus-4-8`, `deepseek-v4-pro`)          |
-| `systemPrompt` | string  | System prompt for the AI model                                                        |
-| `maxTokens`    | integer | Maximum tokens for responses                                                          |
-| `temperature`  | float   | Sampling temperature (0.0-2.0)                                                        |
+| Field          | Type    | Description                                                                                                                               |
+| -------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `provider`     | string  | AI provider: `openai`, `anthropic`, `deepseek`, `ollama`, `google`, `mistral`, `groq`, `cohere`, `cloudflare`, `moonshot`, `ollama_cloud` |
+| `model`        | string  | Model name (e.g., `deepseek-v4-flash`, `claude-opus-4-8`, `deepseek-v4-pro`)                                                              |
+| `systemPrompt` | string  | System prompt for the AI model                                                                                                            |
+| `maxTokens`    | integer | Maximum tokens for responses                                                                                                              |
+| `temperature`  | float   | Sampling temperature (0.0-2.0)                                                                                                            |
 
 ### Tools
 
@@ -1235,15 +1235,19 @@ Generated `.adl-ignore` files automatically protect tool implementation files, s
 
 The ADL CLI supports multiple AI providers. Set the corresponding environment variable for your chosen provider:
 
-| Provider  | `spec.agent.provider` | Environment Variable | Example Model       |
-| --------- | --------------------- | -------------------- | ------------------- |
-| OpenAI    | `openai`              | `OPENAI_API_KEY`     | `gpt-5-mini`        |
-| Anthropic | `anthropic`           | `ANTHROPIC_API_KEY`  | `claude-opus-4-8`   |
-| DeepSeek  | `deepseek`            | `DEEPSEEK_API_KEY`   | `deepseek-v4-flash` |
-| Ollama    | `ollama`              | - (local)            | `llama3.3`          |
-| Google AI | `google`              | `GOOGLE_API_KEY`     | `gemini-3-pro`      |
-| Mistral   | `mistral`             | `MISTRAL_API_KEY`    | `mistral-large-3`   |
-| Groq      | `groq`                | `GROQ_API_KEY`       | `llama-3.3-70b`     |
+| Provider     | `spec.agent.provider` | Environment Variable   | Example Model                              |
+| ------------ | --------------------- | ---------------------- | ------------------------------------------ |
+| OpenAI       | `openai`              | `OPENAI_API_KEY`       | `gpt-5-mini`                               |
+| Anthropic    | `anthropic`           | `ANTHROPIC_API_KEY`    | `claude-opus-4-8`                          |
+| DeepSeek     | `deepseek`            | `DEEPSEEK_API_KEY`     | `deepseek-v4-flash`                        |
+| Ollama       | `ollama`              | - (local)              | `llama3.3`                                 |
+| Google AI    | `google`              | `GOOGLE_API_KEY`       | `gemini-3-pro`                             |
+| Mistral      | `mistral`             | `MISTRAL_API_KEY`      | `mistral-large-3`                          |
+| Groq         | `groq`                | `GROQ_API_KEY`         | `llama-3.3-70b`                            |
+| Cohere       | `cohere`              | `COHERE_API_KEY`       | `command-a-03-2025`                        |
+| Cloudflare   | `cloudflare`          | `CLOUDFLARE_API_KEY`   | `@cf/meta/llama-3.3-70b-instruct-fp8-fast` |
+| Moonshot     | `moonshot`            | `MOONSHOT_API_KEY`     | `kimi-k2-thinking`                         |
+| Ollama Cloud | `ollama_cloud`        | `OLLAMA_CLOUD_API_KEY` | `gpt-oss:120b`                             |
 
 ## Integrating with Inference Gateway
 
