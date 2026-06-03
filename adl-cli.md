@@ -27,7 +27,26 @@ The ADL CLI is a command-line tool for generating enterprise-ready [A2A (Agent-t
 
 ## Installation
 
-### Install Script (Recommended)
+### npm / npx (Recommended)
+
+Most developers already have Node.js - run adl without a prior install:
+
+```bash
+npx @inference-gateway/adl-cli init my-agent
+npx @inference-gateway/adl-cli generate --file agent.yaml --output ./agent
+npx @inference-gateway/adl-cli validate agent.yaml
+```
+
+Or install it globally:
+
+```bash
+npm install -g @inference-gateway/adl-cli
+adl --help
+```
+
+Prebuilt binaries cover Linux and macOS on x64/arm64.
+
+### Install Script
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/inference-gateway/adl-cli/main/install.sh | bash
@@ -70,8 +89,8 @@ nix run github:inference-gateway/adl-cli
 Pin a specific version, install into your profile, or enter a development shell:
 
 ```bash
-nix run github:inference-gateway/adl-cli/v0.36.4
-nix profile install github:inference-gateway/adl-cli/v0.36.4
+nix run github:inference-gateway/adl-cli/v0.41.3
+nix profile install github:inference-gateway/adl-cli/v0.41.3
 nix develop github:inference-gateway/adl-cli
 ```
 
@@ -81,7 +100,7 @@ Pin `adl` to a specific version inside a [Flox](https://flox.dev) environment by
 
 ```toml
 [install]
-adl.flake = "github:inference-gateway/adl-cli/v0.36.4"
+adl.flake = "github:inference-gateway/adl-cli/v0.41.3"
 ```
 
 Then activate the environment:
