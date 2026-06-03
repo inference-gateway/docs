@@ -47,7 +47,7 @@ jobs:
       - uses: inference-gateway/infer-action@v0.10.1
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          model: anthropic/claude-sonnet-4
+          model: anthropic/claude-opus-4-8
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
 
@@ -68,7 +68,7 @@ Open an issue (or comment on one) containing `@infer` and the workflow takes ove
 Override the workflow's default model on a per-issue or per-comment basis by including `/model provider/model-name` in the trigger text:
 
 ```text
-@infer /model openai/gpt-4 please analyze this bug and suggest a fix
+@infer /model deepseek/deepseek-v4-flash please analyze this bug and suggest a fix
 ```
 
 The override is parsed by the action's trigger-detection step and exported as `INFER_AGENT_MODEL` for that run only.
@@ -86,7 +86,7 @@ The **Tool calls** line is only rendered when the agent made at least one tool c
 ```text
 ## ✅ Infer Result: Success
 
-**Model:** `anthropic/claude-sonnet-4` · **Exit Code:** `0` · [View Job](...)
+**Model:** `anthropic/claude-opus-4-8` · **Exit Code:** `0` · [View Job](...)
 
 **Tokens:** 18,432 in · 2,106 out · 20,538 total (7 requests)
 
@@ -106,7 +106,7 @@ The total and failed tool-call counts are also exposed as the `total-tool-calls-
 | Input                     | Required | Default   | Description                                                                                                                                                                                                                                                                                    |
 | ------------------------- | -------- | --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `github-token`            | Yes      | -         | Token used for posting comments, creating branches, and opening PRs.                                                                                                                                                                                                                           |
-| `model`                   | Yes      | -         | Model identifier in `provider/model-name` form (e.g. `anthropic/claude-sonnet-4`).                                                                                                                                                                                                             |
+| `model`                   | Yes      | -         | Model identifier in `provider/model-name` form (e.g. `anthropic/claude-opus-4-8`).                                                                                                                                                                                                             |
 | `trigger-phrase`          | No       | `@infer`  | Phrase that activates the agent. Case-sensitive.                                                                                                                                                                                                                                               |
 | `direct-prompt`           | No       | `''`      | Free-text task to run directly, bypassing issue/comment triggers. When set, the agent runs against this text under `workflow_dispatch` (or any event), commits to a new branch, and opens a PR; the result and PR link go to the job summary. See [Direct prompt](#direct-prompt-manual-runs). |
 | `version`                 | No       | `v0.68.3` | `infer` CLI version to install inside the runner.                                                                                                                                                                                                                                              |
@@ -171,7 +171,7 @@ jobs:
       - uses: inference-gateway/infer-action@v0.10.1
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          model: anthropic/claude-sonnet-4
+          model: anthropic/claude-opus-4-8
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
           direct-prompt: ${{ inputs.prompt }}
 ```
@@ -241,7 +241,7 @@ jobs:
       - uses: inference-gateway/infer-action@v0.10.1
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          model: anthropic/claude-sonnet-4
+          model: anthropic/claude-opus-4-8
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
           trigger-phrase: '@review'
           enable-git-operations: false
@@ -317,7 +317,7 @@ jobs:
       - uses: inference-gateway/infer-action@v0.10.1
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          model: anthropic/claude-sonnet-4
+          model: anthropic/claude-opus-4-8
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
           bash-whitelist-commands: gh,git
           custom-instructions: |
@@ -334,7 +334,7 @@ The default bash whitelist is intentionally narrow. Add what your project needs:
 - uses: inference-gateway/infer-action@v0.10.1
   with:
     github-token: ${{ secrets.GITHUB_TOKEN }}
-    model: anthropic/claude-sonnet-4
+    model: anthropic/claude-opus-4-8
     anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
     bash-whitelist-commands: npm,yarn,pnpm,node,python3,pytest
     bash-whitelist-patterns: '^npm run .*,^yarn .*,^pytest .*'

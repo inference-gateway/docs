@@ -47,7 +47,7 @@ Inference Gateway is fully OpenAI-compatible, allowing you to configure it with 
 5. Configure the following settings:
    - **API Endpoint**: Enter your Inference Gateway URL (e.g., `http://localhost:8080/v1`)
    - **API Key**: Enter your Inference Gateway API key
-   - **Model**: Enter the model name you want to use (e.g., `groq/deepseek-r1-distill-llama-70b`)
+   - **Model**: Enter the model name you want to use (e.g., `deepseek/deepseek-v4-flash`)
 
 6. Click **Save** to apply the changes.
 

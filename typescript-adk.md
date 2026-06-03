@@ -1091,17 +1091,17 @@ The full event-type matrix exposed on `AGENT_EVENT_TYPE` is documented in [Cloud
 
 `server.ts` is provider-agnostic. To swap models, change `A2A_AGENT_CLIENT_PROVIDER` and `A2A_AGENT_CLIENT_MODEL` and supply the matching API key - no code edits:
 
-| Provider     | `A2A_AGENT_CLIENT_PROVIDER` | Example `A2A_AGENT_CLIENT_MODEL` | API key env var                                       |
-| ------------ | --------------------------- | -------------------------------- | ----------------------------------------------------- |
-| OpenAI       | `openai`                    | `gpt-4o-mini`                    | `OPENAI_API_KEY`                                      |
-| Anthropic    | `anthropic`                 | `claude-3-5-sonnet-latest`       | `ANTHROPIC_API_KEY`                                   |
-| Groq         | `groq`                      | `llama-3.3-70b-versatile`        | `GROQ_API_KEY`                                        |
-| DeepSeek     | `deepseek`                  | `deepseek-chat`                  | `DEEPSEEK_API_KEY`                                    |
-| Cohere       | `cohere`                    | `command-r-plus`                 | `COHERE_API_KEY`                                      |
-| Mistral      | `mistral`                   | `mistral-large-latest`           | `MISTRAL_API_KEY`                                     |
-| Google       | `google`                    | `gemini-2.5-flash`               | `GOOGLE_API_KEY`                                      |
-| Cloudflare   | `cloudflare`                | `@cf/meta/llama-3.1-8b-instruct` | `CLOUDFLARE_API_KEY`                                  |
-| Local Ollama | `ollama`                    | `llama3.2`                       | none (set `A2A_AGENT_CLIENT_BASE_URL` to your Ollama) |
+| Provider     | `A2A_AGENT_CLIENT_PROVIDER` | Example `A2A_AGENT_CLIENT_MODEL`           | API key env var                                       |
+| ------------ | --------------------------- | ------------------------------------------ | ----------------------------------------------------- |
+| OpenAI       | `openai`                    | `gpt-5-mini`                               | `OPENAI_API_KEY`                                      |
+| Anthropic    | `anthropic`                 | `claude-opus-4-8`                          | `ANTHROPIC_API_KEY`                                   |
+| Groq         | `groq`                      | `llama-3.3-70b-versatile`                  | `GROQ_API_KEY`                                        |
+| DeepSeek     | `deepseek`                  | `deepseek-v4-flash`                        | `DEEPSEEK_API_KEY`                                    |
+| Cohere       | `cohere`                    | `command-a-03-2025`                        | `COHERE_API_KEY`                                      |
+| Mistral      | `mistral`                   | `mistral-large-3`                          | `MISTRAL_API_KEY`                                     |
+| Google       | `google`                    | `gemini-3-flash`                           | `GOOGLE_API_KEY`                                      |
+| Cloudflare   | `cloudflare`                | `@cf/meta/llama-3.3-70b-instruct-fp8-fast` | `CLOUDFLARE_API_KEY`                                  |
+| Local Ollama | `ollama`                    | `llama3.3`                                 | none (set `A2A_AGENT_CLIENT_BASE_URL` to your Ollama) |
 
 Set `A2A_AGENT_CLIENT_API_KEY` to override the per-provider lookup, and `A2A_AGENT_CLIENT_BASE_URL` to point at the [Inference Gateway](https://github.com/inference-gateway/inference-gateway) (recommended - it normalizes provider quirks so the same agent code talks to every provider unchanged) or any other OpenAI-compatible endpoint. The full configuration matrix, troubleshooting checklist, and example client output live in the example's [`README.md`](https://github.com/inference-gateway/typescript-adk/blob/main/examples/ai-powered-streaming/README.md).
 
@@ -1760,8 +1760,8 @@ const card: AgentCard = {
 };
 
 const agent = new AgentBuilder()
-  .withProvider('openai')
-  .withModel('gpt-4o-mini')
+  .withProvider('deepseek')
+  .withModel('deepseek-v4-flash')
   .withSystemPrompt('You are a careful customer-support agent.')
   .build();
 
@@ -1790,7 +1790,7 @@ Every method returns `this`, so calls compose. The fluent surface:
 | Method                              | Default                                                            | Description                                                                                                                                                                                                    |
 | ----------------------------------- | ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `.withProvider(provider)`           | -                                                                  | Set the LLM provider (e.g. `'openai'`, `'ollama'`, `'groq'`). Required unless `.withLLMClient(...)` is used. Accepts the `Provider` enum or a raw string.                                                      |
-| `.withModel(model)`                 | -                                                                  | Set the model identifier (e.g. `'gpt-4o-mini'`). Required unless `.withLLMClient(...)` is used. A `<provider>/<model>` prefix is stripped to match Go ADK behaviour.                                           |
+| `.withModel(model)`                 | -                                                                  | Set the model identifier (e.g. `'deepseek-v4-flash'`). Required unless `.withLLMClient(...)` is used. A `<provider>/<model>` prefix is stripped to match Go ADK behaviour.                                     |
 | `.withTemperature(temperature)`     | provider default                                                   | Sampling temperature. Forwarded to the LLM call when set.                                                                                                                                                      |
 | `.withTopP(topP)`                   | provider default                                                   | Top-p sampling threshold.                                                                                                                                                                                      |
 | `.withMaxTokens(maxTokens)`         | provider default                                                   | Upper bound on tokens emitted per LLM response. Forwarded both to the LLM client (as `max_tokens` on every request) and stored on the agent for diagnostic access via `agent.getMaxTokens()`.                  |
@@ -2022,8 +2022,8 @@ When wiring through `AgentBuilder`, pass the same `Callbacks` object to `.withCa
 
 ```ts
 const agent = new AgentBuilder()
-  .withProvider('openai')
-  .withModel('gpt-4o-mini')
+  .withProvider('deepseek')
+  .withModel('deepseek-v4-flash')
   .withCallbacks(callbacks)
   .build();
 
@@ -2297,8 +2297,8 @@ const callbacks: Callbacks = {
 // 4. Build the agent. Defaults: maxIterations=50, maxConversationHistory=20,
 //    systemPrompt = DEFAULT_AGENT_SYSTEM_PROMPT (byte-for-byte from the Go ADK).
 const agent = new AgentBuilder()
-  .withProvider('openai')
-  .withModel('gpt-4o-mini')
+  .withProvider('deepseek')
+  .withModel('deepseek-v4-flash')
   .withTemperature(0.2)
   .withSystemPrompt('You are a customer-support agent. Use the tools when you need account state.')
   .withMaxIterations(25)

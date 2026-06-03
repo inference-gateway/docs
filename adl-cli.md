@@ -119,8 +119,8 @@ spec:
     pushNotifications: false
     stateTransitionHistory: false
   agent:
-    provider: openai
-    model: gpt-4o-mini
+    provider: deepseek
+    model: deepseek-v4-flash
     systemPrompt: 'You are a helpful weather assistant.'
     maxTokens: 4096
     temperature: 0.7
@@ -186,8 +186,8 @@ adl init my-agent --defaults
 adl init my-agent \
   --name "Weather Agent" \
   --description "Provides weather information" \
-  --provider openai \
-  --model gpt-4o-mini \
+  --provider deepseek \
+  --model deepseek-v4-flash \
   --language go \
   --flox
 ```
@@ -356,8 +356,8 @@ spec:
     documentationUrl: 'https://github.com/company/my-agent/docs'
     iconUrl: 'https://github.com/company/my-agent/icon.png'
   agent:
-    provider: openai
-    model: gpt-4o-mini
+    provider: deepseek
+    model: deepseek-v4-flash
     systemPrompt: |
       You are a helpful assistant with enterprise capabilities.
       Always prioritize security and compliance.
@@ -571,7 +571,7 @@ AI provider and model settings.
 | Field          | Type    | Description                                                                           |
 | -------------- | ------- | ------------------------------------------------------------------------------------- |
 | `provider`     | string  | AI provider: `openai`, `anthropic`, `deepseek`, `ollama`, `google`, `mistral`, `groq` |
-| `model`        | string  | Model name (e.g., `gpt-4o-mini`, `claude-sonnet-4-5`, `deepseek-v4-flash`)            |
+| `model`        | string  | Model name (e.g., `deepseek-v4-flash`, `claude-opus-4-8`, `deepseek-v4-pro`)          |
 | `systemPrompt` | string  | System prompt for the AI model                                                        |
 | `maxTokens`    | integer | Maximum tokens for responses                                                          |
 | `temperature`  | float   | Sampling temperature (0.0-2.0)                                                        |
@@ -1214,15 +1214,15 @@ Generated `.adl-ignore` files automatically protect tool implementation files, s
 
 The ADL CLI supports multiple AI providers. Set the corresponding environment variable for your chosen provider:
 
-| Provider  | `spec.agent.provider` | Environment Variable | Example Model          |
-| --------- | --------------------- | -------------------- | ---------------------- |
-| OpenAI    | `openai`              | `OPENAI_API_KEY`     | `gpt-4o-mini`          |
-| Anthropic | `anthropic`           | `ANTHROPIC_API_KEY`  | `claude-sonnet-4-5`    |
-| DeepSeek  | `deepseek`            | `DEEPSEEK_API_KEY`   | `deepseek-v4-flash`    |
-| Ollama    | `ollama`              | - (local)            | `llama3`               |
-| Google AI | `google`              | `GOOGLE_API_KEY`     | `gemini-2.5-pro`       |
-| Mistral   | `mistral`             | `MISTRAL_API_KEY`    | `mistral-large-latest` |
-| Groq      | `groq`                | `GROQ_API_KEY`       | `llama-3.3-70b`        |
+| Provider  | `spec.agent.provider` | Environment Variable | Example Model       |
+| --------- | --------------------- | -------------------- | ------------------- |
+| OpenAI    | `openai`              | `OPENAI_API_KEY`     | `gpt-5-mini`        |
+| Anthropic | `anthropic`           | `ANTHROPIC_API_KEY`  | `claude-opus-4-8`   |
+| DeepSeek  | `deepseek`            | `DEEPSEEK_API_KEY`   | `deepseek-v4-flash` |
+| Ollama    | `ollama`              | - (local)            | `llama3.3`          |
+| Google AI | `google`              | `GOOGLE_API_KEY`     | `gemini-3-pro`      |
+| Mistral   | `mistral`             | `MISTRAL_API_KEY`    | `mistral-large-3`   |
+| Groq      | `groq`                | `GROQ_API_KEY`       | `llama-3.3-70b`     |
 
 ## Integrating with Inference Gateway
 

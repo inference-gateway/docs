@@ -51,7 +51,7 @@ from inference_gateway import InferenceGatewayClient, Message
 client = InferenceGatewayClient('http://localhost:8080/v1')
 
 response = client.create_chat_completion(
-    model='openai/gpt-4o-mini',
+    model='deepseek/deepseek-v4-flash',
     messages=[
         Message(role='system', content='You are a helpful assistant.'),
         Message(role='user', content='What is Python?'),
@@ -73,7 +73,7 @@ from inference_gateway.models import CreateChatCompletionStreamResponse
 client = InferenceGatewayClient('http://localhost:8080/v1')
 
 for chunk in client.create_chat_completion_stream(
-    model='groq/llama-3.3-70b-versatile',
+    model='deepseek/deepseek-v4-flash',
     messages=[Message(role='user', content='Tell me a story.')],
 ):
     if not chunk.data:
@@ -118,7 +118,7 @@ tools = [
 ]
 
 response = client.create_chat_completion(
-    model='openai/gpt-4o',
+    model='deepseek/deepseek-v4-flash',
     messages=[Message(role='user', content='What is the weather in New York?')],
     tools=tools,
 )
@@ -141,7 +141,7 @@ from inference_gateway import (
 client = InferenceGatewayClient('http://localhost:8080/v1')
 
 response = client.create_chat_completion(
-    model='openai/gpt-4o',
+    model='anthropic/claude-opus-4-8',
     messages=[
         Message(
             role='user',
@@ -200,7 +200,7 @@ The SDK preserves it for you: append the returned assistant `Message` to your co
 
 ```python
 response = client.create_chat_completion(
-    model='google/gemini-2.5-flash',
+    model='google/gemini-3-flash',
     messages=messages,
     tools=tools,
 )
@@ -220,7 +220,7 @@ for tool_call in assistant_message.tool_calls or []:
     messages.append(Message(role='tool', tool_call_id=tool_call.id, content=result))
 
 final = client.create_chat_completion(
-    model='google/gemini-2.5-flash',
+    model='google/gemini-3-flash',
     messages=messages,
     tools=tools,
 )
@@ -302,7 +302,7 @@ with InferenceGatewayClient(
     use_httpx=True,
 ) as client:
     response = client.create_chat_completion(
-        model='openai/gpt-4o-mini',
+        model='deepseek/deepseek-v4-flash',
         messages=[Message(role='user', content='Hello!')],
     )
     print(response.choices[0].message.content.root)
@@ -330,7 +330,7 @@ const client = new InferenceGatewayClient({
 });
 
 const response = await client.createChatCompletion({
-  model: 'openai/gpt-4o-mini',
+  model: 'deepseek/deepseek-v4-flash',
   messages: [
     { role: MessageRole.System, content: 'You are a helpful assistant.' },
     { role: MessageRole.User, content: 'Tell me a joke.' },
@@ -353,7 +353,7 @@ const client = new InferenceGatewayClient({
 
 await client.streamChatCompletion(
   {
-    model: 'groq/llama-3.3-70b-versatile',
+    model: 'deepseek/deepseek-v4-flash',
     messages: [{ role: MessageRole.User, content: 'Tell me a story.' }],
   },
   {
@@ -379,7 +379,7 @@ const client = new InferenceGatewayClient({
 
 await client.streamChatCompletion(
   {
-    model: 'openai/gpt-4o',
+    model: 'deepseek/deepseek-v4-flash',
     messages: [{ role: MessageRole.User, content: "What's the weather in San Francisco?" }],
     tools: [
       {
@@ -419,7 +419,7 @@ const client = new InferenceGatewayClient({
 });
 
 const response = await client.createChatCompletion({
-  model: 'openai/gpt-4o',
+  model: 'anthropic/claude-opus-4-8',
   messages: [
     {
       role: MessageRole.User,
@@ -483,7 +483,7 @@ await client.streamChatCompletion(
 ```typescript
 await client.streamChatCompletion(
   {
-    model: 'openai/gpt-4o',
+    model: 'deepseek/deepseek-v4-flash',
     messages: [{ role: MessageRole.User, content: 'What files are in the project root?' }],
   },
   {
@@ -618,8 +618,8 @@ func main() {
     ctx := context.Background()
     resp, err := client.GenerateContent(
         ctx,
-        sdk.Openai,
-        "openai/gpt-4o-mini",
+        sdk.Deepseek,
+        "deepseek/deepseek-v4-flash",
         []sdk.Message{
             {Role: sdk.System, Content: sdk.NewMessageContent("You are a helpful assistant.")},
             {Role: sdk.User, Content: sdk.NewMessageContent("What is Go?")},
@@ -644,8 +644,8 @@ func main() {
 ```go
 events, err := client.GenerateContentStream(
     ctx,
-    sdk.Groq,
-    "groq/llama-3.3-70b-versatile",
+    sdk.Deepseek,
+    "deepseek/deepseek-v4-flash",
     []sdk.Message{
         {Role: sdk.User, Content: sdk.NewMessageContent("Write a poem.")},
     },
@@ -706,8 +706,8 @@ tools := []sdk.ChatCompletionTool{
 
 resp, err := client.WithTools(&tools).GenerateContent(
     ctx,
-    sdk.Openai,
-    "openai/gpt-4o",
+    sdk.Deepseek,
+    "deepseek/deepseek-v4-flash",
     []sdk.Message{
         {Role: sdk.User, Content: sdk.NewMessageContent("What is the weather in New York?")},
     },
@@ -729,8 +729,8 @@ visionMessage, _ := sdk.NewImageMessage(sdk.User, []sdk.ContentPart{textPart, im
 
 resp, err := client.GenerateContent(
     ctx,
-    sdk.Openai,
-    "openai/gpt-4o",
+    sdk.Anthropic,
+    "anthropic/claude-opus-4-8",
     []sdk.Message{visionMessage},
 )
 ```
@@ -792,8 +792,8 @@ resp, err := client.
     }).
     GenerateContent(
         ctx,
-        sdk.Openai,
-        "openai/gpt-4o",
+        sdk.Deepseek,
+        "deepseek/deepseek-v4-flash",
         []sdk.Message{
             {Role: sdk.User, Content: sdk.NewMessageContent("Answer without MCP tooling.")},
         },
@@ -805,7 +805,7 @@ You can also set the headers yourself, which is handy when you only want one of 
 ```go
 resp, err := client.
     WithHeader("X-MCP-Bypass", "true").
-    GenerateContent(ctx, sdk.Openai, "openai/gpt-4o", messages)
+    GenerateContent(ctx, sdk.Deepseek, "deepseek/deepseek-v4-flash", messages)
 ```
 
 Both headers require a gateway build that honors them; a gateway that does not recognize the bypass runs the full middleware chain anyway. A runnable walkthrough lives in [sdk/examples/middleware-bypass](https://github.com/inference-gateway/sdk/tree/main/examples/middleware-bypass).
@@ -933,8 +933,8 @@ async fn main() -> Result<(), GatewayError> {
 
     let response: CreateChatCompletionResponse = client
         .generate_content(
-            Provider::Openai,
-            "gpt-4o-mini",
+            Provider::Deepseek,
+            "deepseek-v4-flash",
             vec![
                 message(MessageRole::System, "You are a helpful assistant."),
                 message(MessageRole::User, "What is Rust?"),
@@ -962,8 +962,8 @@ use inference_gateway_sdk::{
 async fn main() -> Result<(), GatewayError> {
     let client = InferenceGatewayClient::new("http://localhost:8080/v1");
     let stream = client.generate_content_stream(
-        Provider::Groq,
-        "llama-3.3-70b-versatile",
+        Provider::Deepseek,
+        "deepseek-v4-flash",
         vec![message(MessageRole::User, "Write a poem")],
     );
     pin_mut!(stream);
@@ -1019,8 +1019,8 @@ async fn main() -> Result<(), GatewayError> {
     let response = client
         .with_tools(Some(tools))
         .generate_content(
-            Provider::Openai,
-            "gpt-4o",
+            Provider::Deepseek,
+            "deepseek-v4-flash",
             vec![message(MessageRole::User, "What is the weather in Berlin?")],
         )
         .await?;
@@ -1088,7 +1088,7 @@ let vision_message = Message {
 };
 
 let response = client
-    .generate_content(Provider::Openai, "gpt-4o", vec![vision_message])
+    .generate_content(Provider::Anthropic, "claude-opus-4-8", vec![vision_message])
     .await?;
 ```
 

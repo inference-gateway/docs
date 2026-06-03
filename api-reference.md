@@ -41,21 +41,21 @@ Content-Type: application/json
   "object": "list",
   "data": [
     {
-      "id": "gpt-4",
+      "id": "gpt-5",
       "object": "model",
       "created": 1741879542,
       "owned_by": "openai",
       "served_by": "openai",
     },
     {
-      "id": "claude-3-opus-20240229",
+      "id": "claude-opus-4-8",
       "object": "model",
       "created": 1741879542,
       "owned_by": "anthropic",
       "served_by": "anthropic",
     },
     {
-      "id": "deepseek-r1-distill-llama-70b",
+      "id": "llama-3.3-70b-versatile",
       "object": "model",
       "created": 1741879542,
       "owned_by": "Meta",
@@ -89,14 +89,14 @@ Content-Type: application/json
   "object": "list",
   "data": [
     {
-      "id": "gpt-4",
+      "id": "gpt-5",
       "object": "model",
       "created": 1741879542,
       "owned_by": "openai",
       "served_by": "openai",
     },
     {
-      "id": "gpt-3.5-turbo",
+      "id": "gpt-5-mini",
       "object": "model",
       "created": 1741879542,
       "owned_by": "openai",
@@ -271,7 +271,7 @@ POST /proxy/openai/v1/chat/completions
 Content-Type: application/json
 
 {
-  "model": "gpt-3.5-turbo",
+  "model": "gpt-5",
   "messages": [
     {
       "role": "user",
@@ -322,7 +322,7 @@ You can stream responses from supported providers by setting the `stream` parame
 curl -X POST http://localhost:8080/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "openai/gpt-4",
+    "model": "deepseek/deepseek-v4-flash",
     "messages": [
       {
         "role": "system",
@@ -349,7 +349,7 @@ If additional metadata is attached to a tool call (for example, extended thinkin
 curl -X POST http://localhost:8080/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "openai/gpt-4",
+    "model": "deepseek/deepseek-v4-flash",
     "messages": [
       {
         "role": "system",
@@ -394,7 +394,7 @@ The `messages[].content` field accepts an array of `ContentPart` objects. Use a 
 curl -X POST http://localhost:8080/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "anthropic/claude-3-5-sonnet-20241022",
+    "model": "anthropic/claude-opus-4-8",
     "messages": [
       {
         "role": "user",
@@ -421,7 +421,7 @@ curl -X POST http://localhost:8080/v1/chat/completions \
 curl -X POST http://localhost:8080/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "anthropic/claude-3-5-sonnet-20241022",
+    "model": "anthropic/claude-opus-4-8",
     "messages": [
       {
         "role": "user",
@@ -445,7 +445,7 @@ curl -X POST http://localhost:8080/v1/chat/completions \
 **Supported Providers with Vision:**
 
 - OpenAI (GPT-5 series, GPT-4.1, GPT-4o)
-- Anthropic (Claude Opus 4.5, Claude Sonnet 4, Claude Opus 4)
+- Anthropic (Claude Opus 4.8, Claude Sonnet 4.6, Claude Haiku 4.5)
 - Google (Gemini 3 Flash, Gemini 3 Pro)
 - Cohere (Command A Vision)
 - Ollama (LLaVA, Llama 4, Llama 3.2 Vision)
@@ -463,7 +463,7 @@ For more advanced use cases, you can proxy requests directly to the provider's A
 curl -X POST http://localhost:8080/proxy/openai/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "gpt-4",
+    "model": "gpt-5",
     "messages": [
       {"role": "system", "content": "You are a helpful assistant."},
       {"role": "user", "content": "Hello!"}
@@ -507,15 +507,15 @@ The raw response body returned by proxy endpoints (`{METHOD} /proxy/{provider}/{
 
 The body sent to `POST /v1/chat/completions`.
 
-| Field            | Type                          | Required | Description                               |
-| ---------------- | ----------------------------- | -------- | ----------------------------------------- |
-| `model`          | `string`                      | Yes      | Model identifier (e.g., `"openai/gpt-4"`) |
-| `messages`       | `Message[]`                   | Yes      | Conversation history                      |
-| `stream`         | `boolean`                     |          | Enable SSE streaming (default: `false`)   |
-| `stream_options` | `ChatCompletionStreamOptions` |          | Streaming behaviour options               |
-| `max_tokens`     | `integer`                     |          | Maximum tokens to generate                |
-| `tools`          | `ChatCompletionTool[]`        |          | Tools available to the model              |
-| `temperature`    | `number`                      |          | Sampling temperature (0-2)                |
+| Field            | Type                          | Required | Description                                             |
+| ---------------- | ----------------------------- | -------- | ------------------------------------------------------- |
+| `model`          | `string`                      | Yes      | Model identifier (e.g., `"deepseek/deepseek-v4-flash"`) |
+| `messages`       | `Message[]`                   | Yes      | Conversation history                                    |
+| `stream`         | `boolean`                     |          | Enable SSE streaming (default: `false`)                 |
+| `stream_options` | `ChatCompletionStreamOptions` |          | Streaming behaviour options                             |
+| `max_tokens`     | `integer`                     |          | Maximum tokens to generate                              |
+| `tools`          | `ChatCompletionTool[]`        |          | Tools available to the model                            |
+| `temperature`    | `number`                      |          | Sampling temperature (0-2)                              |
 
 #### `ChatCompletionStreamOptions`
 

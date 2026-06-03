@@ -162,7 +162,7 @@ Once configured, MCP tools are automatically available to all LLM requests:
 curl -X POST http://localhost:8080/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "openai/gpt-4o",
+    "model": "deepseek/deepseek-v4-flash",
     "messages": [
       {
         "role": "user",
@@ -180,7 +180,7 @@ MCP works seamlessly with streaming responses:
 curl -X POST http://localhost:8080/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "openai/gpt-4o",
+    "model": "deepseek/deepseek-v4-flash",
     "messages": [
       {
         "role": "user",

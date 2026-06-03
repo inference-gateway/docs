@@ -69,7 +69,7 @@ For complete Kubernetes deployment examples including Services, ConfigMaps, and 
 curl -X POST http://localhost:8080/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "openai/gpt-4o",
+    "model": "openai/gpt-5",
     "messages": [
       {
         "role": "system",
@@ -89,7 +89,7 @@ curl -X POST http://localhost:8080/v1/chat/completions \
 curl -X POST http://localhost:8080/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "anthropic/claude-3-5-sonnet-20241022",
+    "model": "anthropic/claude-opus-4-8",
     "messages": [
       {
         "role": "system",
@@ -117,7 +117,7 @@ ENABLE_VISION=true
 curl -X POST http://localhost:8080/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "anthropic/claude-3-5-sonnet-20241022",
+    "model": "anthropic/claude-opus-4-8",
     "messages": [
       {
         "role": "user",
@@ -144,7 +144,7 @@ curl -X POST http://localhost:8080/v1/chat/completions \
 curl -X POST http://localhost:8080/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "anthropic/claude-3-5-sonnet-20241022",
+    "model": "anthropic/claude-opus-4-8",
     "messages": [
       {
         "role": "user",
@@ -167,10 +167,9 @@ curl -X POST http://localhost:8080/v1/chat/completions \
 
 **Supported Vision Models:**
 
-- `anthropic/claude-3-5-sonnet-20241022` (Claude 4.5 Sonnet)
-- `anthropic/claude-3-5-haiku-20250219` (Claude 4.5 Haiku)
-- `openai/gpt-4o`
-- `google/gemini-2.5-flash`
+- `anthropic/claude-opus-4-8`
+- `openai/gpt-5`
+- `google/gemini-3-flash`
 - `ollama/llava`
 - And more...
 

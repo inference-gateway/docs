@@ -100,7 +100,7 @@ For full MCP setup details see [MCP Integration](/mcp/).
 ENABLE_VISION=true
 ```
 
-After restarting the gateway, retry the request. If it still fails, verify the model itself supports vision (e.g. `gpt-4o`, `claude-3-5-sonnet`, `gemini-1.5-pro`) - vision support is also gated on the upstream model.
+After restarting the gateway, retry the request. If it still fails, verify the model itself supports vision (e.g. `gpt-5`, `claude-opus-4-8`, `gemini-3-flash`) - vision support is also gated on the upstream model.
 
 ## Provider Errors
 
@@ -123,7 +123,7 @@ After restarting the gateway, retry the request. If it still fails, verify the m
    ```bash
    curl -sS -X POST \
      -H "Content-Type: application/json" \
-     -d '{ "model": "gpt-4o-mini", "messages": [{"role":"user","content":"hello"}] }' \
+     -d '{ "model": "gpt-5-mini", "messages": [{"role":"user","content":"hello"}] }' \
      http://inference-gateway:8080/proxy/openai/v1/chat/completions
    ```
 
@@ -149,7 +149,7 @@ After restarting the gateway, retry the request. If it still fails, verify the m
 curl -sS -X POST \
   -H "Content-Type: application/json" \
   -H "X-MCP-Bypass: true" \
-  -d '{ "model": "gpt-4o", "messages": [{"role":"user","content":"hi"}] }' \
+  -d '{ "model": "deepseek/deepseek-v4-flash", "messages": [{"role":"user","content":"hi"}] }' \
   http://inference-gateway:8080/v1/chat/completions
 ```
 

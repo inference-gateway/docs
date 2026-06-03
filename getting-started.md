@@ -31,7 +31,7 @@ Send a request to the Inference Gateway:
 ```bash
 curl -X POST http://localhost:8080/v1/chat/completions \
 -d '{
-"model": "openai/gpt-4o-mini",
+"model": "deepseek/deepseek-v4-flash",
 "messages": [
         {
             "role": "system",

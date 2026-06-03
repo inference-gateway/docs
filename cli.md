@@ -723,7 +723,7 @@ Two-layer configuration system with precedence from highest to lowest:
 ```bash
 export INFER_GATEWAY_URL="http://localhost:8080"
 export INFER_GATEWAY_API_KEY="your-api-key"
-export INFER_AGENT_MODEL="openai/gpt-4"
+export INFER_AGENT_MODEL="deepseek/deepseek-v4-flash"
 export INFER_LOGGING_DEBUG="true"
 export GITHUB_TOKEN="your-github-token"  # used by the gh CLI credential chain for GitHub operations
 ```
@@ -735,7 +735,7 @@ export GITHUB_TOKEN="your-github-token"  # used by the gh CLI credential chain f
 infer config init
 
 # Agent settings
-infer config agent set-model openai/gpt-4
+infer config agent set-model deepseek/deepseek-v4-flash
 infer config agent set-system "You are a helpful coding assistant"
 
 # View current configuration
