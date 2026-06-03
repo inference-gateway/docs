@@ -320,6 +320,8 @@ Returns validation errors if the file structure or required fields are invalid.
 
 ## ADL Schema Reference
 
+> **Reflects ADL `schema/v1` (JSON Schema Draft-07) as of [`v0.14.0`](https://github.com/inference-gateway/adl/releases/tag/v0.14.0).** The field definitions below are an in-page convenience copy. The single source of truth is [`schema/v1/schema.json`](https://github.com/inference-gateway/adl/blob/main/schema/v1/schema.json) in `inference-gateway/adl` (rendered at [adl.inference-gateway.com](https://adl.inference-gateway.com)) - if anything here disagrees with the canonical schema, the canonical schema wins.
+
 ### Overview
 
 ADL (Agent Definition Language) files are YAML documents that define your agent's configuration, capabilities, skills, and infrastructure. Every ADL file starts with:
