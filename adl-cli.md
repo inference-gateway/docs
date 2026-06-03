@@ -5,7 +5,7 @@ description: Scaffold enterprise-ready A2A agents from Agent Definition Language
 
 # ADL CLI
 
-The ADL CLI is a command-line tool for generating enterprise-ready [A2A (Agent-to-Agent)](/a2a/) servers from [Agent Definition Language (ADL)](https://adl.inference-gateway.com) YAML files. It eliminates boilerplate code and ensures consistent patterns across your agent implementations, letting you focus on business logic.
+The ADL CLI is a command-line tool for generating enterprise-ready [A2A (Agent-to-Agent)](/a2a/) servers from [Agent Definition Language (ADL)](/adl/) YAML files. It eliminates boilerplate code and ensures consistent patterns across your agent implementations, letting you focus on business logic.
 
 > For the canonical ADL spec, schema reference, and authoring guide, see [adl.inference-gateway.com](https://adl.inference-gateway.com). This page is the CLI-specific reference.
 >

@@ -44,3 +44,9 @@ curl -X POST http://localhost:8080/v1/chat/completions \
     ]
 }
 ```
+
+## Next steps
+
+- Explore the [Architecture Overview](/architecture-overview/) to see how requests flow through the gateway.
+- Connect tools and data sources with [MCP Integration](/mcp/), or coordinate specialized agents with [A2A Integration](/a2a/).
+- **Define an agent as code** with the [Agent Definition Language (ADL)](/adl/), then scaffold a Go or Rust A2A server using the [ADL CLI](/adl-cli/).

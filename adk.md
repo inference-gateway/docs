@@ -681,6 +681,8 @@ The [`examples/`](https://github.com/inference-gateway/adk/tree/main/examples) d
 
 ## Related
 
+- [Agent Definition Language (ADL)](/adl/) - define an agent declaratively in YAML instead of wiring the builders by hand.
+- [ADL CLI](/adl-cli/) - scaffold an A2A agent project (built on this ADK) from an ADL file, then fill in the generated tool stubs.
 - [A2A Integration](/a2a/) - the Agent-to-Agent protocol these agents speak, and how the gateway consumes them.
 - [TypeScript ADK](/typescript-adk/) - the sibling ADK for Node/TypeScript agents.
 - [Rust ADK](/rust-adk/) - the sibling ADK for Rust agents.

@@ -1007,6 +1007,8 @@ The library never reads the environment itself. You pick a loader - typically [`
 
 ## Related
 
+- [Agent Definition Language (ADL)](/adl) - define an agent declaratively in YAML instead of wiring the builders by hand.
+- [ADL CLI](/adl-cli) - scaffold a Rust A2A agent project (built on this ADK) from an ADL file, then fill in the generated tool stubs.
 - [A2A Integration](/a2a) - the Agent-to-Agent protocol these agents speak.
 - [TypeScript ADK](/typescript-adk) - the sibling ADK for Node/TypeScript agents.
 - [Go ADK](https://github.com/inference-gateway/adk) - the reference ADK whose semantics the Rust port mirrors.

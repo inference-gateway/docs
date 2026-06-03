@@ -174,6 +174,7 @@ export default withMermaid(
             { text: 'REST API', link: pageLink('/api-reference') },
             { text: 'SDKs', link: pageLink('/sdks') },
             { text: 'CLI', link: pageLink('/cli') },
+            { text: 'Agent Definition Language', link: pageLink('/adl') },
             { text: 'ADL CLI', link: pageLink('/adl-cli') },
             { text: 'Channels', link: pageLink('/cli-channels') },
             { text: 'Speech-to-Text', link: pageLink('/cli-speech-to-text') },
@@ -266,6 +267,15 @@ export default withMermaid(
           ],
         },
         {
+          text: 'Agent Definition Language (ADL)',
+          collapsed: false,
+          items: [
+            { text: 'ADL Overview', link: pageLink('/adl') },
+            { text: 'ADL CLI', link: pageLink('/adl-cli') },
+            { text: 'ADL Specification', link: 'https://adl.inference-gateway.com' },
+          ],
+        },
+        {
           text: 'Skills',
           collapsed: false,
           items: [
@@ -286,7 +296,6 @@ export default withMermaid(
           collapsed: false,
           items: [
             { text: 'CLI', link: pageLink('/cli') },
-            { text: 'ADL CLI', link: pageLink('/adl-cli') },
             { text: 'Channels', link: pageLink('/cli-channels') },
             { text: 'Speech-to-Text', link: pageLink('/cli-speech-to-text') },
             { text: 'GitHub Action', link: pageLink('/github-action') },
