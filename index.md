@@ -2,7 +2,7 @@
 layout: home
 title: Inference Gateway Documentation
 titleTemplate: Open-source LLM proxy for OpenAI, Anthropic, Groq, Ollama and more
-description: Inference Gateway is an open-source, cloud-native proxy that unifies multiple LLM providers behind a single OpenAI-compatible API. Production-ready, lightweight, Kubernetes-native.
+description: Inference Gateway is an open-source, cloud-native proxy that unifies multiple LLM providers behind a single OpenAI-compatible API. Enterprise-ready, lightweight, Kubernetes-native.
 
 hero:
   name: Inference Gateway
@@ -40,7 +40,7 @@ features:
     linkText: A2A guide
   - icon: 📝
     title: Define agents as code
-    details: Describe an A2A agent once in an Agent Definition Language (ADL) YAML file, then generate a production-ready Go or Rust server with the ADL CLI.
+    details: Describe an A2A agent once in an Agent Definition Language (ADL) YAML file, then generate an enterprise-ready Go or Rust server with the ADL CLI.
     link: /adl/
     linkText: Agent Definition Language
   - icon: 🌊
@@ -138,7 +138,7 @@ Learn more about [A2A Integration](/a2a/) and see how to build your own agents.
 
 ## Agent Definition Language (ADL)
 
-Prefer to **define an agent as code**? The **Agent Definition Language (ADL)** describes an entire A2A agent - provider, model, tools, skills, server, and deployment - in a single declarative `agent.yaml` file. The [ADL CLI](/adl-cli/) turns that manifest into a production-ready Go or Rust project, so the agent stays version-controlled and reproducible.
+Prefer to **define an agent as code**? The **Agent Definition Language (ADL)** describes an entire A2A agent - provider, model, tools, skills, server, and deployment - in a single declarative `agent.yaml` file. The [ADL CLI](/adl-cli/) turns that manifest into an enterprise-ready Go or Rust project, so the agent stays version-controlled and reproducible.
 
 ```bash
 # Scaffold, validate, and generate an A2A agent from a declarative manifest

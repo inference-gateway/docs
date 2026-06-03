@@ -1,6 +1,6 @@
 ---
 title: Agent Definition Language (ADL)
-description: Agent Definition Language (ADL) is a declarative YAML format for defining A2A agents as code. Describe an agent's provider, model, tools, skills, and infrastructure once, then generate a production-ready Go or Rust server with the ADL CLI. Canonical spec at adl.inference-gateway.com.
+description: Agent Definition Language (ADL) is a declarative YAML format for defining A2A agents as code. Describe an agent's provider, model, tools, skills, and infrastructure once, then generate an enterprise-ready Go or Rust server with the ADL CLI. Canonical spec at adl.inference-gateway.com.
 ---
 
 # Agent Definition Language (ADL)
