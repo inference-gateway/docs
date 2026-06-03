@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.88](https://github.com/inference-gateway/docs/compare/0.6.87...0.6.88) (2026-06-03)
+
+### 📚 Documentation
+
+* make ADL discoverable with concept page and cross-links ([#152](https://github.com/inference-gateway/docs/issues/152)) ([bffe222](https://github.com/inference-gateway/docs/commit/bffe2228f301ab175dfde52af98cd6b71fce42fb))
+
 ## [0.6.87](https://github.com/inference-gateway/docs/compare/0.6.86...0.6.87) (2026-06-03)
 
 ### 👷 CI
