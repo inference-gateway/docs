@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.90](https://github.com/inference-gateway/docs/compare/0.6.89...0.6.90) (2026-06-03)
+
+### 📚 Documentation
+
+* **adl-cli:** add npm/npx install method as recommended option ([#155](https://github.com/inference-gateway/docs/issues/155)) ([379dad3](https://github.com/inference-gateway/docs/commit/379dad38fcffe17e87426ba26e89e5471908036f)), closes [#154](https://github.com/inference-gateway/docs/issues/154)
+
 ## [0.6.89](https://github.com/inference-gateway/docs/compare/0.6.88...0.6.89) (2026-06-03)
 
 ### 📚 Documentation
