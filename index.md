@@ -2,7 +2,7 @@
 layout: home
 title: Inference Gateway Documentation
 titleTemplate: Open-source LLM proxy for OpenAI, Anthropic, Groq, Ollama and more
-description: Inference Gateway is an open-source, cloud-native proxy that unifies multiple LLM providers behind a single OpenAI-compatible API. Production-ready, lightweight, Kubernetes-native.
+description: Inference Gateway is an open-source, cloud-native proxy that unifies multiple LLM providers behind a single OpenAI-compatible API. Enterprise-ready, lightweight, Kubernetes-native.
 
 hero:
   name: Inference Gateway
@@ -38,6 +38,11 @@ features:
     details: Coordinate specialized agents from inside any chat completion. Discover capabilities, delegate tasks, stream results.
     link: /a2a/
     linkText: A2A guide
+  - icon: 📝
+    title: Define agents as code
+    details: Describe an A2A agent once in an Agent Definition Language (ADL) YAML file, then generate an enterprise-ready Go or Rust server with the ADL CLI.
+    link: /adl/
+    linkText: Agent Definition Language
   - icon: 🌊
     title: Streaming first-class
     details: Server-Sent Events streaming with token-level deltas, tool-call chunks, and final usage metrics.
@@ -130,6 +135,19 @@ infer chat
 ```
 
 Learn more about [A2A Integration](/a2a/) and see how to build your own agents.
+
+## Agent Definition Language (ADL)
+
+Prefer to **define an agent as code**? The **Agent Definition Language (ADL)** describes an entire A2A agent - provider, model, tools, skills, server, and deployment - in a single declarative `agent.yaml` file. The [ADL CLI](/adl-cli/) turns that manifest into an enterprise-ready Go or Rust project, so the agent stays version-controlled and reproducible.
+
+```bash
+# Scaffold, validate, and generate an A2A agent from a declarative manifest
+adl init my-weather-agent
+adl validate agent.yaml
+adl generate --file agent.yaml --output ./my-weather-agent
+```
+
+Read the [Agent Definition Language overview](/adl/) to see how ADL, the ADL CLI, and the ADK fit together, or jump straight to the canonical spec at [adl.inference-gateway.com](https://adl.inference-gateway.com).
 
 ## Community
 
