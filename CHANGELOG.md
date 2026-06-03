@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.91](https://github.com/inference-gateway/docs/compare/0.6.90...0.6.91) (2026-06-03)
+
+### 📚 Documentation
+
+* expand adl agent provider list to 11 providers ([#157](https://github.com/inference-gateway/docs/issues/157)) ([5134ded](https://github.com/inference-gateway/docs/commit/5134dedb0fceaaae10cd115b0e77e7c640a6bfe6))
+
 ## [0.6.90](https://github.com/inference-gateway/docs/compare/0.6.89...0.6.90) (2026-06-03)
 
 ### 📚 Documentation
