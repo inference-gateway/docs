@@ -959,7 +959,7 @@ Generates a `deploy` task in `Taskfile.yml` for `gcloud` deployment with configu
 
 #### Vercel
 
-Vercel deploys from source, so - unlike Kubernetes and Cloud Run - there is no `image` (`ImageConfig`) block.
+An ADL agent is a TypeScript A2A HTTP server, so it deploys to Vercel as plain serverless functions on the **Node.js runtime** (Vercel's default) - not as a framework app like Next.js. Vercel builds from source, so - unlike Kubernetes and Cloud Run - there is no `image` (`ImageConfig`) block.
 
 ```yaml
 deployment:
@@ -967,8 +967,7 @@ deployment:
   vercel:
     project: vercel-example
     team: my-team
-    framework: nextjs # optional - omit for auto-detection
-    runtime: edge # nodejs | edge
+    runtime: nodejs # nodejs (default) | edge
     regions:
       - iad1
     functions:
@@ -979,19 +978,21 @@ deployment:
       ENVIRONMENT: production
 ```
 
-| Field         | Type     | Required | Description                                                            |
-| ------------- | -------- | -------- | ---------------------------------------------------------------------- |
-| `project`     | string   | Yes      | Vercel project name. Written to `.vercel/project.json` as `projectId`. |
-| `team`        | string   | Yes      | Vercel team / org slug. Written to `.vercel/project.json` as `orgId`.  |
-| `framework`   | string   | No       | Framework preset (e.g. `nextjs`). Omit for Vercel auto-detection.      |
-| `runtime`     | string   | No       | Function runtime: `nodejs` (default) or `edge`.                        |
-| `regions`     | string[] | No       | Vercel region slugs (e.g. `iad1`).                                     |
-| `functions`   | object   | No       | Per-function limits: `memory` (MB) and `maxDuration` (seconds).        |
-| `environment` | map      | No       | Environment variables, written to `vercel.json` `env`.                 |
+> **Leave `framework` unset.** An ADL agent is a TypeScript server, not a framework app, so Vercel deploys the generated functions directly. Setting a preset such as `framework: nextjs` would make Vercel try to build the project as a Next.js app, which it is not. Likewise, keep `runtime: nodejs` (the default) - the Edge runtime runs in V8 isolates with a limited API and cannot run a full A2A server.
+
+| Field         | Type     | Required | Description                                                                                                       |
+| ------------- | -------- | -------- | ----------------------------------------------------------------------------------------------------------------- |
+| `project`     | string   | Yes      | Vercel project name. Written to `.vercel/project.json` as `projectId`.                                            |
+| `team`        | string   | Yes      | Vercel team / org slug. Written to `.vercel/project.json` as `orgId`.                                             |
+| `framework`   | string   | No       | Framework preset (e.g. `nextjs`). Leave unset for ADL agents - they are TypeScript servers, not framework apps.   |
+| `runtime`     | string   | No       | Function runtime: `nodejs` (default, full Node API) or `edge` (limited V8 runtime). Use `nodejs` for A2A servers. |
+| `regions`     | string[] | No       | Vercel region slugs (e.g. `iad1`).                                                                                |
+| `functions`   | object   | No       | Per-function limits: `memory` (MB) and `maxDuration` (seconds).                                                   |
+| `environment` | map      | No       | Environment variables, written to `vercel.json` `env`.                                                            |
 
 This generates:
 
-- **`vercel.json`** with `framework` (omitted entirely when unset, so Vercel auto-detects), `regions`, a `functions` map (`memory` / `maxDuration`), and `env` from `vercel.environment`. When `runtime: edge`, the function config gets `"runtime": "@vercel/edge"`; otherwise the default Node.js runtime is used.
+- **`vercel.json`** with `regions`, a `functions` map (`memory` / `maxDuration`), and `env` from `vercel.environment`. With `runtime: nodejs` (the default) no `runtime` key is emitted, so Vercel uses its Node.js runtime; setting `runtime: edge` would instead emit `"runtime": "@vercel/edge"`. `framework` is written only when you set it - leaving it unset (the norm for A2A agents) lets Vercel deploy the functions directly.
 - **`.vercel/project.json`** linking the local project to Vercel (`projectId` from `project`, `orgId` from `team`).
 - A **`deploy` task** in `Taskfile.yml` that runs `vercel link` / `vercel pull` / `vercel deploy` for interactive deploys (requires the `vercel` CLI: `npm i -g vercel`).
 
@@ -1004,12 +1005,10 @@ Generated `vercel.json` (from the manifest above):
     "ENVIRONMENT": "production",
     "LOG_LEVEL": "info"
   },
-  "framework": "nextjs",
   "functions": {
     "api/**/*.ts": {
       "maxDuration": 60,
-      "memory": 1024,
-      "runtime": "@vercel/edge"
+      "memory": 1024
     }
   },
   "regions": ["iad1"]
