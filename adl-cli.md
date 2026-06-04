@@ -18,7 +18,7 @@ The ADL CLI is a command-line tool for generating enterprise-ready [A2A (Agent-t
 - **Service Injection** - Type-safe dependency injection with interfaces and factory functions
 - **Configuration Management** - Automatic environment variable mapping with structured config sections
 - **CI/CD Generation** - GitHub Actions workflows with semantic-release CD pipelines
-- **Cloud Deployment** - Kubernetes manifests and Google Cloud Run deployment
+- **Cloud Deployment** - Kubernetes manifests, Google Cloud Run, and Vercel deployment
 - **Sandbox Environments** - Flox and DevContainer support for isolated development
 - **Smart Ignore Files** - Protect custom implementations with `.adl-ignore`
 - **Post-Generation Hooks** - Run custom commands after code generation
@@ -301,6 +301,9 @@ adl generate --file agent.yaml --output ./my-agent --deployment cloudrun
 # Generate with Kubernetes deployment
 adl generate --file agent.yaml --output ./my-agent --deployment kubernetes
 
+# Generate with Vercel deployment
+adl generate --file agent.yaml --output ./my-agent --deployment vercel
+
 # Full-featured generation
 adl generate --file agent.yaml --output ./my-agent --ci --cd --deployment cloudrun
 ```
@@ -315,7 +318,7 @@ adl generate --file agent.yaml --output ./my-agent --ci --cd --deployment cloudr
 | `--overwrite`      | Overwrite existing files (respects `.adl-ignore`)                    | `false`      |
 | `--ci`             | Generate CI workflow (GitHub Actions). Overrides `spec.scm.ci`.      | `false`      |
 | `--cd`             | Generate CD pipeline with semantic-release. Overrides `spec.scm.cd`. | `false`      |
-| `--deployment`     | Deployment platform: `kubernetes` or `cloudrun`                      | -            |
+| `--deployment`     | Deployment platform: `kubernetes`, `cloudrun`, or `vercel`           | -            |
 
 > **Manifest-driven equivalents.** `--ci` and `--cd` mirror `spec.scm.ci` and `spec.scm.cd`. The CLI flag is OR-merged on top of the manifest value - passing the flag wins; omitting it falls back to whatever the manifest declares. There is no `--ai` flag on `generate`; AI-assistant generation is entirely manifest-driven via the per-agent toggles under `spec.development.ai.*` (see [AI Assistants](#ai-assistants)).
 
@@ -954,6 +957,76 @@ deployment:
 
 Generates a `deploy` task in `Taskfile.yml` for `gcloud` deployment with configurable resources, scaling, and service options.
 
+#### Vercel
+
+Vercel deploys from source, so - unlike Kubernetes and Cloud Run - there is no `image` (`ImageConfig`) block.
+
+```yaml
+deployment:
+  type: vercel
+  vercel:
+    project: vercel-example
+    team: my-team
+    framework: nextjs # optional - omit for auto-detection
+    runtime: edge # nodejs | edge
+    regions:
+      - iad1
+    functions:
+      memory: 1024
+      maxDuration: 60
+    environment:
+      LOG_LEVEL: info
+      ENVIRONMENT: production
+```
+
+| Field         | Type     | Required | Description                                                            |
+| ------------- | -------- | -------- | ---------------------------------------------------------------------- |
+| `project`     | string   | Yes      | Vercel project name. Written to `.vercel/project.json` as `projectId`. |
+| `team`        | string   | Yes      | Vercel team / org slug. Written to `.vercel/project.json` as `orgId`.  |
+| `framework`   | string   | No       | Framework preset (e.g. `nextjs`). Omit for Vercel auto-detection.      |
+| `runtime`     | string   | No       | Function runtime: `nodejs` (default) or `edge`.                        |
+| `regions`     | string[] | No       | Vercel region slugs (e.g. `iad1`).                                     |
+| `functions`   | object   | No       | Per-function limits: `memory` (MB) and `maxDuration` (seconds).        |
+| `environment` | map      | No       | Environment variables, written to `vercel.json` `env`.                 |
+
+This generates:
+
+- **`vercel.json`** with `framework` (omitted entirely when unset, so Vercel auto-detects), `regions`, a `functions` map (`memory` / `maxDuration`), and `env` from `vercel.environment`. When `runtime: edge`, the function config gets `"runtime": "@vercel/edge"`; otherwise the default Node.js runtime is used.
+- **`.vercel/project.json`** linking the local project to Vercel (`projectId` from `project`, `orgId` from `team`).
+- A **`deploy` task** in `Taskfile.yml` that runs `vercel link` / `vercel pull` / `vercel deploy` for interactive deploys (requires the `vercel` CLI: `npm i -g vercel`).
+
+Generated `vercel.json` (from the manifest above):
+
+```json
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "env": {
+    "ENVIRONMENT": "production",
+    "LOG_LEVEL": "info"
+  },
+  "framework": "nextjs",
+  "functions": {
+    "api/**/*.ts": {
+      "maxDuration": 60,
+      "memory": 1024,
+      "runtime": "@vercel/edge"
+    }
+  },
+  "regions": ["iad1"]
+}
+```
+
+Generated `.vercel/project.json`:
+
+```json
+{
+  "orgId": "my-team",
+  "projectId": "vercel-example"
+}
+```
+
+> The `functions` glob key tracks the target language - `api/**/*.ts` for TypeScript, `api/**/*.go` for Go, `api/**/*.rs` for Rust.
+
 ### CI/CD
 
 #### GitHub Actions CI
@@ -1151,6 +1224,9 @@ my-go-agent/
 ├── .releaserc.yaml                 # When spec.scm.cd (or --cd)
 ├── k8s/
 │   └── deployment.yaml             # When --deployment kubernetes
+├── vercel.json                     # When --deployment vercel
+├── .vercel/
+│   └── project.json                # When --deployment vercel
 ├── .flox/                          # When spec.development.sandbox.flox.enabled
 ├── .devcontainer/
 │   └── devcontainer.json           # When spec.development.sandbox.devcontainer.enabled
@@ -1193,6 +1269,9 @@ my-rust-agent/
 ├── .releaserc.yaml                 # When spec.scm.cd (or --cd)
 ├── k8s/
 │   └── deployment.yaml             # When --deployment kubernetes
+├── vercel.json                     # When --deployment vercel
+├── .vercel/
+│   └── project.json                # When --deployment vercel
 ├── CLAUDE.md                       # When spec.development.ai.claudecode.enabled
 ├── AGENTS.md                       # When codex/opencode/infer enabled (shared)
 ├── GEMINI.md                       # When spec.development.ai.gemini.enabled
