@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.93](https://github.com/inference-gateway/docs/compare/0.6.92...0.6.93) (2026-06-04)
+
+### 📚 Documentation
+
+* document vercel deployment target for adl-cli ([#160](https://github.com/inference-gateway/docs/issues/160)) ([e172dbf](https://github.com/inference-gateway/docs/commit/e172dbf9667b8972b14ea0b89ac72e48caedcd49))
+
 ## [0.6.92](https://github.com/inference-gateway/docs/compare/0.6.91...0.6.92) (2026-06-04)
 
 ### 🔧 Miscellaneous
