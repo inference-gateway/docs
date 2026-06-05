@@ -14,7 +14,7 @@ Inference Gateway provides a unified interface to interact with multiple LLM pro
 | OpenAI     | Bearer Token     | `https://api.openai.com/v1`                                     | Yes - GPT-5 series, GPT-4.1, GPT-4o                        |
 | DeepSeek   | Bearer Token     | `https://api.deepseek.com`                                      | No                                                         |
 | Anthropic  | X-Header         | `https://api.anthropic.com/v1`                                  | Yes - Claude Opus 4.8, Claude Sonnet 4.6, Claude Haiku 4.5 |
-| Cohere     | Bearer Token     | `https://api.cohere.com`                                        | Yes - Command A Vision                                     |
+| Cohere     | Bearer Token     | `https://api.cohere.ai`                                         | Yes - Command A Vision                                     |
 | Groq       | Bearer Token     | `https://api.groq.com/openai/v1`                                | Yes - vision models                                        |
 | Cloudflare | Bearer Token     | `https://api.cloudflare.com/client/v4/accounts/{ACCOUNT_ID}/ai` | No                                                         |
 | Ollama     | Optional API key | `http://ollama:8080/v1`                                         | Yes - LLaVA, Llama 4, Llama 3.2 Vision                     |
