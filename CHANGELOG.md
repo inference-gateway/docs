@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.105](https://github.com/inference-gateway/docs/compare/0.6.104...0.6.105) (2026-06-05)
+
+### 🐛 Bug Fixes
+
+* correct cohere url in supported-providers to api.cohere.ai ([#174](https://github.com/inference-gateway/docs/issues/174)) ([25d4c94](https://github.com/inference-gateway/docs/commit/25d4c943413ebf6a88001d49e5e740854ac5234a))
+
 ## [0.6.104](https://github.com/inference-gateway/docs/compare/0.6.103...0.6.104) (2026-06-05)
 
 ### 👷 CI
