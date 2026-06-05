@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.106](https://github.com/inference-gateway/docs/compare/0.6.105...0.6.106) (2026-06-05)
+
+### 🐛 Bug Fixes
+
+* correct google url in supported-providers to v1beta/openai ([#175](https://github.com/inference-gateway/docs/issues/175)) ([1835bea](https://github.com/inference-gateway/docs/commit/1835beadbf3af6f2f27327ed16adf45f03313680))
+
 ## [0.6.105](https://github.com/inference-gateway/docs/compare/0.6.104...0.6.105) (2026-06-05)
 
 ### 🐛 Bug Fixes
