@@ -55,6 +55,34 @@ cd cli
 go build -o infer
 ```
 
+### Shell Completions
+
+The CLI ships an `infer completion` subcommand (provided by [fang](https://github.com/charmbracelet/fang)) that generates completion scripts for **bash**, **zsh**, **fish**, and **powershell**. Enabling completions adds tab-completion for subcommands, flags, and many flag values.
+
+```sh
+# Zsh (current session)
+source <(infer completion zsh)
+
+# Zsh (persistent) - write to a directory on $fpath
+infer completion zsh > "${fpath[1]}/_infer"
+
+# Bash (current session)
+source <(infer completion bash)
+
+# Bash (persistent)
+infer completion bash > /etc/bash_completion.d/infer
+
+# Fish
+infer completion fish > ~/.config/fish/completions/infer.fish
+
+# PowerShell
+infer completion powershell | Out-String | Invoke-Expression
+```
+
+Run `infer completion --help` to list the supported shells. After writing a persistent completion file, start a new shell (or re-source your shell rc) for it to take effect. If completions do not appear, see [Shell Completions Not Working](#shell-completions-not-working).
+
+> Shipped in [inference-gateway/cli#592](https://github.com/inference-gateway/cli/pull/592).
+
 ## Quick Start
 
 ![Inference Gateway TUI Interface](/images/tui.gif)
@@ -79,8 +107,14 @@ infer chat --web
 # Autonomous agent mode
 infer agent "Analyze this codebase and suggest improvements"
 
-# Get help
+# Get help (styled output)
 infer --help
+
+# Show version
+infer --version
+
+# Enable shell completions for the current shell (zsh example)
+source <(infer completion zsh)
 ```
 
 ### Generating AGENTS.md
@@ -106,6 +140,66 @@ The agent will:
    - Important files and configurations
 
 This documentation helps other AI agents (and developers) quickly understand how to work with your project.
+
+## Help and Version Output
+
+The CLI's help, error, and version output are rendered with [fang](https://github.com/charmbracelet/fang), so every command produces styled, colorized output. The samples below are shown as plain text; in a real terminal the headings, flags, and errors are colorized.
+
+### Help
+
+`infer --help` (and `--help` on any subcommand) prints a styled usage page grouped into usage, commands, and flags. Note that `-v` is `--verbose`; version is the long-form `--version` flag.
+
+```text
+infer
+
+A powerful command-line interface for managing and interacting with
+the Inference Gateway.
+
+USAGE
+  infer [command] [--flags]
+
+COMMANDS
+  init           Initialize project configuration
+  status         Check gateway health and resource usage
+  chat           Interactive chat session (TUI)
+  agent          Autonomous task execution
+  config         Configuration management
+  completion     Generate the autocompletion script for the specified shell
+  version        Show version information
+
+FLAGS
+  -h --help      Show help
+  -v --verbose   Verbose output
+     --version   Print version information
+```
+
+### Errors
+
+Unknown commands and flags exit non-zero with a styled error message and no noisy usage dump (fang sets cobra's `SilenceErrors`/`SilenceUsage` and renders the error itself):
+
+```text
+$ infer badcmd
+Error: unknown command "badcmd" for "infer"
+$ echo $?
+1
+```
+
+### Version
+
+`infer --version` prints the version, styled by fang:
+
+```text
+$ infer --version
+infer version v0.109.0
+```
+
+The standalone `version` subcommand is **kept for backwards compatibility** and prints the same information:
+
+```bash
+infer version
+```
+
+> The manual `--version` boolean flag was replaced by fang's built-in version handling (`fang.WithVersion`) in [inference-gateway/cli#592](https://github.com/inference-gateway/cli/pull/592). Both `infer --version` and the `infer version` subcommand remain supported.
 
 ## Core Commands
 
@@ -1449,22 +1543,40 @@ infer chat
 > "Take a screenshot and describe what you see"
 ```
 
+### Shell Completions Not Working
+
+```bash
+# Confirm the completion script generates
+infer completion zsh | head
+
+# Zsh: the file must live on a directory in $fpath and be named _infer,
+# then start a fresh shell
+infer completion zsh > "${fpath[1]}/_infer" && exec zsh
+
+# Bash: source the generated file (or place it under a bash-completion dir)
+source <(infer completion bash)
+```
+
+If completions still do not appear, the shell rc is usually not sourcing the completion file. Verify `compinit` is called for zsh (or `bash-completion` is installed for bash), confirm the file path is on `$fpath`/a bash-completion directory, then start a fresh shell.
+
 ## Command Reference
 
-| Command                            | Description                                                    |
-| ---------------------------------- | -------------------------------------------------------------- |
-| `infer init`                       | Initialize project configuration                               |
-| `infer status`                     | Check gateway health and resource usage                        |
-| `infer chat`                       | Interactive chat session (TUI)                                 |
-| `infer chat --web`                 | Web-based terminal interface                                   |
-| `infer agent <task>`               | Autonomous task execution                                      |
-| `infer skills <subcommand>`        | Manage Agent Skills (list, install, uninstall)                 |
-| `infer channels-manager`           | Start the remote messaging daemon ([Channels](/cli-channels/)) |
-| `infer config <subcommand>`        | Configuration management                                       |
-| `infer agents <subcommand>`        | A2A agent management                                           |
-| `infer conversations <subcommand>` | Conversation history management (`list`, `show`)               |
-| `infer --version`                  | Show version information                                       |
-| `infer --help`                     | Display help information                                       |
+| Command                            | Description                                                      |
+| ---------------------------------- | ---------------------------------------------------------------- |
+| `infer init`                       | Initialize project configuration                                 |
+| `infer status`                     | Check gateway health and resource usage                          |
+| `infer chat`                       | Interactive chat session (TUI)                                   |
+| `infer chat --web`                 | Web-based terminal interface                                     |
+| `infer agent <task>`               | Autonomous task execution                                        |
+| `infer skills <subcommand>`        | Manage Agent Skills (list, install, uninstall)                   |
+| `infer channels-manager`           | Start the remote messaging daemon ([Channels](/cli-channels/))   |
+| `infer config <subcommand>`        | Configuration management                                         |
+| `infer agents <subcommand>`        | A2A agent management                                             |
+| `infer conversations <subcommand>` | Conversation history management (`list`, `show`)                 |
+| `infer completion <shell>`         | Generate a shell completion script (bash, zsh, fish, powershell) |
+| `infer version`                    | Show version information (backwards-compatible subcommand)       |
+| `infer --version`                  | Show version information (styled by fang)                        |
+| `infer --help`                     | Display styled help information                                  |
 
 ## Support and Resources
 
