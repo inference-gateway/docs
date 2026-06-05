@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.103](https://github.com/inference-gateway/docs/compare/0.6.102...0.6.103) (2026-06-05)
+
+### 🐛 Bug Fixes
+
+* **infer:** use simple regex pattern ([47aba6d](https://github.com/inference-gateway/docs/commit/47aba6d9b882ce80677ff073fd94103b98080a25))
+
 ## [0.6.102](https://github.com/inference-gateway/docs/compare/0.6.101...0.6.102) (2026-06-05)
 
 ### 📚 Documentation
