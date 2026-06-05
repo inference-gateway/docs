@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.95](https://github.com/inference-gateway/docs/compare/0.6.94...0.6.95) (2026-06-05)
+
+### 📚 Documentation
+
+* update CLI config to generic get/set and tools cmd ([#164](https://github.com/inference-gateway/docs/issues/164)) ([b7295d2](https://github.com/inference-gateway/docs/commit/b7295d26d8254284acb46f87e20fa6266eac1cb6))
+
 ## [0.6.94](https://github.com/inference-gateway/docs/compare/0.6.93...0.6.94) (2026-06-05)
 
 ### 📚 Documentation
