@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.107](https://github.com/inference-gateway/docs/compare/0.6.106...0.6.107) (2026-06-05)
+
+### 🔧 Miscellaneous
+
+* **deps:** bump codex version 0.133.0 -> 0.135.0 ([668e404](https://github.com/inference-gateway/docs/commit/668e4046d4d300945bc57a2c8483dec2e34c08b5))
+
 ## [0.6.106](https://github.com/inference-gateway/docs/compare/0.6.105...0.6.106) (2026-06-05)
 
 ### 🐛 Bug Fixes
