@@ -18,7 +18,7 @@ Inference Gateway provides a unified interface to interact with multiple LLM pro
 | Groq       | Bearer Token     | `https://api.groq.com/openai/v1`                                | Yes - vision models                                        |
 | Cloudflare | Bearer Token     | `https://api.cloudflare.com/client/v4/accounts/{ACCOUNT_ID}/ai` | No                                                         |
 | Ollama     | Optional API key | `http://ollama:8080/v1`                                         | Yes - LLaVA, Llama 4, Llama 3.2 Vision                     |
-| Google     | Bearer Token     | `https://generativelanguage.googleapis.com/v1`                  | Yes - Gemini 3 Flash, Gemini 3 Pro                         |
+| Google     | Bearer Token     | `https://generativelanguage.googleapis.com/v1beta/openai`       | Yes - Gemini 3 Flash, Gemini 3 Pro                         |
 | Mistral    | Bearer Token     | `https://api.mistral.ai/v1`                                     | Yes - Pixtral Large, Ministral 3, Mistral Large 3          |
 | Moonshot   | Bearer Token     | `https://api.moonshot.ai/v1`                                    | Yes - Kimi K2, Kimi K2 Thinking                            |
 
@@ -314,6 +314,8 @@ curl -X POST http://localhost:8080/v1/chat/completions \
     ]
   }'
 ```
+
+> **Note:** The default Google base URL ends in `/v1beta/openai`, which is Google's OpenAI-compatible endpoint. The gateway speaks the OpenAI protocol (`/chat/completions`, `/models`), so this suffix is required for routing to work. It is distinct from Google's native Gemini API at `/v1`, which uses a different request/response format and is not OpenAI-compatible. Keep the `/v1beta/openai` suffix when overriding `GOOGLE_API_URL`.
 
 ### Mistral Provider
 
