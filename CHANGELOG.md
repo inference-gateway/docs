@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.96](https://github.com/inference-gateway/docs/compare/0.6.95...0.6.96) (2026-06-05)
+
+### 📚 Documentation
+
+* add requires_pro pricing config and model picker tiers ([#166](https://github.com/inference-gateway/docs/issues/166)) ([6e90a1a](https://github.com/inference-gateway/docs/commit/6e90a1aa7c8597302b6758d29d1be52afa4018f8))
+
 ## [0.6.95](https://github.com/inference-gateway/docs/compare/0.6.94...0.6.95) (2026-06-05)
 
 ### 📚 Documentation
