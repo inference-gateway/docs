@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.101](https://github.com/inference-gateway/docs/compare/0.6.100...0.6.101) (2026-06-05)
+
+### 🔧 Miscellaneous
+
+* **deps:** bumo codex version 0.133.0 -> 0.135.0 ([f44ee67](https://github.com/inference-gateway/docs/commit/f44ee6778a06efcddc578d6e7f4d16a4586d93bd))
+* remove AGENTS.md ([9c72c1d](https://github.com/inference-gateway/docs/commit/9c72c1d63b5cf99bc1a40229401af1b1cc91c185))
+
 ## [0.6.100](https://github.com/inference-gateway/docs/compare/0.6.99...0.6.100) (2026-06-05)
 
 ### 👷 CI
