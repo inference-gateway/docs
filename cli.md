@@ -1206,6 +1206,51 @@ infer conversations show <session-id>
 infer conversations show <session-id> --format json | jq .
 ```
 
+#### Pricing Configuration
+
+Pricing lives under the `pricing` key in `.infer/config.yaml`. The `custom_prices` map overrides or adds entries to the built-in per-model pricing table, keyed by model name.
+
+```yaml
+# .infer/config.yaml
+pricing:
+  enabled: true
+  currency: 'USD'
+  custom_prices:
+    'ollama_cloud/deepseek-v4-pro':
+      input_price_per_mtoken: 0.0
+      output_price_per_mtoken: 0.0
+      requires_pro: true
+```
+
+| Field                     | Type    | Description                                                                   |
+| ------------------------- | ------- | ----------------------------------------------------------------------------- |
+| `input_price_per_mtoken`  | number  | Cost per 1M prompt (input) tokens, in `currency`.                             |
+| `output_price_per_mtoken` | number  | Cost per 1M completion (output) tokens, in `currency`.                        |
+| `requires_pro`            | boolean | Marks the model as gated behind a paid Pro subscription. Defaults to `false`. |
+
+> **Override caveat:** a `custom_prices` entry **fully replaces** the default for that model - it is not merged field by field. Omitting `requires_pro` in a custom override therefore resets it to `false`, even when the model is flagged Pro by default. Set `requires_pro: true` explicitly when overriding the pricing of a Pro model.
+
+#### Model Categories (Free / Paid / Pro)
+
+The model picker shows filter tabs - `[1] All`, `[2] Free`, `[3] Paid`, `[4] Pro` - and groups models into three disjoint categories:
+
+| Category | Meaning                                                        |
+| -------- | -------------------------------------------------------------- |
+| Free     | No per-token cost **and** not gated behind a Pro subscription. |
+| Paid     | Billed per token.                                              |
+| Pro      | Gated behind a paid Pro subscription (`requires_pro: true`).   |
+
+Pro is an axis **orthogonal to price**: an Ollama Cloud Pro model has no per-token cost but is not free, so it is labelled `pro subscription` rather than `free`. The marker appears both in the picker rows and in `/model` autocomplete descriptions:
+
+```
+ollama_cloud/deepseek-v4-pro   (1M, pro subscription)
+ollama_cloud/deepseek-v4-flash (1M, pro subscription)
+ollama_cloud/deepseek-v3.2     (128K, free)
+deepseek/deepseek-v4-pro       (1M, $1.74/$3.48 per MTok)
+```
+
+`ollama_cloud/deepseek-v4-pro` and `ollama_cloud/deepseek-v4-flash` are flagged Pro by default. This default Pro set is **maintainer-curated** (Ollama publishes no stable per-model tier badge) and fully overridable through `custom_prices` - set `requires_pro: true` to gate additional models, or override a default Pro model as shown above.
+
 ### Model Thinking Visualization
 
 Collapsible thinking blocks for models that support thinking (Claude, o1, etc.).
