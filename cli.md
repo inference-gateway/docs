@@ -164,6 +164,7 @@ COMMANDS
   chat           Interactive chat session (TUI)
   agent          Autonomous task execution
   config         Configuration management
+  tools          Run and inspect agent tools directly
   completion     Generate the autocompletion script for the specified shell
   version        Show version information
 
@@ -210,7 +211,8 @@ infer version
 | `infer chat`         | Interactive chat TUI             | Streaming, scrolling, tool expansion, mode switching |
 | `infer chat --web`   | Web-based terminal               | Browser interface, tabbed sessions, remote access    |
 | `infer agent <task>` | Autonomous task execution        | Background operation, task planning, validation      |
-| `infer config <cmd>` | Configuration management         | Model, tools, safety, sandbox settings               |
+| `infer config <cmd>` | Configuration management         | Generic `get`/`set` for any config key               |
+| `infer tools <cmd>`  | Run agent tools directly         | Execute a tool or validate a bash command            |
 
 ### Chat Interface Features
 
@@ -743,21 +745,45 @@ Submit a completed plan for user approval. Available only in Plan Mode.
 
 ### Tool Configuration
 
+Tool settings are read and written with the generic [config commands](#configuration-commands) - there are no per-setting subcommands.
+
 ```bash
-# Enable/disable tools
-infer config tools enable
-infer config tools disable
+# Enable/disable all tool execution for LLMs
+infer config set tools.enabled true
+infer config set tools.enabled false
 
-# Safety settings
-infer config tools safety enable
-infer config tools safety disable
-infer config tools safety status
+# Enable/disable an individual tool (for example bash)
+infer config set tools.bash.enabled true
 
-# Sandbox management
-infer config tools sandbox add /protected/path
-infer config tools sandbox remove /protected/path
-infer config tools sandbox list
+# Require approval before any tool runs
+infer config set tools.safety.require_approval true
+
+# Require approval for a specific tool only (for example bash)
+infer config set tools.bash.require_approval true
+
+# Sandbox directories - comma-separated; the whole list is replaced
+infer config set tools.sandbox.directories ".,/protected/path"
+
+# Inspect the resulting tools config
+infer config get tools
 ```
+
+### Running Tools Directly
+
+Run any enabled tool outside a chat session, or check whether a bash command would pass the whitelist, with the top-level `infer tools` command.
+
+```bash
+# Execute a tool by name with JSON arguments (tool names are case-insensitive)
+infer tools execute Read '{"file_path":"README.md"}'
+infer tools execute grep '{"pattern":"func main","path":"."}'
+
+# Validate whether a bash command is allowed by the whitelist (without running it)
+infer tools validate "git status"
+```
+
+`infer tools execute <tool> [json-args]` resolves tool names case-insensitively in the CLI - the agent itself still uses the exact PascalCase names. `infer tools validate <command>` reports whether a bash command would be permitted by the configured whitelist, without executing it.
+
+> `infer tools execute` and `infer tools validate` moved from `config tools exec`/`config tools validate` to the top-level `infer tools` command in [inference-gateway/cli#601](https://github.com/inference-gateway/cli/pull/601).
 
 ## Configuration
 
@@ -824,20 +850,60 @@ export GITHUB_TOKEN="your-github-token"  # used by the gh CLI credential chain f
 
 ### Configuration Commands
 
+Configuration uses a generic key/value interface. `infer config get` reads the effective value of any key; `infer config set` writes one to `config.yaml`. Keys are dotted paths into the config (for example `agent.model`, `tools.bash.enabled`).
+
 ```bash
 # Initialize configuration
 infer config init
 
-# Agent settings
-infer config agent set-model deepseek/deepseek-v4-flash
-infer config agent set-system "You are a helpful coding assistant"
+# Print the whole effective config (defaults + ~/.infer + .infer + INFER_* env)
+infer config get
 
-# View current configuration
-infer config show
+# Print a single key
+infer config get agent.model
 
-# Reset to defaults
-infer config reset
+# Print as JSON instead of YAML
+infer config get --format json
+
+# Set a value - parsed to the field's type (bool, integer, number, or string)
+infer config set agent.model deepseek/deepseek-v4-flash
+infer config set agent.max_turns 50
+infer config set agent.verbose_tools true
+
+# List-valued keys take a comma-separated value (the whole list is replaced)
+infer config set tools.sandbox.directories ".,/work/project"
+infer config set tools.web_fetch.whitelisted_domains "golang.org,github.com"
+
+# Target the user-global ~/.infer/config.yaml instead of the project .infer/config.yaml
+infer config set agent.model deepseek/deepseek-v4-flash --userspace
+
+# Recreate config.yaml from defaults
+infer config init --overwrite
 ```
+
+> System prompts are **not** set via `config set` - they live in `prompts.yaml` (for example `prompts.agent.system_prompt`) and are edited there.
+
+#### Command Mapping
+
+The per-setting subcommands were removed in [inference-gateway/cli#601](https://github.com/inference-gateway/cli/pull/601) in favor of `config get`/`config set` and the top-level `infer tools` command:
+
+| Old command                            | New command                                          |
+| -------------------------------------- | ---------------------------------------------------- |
+| `config agent set-model X`             | `config set agent.model X`                           |
+| `config agent set-max-turns N`         | `config set agent.max_turns N`                       |
+| `config agent verbose-tools enable`    | `config set agent.verbose_tools true`                |
+| `config agent skills enable`           | `config set agent.skills.enabled true`               |
+| `config tools enable`                  | `config set tools.enabled true`                      |
+| `config tools bash enable`             | `config set tools.bash.enabled true`                 |
+| `config tools safety enable`           | `config set tools.safety.require_approval true`      |
+| `config tools safety set bash enabled` | `config set tools.bash.require_approval true`        |
+| `config tools sandbox add DIR`         | `config set tools.sandbox.directories ".,DIR"`       |
+| `config tools grep set-backend rg`     | `config set tools.grep.backend ripgrep`              |
+| `config tools web-fetch add-domain D`  | `config set tools.web_fetch.whitelisted_domains "D"` |
+| `config export set-model X`            | `config set export.summary_model X`                  |
+| `config show`                          | `config get`                                         |
+| `config tools exec <tool>`             | `tools execute <tool>`                               |
+| `config tools validate <cmd>`          | `tools validate <cmd>`                               |
 
 See the [full configuration reference](https://github.com/inference-gateway/cli/blob/main/docs/configuration.md) for detailed options.
 
@@ -1482,7 +1548,7 @@ Automatically excluded from tool access:
 Enable safety confirmations:
 
 ```bash
-infer config tools safety enable
+infer config set tools.safety.require_approval true
 ```
 
 LLMs request approval before executing Write/Edit/Delete/Bash operations with real-time diff preview.
@@ -1493,7 +1559,7 @@ LLMs request approval before executing Write/Edit/Delete/Bash operations with re
 
 ```bash
 # Check configuration
-infer config show
+infer config get
 
 # Verify gateway status
 infer status
@@ -1508,21 +1574,21 @@ infer --debug chat
 # Check configuration directory
 ls -la ~/.infer/
 
-# Reset configuration
-infer config reset
+# Recreate config.yaml from defaults
+infer config init --overwrite
 
-# Re-initialize
+# Re-initialize the project
 infer init
 ```
 
 ### Tool Execution Problems
 
 ```bash
-# Check tool status
-infer config tools status
+# Inspect tool configuration
+infer config get tools
 
-# Validate whitelist
-infer config tools validate
+# Check whether a bash command is whitelisted (without running it)
+infer tools validate "git status"
 
 # Enable debug logging
 export INFER_LOGGING_DEBUG=true
@@ -1570,7 +1636,8 @@ If completions still do not appear, the shell rc is usually not sourcing the com
 | `infer agent <task>`               | Autonomous task execution                                        |
 | `infer skills <subcommand>`        | Manage Agent Skills (list, install, uninstall)                   |
 | `infer channels-manager`           | Start the remote messaging daemon ([Channels](/cli-channels/))   |
-| `infer config <subcommand>`        | Configuration management                                         |
+| `infer config <subcommand>`        | Configuration management (`init`, `get`, `set`)                  |
+| `infer tools <subcommand>`         | Run agent tools directly (`execute`, `validate`)                 |
 | `infer agents <subcommand>`        | A2A agent management                                             |
 | `infer conversations <subcommand>` | Conversation history management (`list`, `show`)                 |
 | `infer completion <shell>`         | Generate a shell completion script (bash, zsh, fish, powershell) |

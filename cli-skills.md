@@ -68,7 +68,7 @@ Unknown frontmatter keys (for example Anthropic's `allowed-tools:` or Gemini's `
 
 ## Enabling
 
-Skills are disabled by default. Enable them via config or an environment variable:
+Skills are disabled by default. Enable them via the config file, the `config set` command, or an environment variable:
 
 ```yaml
 # .infer/config.yaml (project) or ~/.infer/config.yaml (user)
@@ -79,6 +79,13 @@ agent:
 ```
 
 ```bash
+# Enable for this project's .infer/config.yaml
+infer config set agent.skills.enabled true
+
+# Or enable globally in ~/.infer/config.yaml
+infer config set agent.skills.enabled true --userspace
+
+# Or enable for a single run via environment variable
 INFER_AGENT_SKILLS_ENABLED=true infer chat
 ```
 
