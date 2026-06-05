@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.97](https://github.com/inference-gateway/docs/compare/0.6.96...0.6.97) (2026-06-05)
+
+### 🔧 Miscellaneous
+
+* **deps:** bump infer CLI v0.117.1 -> v0.118.0 ([#167](https://github.com/inference-gateway/docs/issues/167)) ([149a0cd](https://github.com/inference-gateway/docs/commit/149a0cd4ff94a699d12816ab2384b97bbac701a6))
+
 ## [0.6.96](https://github.com/inference-gateway/docs/compare/0.6.95...0.6.96) (2026-06-05)
 
 ### 📚 Documentation
