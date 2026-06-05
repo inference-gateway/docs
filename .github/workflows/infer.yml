@@ -41,6 +41,6 @@ jobs:
     with:
       language: "node"
       markdownlint: true
-      extra-bash-patterns: "^gh issue create( |$),^gh api .*[^ |-],^gh api .*[^ ||-],^gh (--version|version)$"
+      extra-bash-patterns: "^gh issue create( |$),^gh api .*[^ |-],^gh (--version|version)$"
       prompt: ${{ inputs.prompt }}
     secrets: inherit
