@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.104](https://github.com/inference-gateway/docs/compare/0.6.103...0.6.104) (2026-06-05)
+
+### 👷 CI
+
+* **infer:** remove redundant regex expression ([a410ca0](https://github.com/inference-gateway/docs/commit/a410ca0f02dc5c35fa400bff950f2b82918f08d7))
+
 ## [0.6.103](https://github.com/inference-gateway/docs/compare/0.6.102...0.6.103) (2026-06-05)
 
 ### 🐛 Bug Fixes
