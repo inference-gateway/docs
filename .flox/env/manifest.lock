@@ -11,7 +11,7 @@
       "codex": {
         "pkg-path": "codex",
         "pkg-group": "ai",
-        "version": "^0.133.0"
+        "version": "^0.135.0"
       },
       "infer": {
         "flake": "github:inference-gateway/cli/v0.118.0"
@@ -30,27 +30,27 @@
     {
       "attr_path": "codex",
       "broken": false,
-      "derivation": "/nix/store/5dz189nj9xw1pqc4f7d2r9ar53id5gi4-codex-0.133.0.drv",
+      "derivation": "/nix/store/gzs0s2pjs6r703d5ckzpp15z2z9mh4yx-codex-0.135.0.drv",
       "description": "Lightweight coding agent that runs in your terminal",
       "install_id": "codex",
       "license": "Apache-2.0",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=29916453413845e54a65b8a1cf996842300cd299",
-      "name": "codex-0.133.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=331800de5053fcebacf6813adb5db9c9dca22a0c",
+      "name": "codex-0.135.0",
       "pname": "codex",
-      "rev": "29916453413845e54a65b8a1cf996842300cd299",
-      "rev_count": 1003640,
-      "rev_date": "2026-05-23T03:54:30Z",
-      "scrape_date": "2026-05-24T07:05:50.764279Z",
+      "rev": "331800de5053fcebacf6813adb5db9c9dca22a0c",
+      "rev_count": 1008282,
+      "rev_date": "2026-05-31T16:09:29Z",
+      "scrape_date": "2026-06-02T08:55:40.294021Z",
       "stabilities": [
         "unstable"
       ],
       "unfree": false,
-      "version": "0.133.0",
+      "version": "0.135.0",
       "outputs_to_install": [
         "out"
       ],
       "outputs": {
-        "out": "/nix/store/3989mh54c44d6lrjyrapk37187brwkgf-codex-0.133.0"
+        "out": "/nix/store/l6p2maazc8iljiz8iv34dkppk7lvk7ni-codex-0.135.0"
       },
       "system": "aarch64-darwin",
       "group": "ai",
@@ -59,27 +59,27 @@
     {
       "attr_path": "codex",
       "broken": false,
-      "derivation": "/nix/store/8ihs927bfq5g61psjhjj4adf6w5y35px-codex-0.133.0.drv",
+      "derivation": "/nix/store/djxbjp6sx9xwmkgf9yy41vik8kdyhix5-codex-0.135.0.drv",
       "description": "Lightweight coding agent that runs in your terminal",
       "install_id": "codex",
       "license": "Apache-2.0",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=29916453413845e54a65b8a1cf996842300cd299",
-      "name": "codex-0.133.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=331800de5053fcebacf6813adb5db9c9dca22a0c",
+      "name": "codex-0.135.0",
       "pname": "codex",
-      "rev": "29916453413845e54a65b8a1cf996842300cd299",
-      "rev_count": 1003640,
-      "rev_date": "2026-05-23T03:54:30Z",
-      "scrape_date": "2026-05-24T07:34:04.560076Z",
+      "rev": "331800de5053fcebacf6813adb5db9c9dca22a0c",
+      "rev_count": 1008282,
+      "rev_date": "2026-05-31T16:09:29Z",
+      "scrape_date": "2026-06-02T09:40:19.446424Z",
       "stabilities": [
         "unstable"
       ],
       "unfree": false,
-      "version": "0.133.0",
+      "version": "0.135.0",
       "outputs_to_install": [
         "out"
       ],
       "outputs": {
-        "out": "/nix/store/4jgv6y03chvad2qh77xnbi9805vdb8sc-codex-0.133.0"
+        "out": "/nix/store/ywsap0cn6xx7pawpa07bcc7yxlvmfl0r-codex-0.135.0"
       },
       "system": "aarch64-linux",
       "group": "ai",
@@ -88,27 +88,27 @@
     {
       "attr_path": "codex",
       "broken": false,
-      "derivation": "/nix/store/qj0s11mbagm6cda86nspd4k0008jg7k4-codex-0.133.0.drv",
+      "derivation": "/nix/store/aq0sbnzf9y676868ckh9gvp9hy2ndqa1-codex-0.135.0.drv",
       "description": "Lightweight coding agent that runs in your terminal",
       "install_id": "codex",
       "license": "Apache-2.0",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=29916453413845e54a65b8a1cf996842300cd299",
-      "name": "codex-0.133.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=331800de5053fcebacf6813adb5db9c9dca22a0c",
+      "name": "codex-0.135.0",
       "pname": "codex",
-      "rev": "29916453413845e54a65b8a1cf996842300cd299",
-      "rev_count": 1003640,
-      "rev_date": "2026-05-23T03:54:30Z",
-      "scrape_date": "2026-05-24T08:01:32.382001Z",
+      "rev": "331800de5053fcebacf6813adb5db9c9dca22a0c",
+      "rev_count": 1008282,
+      "rev_date": "2026-05-31T16:09:29Z",
+      "scrape_date": "2026-06-02T10:24:47.448521Z",
       "stabilities": [
         "unstable"
       ],
       "unfree": false,
-      "version": "0.133.0",
+      "version": "0.135.0",
       "outputs_to_install": [
         "out"
       ],
       "outputs": {
-        "out": "/nix/store/mb01qnylk0q6vdzq6v6wlkw4w0pmd1fl-codex-0.133.0"
+        "out": "/nix/store/70qxp4l1gs24gsx0v4pqmyw45jplx8yz-codex-0.135.0"
       },
       "system": "x86_64-darwin",
       "group": "ai",
@@ -117,27 +117,27 @@
     {
       "attr_path": "codex",
       "broken": false,
-      "derivation": "/nix/store/q7gzwxqks72r9czqxy7va057xqiji8cf-codex-0.133.0.drv",
+      "derivation": "/nix/store/swrcc8r0z2kp41ga0j6jf6ig10kli5qv-codex-0.135.0.drv",
       "description": "Lightweight coding agent that runs in your terminal",
       "install_id": "codex",
       "license": "Apache-2.0",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=29916453413845e54a65b8a1cf996842300cd299",
-      "name": "codex-0.133.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=331800de5053fcebacf6813adb5db9c9dca22a0c",
+      "name": "codex-0.135.0",
       "pname": "codex",
-      "rev": "29916453413845e54a65b8a1cf996842300cd299",
-      "rev_count": 1003640,
-      "rev_date": "2026-05-23T03:54:30Z",
-      "scrape_date": "2026-05-24T08:31:55.803341Z",
+      "rev": "331800de5053fcebacf6813adb5db9c9dca22a0c",
+      "rev_count": 1008282,
+      "rev_date": "2026-05-31T16:09:29Z",
+      "scrape_date": "2026-06-02T11:06:43.030616Z",
       "stabilities": [
         "unstable"
       ],
       "unfree": false,
-      "version": "0.133.0",
+      "version": "0.135.0",
       "outputs_to_install": [
         "out"
       ],
       "outputs": {
-        "out": "/nix/store/397dbj9vas9p2yb905wsnx4jvskjnx3h-codex-0.133.0"
+        "out": "/nix/store/q1j9qd6h3cvbbi24q6mr5b5x4ia5q0kd-codex-0.135.0"
       },
       "system": "x86_64-linux",
       "group": "ai",
@@ -262,17 +262,17 @@
     {
       "attr_path": "nodejs_24",
       "broken": false,
-      "derivation": "/nix/store/4f7gz4vdm9msfw3958cy6d7b4mn8zcpn-nodejs-24.15.0.drv",
+      "derivation": "/nix/store/vbx35am7lar9zvwhk4nfl3lysmbd0ils-nodejs-24.15.0.drv",
       "description": "Event-driven I/O framework for the V8 JavaScript engine",
       "install_id": "nodejs",
       "license": "MIT",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=29916453413845e54a65b8a1cf996842300cd299",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=331800de5053fcebacf6813adb5db9c9dca22a0c",
       "name": "nodejs-24.15.0",
       "pname": "nodejs_24",
-      "rev": "29916453413845e54a65b8a1cf996842300cd299",
-      "rev_count": 1003640,
-      "rev_date": "2026-05-23T03:54:30Z",
-      "scrape_date": "2026-05-24T07:06:15.301055Z",
+      "rev": "331800de5053fcebacf6813adb5db9c9dca22a0c",
+      "rev_count": 1008282,
+      "rev_date": "2026-05-31T16:09:29Z",
+      "scrape_date": "2026-06-02T08:56:05.116399Z",
       "stabilities": [
         "unstable"
       ],
@@ -291,17 +291,17 @@
     {
       "attr_path": "nodejs_24",
       "broken": false,
-      "derivation": "/nix/store/lzdf2d8kky8k67nqjv07r9zbcqmihns7-nodejs-24.15.0.drv",
+      "derivation": "/nix/store/zc41z1042wi0d1gmyc8mlwv5av8fds2q-nodejs-24.15.0.drv",
       "description": "Event-driven I/O framework for the V8 JavaScript engine",
       "install_id": "nodejs",
       "license": "MIT",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=29916453413845e54a65b8a1cf996842300cd299",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=331800de5053fcebacf6813adb5db9c9dca22a0c",
       "name": "nodejs-24.15.0",
       "pname": "nodejs_24",
-      "rev": "29916453413845e54a65b8a1cf996842300cd299",
-      "rev_count": 1003640,
-      "rev_date": "2026-05-23T03:54:30Z",
-      "scrape_date": "2026-05-24T07:34:42.815905Z",
+      "rev": "331800de5053fcebacf6813adb5db9c9dca22a0c",
+      "rev_count": 1008282,
+      "rev_date": "2026-05-31T16:09:29Z",
+      "scrape_date": "2026-06-02T09:40:59.223548Z",
       "stabilities": [
         "unstable"
       ],
@@ -320,17 +320,17 @@
     {
       "attr_path": "nodejs_24",
       "broken": false,
-      "derivation": "/nix/store/3q3jmp4ahvdy9dr6zhwsd2zhv12nw3d2-nodejs-24.15.0.drv",
+      "derivation": "/nix/store/f0ay9hny5gn4c0lfrb95xrakm7yf3s2q-nodejs-24.15.0.drv",
       "description": "Event-driven I/O framework for the V8 JavaScript engine",
       "install_id": "nodejs",
       "license": "MIT",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=29916453413845e54a65b8a1cf996842300cd299",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=331800de5053fcebacf6813adb5db9c9dca22a0c",
       "name": "nodejs-24.15.0",
       "pname": "nodejs_24",
-      "rev": "29916453413845e54a65b8a1cf996842300cd299",
-      "rev_count": 1003640,
-      "rev_date": "2026-05-23T03:54:30Z",
-      "scrape_date": "2026-05-24T08:01:57.475640Z",
+      "rev": "331800de5053fcebacf6813adb5db9c9dca22a0c",
+      "rev_count": 1008282,
+      "rev_date": "2026-05-31T16:09:29Z",
+      "scrape_date": "2026-06-02T10:25:13.039295Z",
       "stabilities": [
         "unstable"
       ],
@@ -349,17 +349,17 @@
     {
       "attr_path": "nodejs_24",
       "broken": false,
-      "derivation": "/nix/store/jk98cvnvcb5adz3d58r8x6zxrvnhlng0-nodejs-24.15.0.drv",
+      "derivation": "/nix/store/f8i8jydaqs0ngxm97c091zna2mnjb43f-nodejs-24.15.0.drv",
       "description": "Event-driven I/O framework for the V8 JavaScript engine",
       "install_id": "nodejs",
       "license": "MIT",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=29916453413845e54a65b8a1cf996842300cd299",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=331800de5053fcebacf6813adb5db9c9dca22a0c",
       "name": "nodejs-24.15.0",
       "pname": "nodejs_24",
-      "rev": "29916453413845e54a65b8a1cf996842300cd299",
-      "rev_count": 1003640,
-      "rev_date": "2026-05-23T03:54:30Z",
-      "scrape_date": "2026-05-24T08:32:36.292744Z",
+      "rev": "331800de5053fcebacf6813adb5db9c9dca22a0c",
+      "rev_count": 1008282,
+      "rev_date": "2026-05-31T16:09:29Z",
+      "scrape_date": "2026-06-02T11:07:24.676553Z",
       "stabilities": [
         "unstable"
       ],
