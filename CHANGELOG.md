@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.102](https://github.com/inference-gateway/docs/compare/0.6.101...0.6.102) (2026-06-05)
+
+### 📚 Documentation
+
+* add AGENTS.md file ([d496a38](https://github.com/inference-gateway/docs/commit/d496a3842f5033c4e64a2215ad07d95806c3878a))
+
 ## [0.6.101](https://github.com/inference-gateway/docs/compare/0.6.100...0.6.101) (2026-06-05)
 
 ### 🔧 Miscellaneous
