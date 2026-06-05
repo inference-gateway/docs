@@ -20,7 +20,7 @@ Inference Gateway provides a unified interface to interact with multiple LLM pro
 | Ollama     | Optional API key | `http://ollama:8080/v1`                                         | Yes - LLaVA, Llama 4, Llama 3.2 Vision                     |
 | Google     | Bearer Token     | `https://generativelanguage.googleapis.com/v1beta/openai`       | Yes - Gemini 3 Flash, Gemini 3 Pro                         |
 | Mistral    | Bearer Token     | `https://api.mistral.ai/v1`                                     | Yes - Pixtral Large, Ministral 3, Mistral Large 3          |
-| Moonshot   | Bearer Token     | `https://api.moonshot.ai/v1`                                    | Yes - Kimi K2, Kimi K2 Thinking                            |
+| Moonshot   | Bearer Token     | `https://api.moonshot.ai/v1`                                    | No                                                         |
 
 ## Vision/Multimodal Support
 
@@ -41,7 +41,6 @@ ENABLE_VISION=true
 - **Ollama**: LLaVA, Llama 4, Llama 3.2 Vision
 - **Groq**: Vision models
 - **Mistral**: Pixtral Large, Ministral 3, Mistral Large 3
-- **Moonshot**: Kimi K2, Kimi K2 Thinking
 
 ### Example Vision Request
 
