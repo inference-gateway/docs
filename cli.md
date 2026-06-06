@@ -24,6 +24,24 @@ The Inference Gateway CLI (`infer`) is a powerful Go-based command-line tool pro
 
 ## Installation
 
+### npm / npx (Recommended)
+
+Run the CLI without installing anything (requires Node.js >= 18). The matching native binary is downloaded and cached on first use:
+
+```bash
+npx @inference-gateway/cli@latest --help
+npx @inference-gateway/cli@latest chat
+```
+
+Or install it globally:
+
+```bash
+npm install -g @inference-gateway/cli
+infer --help
+```
+
+Not recommended for production - prefer the install script or building from source. Prebuilt binaries cover Linux and macOS on amd64/arm64 (on Windows, use WSL).
+
 ### Install Script (Recommended)
 
 ```bash
