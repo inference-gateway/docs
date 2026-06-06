@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.109](https://github.com/inference-gateway/docs/compare/0.6.108...0.6.109) (2026-06-06)
+
+### 📚 Documentation
+
+* update Moonshot vision models and add vision request example ([#187](https://github.com/inference-gateway/docs/issues/187)) ([77638b5](https://github.com/inference-gateway/docs/commit/77638b5278bdce9ef512f57caf587efe9b1adfcf)), closes [#54](https://github.com/inference-gateway/docs/issues/54) [#186](https://github.com/inference-gateway/docs/issues/186)
+
 ## [0.6.108](https://github.com/inference-gateway/docs/compare/0.6.107...0.6.108) (2026-06-06)
 
 ### 👷 CI
