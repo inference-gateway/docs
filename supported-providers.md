@@ -1,6 +1,6 @@
 ---
 title: Supported Providers
-description: Provider matrix for Inference Gateway covering OpenAI, Anthropic, Cohere, Groq, Cloudflare, Ollama, Google, DeepSeek, Mistral and Moonshot, with auth modes, default URLs, vision support, and per-provider request examples.
+description: Provider matrix for Inference Gateway covering OpenAI, Anthropic, Cohere, Groq, Cloudflare, Ollama, Ollama Cloud, Google, DeepSeek, Mistral and Moonshot, with auth modes, default URLs, vision support, and per-provider request examples.
 ---
 
 # Supported Providers
@@ -9,18 +9,19 @@ Inference Gateway provides a unified interface to interact with multiple LLM pro
 
 ## Available Providers
 
-| Provider   | Auth             | Default URL                                                     | Vision Support                                             |
-| ---------- | ---------------- | --------------------------------------------------------------- | ---------------------------------------------------------- |
-| OpenAI     | Bearer Token     | `https://api.openai.com/v1`                                     | Yes - GPT-5 series, GPT-4.1, GPT-4o                        |
-| DeepSeek   | Bearer Token     | `https://api.deepseek.com`                                      | No                                                         |
-| Anthropic  | X-Header         | `https://api.anthropic.com/v1`                                  | Yes - Claude Opus 4.8, Claude Sonnet 4.6, Claude Haiku 4.5 |
-| Cohere     | Bearer Token     | `https://api.cohere.ai`                                         | Yes - Command A Vision                                     |
-| Groq       | Bearer Token     | `https://api.groq.com/openai/v1`                                | Yes - vision models                                        |
-| Cloudflare | Bearer Token     | `https://api.cloudflare.com/client/v4/accounts/{ACCOUNT_ID}/ai` | No                                                         |
-| Ollama     | Optional API key | `http://ollama:8080/v1`                                         | Yes - LLaVA, Llama 4, Llama 3.2 Vision                     |
-| Google     | Bearer Token     | `https://generativelanguage.googleapis.com/v1beta/openai`       | Yes - Gemini 3 Flash, Gemini 3 Pro                         |
-| Mistral    | Bearer Token     | `https://api.mistral.ai/v1`                                     | Yes - Pixtral Large, Ministral 3, Mistral Large 3          |
-| Moonshot   | Bearer Token     | `https://api.moonshot.ai/v1`                                    | Yes - Kimi K2, Kimi K2 Thinking                            |
+| Provider     | Auth             | Default URL                                                     | Vision Support                                             |
+| ------------ | ---------------- | --------------------------------------------------------------- | ---------------------------------------------------------- |
+| OpenAI       | Bearer Token     | `https://api.openai.com/v1`                                     | Yes - GPT-5 series, GPT-4.1, GPT-4o                        |
+| DeepSeek     | Bearer Token     | `https://api.deepseek.com`                                      | No                                                         |
+| Anthropic    | X-Header         | `https://api.anthropic.com/v1`                                  | Yes - Claude Opus 4.8, Claude Sonnet 4.6, Claude Haiku 4.5 |
+| Cohere       | Bearer Token     | `https://api.cohere.ai`                                         | Yes - Command A Vision                                     |
+| Groq         | Bearer Token     | `https://api.groq.com/openai/v1`                                | Yes - vision models                                        |
+| Cloudflare   | Bearer Token     | `https://api.cloudflare.com/client/v4/accounts/{ACCOUNT_ID}/ai` | No                                                         |
+| Ollama       | Optional API key | `http://ollama:8080/v1`                                         | Yes - LLaVA, Llama 4, Llama 3.2 Vision                     |
+| Ollama Cloud | Bearer Token     | `https://ollama.com/v1`                                         | Yes - cloud-hosted vision models                           |
+| Google       | Bearer Token     | `https://generativelanguage.googleapis.com/v1beta/openai`       | Yes - Gemini 3 Flash, Gemini 3 Pro                         |
+| Mistral      | Bearer Token     | `https://api.mistral.ai/v1`                                     | Yes - Pixtral Large, Ministral 3, Mistral Large 3          |
+| Moonshot     | Bearer Token     | `https://api.moonshot.ai/v1`                                    | Yes - Kimi K2, Kimi K2 Thinking                            |
 
 ## Vision/Multimodal Support
 
@@ -39,6 +40,7 @@ ENABLE_VISION=true
 - **Google**: Gemini 3 Flash, Gemini 3 Pro
 - **Cohere**: Command A Vision
 - **Ollama**: LLaVA, Llama 4, Llama 3.2 Vision
+- **Ollama Cloud**: Cloud-hosted vision models
 - **Groq**: Vision models
 - **Mistral**: Pixtral Large, Ministral 3, Mistral Large 3
 - **Moonshot**: Kimi K2, Kimi K2 Thinking
@@ -79,7 +81,7 @@ Each provider requires specific configuration through environment variables:
 - `PROVIDER_API_URL`: The base URL for the provider's API
 - `PROVIDER_API_KEY`: The authentication key for the provider
 
-Replace "PROVIDER" with the provider name (uppercase): OPENAI, ANTHROPIC, COHERE, GROQ, CLOUDFLARE, OLLAMA, GOOGLE, DEEPSEEK, MISTRAL, MOONSHOT.
+Replace "PROVIDER" with the provider name (uppercase): OPENAI, ANTHROPIC, COHERE, GROQ, CLOUDFLARE, OLLAMA, OLLAMA_CLOUD, GOOGLE, DEEPSEEK, MISTRAL, MOONSHOT.
 
 ### API Endpoints
 
@@ -288,6 +290,28 @@ curl -X POST http://localhost:8080/v1/chat/completions \
       {
         "role": "user",
         "content": "Write a function to calculate Fibonacci numbers in Python."
+      }
+    ]
+  }'
+```
+
+### Ollama Cloud Provider
+
+Generate content with Ollama's cloud-hosted models:
+
+```bash
+curl -X POST http://localhost:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "ollama_cloud/gpt-oss:120b",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a helpful assistant."
+      },
+      {
+        "role": "user",
+        "content": "Summarize the benefits of running models in the cloud."
       }
     ]
   }'
