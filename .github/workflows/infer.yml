@@ -37,10 +37,9 @@ jobs:
       contents: write
       pull-requests: write
       issues: write
-    uses: inference-gateway/.github/.github/workflows/infer.yml@v0.7.1
+    uses: inference-gateway/.github/.github/workflows/infer.yml@v0.7.2
     with:
       language: "node"
       markdownlint: true
-      extra-bash-patterns: "^gh issue create( |$),^gh api .*[^ |-],^gh (--version|version)$"
       prompt: ${{ inputs.prompt }}
     secrets: inherit
