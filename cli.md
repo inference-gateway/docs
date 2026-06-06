@@ -620,6 +620,27 @@ tools:
     require_approval: false
 ```
 
+**Restricted operators:**
+
+The matcher is shell-aware, so a whitelisted command cannot be composed into something more dangerous:
+
+- **Pipes and chains** (`|`, `&&`, `||`, `;`) are split at the top level and **every segment must be independently whitelisted**. `ls | head` is allowed only if both `ls` and `head` are; `ls | xargs rm` is rejected because `xargs rm` is not.
+- **File-write redirections** (`>`, `>>`, `&>file`, `>&file`) are **blocked by default**, even for a whitelisted command (`echo secret > /etc/passwd` is rejected). They are allowed only when a whitelist **pattern** matches the _entire_ command - a prefix pattern such as `^git log` will not unlock `git log > file`.
+- **Benign redirections** that only discard or merge streams (`2>&1`, `>/dev/null`, `2>/dev/null`) are stripped before matching and remain allowed.
+- **Command substitution** (`$(...)`, backticks, `<(...)`, `>(...)`) is always rejected.
+
+To deliberately allow a redirection, add an anchored pattern (`^...$`) that covers the whole command:
+
+```yaml
+tools:
+  bash:
+    whitelist:
+      patterns:
+        - ^echo .+ >> /var/log/app\.log$ # allow appending to one specific file
+```
+
+A rejected command returns explanatory feedback naming the restricted operator and pointing at `tools.bash.whitelist.patterns`, and (when approval is enabled) still goes through the normal approval prompt.
+
 #### BashOutput, KillShell, ListShells
 
 Background-shell management. These tools are only registered when `tools.bash.background_shells.enabled: true`.
@@ -864,6 +885,10 @@ export INFER_GATEWAY_API_KEY="your-api-key"
 export INFER_AGENT_MODEL="deepseek/deepseek-v4-flash"
 export INFER_LOGGING_DEBUG="true"
 export GITHUB_TOKEN="your-github-token"  # used by the gh CLI credential chain for GitHub operations
+
+# Bash whitelist (comma-separated)
+export INFER_TOOLS_BASH_WHITELIST_COMMANDS="ls,pwd,git"
+export INFER_TOOLS_BASH_WHITELIST_PATTERNS="^git status$,^npm (install|test|run).*"
 ```
 
 ### Configuration Commands
@@ -1596,6 +1621,8 @@ tools:
 ```
 
 Non-destructive `gh` operations are whitelisted by default so the agent can work with GitHub out of the box; destructive ones (for example `gh pr merge`, `gh repo delete`) fall through to approval. See [GitHub Operations](#github-operations) for the full list.
+
+The matcher is shell-aware: see [Restricted operators](#bash) for how pipes, file-write redirections, and command substitution are handled, and how to allow a specific redirect with an anchored pattern.
 
 ### Protected Paths
 
