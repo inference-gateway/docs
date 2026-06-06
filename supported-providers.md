@@ -21,7 +21,7 @@ Inference Gateway provides a unified interface to interact with multiple LLM pro
 | Ollama Cloud | Bearer Token     | `https://ollama.com/v1`                                         | Yes - cloud-hosted vision models                           |
 | Google       | Bearer Token     | `https://generativelanguage.googleapis.com/v1beta/openai`       | Yes - Gemini 3 Flash, Gemini 3 Pro                         |
 | Mistral      | Bearer Token     | `https://api.mistral.ai/v1`                                     | Yes - Pixtral Large, Ministral 3, Mistral Large 3          |
-| Moonshot     | Bearer Token     | `https://api.moonshot.ai/v1`                                    | Yes - Kimi K2, Kimi K2 Thinking                            |
+| Moonshot     | Bearer Token     | `https://api.moonshot.ai/v1`                                    | No                                                         |
 
 ## Vision/Multimodal Support
 
@@ -43,7 +43,6 @@ ENABLE_VISION=true
 - **Ollama Cloud**: Cloud-hosted vision models
 - **Groq**: Vision models
 - **Mistral**: Pixtral Large, Ministral 3, Mistral Large 3
-- **Moonshot**: Kimi K2, Kimi K2 Thinking
 
 ### Example Vision Request
 
