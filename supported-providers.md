@@ -21,7 +21,7 @@ Inference Gateway provides a unified interface to interact with multiple LLM pro
 | Ollama Cloud | Bearer Token     | `https://ollama.com/v1`                                         | Yes - cloud-hosted vision models                           |
 | Google       | Bearer Token     | `https://generativelanguage.googleapis.com/v1beta/openai`       | Yes - Gemini 3 Flash, Gemini 3 Pro                         |
 | Mistral      | Bearer Token     | `https://api.mistral.ai/v1`                                     | Yes - Pixtral Large, Ministral 3, Mistral Large 3          |
-| Moonshot     | Bearer Token     | `https://api.moonshot.ai/v1`                                    | Yes - Kimi K2, Kimi K2 Thinking                            |
+| Moonshot     | Bearer Token     | `https://api.moonshot.ai/v1`                                    | Yes - moonshot-v1-\*-vision-preview, kimi-k2.5, kimi-k2.6  |
 
 ## Vision/Multimodal Support
 
@@ -43,7 +43,7 @@ ENABLE_VISION=true
 - **Ollama Cloud**: Cloud-hosted vision models
 - **Groq**: Vision models
 - **Mistral**: Pixtral Large, Ministral 3, Mistral Large 3
-- **Moonshot**: Kimi K2, Kimi K2 Thinking
+- **Moonshot**: moonshot-v1-\*-vision-preview, kimi-k2.5, kimi-k2.6
 
 ### Example Vision Request
 
@@ -380,6 +380,33 @@ curl -X POST http://localhost:8080/v1/chat/completions \
       {
         "role": "user",
         "content": "What are the key principles of clean code?"
+      }
+    ]
+  }'
+```
+
+Generate content with a Moonshot vision model, using an image URL:
+
+```bash
+curl -X POST http://localhost:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "moonshot/kimi-k2.5",
+    "messages": [
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "What is in this image?"
+          },
+          {
+            "type": "image_url",
+            "image_url": {
+              "url": "https://example.com/image.jpg"
+            }
+          }
+        ]
       }
     ]
   }'
