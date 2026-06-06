@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.108](https://github.com/inference-gateway/docs/compare/0.6.107...0.6.108) (2026-06-06)
+
+### 👷 CI
+
+* isolate codex in its own flox pkg-group ([#181](https://github.com/inference-gateway/docs/issues/181)) ([19507eb](https://github.com/inference-gateway/docs/commit/19507eb23ab226b24b15fe219d6b16401ab388d0))
+* switch release to manual trigger only ([e46bba5](https://github.com/inference-gateway/docs/commit/e46bba5b7994daf0913d96ac56b92e7612a3f158))
+
+### 📚 Documentation
+
+* add Ollama Cloud to supported providers ([#180](https://github.com/inference-gateway/docs/issues/180)) ([fbe4f4a](https://github.com/inference-gateway/docs/commit/fbe4f4a268f07016e3aff961c2b075912c4a0928))
+* **cli:** document npm/npx installation for the CLI ([#185](https://github.com/inference-gateway/docs/issues/185)) ([08cd0ad](https://github.com/inference-gateway/docs/commit/08cd0aded959a419e7360e7470e3ed3bead04599)), closes [#182](https://github.com/inference-gateway/docs/issues/182)
+
+### 🔧 Miscellaneous
+
+* **deps:** bump infer CLI v0.118.0 -> v0.119.0, infer-action v0.11.3 -> v0.11.4 ([#183](https://github.com/inference-gateway/docs/issues/183)) ([2c34736](https://github.com/inference-gateway/docs/commit/2c3473694692c18066371dff59837da4eb697e83))
+
 ## [0.6.107](https://github.com/inference-gateway/docs/compare/0.6.106...0.6.107) (2026-06-05)
 
 ### 🔧 Miscellaneous
