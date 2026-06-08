@@ -23,7 +23,7 @@ Inference Gateway offers a unified API layer to interact with multiple LLM provi
 
 ## Development
 
-This documentation site is built with Next.js.
+This documentation site is built with **VitePress** 1.x and Vue 3.
 
 ```bash
 # Install dependencies
@@ -31,17 +31,31 @@ npm install
 
 # Start development server
 npm run dev
+
+# Static build → .vitepress/dist/
+npm run build
+
+# Markdown linting
+npm run lint:md
+
+# Prettier formatting
+npm run format
+npm run format:check
 ```
 
-You can use flox for a consistent development environment. The flox environment is configured with all the necessary tools and extensions for development.
+You can use **flox** for a consistent development environment (configured in `.flox/env/manifest.toml`).
+
+> See [`AGENTS.md`](./AGENTS.md) or [`CLAUDE.md`](./CLAUDE.md) for the full list of commands and development conventions.
 
 ## Contributing
 
 Contributions to improve the documentation are welcome! You can:
 
-1. Edit existing MDX files in the markdown directory
-2. Add new documentation pages
+1. Edit existing Markdown files at the repo root (each `*.md` file becomes a page)
+2. Add new documentation pages by creating `*.md` files at the repo root
 3. Improve the site's design and functionality
+
+> This site migrated from Next.js/MDX to VitePress. Content is authored as plain Markdown (`.md`) files — no `markdown/` directory or MDX extension is used.
 
 ## License
 
