@@ -59,7 +59,7 @@ Open an issue (or comment on one) containing `@infer` and the workflow takes ove
 2. **Reaction + cooking message** - on a hit, the action adds an `:eyes:` reaction to the trigger comment and posts a placeholder "I'm cooking..." comment. Stale cooking messages from earlier runs are cleaned up.
 3. **CLI install** - downloads `infer` at the pinned `version` and runs `infer init --overwrite`.
 4. **Git config** - sets `git user.name` / `user.email` to the `github-actions[bot]` identity so any commits the agent makes have a valid author.
-5. **Agent run** - executes the agent with the selected `model` and provider API keys. The bash whitelist is augmented with `gh` and `git` unless `enable-git-operations: false`.
+5. **Agent run** - executes the agent with the selected `model` and provider API keys. The bash allow-list is augmented with `gh` and `git` unless `enable-git-operations: false`.
 6. **PR creation** - when the agent produces file changes, it creates `fix/issue-{number}`, commits, pushes, and opens a PR titled `Fix #{number}: ...` with `Resolves #{number}` in the body.
 7. **Result posting** - the final comment summarises completed work and the model used, links the PR if any, and appends a footer with token usage, per-session cost, and the agent's tool-call count and success rate (see [Result comment](#result-comment)).
 
@@ -112,10 +112,10 @@ The total and failed tool-call counts are also exposed as the `total-tool-calls-
 | `version`                 | No       | `v0.68.3` | `infer` CLI version to install inside the runner.                                                                                                                                                                                                                                              |
 | `max-turns`               | No       | `50`      | Maximum agent iterations - acts as a runaway-cost guard.                                                                                                                                                                                                                                       |
 | `custom-instructions`     | No       | `''`      | Extra instructions appended to the default system prompt (does **not** replace the defaults).                                                                                                                                                                                                  |
-| `bash-whitelist-commands` | No       | `''`      | Comma-separated commands added to the bash whitelist (e.g. `npm,yarn,pnpm`).                                                                                                                                                                                                                   |
-| `bash-whitelist-patterns` | No       | `''`      | Comma-separated regex patterns added to the bash whitelist (e.g. `^npm .*,^yarn .*`).                                                                                                                                                                                                          |
-| `enable-git-operations`   | No       | `true`    | When `false`, the agent runs in comment-only mode - `git`/`gh` are not whitelisted and no PRs are created.                                                                                                                                                                                     |
-| `dry-run`                 | No       | `false`   | Plan-only local-testing mode (e.g. with `act`): forces the bundled mock agent, simulates every GitHub mutation (`[dry-run] would ...`), and prints the resolved system/task/reminder prompts and tool whitelists. Reads still run. See [Local testing with act](#local-testing-with-act).      |
+| `bash-whitelist-commands` | No       | `''`      | Comma-separated commands appended to the agent's bash allow-list (e.g. `npm,yarn,pnpm`).                                                                                                                                                                                                       |
+| `bash-whitelist-patterns` | No       | `''`      | Comma-separated regex patterns appended to the agent's bash allow-list (e.g. `^npm .*,^yarn .*`).                                                                                                                                                                                              |
+| `enable-git-operations`   | No       | `true`    | When `false`, the agent runs in comment-only mode - `git`/`gh` are not allow-listed and no PRs are created.                                                                                                                                                                                    |
+| `dry-run`                 | No       | `false`   | Plan-only local-testing mode (e.g. with `act`): forces the bundled mock agent, simulates every GitHub mutation (`[dry-run] would ...`), and prints the resolved system/task/reminder prompts and tool allow-lists. Reads still run. See [Local testing with act](#local-testing-with-act).     |
 | `mock-agent-scenario`     | No       | `happy`   | Which scenario the bundled mock agent runs under `dry-run`: `happy`, `failures`, `no-todos`, or `empty`.                                                                                                                                                                                       |
 | `anthropic-api-key`       | No\*     | -         | Required when using an Anthropic model.                                                                                                                                                                                                                                                        |
 | `openai-api-key`          | No\*     | -         | Required when using an OpenAI model.                                                                                                                                                                                                                                                           |
@@ -193,7 +193,7 @@ Set `dry-run: true` to exercise the whole workflow in a **plan-only** mode - ide
 
 - **Forces the bundled mock agent** - no real CLI install and no provider token, so it composes with any `model` without spending anything. (This replaces the former `use-mock-agent` input; use `dry-run: true` instead.)
 - **Simulates every GitHub mutation.** Instead of creating or updating a comment, the `:eyes:` reaction, the "I'm cooking..." comment, comment zones, or the spinner, it logs a `[dry-run] would ...` line. Secret values are still redacted in the printed bodies.
-- **Prints a DRY RUN banner** with the exact system / task / reminder prompts and the resolved bash-command/pattern whitelists and web-fetch domains the agent would receive.
+- **Prints a DRY RUN banner** with the exact system / task / reminder prompts and the resolved bash allow-list and web-fetch domains the agent would receive.
 - **Keeps GitHub reads real** so you see the actual target issue or PR. Reads fail soft when no token is available - a public-repo read still works unauthenticated; otherwise the run warns and continues.
 
 `mock-agent-scenario` selects which scripted run the mock agent performs under dry-run: `happy` (the default - TodoWrite passes, a read, and a commit on a `fix/` branch), `failures` (the happy path with interspersed tool-call failures), `no-todos` (work without any TodoWrite calls), or `empty` (exit immediately with no tool calls).
@@ -326,9 +326,11 @@ jobs:
             - Publish the result via `gh release edit <tag> --notes-file ...`.
 ```
 
-### Whitelisting build tooling
+### Extending the bash allow-list
 
-The default bash whitelist is intentionally narrow. Add what your project needs:
+The default bash allow-list is intentionally narrow (read-only commands plus read-only `gh`; see [Default gh allowed-list](/cli/#default-gh-allowed-list)). Add what your project needs.
+
+The action exposes inputs that append to the agent's allow-list:
 
 ```yaml
 - uses: inference-gateway/infer-action@v0.10.1
@@ -340,7 +342,37 @@ The default bash whitelist is intentionally narrow. Add what your project needs:
     bash-whitelist-patterns: '^npm run .*,^yarn .*,^pytest .*'
 ```
 
-The whitelisted entries are **added** to the defaults - they do not replace them.
+The added entries are **appended** to the defaults - they do not replace them.
+
+You can also append at the CLI layer with the `INFER_TOOLS_BASH_ALLOW_APPEND` environment variable (comma- or newline-separated), which merges onto the every-mode `mode.all` baseline. Handy for adding a couple of commands - for example letting a release agent commit and push without shipping the unrestricted `.*` sentinel:
+
+```yaml
+- uses: inference-gateway/infer-action@v0.10.1
+  env:
+    INFER_TOOLS_BASH_ALLOW_APPEND: 'git commit,git push'
+  with:
+    github-token: ${{ secrets.GITHUB_TOKEN }}
+    model: anthropic/claude-opus-4-8
+    anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+```
+
+### Controlled-autonomy CI profile
+
+A headless `infer agent` is [secure-by-default](/cli/#headless-secure-by-default): in CI there is no interactive approver, so any off-list or mutating action is **blocked** rather than auto-run. To let an unattended agent edit files and run a curated command set without prompting, combine a `block` approval behaviour with a relaxed write gate and a curated allow-list - set entirely through environment variables on the step:
+
+```yaml
+- uses: inference-gateway/infer-action@v0.10.1
+  env:
+    INFER_TOOLS_SAFETY_APPROVAL_BEHAVIOUR: block # reject anything that would otherwise prompt
+    INFER_TOOLS_WRITE_REQUIRE_APPROVAL: 'false' # ...but let the agent write/edit files
+    INFER_TOOLS_BASH_ALLOW_APPEND: 'git add,git commit,git push'
+  with:
+    github-token: ${{ secrets.GITHUB_TOKEN }}
+    model: anthropic/claude-opus-4-8
+    anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+```
+
+This is the recommended shape for an autonomous CI agent: explicit about exactly what may run unattended, with everything else hard-blocked rather than silently auto-approved.
 
 ## Secrets and least-privilege
 
@@ -370,7 +402,7 @@ Additional hardening:
 
 - Cap `max-turns` to prevent runaway loops and bound cost. `30-50` covers most issues.
 - Set `enable-git-operations: false` whenever the agent only needs to read and comment.
-- Whitelist bash commands narrowly - only add tools you trust the agent to invoke.
+- Keep the bash allow-list narrow - only add commands you trust the agent to invoke.
 - Pin `inference-gateway/infer-action@<tag>` (not `@main`) so an upstream change cannot silently alter behaviour.
 
 ## CLI wizard integration

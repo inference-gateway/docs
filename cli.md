@@ -267,6 +267,39 @@ infer chat
 
 > Shipped in [inference-gateway/cli#574](https://github.com/inference-gateway/cli/pull/574).
 
+#### Switching models (`/model`)
+
+`/model` is the unified model command - it replaces the deprecated `/switch`:
+
+- `/model <name>` - **permanently** switch the active model for the rest of the session.
+- `/model <name> <prompt...>` - run a **single** message with `<name>`, then restore the session model afterward. Handy for sending one hard question to a stronger model without changing your default.
+- `/model` (no argument) - open the model picker.
+
+```bash
+infer chat
+> /model deepseek/deepseek-v4-pro                              # switch the session model
+> /model anthropic/claude-opus-4-8 Explain this stack trace    # one-off, then restore
+```
+
+> `/switch` is **deprecated** - use `/model <name>`. Shipped in [inference-gateway/cli#618](https://github.com/inference-gateway/cli/pull/618).
+
+#### Diff viewer and git staging
+
+When the agent proposes file changes (or you open a diff), the diff viewer supports **patch-level** staging - select individual lines, split hunks, and stage or unstage everything at once. All keys are configurable in `.infer/keybindings.yaml` (category `diff_viewer`); the defaults:
+
+| Key                 | Action                                                                        |
+| ------------------- | ----------------------------------------------------------------------------- |
+| `space` / `v`       | Start or clear a line-range selection within the current hunk                 |
+| `a` / `u` / `enter` | Apply (stage/unstage) the selected lines - or the whole hunk if none selected |
+| `s`                 | Split the current hunk into smaller, independently stageable blocks           |
+| `]` / `[`           | Jump to the next / previous hunk                                              |
+| `A`                 | Stage **all** changes (`git add -A`, including untracked files and deletions) |
+| `U`                 | Unstage **all** changes (`git reset -q HEAD`)                                 |
+
+Select a range with `space`/`v`, navigate, then apply to stage just those lines - or split a mixed hunk with `s` and stage each block separately. The footer hint reflects whether a selection is active, and hides `discard` when a staged file is selected (discard only applies to unstaged changes).
+
+> Shipped in [inference-gateway/cli#618](https://github.com/inference-gateway/cli/pull/618).
+
 ## Agent Modes
 
 Toggle between modes anytime during chat using **Shift+Tab**.
@@ -311,6 +344,8 @@ infer chat
 
 **Important for Auto-Accept:** Ensure clean git working tree and backups.
 
+Because the per-action approval gate is off in this mode, the agent runs under a dedicated **destructive-action safety prompt** (`prompts.agent.system_prompt_auto`). It is told to stop and confirm before irreversible operations - deletes, `git push --force`, `git reset --hard`, dropping databases, `rm -rf`, publishing or releasing - to prefer the reversible path when no user is reachable, and never to print or publish a secret value. It falls back to the standard `system_prompt` when left blank.
+
 ### Headless Agent Stream Output
 
 `infer agent <task>` runs the agent non-interactively and writes a **newline-delimited JSON (JSONL) stream** to stdout. Each line is one JSON object with a `type` discriminator, intended for programmatic consumers such as the [`infer-action` GitHub Action](/github-action/). The stream is additive: new `type` values may be introduced over time and consumers should ignore any `type` they do not recognize.
@@ -318,6 +353,8 @@ infer chat
 ```bash
 infer agent "Refactor the authentication module"
 ```
+
+> **Secure by default.** A headless run executes in **standard** mode, so off-list or mutating actions are not auto-run - they are blocked (when no approver is reachable) or sent for IPC approval (under a channel manager). See [Headless secure-by-default](#headless-secure-by-default) to opt into more autonomy.
 
 #### Session stats summary line
 
@@ -527,15 +564,15 @@ When tools are enabled, LLMs have access to a comprehensive suite across multipl
 
 ### Tool Categories
 
-| Category              | Tools                                                                                             | Description                                                                          |
-| --------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| **File System**       | Read, Write, Edit, MultiEdit, Delete, Tree, Grep                                                  | File operations and search with safety controls                                      |
-| **Command Execution** | Bash, BashOutput, KillShell, ListShells                                                           | Whitelisted shell execution (including `gh` for GitHub) and background shell control |
-| **Web**               | WebSearch, WebFetch                                                                               | Internet research and content fetching                                               |
-| **Workflow**          | TodoWrite, Schedule, RequestPlanApproval                                                          | Task tracking, cron jobs, plan-mode approval                                         |
-| **A2A Integration**   | A2A_QueryAgent, A2A_SubmitTask, A2A_QueryTask                                                     | Delegate to specialized agents - see [A2A](/a2a/)                                    |
-| **Computer Use**      | GetLatestScreenshot, MouseMove, MouseClick, MouseScroll, KeyboardType, GetFocusedApp, ActivateApp | GUI automation - see the Computer Use section above                                  |
-| **MCP**               | `MCP_<server>_<tool>`                                                                             | Dynamically registered tools from MCP servers - see [MCP](/mcp/)                     |
+| Category              | Tools                                                                                             | Description                                                                           |
+| --------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| **File System**       | Read, Write, Edit, MultiEdit, Delete, Tree, Grep                                                  | File operations and search with safety controls                                       |
+| **Command Execution** | Bash, BashOutput, KillShell, ListShells                                                           | Allow-listed shell execution (including `gh` for GitHub) and background shell control |
+| **Web**               | WebSearch, WebFetch                                                                               | Internet research and content fetching                                                |
+| **Workflow**          | TodoWrite, Schedule, RequestPlanApproval                                                          | Task tracking, cron jobs, plan-mode approval                                          |
+| **A2A Integration**   | A2A_QueryAgent, A2A_SubmitTask, A2A_QueryTask                                                     | Delegate to specialized agents - see [A2A](/a2a/)                                     |
+| **Computer Use**      | GetLatestScreenshot, MouseMove, MouseClick, MouseScroll, KeyboardType, GetFocusedApp, ActivateApp | GUI automation - see the Computer Use section above                                   |
+| **MCP**               | `MCP_<server>_<tool>`                                                                             | Dynamically registered tools from MCP servers - see [MCP](/mcp/)                      |
 
 ### File System Tools
 
@@ -600,46 +637,66 @@ Powerful regex search across files. Uses `ripgrep` when available, otherwise a b
 
 #### Bash
 
-Execute a whitelisted bash command. Only commands matching the configured whitelist (exact commands or regex patterns) can run.
+Execute a bash command that matches the active mode's **allowed-list**. Matching is **default-deny**: a command auto-runs only when it matches the allowed-list for the current [agent mode](#agent-modes). Anything unmatched falls through to an approval prompt in chat, or is rejected with an actionable hint in headless [`infer agent`](#headless-agent-stream-output). There is no separate deny list.
 
-- **Parameters**: `command` (required - must match the whitelist), `format` (`text` or `json`)
+- **Parameters**: `command` (required), `format` (`text` or `json`)
 - **Approval**: configurable via `tools.bash.require_approval`
+
+##### Per-mode allowed-list
+
+The allowed-list is configured **per [agent mode](#agent-modes)** under `tools.bash.mode.<mode>.allow`. The effective list for a mode is `mode.all.allow` (the every-mode baseline) **unioned** with that mode's own entries:
 
 ```yaml
 tools:
   bash:
     enabled: true
-    whitelist:
-      commands:
-        - ls
-        - pwd
-        - git status
-      patterns:
-        - ^git branch.*
-        - ^npm (install|test|run).*
     require_approval: false
+    mode:
+      all: # baseline applied in every mode
+        allow:
+          - ls( .*)?
+          - pwd( .*)?
+          - git status( .*)?
+          - git diff( .*)?
+      plan: # read-only analysis - usually adds nothing
+        allow: []
+      standard: # default interactive mode
+        allow:
+          - npm (install|test|run).*
+      auto: # Auto-Accept / YOLO mode
+        allow:
+          - .* # unrestricted sentinel
 ```
 
-**Restricted operators:**
+- **Default-deny.** Out of the box only `mode.auto` ships the `.*` sentinel; `mode.plan` and `mode.standard` add nothing on top of `mode.all`, so they reduce to the read-only baseline. GitHub _writes_ (`gh issue/pr create|edit|comment`), `git push`, and `git commit` are **not** in the defaults - they fall through to approval until you add them.
+- **Full-command matching.** Each entry matches the **whole** command, so a bare token like `gh` allows only `gh` - never `gh issue list`. Opt into arguments explicitly with a pattern (`gh issue.*`, `npm (install|test|run).*`); the default entries use a `( .*)?` suffix to allow trailing arguments.
+- **The `.*` sentinel** means _unrestricted_: any single command runs and the clean-command guard below is skipped. It is the default for `mode.auto` (chat's [Auto-Accept mode](#auto-accept-mode), toggled with Shift+Tab) and is an explicit opt-in - **never** a headless default.
 
-The matcher is shell-aware, so a whitelisted command cannot be composed into something more dangerous:
+##### Clean-command guard
 
-- **Pipes and chains** (`|`, `&&`, `||`, `;`) are split at the top level and **every segment must be independently whitelisted**. `ls | head` is allowed only if both `ls` and `head` are; `ls | xargs rm` is rejected because `xargs rm` is not.
-- **File-write redirections** (`>`, `>>`, `&>file`, `>&file`) are **blocked by default**, even for a whitelisted command (`echo secret > /etc/passwd` is rejected). They are allowed only when a whitelist **pattern** matches the _entire_ command - a prefix pattern such as `^git log` will not unlock `git log > file`.
-- **Benign redirections** that only discard or merge streams (`2>&1`, `>/dev/null`, `2>/dev/null`) are stripped before matching and remain allowed.
-- **Command substitution** (`$(...)`, backticks, `<(...)`, `>(...)`) is always rejected.
+For every mode except the `.*` sentinel, each command passes a **clean-command guard** before the allowed-list is consulted. The guard rejects, regardless of the list:
 
-To deliberately allow a redirection, add an anchored pattern (`^...$`) that covers the whole command:
+- **Command substitution** - `$(...)`, backticks, `<(...)`, `>(...)`.
+- **Multi-command chains and pipelines** - a top-level `|`, `&&`, `||`, `;`, `&`, or newline. Operators inside quotes don't count, so `jq '.a | .b'` stays a single command. (This closes the old `echo x | xargs rm` prefix hole.)
+- **File-write redirections** - `>` and `>>`. Benign stream redirects (`2>&1`, `>/dev/null`) are stripped first and remain allowed.
+- **Dangerous `find` actions** - `-exec`, `-delete`, and the like. A bare `find` for read-only discovery is fine.
+- **Environment-variable leaks** - a printing or publishing command (`echo`, `printf`, `gh issue|pr create|comment|edit`) may not expand `$VAR`. So `echo $AWS_SECRET_ACCESS_KEY` is blocked, while `ls $DIR` stays allowed. A single-quoted or escaped `$` is treated literally.
 
-```yaml
-tools:
-  bash:
-    whitelist:
-      patterns:
-        - ^echo .+ >> /var/log/app\.log$ # allow appending to one specific file
+A rejected command returns an actionable hint naming what tripped the guard; the model is told to stop and ask, or use an allowed alternative, rather than retry the same call.
+
+##### Append-only override (CI)
+
+The `mode.all` baseline takes an **append-only override** so CI can add a few safe commands without rewriting config or shipping `.*`:
+
+```bash
+# Comma- or newline-separated; the env var wins over the flag
+export INFER_TOOLS_BASH_ALLOW_APPEND="git commit,git push"
+
+# Flag form
+infer agent "Release the changelog" --tools-bash-allow-append "git commit,git push"
 ```
 
-A rejected command returns explanatory feedback naming the restricted operator and pointing at `tools.bash.whitelist.patterns`, and (when approval is enabled) still goes through the normal approval prompt.
+The extra commands merge onto `mode.all.allow`, so they auto-run in every mode. There is no replace override - the old `tools.bash.whitelist.commands` key, the `INFER_TOOLS_BASH_WHITELIST_COMMANDS[_APPEND]` env vars, and the `--tools-bash-whitelist-commands*` flags were removed in [inference-gateway/cli#618](https://github.com/inference-gateway/cli/pull/618).
 
 #### BashOutput, KillShell, ListShells
 
@@ -669,16 +726,16 @@ tools:
 
 #### WebFetch
 
-Fetch content from a whitelisted URL. Optionally save the response to disk.
+Fetch content from an allowed URL. Optionally save the response to disk.
 
 - **Parameters**: `url` (required), `format` (`text` or `json`), `download` (default `false` - when `true`, saves under `~/.infer/tmp`)
-- **Notes**: only whitelisted domains are allowed; responses are cached (default 15-minute TTL)
+- **Notes**: only allowed domains can be fetched; responses are cached (default 15-minute TTL)
 
 ```yaml
 tools:
   web_fetch:
     enabled: true
-    whitelisted_domains:
+    allowed_domains:
       - golang.org
       - github.com
     safety:
@@ -707,34 +764,38 @@ gh api user --jq .login
 
 **Requirements:** `gh` must be installed and authenticated. It uses the standard `gh` credential chain - run `gh auth login`, or set `GITHUB_TOKEN` (or `GH_TOKEN`). No separate token configuration exists anymore.
 
-#### Default gh whitelist
+#### Default gh allowed-list
 
-GitHub operations run through Bash, so they obey the [Bash whitelist](#command-whitelisting). The default config auto-approves common **non-destructive** `gh` commands:
+GitHub operations run through Bash, so they obey the [Bash allowed-list](#command-allow-listing). The default `mode.all` baseline auto-approves common **read-only** `gh` commands only:
 
-| Auto-approved by default | Examples                                                                             |
-| ------------------------ | ------------------------------------------------------------------------------------ |
-| Read-only reads          | `gh issue list`, `gh pr view 5`, `gh pr diff`, `gh repo view`, `gh release view v1`  |
-| Auth status              | `gh auth status`                                                                     |
-| Issue writes             | `gh issue create`, `gh issue edit 5 --add-label foo`, `gh issue comment 5 --body hi` |
-| PR creation              | `gh pr create --title x --body y`                                                    |
-| Read-only API (GET)      | `gh api repos/o/r/issues`, `gh api user --jq .login`                                 |
+| Auto-approved by default | Examples                                                                            |
+| ------------------------ | ----------------------------------------------------------------------------------- |
+| Read-only reads          | `gh issue list`, `gh pr view 5`, `gh pr diff`, `gh repo view`, `gh release view v1` |
+| Auth status              | `gh auth status`                                                                    |
+| Search                   | `gh search issues kind:bug`, `gh search code "func main"`                           |
+| Read-only project boards | `gh project list`, `gh project view 3`, `gh project item-list 3`                    |
 
-`gh api` is auto-approved **only for GET requests** - a bare endpoint optionally followed by read-only flags (`--paginate`, `--jq`, `-q`). Any mutating call - `-X`/`--method`, `-f`/`-F`/`--field`, or `--input` - is **not** auto-approved.
+**GitHub writes and destructive operations are deliberately left off the defaults.** They are **not** auto-approved - they fall through to the standard approval prompt (in chat) or are blocked (in headless `infer agent`) until you add them to an allowed-list:
 
-**Destructive operations are deliberately left off the whitelist** - for example `gh pr merge`, `gh pr close`, `gh issue delete`, `gh repo delete`, `gh release create`, `gh run cancel`, `gh auth login`, and any mutating `gh api`. They are **not blocked**; they fall through to the standard approval prompt so you can review and confirm them.
+- **Issue / PR writes** - `gh issue create|edit|comment`, `gh pr create`.
+- **Project writes** - `gh project item-add|item-edit`.
+- **Destructive** - `gh pr merge`, `gh pr close`, `gh issue delete`, `gh repo delete`, `gh release create`, `gh run cancel`, `gh auth login`.
+- **Raw `gh api`** - any call. The previous GET-wildcard auto-approval was dropped; a raw-API need is now opt-in per repo.
 
-The shipped whitelist patterns:
+> **Hardened in [inference-gateway/cli#618](https://github.com/inference-gateway/cli/pull/618).** Earlier defaults auto-approved `gh issue/pr` writes and read-only `gh api`. They now require approval - add the specific commands you trust to an allowed-list, or use the [append override](#append-only-override-ci).
+
+The shipped `mode.all` baseline:
 
 ```yaml
 tools:
   bash:
-    whitelist:
-      patterns:
-        - ^gh (issue|pr|repo|release|run|workflow) (list|view|status|diff|checks)( |$)
-        - ^gh auth status( |$)
-        - ^gh issue (create|edit|comment)( |$)
-        - ^gh pr create( |$)
-        - ^gh api [^ -][^ ]*( --paginate| --jq [^ ]+| -q [^ ]+)*$
+    mode:
+      all:
+        allow:
+          - gh (issue|pr|repo|release|run|workflow) (list|view|status|diff|checks)( .*)?
+          - gh auth status( .*)?
+          - gh search (issues|code|prs|repos|commits)( .*)?
+          - gh project (list|view|item-list|field-list)( .*)?
 ```
 
 #### Migration: the built-in GitHub tool was removed
@@ -775,12 +836,12 @@ Submit a completed plan for user approval. Available only in Plan Mode.
 
 ### Security Features
 
-- **Command Whitelisting**: Only approved patterns allowed for Bash tool
+- **Command allow-listing**: Default-deny, per-mode allowed-list for the Bash tool
 - **Approval Prompts**: Safety confirmations for Write/Edit/Delete/Bash
 - **Path Protection**: Sensitive directories automatically excluded (`.git/`, `*.env`, `.infer/`)
 - **Sandbox Controls**: Restrict tool operations to allowed directories
-- **Domain Whitelisting**: Control web fetch access
-- **Diff Preview**: Visual diff before file modifications
+- **Domain allow-listing**: Control web fetch access
+- **Diff Preview**: Colored, syntax-aware diff before file modifications
 
 ### Tool Configuration
 
@@ -809,18 +870,18 @@ infer config get tools
 
 ### Running Tools Directly
 
-Run any enabled tool outside a chat session, or check whether a bash command would pass the whitelist, with the top-level `infer tools` command.
+Run any enabled tool outside a chat session, or check whether a bash command would pass the allowed-list, with the top-level `infer tools` command.
 
 ```bash
 # Execute a tool by name with JSON arguments (tool names are case-insensitive)
 infer tools execute Read '{"file_path":"README.md"}'
 infer tools execute grep '{"pattern":"func main","path":"."}'
 
-# Validate whether a bash command is allowed by the whitelist (without running it)
+# Validate whether a bash command is allowed (without running it)
 infer tools validate "git status"
 ```
 
-`infer tools execute <tool> [json-args]` resolves tool names case-insensitively in the CLI - the agent itself still uses the exact PascalCase names. `infer tools validate <command>` reports whether a bash command would be permitted by the configured whitelist, without executing it.
+`infer tools execute <tool> [json-args]` resolves tool names case-insensitively in the CLI - the agent itself still uses the exact PascalCase names. `infer tools validate <command>` reports whether a bash command would be permitted by the configured allowed-list, without executing it.
 
 > `infer tools execute` and `infer tools validate` moved from `config tools exec`/`config tools validate` to the top-level `infer tools` command in [inference-gateway/cli#601](https://github.com/inference-gateway/cli/pull/601).
 
@@ -858,8 +919,8 @@ Two-layer configuration system with precedence from highest to lowest:
 **Tool Settings:**
 
 - Enable/disable individual tools
-- Approval requirements per tool
-- Command whitelists and patterns
+- Approval requirements per tool (whether) and delivery via `tools.safety.approval_behaviour` (how)
+- Per-mode bash allowed-lists (`tools.bash.mode.<mode>.allow`)
 - Sandbox directories
 - Protected paths
 
@@ -886,9 +947,11 @@ export INFER_AGENT_MODEL="deepseek/deepseek-v4-flash"
 export INFER_LOGGING_DEBUG="true"
 export GITHUB_TOKEN="your-github-token"  # used by the gh CLI credential chain for GitHub operations
 
-# Bash whitelist (comma-separated)
-export INFER_TOOLS_BASH_WHITELIST_COMMANDS="ls,pwd,git"
-export INFER_TOOLS_BASH_WHITELIST_PATTERNS="^git status$,^npm (install|test|run).*"
+# Append a few commands onto the bash allowed-list baseline (comma- or newline-separated)
+export INFER_TOOLS_BASH_ALLOW_APPEND="git commit,git push"
+
+# How a needed approval is delivered: prompt | ipc | block
+export INFER_TOOLS_SAFETY_APPROVAL_BEHAVIOUR="prompt"
 ```
 
 ### Configuration Commands
@@ -915,7 +978,7 @@ infer config set agent.verbose_tools true
 
 # List-valued keys take a comma-separated value (the whole list is replaced)
 infer config set tools.sandbox.directories ".,/work/project"
-infer config set tools.web_fetch.whitelisted_domains "golang.org,github.com"
+infer config set tools.web_fetch.allowed_domains "golang.org,github.com"
 
 # Target the user-global ~/.infer/config.yaml instead of the project .infer/config.yaml
 infer config set agent.model deepseek/deepseek-v4-flash --userspace
@@ -930,23 +993,23 @@ infer config init --overwrite
 
 The per-setting subcommands were removed in [inference-gateway/cli#601](https://github.com/inference-gateway/cli/pull/601) in favor of `config get`/`config set` and the top-level `infer tools` command:
 
-| Old command                            | New command                                          |
-| -------------------------------------- | ---------------------------------------------------- |
-| `config agent set-model X`             | `config set agent.model X`                           |
-| `config agent set-max-turns N`         | `config set agent.max_turns N`                       |
-| `config agent verbose-tools enable`    | `config set agent.verbose_tools true`                |
-| `config agent skills enable`           | `config set agent.skills.enabled true`               |
-| `config tools enable`                  | `config set tools.enabled true`                      |
-| `config tools bash enable`             | `config set tools.bash.enabled true`                 |
-| `config tools safety enable`           | `config set tools.safety.require_approval true`      |
-| `config tools safety set bash enabled` | `config set tools.bash.require_approval true`        |
-| `config tools sandbox add DIR`         | `config set tools.sandbox.directories ".,DIR"`       |
-| `config tools grep set-backend rg`     | `config set tools.grep.backend ripgrep`              |
-| `config tools web-fetch add-domain D`  | `config set tools.web_fetch.whitelisted_domains "D"` |
-| `config export set-model X`            | `config set export.summary_model X`                  |
-| `config show`                          | `config get`                                         |
-| `config tools exec <tool>`             | `tools execute <tool>`                               |
-| `config tools validate <cmd>`          | `tools validate <cmd>`                               |
+| Old command                            | New command                                      |
+| -------------------------------------- | ------------------------------------------------ |
+| `config agent set-model X`             | `config set agent.model X`                       |
+| `config agent set-max-turns N`         | `config set agent.max_turns N`                   |
+| `config agent verbose-tools enable`    | `config set agent.verbose_tools true`            |
+| `config agent skills enable`           | `config set agent.skills.enabled true`           |
+| `config tools enable`                  | `config set tools.enabled true`                  |
+| `config tools bash enable`             | `config set tools.bash.enabled true`             |
+| `config tools safety enable`           | `config set tools.safety.require_approval true`  |
+| `config tools safety set bash enabled` | `config set tools.bash.require_approval true`    |
+| `config tools sandbox add DIR`         | `config set tools.sandbox.directories ".,DIR"`   |
+| `config tools grep set-backend rg`     | `config set tools.grep.backend ripgrep`          |
+| `config tools web-fetch add-domain D`  | `config set tools.web_fetch.allowed_domains "D"` |
+| `config export set-model X`            | `config set export.summary_model X`              |
+| `config show`                          | `config get`                                     |
+| `config tools exec <tool>`             | `tools execute <tool>`                           |
+| `config tools validate <cmd>`          | `tools validate <cmd>`                           |
 
 See the [full configuration reference](https://github.com/inference-gateway/cli/blob/main/docs/configuration.md) for detailed options.
 
@@ -962,6 +1025,7 @@ The CLI provides built-in shortcuts and supports custom user-defined shortcuts.
 | `/init-github-action` | Setup GitHub Action integration                                                                    | `/init-github-action`                     |
 | `/git <cmd>`          | Git operations                                                                                     | `/git status`, `/git commit`, `/git push` |
 | `/scm <cmd>`          | GitHub operations                                                                                  | `/scm pr-create`, `/scm issue view 123`   |
+| `/model [name] [msg]` | Switch the active model, or run one message with another model (replaces `/switch`)                | `/model deepseek/deepseek-v4-pro`         |
 | `/a2a`                | View connected A2A agents                                                                          | `/a2a`                                    |
 | `/skills <cmd>`       | Manage Agent Skills                                                                                | `/skills list`, `/skills install <url>`   |
 | `/voice [seconds]`    | Record the mic and transcribe to the input field (requires [speech-to-text](/cli-speech-to-text/)) | `/voice`, `/voice 8`                      |
@@ -1440,13 +1504,13 @@ See [MCP documentation](/mcp/) for detailed integration guide and server develop
 
 ### Agent Skills
 
-Reusable, model-readable instruction folders that the agent loads on demand. The CLI uses the same on-disk format as Claude Code, Gemini CLI, and OpenAI Codex CLI, so a skill authored for any of those tools drops into `.infer/skills/` unchanged. Skills are **disabled by default** - zero token cost until you enable them.
+Reusable, model-readable instruction folders that the agent loads on demand. The CLI uses the same on-disk format as Claude Code, Gemini CLI, and OpenAI Codex CLI, so a skill authored for any of those tools drops into `.infer/skills/` unchanged. Skills are **enabled by default** ([since cli#618](https://github.com/inference-gateway/cli/pull/618)) - discovered skills are injected into the system prompt out of the box. Only the lightweight metadata (name + description) is added; each `SKILL.md` body is read on demand. Turn them off with `agent.skills.enabled: false`, or skip individual skills with `disabled_skills`.
 
 ```yaml
 # .infer/config.yaml
 agent:
   skills:
-    enabled: true
+    enabled: true # default
     disabled_skills: [] # optional list of skill names to skip
 ```
 
@@ -1597,32 +1661,35 @@ infer agent "Fix the bug described in GitHub issue #456"
 - Review diffs before approving modifications
 - Run tests after significant changes
 - Have backups before extensive Auto-Accept usage
-- Whitelist only trusted commands
+- Allow-list only trusted commands
 - Add sensitive directories to protected paths
 
 ## Security
 
-### Command Whitelisting
+### Command allow-listing
 
-Bash tool only executes whitelisted commands and patterns:
+The Bash tool is **default-deny**: a command auto-runs only when it matches the [per-mode allowed-list](#per-mode-allowed-list) for the active [agent mode](#agent-modes). The effective list is `mode.all.allow` (the every-mode baseline) unioned with the active mode's own entries:
 
 ```yaml
 tools:
   bash:
-    whitelist:
-      commands: [ls, pwd, tree, git]
-      patterns:
-        - ^git status$
-        - ^git branch.*$
-        - ^npm test$
-        - ^gh (issue|pr|repo|release|run|workflow) (list|view|status|diff|checks)( |$)
-        - ^gh pr create( |$)
-        - ^gh api [^ -][^ ]*( --paginate| --jq [^ ]+| -q [^ ]+)*$
+    mode:
+      all:
+        allow:
+          - ls( .*)?
+          - pwd( .*)?
+          - tree( .*)?
+          - git status( .*)?
+          - git diff( .*)?
+          - npm (install|test|run).*
+      auto:
+        allow:
+          - .* # unrestricted - Auto-Accept mode only
 ```
 
-Non-destructive `gh` operations are whitelisted by default so the agent can work with GitHub out of the box; destructive ones (for example `gh pr merge`, `gh repo delete`) fall through to approval. See [GitHub Operations](#github-operations) for the full list.
+Read-only `gh` operations are in the baseline so the agent can inspect GitHub out of the box; **writes** (`gh issue/pr create|edit|comment`) and **destructive** operations (for example `gh pr merge`, `gh repo delete`) are not - they fall through to approval. See [Default gh allowed-list](#default-gh-allowed-list) for the full list.
 
-The matcher is shell-aware: see [Restricted operators](#bash) for how pipes, file-write redirections, and command substitution are handled, and how to allow a specific redirect with an anchored pattern.
+Entries match the **whole** command, and a [clean-command guard](#clean-command-guard) rejects command substitution, multi-command chains/pipelines, file-write redirects, dangerous `find` actions, and environment-variable leaks before matching. The only thing that lifts the guard is the `.*` sentinel (Auto-Accept mode).
 
 ### Protected Paths
 
@@ -1635,13 +1702,46 @@ Automatically excluded from tool access:
 
 ### Approval Workflow
 
-Enable safety confirmations:
+Tool approval has **two independent layers** - _whether_ an action needs approval, and _how_ that approval is delivered:
+
+- **Whether** - `tools.safety.require_approval` (with per-tool overrides like `tools.bash.require_approval` / `tools.write.require_approval`, and for Bash the per-mode [allowed-list](#command-allow-listing)).
+- **How** - `tools.safety.approval_behaviour`, one of:
+
+| `approval_behaviour` | How a needed approval is delivered                                                      |
+| -------------------- | --------------------------------------------------------------------------------------- |
+| `prompt` (default)   | Prompt in the chat TUI; under a channel manager, deliver over IPC; otherwise block.     |
+| `ipc`                | Deliver over IPC when a broker is attached (e.g. the channel manager); otherwise block. |
+| `block`              | Always reject an approval-requiring action with a reason - never prompt.                |
 
 ```bash
 infer config set tools.safety.require_approval true
+infer config set tools.safety.approval_behaviour prompt
 ```
 
-LLMs request approval before executing Write/Edit/Delete/Bash operations with real-time diff preview.
+LLMs request approval before executing Write/Edit/Delete/Bash operations, with a colored, syntax-aware diff preview for file edits.
+
+#### Headless secure-by-default
+
+`infer agent` runs in **standard** mode, so an off-list or mutating action is **not** auto-run. With no approver reachable (CI, heartbeat) it is **blocked** with a reason; under a channel manager (`--require-approval`) it is sent for **IPC** approval (for example a Telegram confirmation). There is no `.*` default - full autonomy is an explicit opt-in (a curated allowed-list, the [append override](#append-only-override-ci), or `mode.auto` / `.*`).
+
+For a CI agent that should edit files and run a curated command set with **no** interactive approver, use the **controlled-autonomy** profile - `block` everything that would need approval, but let the agent write files and run a vetted allowed-list:
+
+```yaml
+tools:
+  safety:
+    approval_behaviour: block # reject anything that would otherwise prompt
+  write:
+    require_approval: false # ...but let the agent write/edit files freely
+  bash:
+    mode:
+      all:
+        allow: # curate exactly what may run unattended
+          - git status( .*)?
+          - git add( .*)?
+          - go (build|test)( .*)?
+```
+
+Add a couple more commands without touching config via `INFER_TOOLS_BASH_ALLOW_APPEND="git commit,git push"`.
 
 ## Troubleshooting
 
@@ -1677,7 +1777,7 @@ infer init
 # Inspect tool configuration
 infer config get tools
 
-# Check whether a bash command is whitelisted (without running it)
+# Check whether a bash command is allowed (without running it)
 infer tools validate "git status"
 
 # Enable debug logging

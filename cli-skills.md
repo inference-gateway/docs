@@ -5,11 +5,11 @@ description: Install, enable, and invoke Agent Skills in the Inference Gateway C
 
 # Agent Skills
 
-**Agent Skills** are reusable, model-readable instruction folders that the [Inference Gateway CLI](/cli/) (`infer`) loads on demand. Each skill is a directory with a `SKILL.md` playbook; the agent reads it only when the skill is relevant, so skills add **zero token cost when they are off** and are cheap when on.
+**Agent Skills** are reusable, model-readable instruction folders that the [Inference Gateway CLI](/cli/) (`infer`) loads on demand. Each skill is a directory with a `SKILL.md` playbook; the agent reads the body only when the skill is relevant, so a skill costs only its one-line metadata until it is actually used (and nothing at all when disabled).
 
 The CLI uses the **same on-disk format** as Claude Code, Gemini CLI, and OpenAI Codex CLI, so a folder authored for any of those tools drops into `.infer/skills/` unchanged. To browse or publish skills in the shared index, see the [Skills Catalog](/skills/).
 
-> Skills are **disabled by default**. Nothing about them touches a run until you set `agent.skills.enabled: true` (or `INFER_AGENT_SKILLS_ENABLED=true`).
+> Skills are **enabled by default** ([since cli#618](https://github.com/inference-gateway/cli/pull/618)) - discovered skills are injected into every run's system prompt as lightweight metadata. Turn them off with `agent.skills.enabled: false` (or `INFER_AGENT_SKILLS_ENABLED=false`).
 
 ## How skills work
 
@@ -66,35 +66,35 @@ Frontmatter rules, validated at discovery time and re-validated after every inst
 
 Unknown frontmatter keys (for example Anthropic's `allowed-tools:` or Gemini's `disabled:`) are tolerated and ignored, so cross-vendor skills validate without edits.
 
-## Enabling
+## Enabling and disabling
 
-Skills are disabled by default. Enable them via the config file, the `config set` command, or an environment variable:
+Skills are **enabled by default**. To turn them off (or back on) use the config file, the `config set` command, or an environment variable:
 
 ```yaml
 # .infer/config.yaml (project) or ~/.infer/config.yaml (user)
 agent:
   skills:
-    enabled: true
+    enabled: true # default - set to false to turn skills off
     disabled_skills: [] # optional list of skill names to skip
 ```
 
 ```bash
-# Enable for this project's .infer/config.yaml
-infer config set agent.skills.enabled true
+# Disable for this project's .infer/config.yaml
+infer config set agent.skills.enabled false
 
-# Or enable globally in ~/.infer/config.yaml
-infer config set agent.skills.enabled true --userspace
+# Or disable globally in ~/.infer/config.yaml
+infer config set agent.skills.enabled false --userspace
 
-# Or enable for a single run via environment variable
-INFER_AGENT_SKILLS_ENABLED=true infer chat
+# Or disable for a single run via environment variable
+INFER_AGENT_SKILLS_ENABLED=false infer chat
 ```
 
 | Setting                        | Type     | Default | Description                                                                     |
 | ------------------------------ | -------- | ------- | ------------------------------------------------------------------------------- |
-| `agent.skills.enabled`         | bool     | `false` | Master switch. Also enables the [sandbox carve-out](#skills-sandbox-carve-out). |
+| `agent.skills.enabled`         | bool     | `true`  | Master switch. Also enables the [sandbox carve-out](#skills-sandbox-carve-out). |
 | `agent.skills.disabled_skills` | string[] | `[]`    | Skill names to discover but never inject or activate.                           |
 
-The matching environment variable `INFER_AGENT_SKILLS_ENABLED` takes precedence over the config file.
+The matching environment variable `INFER_AGENT_SKILLS_ENABLED` takes precedence over the config file. To keep skills off everywhere, set `agent.skills.enabled: false` in your user config (`~/.infer/config.yaml`).
 
 ## Managing skills
 
