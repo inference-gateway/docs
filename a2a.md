@@ -225,6 +225,24 @@ These options are set as environment variables, derived from the agent's `google
 
 **Repository:** [github.com/inference-gateway/google-calendar-agent](https://github.com/inference-gateway/google-calendar-agent)
 
+### Documentation Agent
+
+The Documentation Agent provides Context7-style documentation retrieval, resolving a library name to a canonical ID and fetching version-scoped documentation so other agents can ground their code generation in up-to-date library docs.
+
+**Skill:**
+
+- `library-documentation-lookup`: Fetch up-to-date documentation for a third-party library or framework before writing code against it. Resolves the library name to a Context7-compatible ID and retrieves focused, topic-scoped documentation.
+
+**Tools:**
+
+- `resolve_library_id`: Resolve an official library name into a ranked list of Context7-compatible library IDs
+- `get_library_docs`: Fetch up-to-date, topic-scoped documentation for a Context7-compatible library ID
+- `read`: Read a file from disk (used to load skill bodies on demand)
+
+**Repository:** [github.com/inference-gateway/documentation-agent](https://github.com/inference-gateway/documentation-agent)
+
+For a full walkthrough of the Documentation Agent, its skill, tools, and configuration, see the [Dedicated Documentation Agent page](/documentation-agent/).
+
 ## Creating Custom Agents
 
 > **Tip:** Use the [ADL CLI](/adl-cli/) to scaffold A2A agents from YAML definitions. It generates complete project structures with service injection, CI/CD pipelines, and deployment configurations.
@@ -293,6 +311,7 @@ Implement the A2A protocol at the `/a2a` endpoint to handle:
 
 - [A2A Debugger](/a2a-debugger/) - Inspect, stream, and replay tasks on any A2A server from the CLI
 - [A2A Registry](/registry/) - Discover available A2A agents and their capabilities ([registry.inference-gateway.com](https://registry.inference-gateway.com))
+- [Documentation Agent](/documentation-agent/) - A dedicated A2A agent for Context7-style documentation retrieval
 - [ADL CLI](/adl-cli/) - Generate A2A agents from YAML definitions
 - [TypeScript ADK](/typescript-adk/) - Build A2A agents in TypeScript with `@inference-gateway/adk`
 - [Inference Gateway CLI](/cli/) - Manage and chat with A2A agents
