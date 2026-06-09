@@ -61,7 +61,7 @@ For this agent in the context of multi-agent gateway coordination, see the [A2A 
 
 ### Documentation Agent
 
-Context7-style documentation retrieval, published as the OCI image `ghcr.io/inference-gateway/documentation-agent`. It resolves a library name to a Context7-compatible ID and fetches version-scoped documentation, so other agents can ground their code generation in up-to-date library docs before writing against an unfamiliar API. Register it with your gateway using the [`infer agents add`](#discovering-and-consuming-agents) workflow below.
+Context7-style documentation retrieval, published as the OCI image `ghcr.io/inference-gateway/documentation-agent`. It resolves a library name to a Context7-compatible ID and fetches version-scoped documentation, so other agents can ground their code generation in up-to-date library docs before writing against an unfamiliar API. [Learn more →](/documentation-agent/)
 
 **Skill:**
 
