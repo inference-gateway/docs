@@ -26,12 +26,11 @@ The agent is a Context7-compatible documentation-lookup service. A typical reque
 
 ```mermaid
 flowchart TD
-    A[User or agent: \"Look up Express.js JWT auth\"] --> B[resolve_library_id<br/>turn \"Express.js\" into a canonical ID]
-    B --> C{Caller already has<br/>a canonical ID?}
-    C -->|yes| D[Skip resolution,<br/>go straight to docs]
-    C -->|no| B
-    B --> E[get_library_docs<br/>fetch topic-scoped docs for the ID]
-    E --> F[Return version-scoped<br/>documentation response]
+    A[User or agent: Look up Express.js JWT auth] --> B{Caller already has<br/>a canonical ID?}
+    B -->|no| C[resolve_library_id<br/>turn Express.js into a canonical ID]
+    B -->|yes| D[get_library_docs<br/>fetch topic-scoped docs for the ID]
+    C --> D
+    D --> E[Return version-scoped<br/>documentation response]
 ```
 
 Callers that already know the exact `/org/project` (or `/org/project/version`) identifier can skip straight to `get_library_docs`. Responses are capped at `maxTokens` 4096, so queries should be specific ("How to set up JWT auth in Express.js", not "auth").
