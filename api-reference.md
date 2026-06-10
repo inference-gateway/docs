@@ -507,15 +507,16 @@ The raw response body returned by proxy endpoints (`{METHOD} /proxy/{provider}/{
 
 The body sent to `POST /v1/chat/completions`.
 
-| Field            | Type                          | Required | Description                                             |
-| ---------------- | ----------------------------- | -------- | ------------------------------------------------------- |
-| `model`          | `string`                      | Yes      | Model identifier (e.g., `"deepseek/deepseek-v4-flash"`) |
-| `messages`       | `Message[]`                   | Yes      | Conversation history                                    |
-| `stream`         | `boolean`                     |          | Enable SSE streaming (default: `false`)                 |
-| `stream_options` | `ChatCompletionStreamOptions` |          | Streaming behaviour options                             |
-| `max_tokens`     | `integer`                     |          | Maximum tokens to generate                              |
-| `tools`          | `ChatCompletionTool[]`        |          | Tools available to the model                            |
-| `temperature`    | `number`                      |          | Sampling temperature (0-2)                              |
+| Field              | Type                          | Required | Description                                             |
+| ------------------ | ----------------------------- | -------- | ------------------------------------------------------- |
+| `model`            | `string`                      | Yes      | Model identifier (e.g., `"deepseek/deepseek-v4-flash"`) |
+| `messages`         | `Message[]`                   | Yes      | Conversation history                                    |
+| `stream`           | `boolean`                     |          | Enable SSE streaming (default: `false`)                 |
+| `stream_options`   | `ChatCompletionStreamOptions` |          | Streaming behaviour options                             |
+| `max_tokens`       | `integer`                     |          | Maximum tokens to generate                              |
+| `tools`            | `ChatCompletionTool[]`        |          | Tools available to the model                            |
+| `temperature`      | `number`                      |          | Sampling temperature (0-2)                              |
+| `reasoning_format` | `string`                      |          | Reasoning output format: `"raw"` or `"parsed"`          |
 
 #### `ChatCompletionStreamOptions`
 
@@ -526,6 +527,19 @@ Controls streaming behaviour when `stream: true`.
 | `include_usage` | `boolean` | Include a final `CompletionUsage` chunk at the end of the stream |
 
 ### Message Content
+
+#### `Message`
+
+One element of the `messages` array in a `CreateChatCompletionRequest`.
+
+| Field               | Type                              | Required | Description                                 |
+| ------------------- | --------------------------------- | -------- | ------------------------------------------- |
+| `role`              | `MessageRole`                     | Yes      | Role of the message sender                  |
+| `content`           | `MessageContent`                  | Yes      | Text or multimodal message content          |
+| `tool_calls`        | `ChatCompletionMessageToolCall[]` |          | Tool calls returned by an assistant message |
+| `tool_call_id`      | `string`                          |          | Tool-call ID for a tool response message    |
+| `reasoning_content` | `string`                          |          | Reasoning content emitted by the provider   |
+| `reasoning`         | `string`                          |          | Alias for `reasoning_content`               |
 
 #### `MessageRole`
 
@@ -582,12 +596,15 @@ Returned by `POST /v1/chat/completions` when `stream: false`.
 
 One element of the `choices` array in a `CreateChatCompletionResponse`.
 
-| Field           | Type                           | Description                        |
-| --------------- | ------------------------------ | ---------------------------------- |
-| `index`         | `integer`                      | Choice index                       |
-| `message`       | `Message`                      | The generated message              |
-| `finish_reason` | `FinishReason`                 | Why the model stopped generating   |
-| `logprobs`      | `ChatCompletionTokenLogprob[]` | Log probabilities (when requested) |
+| Field           | Type                                     | Description                      |
+| --------------- | ---------------------------------------- | -------------------------------- |
+| `index`         | `integer`                                | Choice index                     |
+| `message`       | `Message`                                | The generated message            |
+| `finish_reason` | `FinishReason`                           | Why the model stopped generating |
+| `logprobs`      | `ChatCompletionTokenLogprob[]` \| `null` | Token log-probability groups     |
+
+When present, `logprobs` contains `content` and `refusal` arrays of
+`ChatCompletionTokenLogprob` objects.
 
 #### `FinishReason`
 
@@ -627,14 +644,15 @@ Per-token log-probability information, present when `logprobs: true` is requeste
 
 Returned by `POST /v1/chat/completions` when `stream: true`. Each SSE event carries one of these objects in its `data` field.
 
-| Field     | Type                           | Description                                       |
-| --------- | ------------------------------ | ------------------------------------------------- |
-| `id`      | `string`                       | Unique completion identifier (same across chunks) |
-| `object`  | `string`                       | Always `"chat.completion.chunk"`                  |
-| `created` | `integer`                      | Unix timestamp                                    |
-| `model`   | `string`                       | Model used                                        |
-| `choices` | `ChatCompletionStreamChoice[]` | Streaming choices (empty in the usage chunk)      |
-| `usage`   | `CompletionUsage`              | Present only in the final usage chunk             |
+| Field              | Type                           | Description                                       |
+| ------------------ | ------------------------------ | ------------------------------------------------- |
+| `id`               | `string`                       | Unique completion identifier (same across chunks) |
+| `object`           | `string`                       | Always `"chat.completion.chunk"`                  |
+| `created`          | `integer`                      | Unix timestamp                                    |
+| `model`            | `string`                       | Model used                                        |
+| `choices`          | `ChatCompletionStreamChoice[]` | Streaming choices (empty in the usage chunk)      |
+| `usage`            | `CompletionUsage`              | Present only in the final usage chunk             |
+| `reasoning_format` | `string`                       | Reasoning output format: `"raw"` or `"parsed"`    |
 
 #### `SSEvent`
 
@@ -654,17 +672,20 @@ One element of the `choices` array in a `CreateChatCompletionStreamResponse`.
 | --------------- | ----------------------------------- | ----------------------------------- |
 | `index`         | `integer`                           | Choice index                        |
 | `delta`         | `ChatCompletionStreamResponseDelta` | Incremental content for this chunk  |
+| `logprobs`      | `object`                            | Token log-probability groups        |
 | `finish_reason` | `FinishReason` \| `null`            | Set on the final chunk for a choice |
 
 #### `ChatCompletionStreamResponseDelta`
 
 The incremental content carried by each `ChatCompletionStreamChoice`.
 
-| Field        | Type                                   | Description                                         |
-| ------------ | -------------------------------------- | --------------------------------------------------- |
-| `role`       | `MessageRole`                          | Sent once in the first chunk (`"assistant"`)        |
-| `content`    | `string`                               | Partial text content                                |
-| `tool_calls` | `ChatCompletionMessageToolCallChunk[]` | Partial tool-call data (when the model calls tools) |
+| Field               | Type                                   | Description                                         |
+| ------------------- | -------------------------------------- | --------------------------------------------------- |
+| `role`              | `MessageRole`                          | Sent once in the first chunk (`"assistant"`)        |
+| `content`           | `string`                               | Partial text content                                |
+| `reasoning_content` | `string`                               | Partial reasoning content                           |
+| `reasoning`         | `string`                               | Alias for `reasoning_content`                       |
+| `tool_calls`        | `ChatCompletionMessageToolCallChunk[]` | Partial tool-call data (when the model calls tools) |
 
 #### `ChatCompletionMessageToolCallChunk`
 
