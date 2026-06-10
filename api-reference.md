@@ -596,12 +596,12 @@ Returned by `POST /v1/chat/completions` when `stream: false`.
 
 One element of the `choices` array in a `CreateChatCompletionResponse`.
 
-| Field           | Type               | Description                      |
-| --------------- | ------------------ | -------------------------------- |
-| `index`         | `integer`          | Choice index                     |
-| `message`       | `Message`          | The generated message            |
-| `finish_reason` | `FinishReason`     | Why the model stopped generating |
-| `logprobs`      | `object` \| `null` | Token log-probability groups     |
+| Field           | Type                                   | Description                      |
+| --------------- | -------------------------------------- | -------------------------------- |
+| `index`         | `integer`                              | Choice index                     |
+| `message`       | `Message`                              | The generated message            |
+| `finish_reason` | `FinishReason`                         | Why the model stopped generating |
+| `logprobs`      | `ChatCompletionTokenLogprob` \| `null` | Token log-probability groups     |
 
 When present, `logprobs` contains `content` and `refusal` arrays of
 `ChatCompletionTokenLogprob` objects.
