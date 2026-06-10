@@ -615,7 +615,6 @@ Why the model stopped generating tokens. One of:
 | `"stop"`           | Natural end of output or stop sequence hit |
 | `"length"`         | `max_tokens` limit reached                 |
 | `"tool_calls"`     | Model issued one or more tool calls        |
-| `"function_call"`  | Model issued a legacy function call        |
 | `"content_filter"` | Output was filtered                        |
 
 #### `CompletionUsage`
@@ -632,12 +631,12 @@ Token usage statistics returned in both streaming and non-streaming responses.
 
 Per-token log-probability information, present when `logprobs: true` is requested.
 
-| Field          | Type        | Description                  |
-| -------------- | ----------- | ---------------------------- |
-| `token`        | `string`    | The token string             |
-| `logprob`      | `number`    | Log probability of the token |
-| `bytes`        | `integer[]` | UTF-8 bytes of the token     |
-| `top_logprobs` | `object[]`  | Top alternative tokens       |
+| Field          | Type                           | Description                  |
+| -------------- | ------------------------------ | ---------------------------- |
+| `token`        | `string`                       | The token string             |
+| `logprob`      | `number`                       | Log probability of the token |
+| `bytes`        | `integer[]`                    | UTF-8 bytes of the token     |
+| `top_logprobs` | `ChatCompletionTokenLogprob[]` | Top alternative tokens       |
 
 ### Streaming Response Schemas
 
