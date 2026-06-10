@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.110](https://github.com/inference-gateway/docs/compare/0.6.109...0.6.110) (2026-06-10)
+
+### 👷 CI
+
+* centralize claude.yml via reusable workflow ([#208](https://github.com/inference-gateway/docs/issues/208)) ([e9e5571](https://github.com/inference-gateway/docs/commit/e9e5571ad8f96124c30f7f0ccf6bfc2b5310ad58))
+* **deps:** update inference workflow to version 0.7.9 ([7c898a8](https://github.com/inference-gateway/docs/commit/7c898a8ab3ffb8ea1e7a67eeea5764d56b0797aa))
+* **infer:** centralize infer.yml + sync .infer config ([#199](https://github.com/inference-gateway/docs/issues/199)) ([3913f65](https://github.com/inference-gateway/docs/commit/3913f656d8d5b64a498a4cc543f5b76d86a23840))
+* use GitHub App token and non-generic bot identity for release ([49ca5b5](https://github.com/inference-gateway/docs/commit/49ca5b598f0492c99fc9f01f4e529cae53d506d5))
+
+### 📚 Documentation
+
+* add dedicated Documentation Agent page ([#206](https://github.com/inference-gateway/docs/issues/206)) ([68b8f5e](https://github.com/inference-gateway/docs/commit/68b8f5eb16c14e39ae4bc49c41bdcea31e3115b5))
+* document bash whitelist file-write redirect restriction ([#190](https://github.com/inference-gateway/docs/issues/190)) ([8b93d5b](https://github.com/inference-gateway/docs/commit/8b93d5ba2799c133c8ba6212b0081c039b898d2b)), closes [#188](https://github.com/inference-gateway/docs/issues/188)
+* document chat completion schema gaps ([#210](https://github.com/inference-gateway/docs/issues/210)) ([883e593](https://github.com/inference-gateway/docs/commit/883e5937d654e305e8fda749c3fee7c8c3b112cf))
+* rework bash allow-list, approval, skills, chat-TUI docs ([#195](https://github.com/inference-gateway/docs/issues/195)) ([48adf12](https://github.com/inference-gateway/docs/commit/48adf1218af22e028ead3e4a7d6c188646fd16ce))
+* update README.md to reflect VitePress tech stack and current repo structure ([#205](https://github.com/inference-gateway/docs/issues/205)) ([a2506aa](https://github.com/inference-gateway/docs/commit/a2506aaafd3df3f37c9d42c704bf31744f6d7af0))
+
+### 🔧 Miscellaneous
+
+* **deps-dev:** bump @types/node from 25.9.1 to 25.9.2 in the npm group ([#193](https://github.com/inference-gateway/docs/issues/193)) ([b56a52b](https://github.com/inference-gateway/docs/commit/b56a52b8c92f4e9868c461963026678d0114cd79))
+* **deps:** bump claude-code 2.1.158 -> 2.1.161 ([#196](https://github.com/inference-gateway/docs/issues/196)) ([8ec11c2](https://github.com/inference-gateway/docs/commit/8ec11c2feb9303a4ca068d1c2437eeb97ce31339))
+* **deps:** bump infer CLI v0.119.0 -> v0.120.0, infer-action v0.11.4 -> v0.11.6 ([#189](https://github.com/inference-gateway/docs/issues/189)) ([57cf040](https://github.com/inference-gateway/docs/commit/57cf0409a921b11b1b91b94de65dd9e3f4d9110c))
+* **deps:** bump infer CLI v0.120.0 -> v0.120.1, infer-action v0.11.6 -> v0.11.7 ([#191](https://github.com/inference-gateway/docs/issues/191)) ([f0dd62f](https://github.com/inference-gateway/docs/commit/f0dd62f0b61e5176eca177e0aaa1974e214e7abf))
+* **deps:** bump infer CLI v0.120.1 -> v0.121.0 ([#197](https://github.com/inference-gateway/docs/issues/197)) ([92592de](https://github.com/inference-gateway/docs/commit/92592deb4b1d6fcefe172fb07349036312bda99a))
+* **deps:** bump infer-action v0.11.7 -> v0.12.0 ([#198](https://github.com/inference-gateway/docs/issues/198)) ([6d6b63e](https://github.com/inference-gateway/docs/commit/6d6b63e692de5062a66a4c87240c2f62fdef0a26))
+* **deps:** bump infer-action v0.12.0 -> v0.12.1 ([#207](https://github.com/inference-gateway/docs/issues/207)) ([9572f74](https://github.com/inference-gateway/docs/commit/9572f7433bbab1cc8eb3702df39a0337b10a291e))
+* **deps:** bump the github-actions group with 2 updates ([#192](https://github.com/inference-gateway/docs/issues/192)) ([9f531a4](https://github.com/inference-gateway/docs/commit/9f531a4be479c4e308a0d7391fb1332b4ec101a3))
+
 ## [0.6.109](https://github.com/inference-gateway/docs/compare/0.6.108...0.6.109) (2026-06-06)
 
 ### 📚 Documentation
