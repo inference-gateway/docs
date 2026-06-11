@@ -1,6 +1,6 @@
 ---
 title: Supported Providers
-description: Provider matrix for Inference Gateway covering OpenAI, Anthropic, Cohere, Groq, Cloudflare, Ollama, Ollama Cloud, Google, DeepSeek, Mistral and Moonshot, with auth modes, default URLs, vision support, and per-provider request examples.
+description: Provider matrix for Inference Gateway covering OpenAI, Anthropic, Cohere, Groq, Cloudflare, Ollama, Ollama Cloud, Google, DeepSeek, Mistral, MiniMax and Moonshot, with auth modes, default URLs, vision support, and per-provider request examples.
 ---
 
 # Supported Providers
@@ -21,6 +21,7 @@ Inference Gateway provides a unified interface to interact with multiple LLM pro
 | Ollama Cloud | Bearer Token     | `https://ollama.com/v1`                                         | Yes - cloud-hosted vision models                                        |
 | Google       | Bearer Token     | `https://generativelanguage.googleapis.com/v1beta/openai`       | Yes - Gemini 3 Flash, Gemini 3 Pro                                      |
 | Mistral      | Bearer Token     | `https://api.mistral.ai/v1`                                     | Yes - Pixtral Large, Ministral 3, Mistral Large 3                       |
+| MiniMax      | Bearer Token     | `https://api.minimax.io/v1`                                     | Yes - MiniMax-M3                                                        |
 | Moonshot     | Bearer Token     | `https://api.moonshot.ai/v1`                                    | Yes - moonshot-v1-\*-vision-preview, kimi-latest, kimi-thinking-preview |
 
 ## Vision/Multimodal Support
@@ -43,6 +44,7 @@ ENABLE_VISION=true
 - **Ollama Cloud**: Cloud-hosted vision models
 - **Groq**: Vision models
 - **Mistral**: Pixtral Large, Ministral 3, Mistral Large 3
+- **MiniMax**: MiniMax-M3
 - **Moonshot**: moonshot-v1-\*-vision-preview, kimi-latest, kimi-thinking-preview
 
 ### Example Vision Request
@@ -81,7 +83,7 @@ Each provider requires specific configuration through environment variables:
 - `PROVIDER_API_URL`: The base URL for the provider's API
 - `PROVIDER_API_KEY`: The authentication key for the provider
 
-Replace "PROVIDER" with the provider name (uppercase): OPENAI, ANTHROPIC, COHERE, GROQ, CLOUDFLARE, OLLAMA, OLLAMA_CLOUD, GOOGLE, DEEPSEEK, MISTRAL, MOONSHOT.
+Replace "PROVIDER" with the provider name (uppercase): OPENAI, ANTHROPIC, COHERE, GROQ, CLOUDFLARE, OLLAMA, OLLAMA_CLOUD, GOOGLE, DEEPSEEK, MISTRAL, MINIMAX, MOONSHOT.
 
 ### API Endpoints
 
