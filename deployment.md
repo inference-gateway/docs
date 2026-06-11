@@ -5,7 +5,7 @@ description: Deploy Inference Gateway to Kubernetes using the official Helm char
 
 # Deployment with Helm
 
-This guide explains how to deploy the Inference Gateway using the official Helm charts. If you'd rather manage gateways and related resources declaratively as Custom Resources, see the [Kubernetes Operator](/operator/).
+This guide explains how to deploy the Inference Gateway using the official Helm charts. If you'd rather manage gateways and related resources declaratively as Custom Resources, see the [Kubernetes Operator](/operator/). To run the gateway outside Kubernetes - locally or on a single host - see [Docker Deployment](/docker-deployment/).
 
 ## Prerequisites
 

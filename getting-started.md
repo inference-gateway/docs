@@ -16,9 +16,11 @@ docker pull ghcr.io/inference-gateway/inference-gateway:latest
 docker run --rm -it -p 8080:8080 -e OPENAI_API_KEY=your_key_here ghcr.io/inference-gateway/inference-gateway:latest
 ```
 
+For environment files, config volumes, and TLS, see the [Docker Deployment](/docker-deployment/) guide.
+
 ### Using Docker Compose
 
-Checkout the examples in the [Docker Compose examples](https://github.com/inference-gateway/inference-gateway/tree/main/examples/docker-compose).
+See the [Docker Deployment](/docker-deployment/) guide for a complete `docker-compose.yml` with MCP tool servers and an optional Prometheus + Grafana monitoring stack. Ready-to-run stacks also live in the [Docker Compose examples](https://github.com/inference-gateway/inference-gateway/tree/main/examples/docker-compose).
 
 ### Using Kubernetes
 
