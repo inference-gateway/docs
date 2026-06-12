@@ -24,8 +24,6 @@ Checkout the examples in the [Docker Compose examples](https://github.com/infere
 
 Deploy to Kubernetes with the [Kubernetes Operator](/operator/) - the recommended path. It manages the gateway and related resources declaratively as Custom Resources. Follow the [Operator quick start](/operator/#quick-start-minimal-gateway) to apply your first `Gateway`, or browse the runnable [Kubernetes examples](https://github.com/inference-gateway/inference-gateway/tree/main/examples/kubernetes).
 
-The [Helm chart](/deployment/) is deprecated and kept only for existing installs.
-
 ## Basic Usage
 
 Send a request to the Inference Gateway:

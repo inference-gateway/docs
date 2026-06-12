@@ -161,7 +161,6 @@ export default withMermaid(
             { text: 'Configuration', link: pageLink('/configuration') },
             { text: 'Authentication', link: pageLink('/authentication') },
             { text: 'Kubernetes Operator', link: pageLink('/operator') },
-            { text: 'Helm Deployment (Legacy)', link: pageLink('/deployment') },
             { text: 'Supported Providers', link: pageLink('/supported-providers') },
             { text: 'Examples', link: pageLink('/examples') },
             { text: 'IDEs', link: pageLink('/ides') },
@@ -231,10 +230,7 @@ export default withMermaid(
         {
           text: 'Kubernetes',
           collapsed: false,
-          items: [
-            { text: 'Operator', link: pageLink('/operator') },
-            { text: 'Helm (Legacy)', link: pageLink('/deployment') },
-          ],
+          items: [{ text: 'Operator', link: pageLink('/operator') }],
         },
         {
           text: 'Model Context Protocol',

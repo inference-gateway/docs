@@ -5,7 +5,7 @@ description: Declarative Kubernetes management of Inference Gateway via Custom R
 
 # Kubernetes Operator
 
-The Inference Gateway Operator is a Kubernetes controller that manages Inference Gateway and related resources declaratively through Custom Resources (CRs). It is the recommended way to run Inference Gateway on Kubernetes - manage gateways, A2A agents, MCP servers, and chat-channel orchestrators as first-class CRs in the same cluster API your other workloads use. The [Helm chart](/deployment/) remains available for existing installs but is deprecated.
+The Inference Gateway Operator is a Kubernetes controller that manages Inference Gateway and related resources declaratively through Custom Resources (CRs). It is the recommended way to run Inference Gateway on Kubernetes - manage gateways, A2A agents, MCP servers, and chat-channel orchestrators as first-class CRs in the same cluster API your other workloads use.
 
 The operator publishes four CRDs under `core.inference-gateway.com/v1alpha1`:
 
