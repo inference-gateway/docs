@@ -249,6 +249,10 @@ helm upgrade --install \
   inference-gateway oci://ghcr.io/inference-gateway/charts/inference-gateway:0.23.1
 ```
 
+### On the Kubernetes Operator
+
+If you manage the gateway with the [Kubernetes Operator](/operator/#authentication-oidc), set `spec.auth.oidc.caCertRef` to a ConfigMap key holding the issuer's PEM CA instead of wiring `SSL_CERT_FILE` by hand - the operator mounts the certificate into the gateway pod and points `SSL_CERT_FILE` at it for you.
+
 ## Best Practices
 
 1. **Use HTTPS**: Always secure both your Keycloak and Inference Gateway instances with HTTPS.
@@ -281,3 +285,4 @@ After setting up authentication, consider:
 - Configuring [token exchange](https://www.keycloak.org/docs/latest/server_admin/#_token-exchange) for service-to-service communication
 - Setting up [multi-factor authentication](https://www.keycloak.org/docs/latest/server_admin/#_otp-policies) for enhanced security
 - Protecting an agent built on the [TypeScript ADK](/typescript-adk#authentication) with the same OIDC issuer (note the [different env-var names](#env-var-naming-go-gateway-vs-typescript-adk))
+- Managing the gateway and its OIDC settings declaratively with the [Kubernetes Operator](/operator/#authentication-oidc) via `spec.auth.oidc`
