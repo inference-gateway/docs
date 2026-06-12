@@ -22,7 +22,7 @@ The ADL CLI is a command-line tool for generating enterprise-ready [A2A (Agent-t
 - **Sandbox Environments** - Flox and DevContainer support for isolated development
 - **Smart Ignore Files** - Protect custom implementations with `.adl-ignore`
 - **Post-Generation Hooks** - Run custom commands after code generation
-- **Multi-Provider AI** - OpenAI, Anthropic, DeepSeek, Ollama, Google AI, Mistral, Groq, Cohere, Cloudflare, Moonshot, and Ollama Cloud
+- **Multi-Provider AI** - OpenAI, Anthropic, DeepSeek, Ollama, Ollama Cloud, Google AI, Mistral, Groq, Cohere, Cloudflare, MiniMax, and Moonshot
 - **Artifacts Support** - Filesystem and MinIO object storage for artifact management
 
 ## Installation
