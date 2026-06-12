@@ -160,7 +160,8 @@ export default withMermaid(
             { text: 'Architecture Overview', link: pageLink('/architecture-overview') },
             { text: 'Configuration', link: pageLink('/configuration') },
             { text: 'Authentication', link: pageLink('/authentication') },
-            { text: 'Deployment', link: pageLink('/deployment') },
+            { text: 'Kubernetes Operator', link: pageLink('/operator') },
+            { text: 'Helm Deployment (Legacy)', link: pageLink('/deployment') },
             { text: 'Supported Providers', link: pageLink('/supported-providers') },
             { text: 'Examples', link: pageLink('/examples') },
             { text: 'IDEs', link: pageLink('/ides') },
@@ -178,7 +179,6 @@ export default withMermaid(
             { text: 'ADL CLI', link: pageLink('/adl-cli') },
             { text: 'Channels', link: pageLink('/cli-channels') },
             { text: 'Speech-to-Text', link: pageLink('/cli-speech-to-text') },
-            { text: 'Kubernetes Operator', link: pageLink('/operator') },
             { text: 'GitHub Action', link: pageLink('/github-action') },
           ],
         },
@@ -225,14 +225,16 @@ export default withMermaid(
           items: [
             { text: 'Configuration', link: pageLink('/configuration') },
             { text: 'Authentication', link: pageLink('/authentication') },
-            { text: 'Deployment', link: pageLink('/deployment') },
             { text: 'Supported Providers', link: pageLink('/supported-providers') },
           ],
         },
         {
-          text: 'Kubernetes Operator',
+          text: 'Kubernetes',
           collapsed: false,
-          items: [{ text: 'Operator', link: pageLink('/operator') }],
+          items: [
+            { text: 'Operator', link: pageLink('/operator') },
+            { text: 'Helm (Legacy)', link: pageLink('/deployment') },
+          ],
         },
         {
           text: 'Model Context Protocol',

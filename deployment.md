@@ -1,11 +1,27 @@
 ---
-title: Deployment with Helm
-description: Deploy Inference Gateway to Kubernetes using the official Helm chart, with optional ingress, manual or cert-manager TLS, and upgrade guidance.
+title: Deployment with Helm (Legacy)
+description: Legacy Helm deployment guide for Inference Gateway. Helm is deprecated - deploy to Kubernetes with the Kubernetes Operator instead. Kept for existing chart installations.
 ---
 
-# Deployment with Helm
+# Deployment with Helm (Legacy)
 
-This guide explains how to deploy the Inference Gateway using the official Helm charts. If you'd rather manage gateways and related resources declaratively as Custom Resources, see the [Kubernetes Operator](/operator/).
+::: warning DEPRECATED
+Helm is deprecated as a deployment method, and the chart is being retired - it will no longer be published. Deploy to Kubernetes with the [Kubernetes Operator](/operator/) instead, which manages the gateway and related resources declaratively as Custom Resources.
+
+This page is kept for existing Helm installations. If you are deploying fresh, follow the [Kubernetes Operator](/operator/) guide instead of this one.
+:::
+
+This guide explains how to deploy the Inference Gateway using the official Helm charts.
+
+## Migrating to the Kubernetes Operator
+
+Already running the gateway with Helm? Move to the Operator when convenient:
+
+1. Install the Operator - apply the release manifest from [Installation](/operator/#installation).
+2. Express your existing Helm values as a `Gateway` custom resource. The [Operator quick start](/operator/#quick-start-minimal-gateway) shows how providers, ingress, auth, and HPA map onto `spec`.
+3. Apply the `Gateway`, wait for it to report healthy, then uninstall the chart with `helm uninstall inference-gateway --namespace inference-gateway`.
+
+For the full set of `Gateway` fields, see the [Kubernetes Operator](/operator/) reference.
 
 ## Prerequisites
 
