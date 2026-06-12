@@ -52,7 +52,7 @@ The gateway tier is stateless - replicas scale horizontally behind any load bala
 
 ## Kubernetes Setup
 
-The Inference Gateway is built to run on Kubernetes. Traffic flows from an ingress through a `Service` to a pool of stateless gateway pods, each fronting the same provider proxy. Telemetry is scraped on a dedicated metrics port via a `ServiceMonitor`, and providers stay external.
+The Inference Gateway is built to run on Kubernetes. Traffic enters through the Kubernetes Gateway API - an [Envoy Gateway](https://gateway.envoyproxy.io/) data plane fronting a `Service` - and reaches a pool of stateless gateway pods, each fronting the same provider proxy. The operator provisions these Gateway API resources from a `Gateway` CR's `routing` spec (the successor to Ingress); see the [Kubernetes Operator](/operator/#routing-gateway-api) guide. Telemetry is scraped on a dedicated metrics port via a `ServiceMonitor`, and providers stay external.
 
 ```mermaid
 flowchart LR
@@ -63,7 +63,7 @@ flowchart LR
 
     subgraph Cluster["Kubernetes Cluster"]
         direction TB
-        Ingress["Ingress"]
+        GwAPI["Gateway API (Envoy)"]
         Svc["Gateway Service"]
 
         subgraph Pods["Gateway Pods"]
@@ -73,28 +73,28 @@ flowchart LR
             Pod3["Gateway Pod"]
         end
 
-        Ingress --> Svc
+        GwAPI --> Svc
         Svc --> Pod1
         Svc --> Pod2
         Svc --> Pod3
         Svc -. ":9464 /metrics" .-> Monitoring
     end
 
-    ExtClient --> Ingress
+    ExtClient --> GwAPI
     IntClient --> Svc
     Pod1 --> Providers
     Pod2 --> Providers
     Pod3 --> Providers
 
     classDef client fill:#ede9fe,stroke:#7c3aed,stroke-width:2px,color:#1f2937
-    classDef ingress fill:#dbeafe,stroke:#2563eb,stroke-width:2px,color:#1e3a8a
+    classDef gatewayapi fill:#dbeafe,stroke:#2563eb,stroke-width:2px,color:#1e3a8a
     classDef service fill:#bfdbfe,stroke:#2563eb,stroke-width:2px,color:#1e3a8a
     classDef gateway fill:#7c3aed,stroke:#6d28d9,stroke-width:2px,color:#ffffff
     classDef monitor fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#78350f
     classDef provider fill:#ecfdf5,stroke:#10b981,stroke-width:2px,color:#065f46
 
     class ExtClient,IntClient client
-    class Ingress ingress
+    class GwAPI gatewayapi
     class Svc service
     class Pod1,Pod2,Pod3 gateway
     class Monitoring monitor
