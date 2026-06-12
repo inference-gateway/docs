@@ -389,7 +389,7 @@ See the [Kubernetes MCP example](https://github.com/inference-gateway/inference-
 
 - Gateway deployment with MCP configuration
 - Multiple MCP servers as Kubernetes services
-- Ingress configuration
+- Gateway API routing (Envoy Gateway)
 - Comprehensive monitoring setup
 
 ### Custom MCP Server
