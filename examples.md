@@ -1,31 +1,11 @@
 ---
 title: Examples
-description: End-to-end examples for running Inference Gateway with Docker Compose and Kubernetes, plus per-provider chat completion examples and vision/multimodal request samples.
+description: End-to-end examples for running Inference Gateway on Kubernetes, plus per-provider chat completion examples and vision/multimodal request samples.
 ---
 
 # Examples
 
 This page provides examples of how to use Inference Gateway in various scenarios and environments.
-
-## Docker Compose Examples
-
-Docker Compose provides a simple way to set up Inference Gateway with various configurations.
-
-### Basic Setup
-
-A minimal setup with OpenAI integration:
-
-```yaml
-services:
-  inference-gateway:
-    image: ghcr.io/inference-gateway/inference-gateway:latest
-    environment:
-      - OPENAI_API_KEY=your-api-key
-    ports:
-      - '8080:8080'
-```
-
-For more [Docker Compose examples](https://github.com/inference-gateway/inference-gateway/tree/main/examples/docker-compose), check the official examples repository.
 
 ## Kubernetes Examples
 
