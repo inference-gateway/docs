@@ -53,7 +53,7 @@ Deploys the gateway proxy. Source: [`api/v1alpha1/gateway_types.go`](https://git
 | `image`                                                          | Container image, default `ghcr.io/inference-gateway/inference-gateway:latest`.                                                                                                             |
 | `environment`                                                    | One of `development`, `staging`, `production` (default `production`).                                                                                                                      |
 | `server.port` / `server.host` / `server.timeouts` / `server.tls` | HTTP server settings.                                                                                                                                                                      |
-| `auth.enabled` / `auth.provider` / `auth.oidc`                   | Authentication. `provider` is `oidc`, `jwt`, or `basic`.                                                                                                                                   |
+| `auth.enabled` / `auth.provider` / `auth.oidc`                   | Authentication. `provider` is `oidc`, `jwt`, or `basic`. See [Authentication (OIDC)](#authentication-oidc).                                                                                |
 | `providers[]`                                                    | Each item: `name`, `enabled`, and an `env` list of `corev1.EnvVar`. Provider keys are passed through unchanged.                                                                            |
 | `telemetry.enabled` / `telemetry.metrics.{enabled,port}`         | OpenTelemetry metrics. There is no `telemetry.tracing` block - tracing is configured through standard OTEL env vars on the gateway pod.                                                    |
 | `mcp.enabled` / `mcp.servers[]` / `mcp.timeouts`                 | MCP client configuration with per-server health checks.                                                                                                                                    |
@@ -122,6 +122,87 @@ The Deployment is forced to a singleton (`replicas: 1`, `strategy: Recreate`) be
 | `a2a.agents[]`                                                                 | Static agent URLs.                                                                         |
 | `a2a.serviceDiscovery.{enabled,namespace,selector}`                            | Discover `Agent` CRs by label selector. The pod is rolled when the discovered set changes. |
 | `resources` / `env[]`                                                          | Standard pod knobs.                                                                        |
+
+## Authentication (OIDC)
+
+`spec.auth` secures the gateway proxy with OpenID Connect. When `enabled` is `true`, the Gateway controller translates the CRD fields into the gateway's `AUTH_*` environment variables, and the gateway validates every request's Bearer token against the issuer's JWKS. For the token flow, Keycloak setup, and how to obtain access tokens, see the [Authentication guide](/authentication/) - this section covers only how the same OIDC contract is expressed on the `Gateway` CR.
+
+### `spec.auth`
+
+| Field      | Description                                                                                                  |
+| ---------- | ------------------------------------------------------------------------------------------------------------ |
+| `enabled`  | Toggle authentication (default `false`). Always emitted as `AUTH_ENABLE`.                                    |
+| `provider` | Provider type: `oidc` (default), `jwt`, or `basic`. `oidc` is the path wired end to end and documented here. |
+| `oidc`     | OIDC configuration (see below).                                                                              |
+
+### `spec.auth.oidc`
+
+| Field             | Emitted env var           | Description                                                                                                                                                                                                                                                                                                                 |
+| ----------------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `issuerUrl`       | `AUTH_OIDC_ISSUER`        | OIDC issuer URL (default `http://keycloak:8080/realms/inference-gateway-realm`).                                                                                                                                                                                                                                            |
+| `clientId`        | `AUTH_OIDC_CLIENT_ID`     | OAuth2 client id, used as the expected `aud` (default `inference-gateway-client`).                                                                                                                                                                                                                                          |
+| `clientSecretRef` | `AUTH_OIDC_CLIENT_SECRET` | `SecretKeySelector` (`name` + `key`) for the client secret. The operator wires it through as a `valueFrom.secretKeyRef`, so the secret value never lands in the CR.                                                                                                                                                         |
+| `caCertRef`       | `SSL_CERT_FILE`           | `ConfigMapKeySelector` (`name` + `key`) holding a PEM-encoded CA certificate. The operator mounts it into the gateway pod at `/usr/local/share/ca-certificates/oidc-ca.crt` and points `SSL_CERT_FILE` at it, so the Go runtime trusts a self-signed issuer (for example a Keycloak with its own CA) during OIDC discovery. |
+
+The OIDC variables are emitted only when `enabled: true` and an `oidc` block is present. `AUTH_OIDC_CLIENT_SECRET` is added only when `clientSecretRef` is set, and `SSL_CERT_FILE` only when `caCertRef` is set. The variables themselves are documented on the gateway side in [Configuration](/configuration/#openid-connect).
+
+### Example: Gateway with OIDC
+
+This mirrors the [Kubernetes authentication example](/authentication/#keycloak-integration) expressed as a `Gateway` CR. Create a Secret holding the client secret and (for a self-signed issuer) a ConfigMap holding the issuer's CA certificate, then reference both from `spec.auth.oidc`:
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: gateway-oidc
+  namespace: inference-gateway
+type: Opaque
+stringData:
+  client-secret: <your-client-secret>
+---
+# Only needed for a self-signed issuer (for example Keycloak with its own CA).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: keycloak-ca
+  namespace: inference-gateway
+data:
+  ca.crt: |
+    -----BEGIN CERTIFICATE-----
+    ...your issuer's PEM CA...
+    -----END CERTIFICATE-----
+---
+apiVersion: core.inference-gateway.com/v1alpha1
+kind: Gateway
+metadata:
+  name: my-gateway
+  namespace: inference-gateway
+spec:
+  replicas: 1
+  auth:
+    enabled: true
+    provider: oidc
+    oidc:
+      issuerUrl: https://keycloak.example.com/realms/inference-gateway-realm
+      clientId: inference-gateway-client
+      clientSecretRef:
+        name: gateway-oidc
+        key: client-secret
+      caCertRef:
+        name: keycloak-ca
+        key: ca.crt
+  providers:
+    - name: OpenAI
+      enabled: true
+      env:
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: openai-secret
+              key: OPENAI_API_KEY
+```
+
+Drop the `caCertRef` block and its ConfigMap when the issuer presents a publicly trusted certificate - it is only required to trust a self-signed or private-CA issuer.
 
 ## Quick Start: Minimal Gateway
 
