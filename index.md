@@ -50,7 +50,7 @@ features:
     linkText: API reference
   - icon: ☸️
     title: Kubernetes-native
-    details: Official Helm chart and Kubernetes Operator with CRDs for gateways, agents, MCP servers, and chat orchestrators.
+    details: Kubernetes Operator with CRDs for gateways, agents, MCP servers, and chat orchestrators - declarative, GitOps-friendly cluster management.
     link: /operator/
     linkText: Operator guide
   - icon: 📊
@@ -78,7 +78,7 @@ Building against multiple LLM providers means juggling SDKs, API quirks, auth sc
 - Switch providers with one config change, no application redeploys.
 - Centralise API keys, rate limiting, and audit logging at the gateway.
 - Add MCP tools or A2A agents once, get them for every model that supports tool calls.
-- Run the same binary in Docker, Kubernetes, or as a Helm chart - or let the [Kubernetes Operator](/operator/) manage gateways, agents, MCP servers, and orchestrators as Custom Resources.
+- Run the same binary in Docker or Kubernetes - and let the [Kubernetes Operator](/operator/) manage gateways, agents, MCP servers, and orchestrators as Custom Resources.
 
 ## How it works
 

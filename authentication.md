@@ -54,7 +54,6 @@ This section provides a detailed guide for integrating Keycloak with Inference G
 - [Keycloak](https://www.keycloak.org/) server (v24.0.0 or later recommended)
 - [Inference Gateway](https://github.com/inference-gateway/inference-gateway) (v0.23.1 or later)
 - [kubectl](https://kubernetes.io/docs/tasks/tools/) for Kubernetes deployment
-- [Helm](https://helm.sh/docs/intro/install/) for chart deployment
 - [Task](https://taskfile.dev/installation/) (optional, for running example tasks)
 
 ### Setting Up Keycloak
@@ -176,17 +175,6 @@ stringData:
 type: Opaque
 ```
 
-#### Using Helm
-
-```bash
-helm upgrade --install \
-  --create-namespace \
-  --namespace inference-gateway \
-  --set envFrom.configMapRef=inference-gateway \
-  --set envFrom.secretRef=inference-gateway \
-  inference-gateway oci://ghcr.io/inference-gateway/charts/inference-gateway:0.23.1
-```
-
 ## Obtaining Access Tokens
 
 To access the protected API, you need to obtain a JWT token from Keycloak:
@@ -225,33 +213,17 @@ curl -H "Authorization: Bearer YOUR_TOKEN" https://your-inference-gateway/v1/mod
 
 ## Self-Signed Certificates
 
-When working with self-signed certificates (common in development environments), you need to make Inference Gateway trust the Keycloak certificate:
+When working with self-signed certificates (common in development environments), you need to make Inference Gateway trust the Keycloak certificate.
 
-### In Kubernetes
+Create a ConfigMap holding the issuer's CA certificate:
 
-```yaml
-# Create a ConfigMap with Keycloak's CA certificate
+```bash
 kubectl create configmap keycloak-ca \
   -n inference-gateway \
   --from-literal=ca.crt="$(kubectl get secret keycloak-tls -n idp -o jsonpath='{.data.ca\.crt}' | base64 -d)"
-
-# Mount the certificate and configure Inference Gateway
-helm upgrade --install \
-  --namespace inference-gateway \
-  --set extraEnv[0].name=SSL_CERT_FILE \
-  --set extraEnv[0].value=/usr/local/share/ca-certificates/keycloak-ca.crt \
-  --set volumes[0].name=keycloak-ca \
-  --set volumes[0].configMap.name=keycloak-ca \
-  --set volumeMounts[0].name=keycloak-ca \
-  --set volumeMounts[0].mountPath=/usr/local/share/ca-certificates/keycloak-ca.crt \
-  --set volumeMounts[0].subPath=ca.crt \
-  --set volumeMounts[0].readOnly=true \
-  inference-gateway oci://ghcr.io/inference-gateway/charts/inference-gateway:0.23.1
 ```
 
-### On the Kubernetes Operator
-
-If you manage the gateway with the [Kubernetes Operator](/operator/#authentication-oidc), set `spec.auth.oidc.caCertRef` to a ConfigMap key holding the issuer's PEM CA instead of wiring `SSL_CERT_FILE` by hand - the operator mounts the certificate into the gateway pod and points `SSL_CERT_FILE` at it for you.
+Then reference it from the [Kubernetes Operator](/operator/#authentication-oidc): set `spec.auth.oidc.caCertRef` to the ConfigMap key holding the PEM CA, and the operator mounts the certificate into the gateway pod and points `SSL_CERT_FILE` at it for you - no need to wire it by hand.
 
 ## Best Practices
 

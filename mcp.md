@@ -141,7 +141,7 @@ services:
 
 ### Using Kubernetes
 
-When deploying with the Inference Gateway Helm chart, configure MCP in your `values.yaml`:
+On Kubernetes, run the gateway with the [Kubernetes Operator](/operator/) and configure MCP through the `Gateway` resource's `spec.mcp` block (`enabled`, `servers`, and timeouts - see the [Operator guide](/operator/#gateway)). The gateway reads the same settings from environment variables:
 
 ```yaml
 env:
@@ -387,7 +387,7 @@ See the complete [Docker Compose MCP example](https://github.com/inference-gatew
 
 See the [Kubernetes MCP example](https://github.com/inference-gateway/inference-gateway/tree/main/examples/kubernetes/mcp) that demonstrates:
 
-- Helm chart deployment with MCP configuration
+- Gateway deployment with MCP configuration
 - Multiple MCP servers as Kubernetes services
 - Ingress configuration
 - Comprehensive monitoring setup
