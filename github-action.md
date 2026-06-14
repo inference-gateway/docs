@@ -75,8 +75,9 @@ The override is parsed by the action's trigger-detection step and exported as `I
 
 ### Result comment
 
-When the run finishes, the action updates its comment with a result footer. Below the status, model, and job link, the footer reports:
+When the run finishes, the action updates its comment with a result footer. Alongside the status, model, exit code, and job link, the footer reports:
 
+- **Duration** - wall-clock time of the agent run, formatted human-readably (`0s`, `1m 0s`, `1h 1m 1s`) and shown as `—` when unavailable. The measured window is spawn-to-exit of the `infer agent` child, so it excludes CLI install and Node setup time. The raw millisecond value is also exposed as the `run-duration-ms` [output](#outputs).
 - **Tokens** - prompt / completion / total token usage, plus the request count.
 - **Cost** - per-session input / output / total cost, when the CLI reports pricing.
 - **Tool calls** - the total number of tool calls the agent made, with the run's success rate. The rate is `succeeded / total` (where `succeeded = total - failed`), so a run with failures reads its failures in proportion. Any failed calls are listed in a collapsed section just below.
@@ -86,7 +87,7 @@ The **Tool calls** line is only rendered when the agent made at least one tool c
 ```text
 ## ✅ Infer Result: Success
 
-**Model:** `anthropic/claude-opus-4-8` · **Exit Code:** `0` · [View Job](...)
+**Model:** `anthropic/claude-opus-4-8` · **Exit Code:** `0` · **Duration:** 1m 0s · [View Job](...)
 
 **Tokens:** 18,432 in · 2,106 out · 20,538 total (7 requests)
 
@@ -139,6 +140,7 @@ The total and failed tool-call counts are also exposed as the `total-tool-calls-
 | `result`                  | Human-readable summary of the agent execution.                                                                          |
 | `exit-code`               | Exit code returned by `infer` - non-zero means the agent failed.                                                        |
 | `pr-url`                  | URL of the pull request the agent opened (empty if none). Populated for direct-prompt runs and any run that opens a PR. |
+| `run-duration-ms`         | Wall-clock duration of the agent run in milliseconds (0 if unavailable).                                                |
 | `failed-tool-calls-count` | Number of failed tool calls detected in the agent output.                                                               |
 | `total-tool-calls-count`  | Total number of tool calls the agent made during the run.                                                               |
 
