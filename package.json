@@ -17,13 +17,13 @@
     "lint:md:fix": "markdownlint \"**/*.md\" --ignore node_modules --ignore .vitepress --fix"
   },
   "devDependencies": {
-    "@types/node": "^25.9.2",
+    "@types/node": "^25.9.3",
     "husky": "^9.1.7",
     "markdownlint-cli": "^0.48.0",
     "mermaid": "^11.15.0",
-    "prettier": "^3.8.3",
+    "prettier": "^3.8.4",
     "vitepress": "^1.6.4",
     "vitepress-plugin-mermaid": "^2.0.17",
-    "vue": "^3.5.35"
+    "vue": "^3.5.38"
   }
 }
