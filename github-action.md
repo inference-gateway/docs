@@ -7,7 +7,7 @@ description: Run the Inference Gateway agent from GitHub Actions with infer-acti
 
 [`inference-gateway/infer-action`](https://github.com/inference-gateway/infer-action) is the official GitHub Action wrapper for the [`infer` CLI](/cli/). It lets you run the Inference Gateway agent from a GitHub Actions workflow so that mentioning a trigger phrase in an issue or comment kicks off an automated, AI-driven response: plan posting, code edits, branch creation, and a pull request - all without leaving GitHub.
 
-> **Current Version:** v0.10.1. Pin to a tagged release (`@v0.10.1`) rather than `@main` in production workflows.
+> **Current Version:** v0.15.0. Pin to a tagged release (`@v0.15.0`) rather than `@main` in production workflows.
 
 ## When to use it
 
@@ -44,7 +44,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6.0.2
 
-      - uses: inference-gateway/infer-action@v0.10.1
+      - uses: inference-gateway/infer-action@v0.15.0
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           model: anthropic/claude-opus-4-8
@@ -104,32 +104,32 @@ The total and failed tool-call counts are also exposed as the `total-tool-calls-
 
 ## Inputs
 
-| Input                     | Required | Default   | Description                                                                                                                                                                                                                                                                                                  |
-| ------------------------- | -------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `github-token`            | Yes      | -         | Token used for posting comments, creating branches, and opening PRs.                                                                                                                                                                                                                                         |
-| `model`                   | Yes      | -         | Model identifier in `provider/model-name` form (e.g. `anthropic/claude-opus-4-8`).                                                                                                                                                                                                                           |
-| `trigger-phrase`          | No       | `@infer`  | Phrase that activates the agent. Case-sensitive.                                                                                                                                                                                                                                                             |
-| `direct-prompt`           | No       | `''`      | Free-text task to run directly, bypassing issue/comment triggers. When set, the agent runs against this text under `workflow_dispatch` (or any event), commits to a new branch, and opens a PR; the result and PR link go to the job summary. See [Direct prompt](#direct-prompt-manual-runs).               |
-| `version`                 | No       | `v0.68.3` | `infer` CLI version to install inside the runner.                                                                                                                                                                                                                                                            |
-| `max-turns`               | No       | `50`      | Maximum agent iterations - acts as a runaway-cost guard.                                                                                                                                                                                                                                                     |
-| `custom-instructions`     | No       | `''`      | Extra instructions appended to the default system prompt (does **not** replace the defaults).                                                                                                                                                                                                                |
-| `bash-whitelist-commands` | No       | `''`      | Comma-separated commands appended to the agent's bash allow-list (e.g. `npm,yarn,pnpm`).                                                                                                                                                                                                                     |
-| `bash-whitelist-patterns` | No       | `''`      | Comma-separated regex patterns appended to the agent's bash allow-list (e.g. `^npm .*,^yarn .*`).                                                                                                                                                                                                            |
-| `enable-git-operations`   | No       | `true`    | When `false`, the agent runs in comment-only mode - `git`/`gh` are not allow-listed and no PRs are created.                                                                                                                                                                                                  |
-| `mirror-agent-logs`       | No       | `true`    | When `true` (default), the agent's full stdout/stderr transcript (tool inputs, tool outputs, file contents it read, web-fetch payloads, intermediate text) is mirrored to the Actions run log. Set to `false` to suppress that transcript from the run log. See [Agent log mirroring](#agent-log-mirroring). |
-| `dry-run`                 | No       | `false`   | Plan-only local-testing mode (e.g. with `act`): forces the bundled mock agent, simulates every GitHub mutation (`[dry-run] would ...`), and prints the resolved system/task/reminder prompts and tool allow-lists. Reads still run. See [Local testing with act](#local-testing-with-act).                   |
-| `mock-agent-scenario`     | No       | `happy`   | Which scenario the bundled mock agent runs under `dry-run`: `happy`, `failures`, `no-todos`, or `empty`.                                                                                                                                                                                                     |
-| `anthropic-api-key`       | No\*     | -         | Required when using an Anthropic model.                                                                                                                                                                                                                                                                      |
-| `openai-api-key`          | No\*     | -         | Required when using an OpenAI model.                                                                                                                                                                                                                                                                         |
-| `google-api-key`          | No\*     | -         | Required when using a Google/Gemini model.                                                                                                                                                                                                                                                                   |
-| `deepseek-api-key`        | No\*     | -         | Required when using a DeepSeek model.                                                                                                                                                                                                                                                                        |
-| `groq-api-key`            | No\*     | -         | Required when using a Groq model.                                                                                                                                                                                                                                                                            |
-| `mistral-api-key`         | No\*     | -         | Required when using a Mistral model.                                                                                                                                                                                                                                                                         |
-| `cloudflare-api-key`      | No\*     | -         | Required when using a Cloudflare Workers AI model.                                                                                                                                                                                                                                                           |
-| `cohere-api-key`          | No\*     | -         | Required when using a Cohere model.                                                                                                                                                                                                                                                                          |
-| `ollama-api-key`          | No\*     | -         | Required when using a self-hosted Ollama endpoint.                                                                                                                                                                                                                                                           |
-| `ollama-cloud-api-key`    | No\*     | -         | Required when using Ollama Cloud.                                                                                                                                                                                                                                                                            |
-| `moonshot-api-key`        | No\*     | -         | Required when using a Moonshot (Kimi) model.                                                                                                                                                                                                                                                                 |
+| Input                     | Required | Default    | Description                                                                                                                                                                                                                                                                                                  |
+| ------------------------- | -------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `github-token`            | Yes      | -          | Token used for posting comments, creating branches, and opening PRs.                                                                                                                                                                                                                                         |
+| `model`                   | Yes      | -          | Model identifier in `provider/model-name` form (e.g. `anthropic/claude-opus-4-8`).                                                                                                                                                                                                                           |
+| `trigger-phrase`          | No       | `@infer`   | Phrase that activates the agent. Case-sensitive.                                                                                                                                                                                                                                                             |
+| `direct-prompt`           | No       | `''`       | Free-text task to run directly, bypassing issue/comment triggers. When set, the agent runs against this text under `workflow_dispatch` (or any event), commits to a new branch, and opens a PR; the result and PR link go to the job summary. See [Direct prompt](#direct-prompt-manual-runs).               |
+| `version`                 | No       | `v0.121.1` | `infer` CLI version to install inside the runner.                                                                                                                                                                                                                                                            |
+| `max-turns`               | No       | `50`       | Maximum agent iterations - acts as a runaway-cost guard.                                                                                                                                                                                                                                                     |
+| `custom-instructions`     | No       | `''`       | Extra instructions appended to the default system prompt (does **not** replace the defaults).                                                                                                                                                                                                                |
+| `bash-whitelist-commands` | No       | `''`       | Comma-separated commands appended to the agent's bash allow-list (e.g. `npm,yarn,pnpm`).                                                                                                                                                                                                                     |
+| `bash-whitelist-patterns` | No       | `''`       | Comma-separated regex patterns appended to the agent's bash allow-list (e.g. `^npm .*,^yarn .*`).                                                                                                                                                                                                            |
+| `enable-git-operations`   | No       | `true`     | When `false`, the agent runs in comment-only mode - `git`/`gh` are not allow-listed and no PRs are created.                                                                                                                                                                                                  |
+| `mirror-agent-logs`       | No       | `true`     | When `true` (default), the agent's full stdout/stderr transcript (tool inputs, tool outputs, file contents it read, web-fetch payloads, intermediate text) is mirrored to the Actions run log. Set to `false` to suppress that transcript from the run log. See [Agent log mirroring](#agent-log-mirroring). |
+| `dry-run`                 | No       | `false`    | Plan-only local-testing mode (e.g. with `act`): forces the bundled mock agent, simulates every GitHub mutation (`[dry-run] would ...`), and prints the resolved system/task/reminder prompts and tool allow-lists. Reads still run. See [Local testing with act](#local-testing-with-act).                   |
+| `mock-agent-scenario`     | No       | `happy`    | Which scenario the bundled mock agent runs under `dry-run`: `happy`, `failures`, `no-todos`, or `empty`.                                                                                                                                                                                                     |
+| `anthropic-api-key`       | No\*     | -          | Required when using an Anthropic model.                                                                                                                                                                                                                                                                      |
+| `openai-api-key`          | No\*     | -          | Required when using an OpenAI model.                                                                                                                                                                                                                                                                         |
+| `google-api-key`          | No\*     | -          | Required when using a Google/Gemini model.                                                                                                                                                                                                                                                                   |
+| `deepseek-api-key`        | No\*     | -          | Required when using a DeepSeek model.                                                                                                                                                                                                                                                                        |
+| `groq-api-key`            | No\*     | -          | Required when using a Groq model.                                                                                                                                                                                                                                                                            |
+| `mistral-api-key`         | No\*     | -          | Required when using a Mistral model.                                                                                                                                                                                                                                                                         |
+| `cloudflare-api-key`      | No\*     | -          | Required when using a Cloudflare Workers AI model.                                                                                                                                                                                                                                                           |
+| `cohere-api-key`          | No\*     | -          | Required when using a Cohere model.                                                                                                                                                                                                                                                                          |
+| `ollama-api-key`          | No\*     | -          | Required when using a self-hosted Ollama endpoint.                                                                                                                                                                                                                                                           |
+| `ollama-cloud-api-key`    | No\*     | -          | Required when using Ollama Cloud.                                                                                                                                                                                                                                                                            |
+| `moonshot-api-key`        | No\*     | -          | Required when using a Moonshot (Kimi) model.                                                                                                                                                                                                                                                                 |
 
 \* Provide the key matching the provider of the chosen `model`. Multiple keys can be supplied so the same workflow handles overrides to different providers.
 
@@ -173,7 +173,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6.0.2
 
-      - uses: inference-gateway/infer-action@v0.10.1
+      - uses: inference-gateway/infer-action@v0.15.0
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           model: anthropic/claude-opus-4-8
@@ -243,7 +243,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: inference-gateway/infer-action@v0.10.1
+      - uses: inference-gateway/infer-action@v0.15.0
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           model: anthropic/claude-opus-4-8
@@ -280,7 +280,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6.0.2
 
-      - uses: inference-gateway/infer-action@v0.10.1
+      - uses: inference-gateway/infer-action@v0.15.0
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           model: deepseek/deepseek-v4-flash
@@ -319,7 +319,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: inference-gateway/infer-action@v0.10.1
+      - uses: inference-gateway/infer-action@v0.15.0
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           model: anthropic/claude-opus-4-8
@@ -338,7 +338,7 @@ The default bash allow-list is intentionally narrow (read-only commands plus rea
 The action exposes inputs that append to the agent's allow-list:
 
 ```yaml
-- uses: inference-gateway/infer-action@v0.10.1
+- uses: inference-gateway/infer-action@v0.15.0
   with:
     github-token: ${{ secrets.GITHUB_TOKEN }}
     model: anthropic/claude-opus-4-8
@@ -352,7 +352,7 @@ The added entries are **appended** to the defaults - they do not replace them.
 You can also append at the CLI layer with the `INFER_TOOLS_BASH_ALLOW_APPEND` environment variable (comma- or newline-separated), which merges onto the every-mode `mode.all` baseline. Handy for adding a couple of commands - for example letting a release agent commit and push without shipping the unrestricted `.*` sentinel:
 
 ```yaml
-- uses: inference-gateway/infer-action@v0.10.1
+- uses: inference-gateway/infer-action@v0.15.0
   env:
     INFER_TOOLS_BASH_ALLOW_APPEND: 'git commit,git push'
   with:
@@ -366,7 +366,7 @@ You can also append at the CLI layer with the `INFER_TOOLS_BASH_ALLOW_APPEND` en
 A headless `infer agent` is [secure-by-default](/cli/#headless-secure-by-default): in CI there is no interactive approver, so any off-list or mutating action is **blocked** rather than auto-run. To let an unattended agent edit files and run a curated command set without prompting, combine a `block` approval behaviour with a relaxed write gate and a curated allow-list - set entirely through environment variables on the step:
 
 ```yaml
-- uses: inference-gateway/infer-action@v0.10.1
+- uses: inference-gateway/infer-action@v0.15.0
   env:
     INFER_TOOLS_SAFETY_APPROVAL_BEHAVIOUR: block # reject anything that would otherwise prompt
     INFER_TOOLS_WRITE_REQUIRE_APPROVAL: 'false' # ...but let the agent write/edit files
@@ -397,7 +397,7 @@ GitHub Actions run logs are persisted with the workflow run, downloadable as raw
 ### Example
 
 ```yaml
-- uses: inference-gateway/infer-action@v0.10.1
+- uses: inference-gateway/infer-action@v0.15.0
   with:
     model: anthropic/claude-opus-4-8
     github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -439,7 +439,7 @@ The standard resource attributes attached to every export are `service.name`, `s
 ### Example
 
 ```yaml
-- uses: inference-gateway/infer-action@v0.10.1
+- uses: inference-gateway/infer-action@v0.15.0
   with:
     github-token: ${{ secrets.GITHUB_TOKEN }}
     model: anthropic/claude-opus-4-8
