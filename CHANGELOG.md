@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.111](https://github.com/inference-gateway/docs/compare/0.6.110...0.6.111) (2026-06-16)
+
+### 📚 Documentation
+
+* add MiniMax and Ollama Cloud to provider lists across docs ([#217](https://github.com/inference-gateway/docs/issues/217)) ([8e49e48](https://github.com/inference-gateway/docs/commit/8e49e482cec4feeebd803527c9d58df56a976b61))
+* add MiniMax provider support ([#211](https://github.com/inference-gateway/docs/issues/211)) ([52fc6a9](https://github.com/inference-gateway/docs/commit/52fc6a95796bbfbaabce4193f80dfc3ac13cdc4f))
+* deprecate Helm deployment in favor of the Kubernetes Operator ([#218](https://github.com/inference-gateway/docs/issues/218)) ([5e8e652](https://github.com/inference-gateway/docs/commit/5e8e652c653983ffb8d56fef20da7d7b9a3e7e60))
+* document mirror-agent-logs input for infer-action ([#224](https://github.com/inference-gateway/docs/issues/224)) ([663c471](https://github.com/inference-gateway/docs/commit/663c471ac1fd070c965a5668b9ec01b4fc204f50))
+* document operator OIDC auth (spec.auth.oidc, caCertRef) ([#216](https://github.com/inference-gateway/docs/issues/216)) ([c5a6a74](https://github.com/inference-gateway/docs/commit/c5a6a74bcc128b9d4301b7412ed965201aa01ca4))
+* document opt-in OpenTelemetry inputs for infer-action ([#230](https://github.com/inference-gateway/docs/issues/230)) ([8009197](https://github.com/inference-gateway/docs/commit/800919784266c50a6924a0e076dff9dd8a7c94d7))
+* document run-duration-ms output and Duration footer ([#227](https://github.com/inference-gateway/docs/issues/227)) ([cb80ee3](https://github.com/inference-gateway/docs/commit/cb80ee35cd7c2d6a262d445f8523e0e4b8fd8d0a))
+* migrate kubernetes guidance to gateway api routing ([#220](https://github.com/inference-gateway/docs/issues/220)) ([49bacd6](https://github.com/inference-gateway/docs/commit/49bacd6771490a704a2ca25e1d153be6b4b3a63d))
+
+### 🔧 Miscellaneous
+
+* **deps-dev:** bump the npm group with 3 updates ([#222](https://github.com/inference-gateway/docs/issues/222)) ([d857772](https://github.com/inference-gateway/docs/commit/d8577729c57048e6f1aab21df5c0ebffcf79bce1))
+* **deps:** bump claude-code 2.1.161 -> 2.1.170 ([#225](https://github.com/inference-gateway/docs/issues/225)) ([98dbd8c](https://github.com/inference-gateway/docs/commit/98dbd8c1accc2e7452f4ad1f0bc192096ed14724))
+* **deps:** bump infer CLI v0.121.0 -> v0.121.1, infer-action v0.12.1 -> v0.13.1 ([#228](https://github.com/inference-gateway/docs/issues/228)) ([74405e2](https://github.com/inference-gateway/docs/commit/74405e2956b95fb250f3e08e073e5839ccb2a70d))
+* **deps:** bump the github-actions group with 2 updates ([#221](https://github.com/inference-gateway/docs/issues/221)) ([386f570](https://github.com/inference-gateway/docs/commit/386f570ad60121d5233438ed6c5360672f3607d7))
+
 ## [0.6.110](https://github.com/inference-gateway/docs/compare/0.6.109...0.6.110) (2026-06-10)
 
 ### 👷 CI
