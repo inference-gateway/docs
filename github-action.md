@@ -133,6 +133,8 @@ The total and failed tool-call counts are also exposed as the `total-tool-calls-
 
 \* Provide the key matching the provider of the chosen `model`. Multiple keys can be supplied so the same workflow handles overrides to different providers.
 
+The action also accepts seven opt-in OpenTelemetry inputs (`otel-*`) for exporting run telemetry to an OTLP collector. They are disabled by default and change nothing for existing workflows - see [OpenTelemetry export](#opentelemetry-export).
+
 ## Outputs
 
 | Output                    | Description                                                                                                             |
@@ -401,6 +403,53 @@ GitHub Actions run logs are persisted with the workflow run, downloadable as raw
     github-token: ${{ secrets.GITHUB_TOKEN }}
     mirror-agent-logs: false # keep the full agent transcript out of the Actions run log
 ```
+
+## OpenTelemetry export
+
+`infer-action` can export OpenTelemetry telemetry about each agent run to any OTLP-compatible collector (an OpenTelemetry Collector, Grafana Alloy, Honeycomb, Tempo, Jaeger, and so on). The feature is **opt-in and disabled by default** - with `otel-exporter-otlp-endpoint` empty, nothing is exported and the action behaves exactly as it did before.
+
+Export is **best-effort and runs after the user-visible result comment is posted**: it never blocks the result, and a slow or unreachable collector never fails the run. Resource attributes and metric / span names follow the OpenTelemetry [GenAI semantic conventions](https://opentelemetry.io/docs/specs/semconv/gen-ai/), so the data lines up with other GenAI instrumentation in your backend.
+
+### Signals
+
+`otel-signals` chooses what to export (comma-separated); the default is `metrics`:
+
+- `metrics` - the cheapest, highest-value signal (run-level metrics such as token usage and tool-call counts); exported by default.
+- `traces` - one root span per run.
+- `logs` - one `ERROR` record per failed tool call.
+
+Set `otel-signals: metrics,traces,logs` to enable all three.
+
+### Inputs
+
+Each input maps to the standard OpenTelemetry environment variable of the same name, so the underlying exporter honours it directly.
+
+| Input                         | Default         | Env var                       | Description                                                                                                   |
+| ----------------------------- | --------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `otel-exporter-otlp-endpoint` | `''` (disabled) | `OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP HTTP endpoint, e.g. `http://localhost:4318`. Empty (the default) disables all export.                    |
+| `otel-exporter-otlp-headers`  | `''`            | `OTEL_EXPORTER_OTLP_HEADERS`  | Comma-separated `key=value` headers, e.g. `Authorization=Bearer my-token`. Treated as secret and auto-masked. |
+| `otel-exporter-otlp-protocol` | `http/json`     | `OTEL_EXPORTER_OTLP_PROTOCOL` | OTLP transport protocol. Only `http/json` is implemented; gRPC is not supported.                              |
+| `otel-service-name`           | `infer-action`  | `OTEL_SERVICE_NAME`           | Value for the `service.name` resource attribute on exported telemetry.                                        |
+| `otel-resource-attributes`    | `''`            | `OTEL_RESOURCE_ATTRIBUTES`    | Extra resource attributes in `key=val,key2=val2` form, appended to the standard set.                          |
+| `otel-signals`                | `metrics`       | `OTEL_SIGNALS`                | Comma-separated signals to export: `metrics` (default), `traces`, `logs`.                                     |
+| `otel-export-timeout-ms`      | `5000`          | `OTEL_EXPORT_TIMEOUT_MS`      | Per-request timeout in milliseconds for each OTLP HTTP POST.                                                  |
+
+The standard resource attributes attached to every export are `service.name`, `service.version`, `gen_ai.provider.name`, and CI context (`cicd.pipeline.*`, `vcs.repository.*`, `github.*`); `otel-resource-attributes` appends to that set. Because only `http/json` is supported, point the endpoint at the collector's HTTP port (`4318` on a standard collector), not the gRPC port (`4317`).
+
+### Example
+
+```yaml
+- uses: inference-gateway/infer-action@v0.10.1
+  with:
+    github-token: ${{ secrets.GITHUB_TOKEN }}
+    model: anthropic/claude-opus-4-8
+    anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+    otel-exporter-otlp-endpoint: https://otel-collector.example.com:4318
+    otel-exporter-otlp-headers: ${{ secrets.OTEL_EXPORTER_OTLP_HEADERS }} # e.g. Authorization=Bearer ...
+    otel-signals: metrics,traces,logs
+```
+
+Leave `otel-exporter-otlp-endpoint` unset (the default) and the block above is inert - existing workflows need no changes.
 
 ## Secrets and least-privilege
 
