@@ -23,24 +23,24 @@ Inference Gateway offers a unified API layer to interact with multiple LLM provi
 
 ## Development
 
-This documentation site is built with **VitePress** 1.x and Vue 3.
+This documentation site is built with **VitePress** 1.x and Vue 3, and uses [Bun](https://bun.sh) (>= 1.2) as the runtime, package manager, and script runner.
 
 ```bash
 # Install dependencies
-npm install
+bun install
 
 # Start development server
-npm run dev
+bun run dev
 
 # Static build → .vitepress/dist/
-npm run build
+bun run build
 
 # Markdown linting
-npm run lint:md
+bun run lint:md
 
 # Prettier formatting
-npm run format
-npm run format:check
+bun run format
+bun run format:check
 ```
 
 You can use **flox** for a consistent development environment (configured in `.flox/env/manifest.toml`).

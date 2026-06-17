@@ -6,19 +6,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 The documentation site for [Inference Gateway](https://github.com/inference-gateway/inference-gateway), built with **VitePress 1.x** and Vue 3, shipped as a static site to `docs.inference-gateway.com` via GitHub Pages. Content is authored as `.md` files at the repo root; each top-level `.md` becomes a route.
 
-Node `^24.15.0` is required (enforced in `package.json` engines; matched by `.flox/env/manifest.toml`).
+Bun `>= 1.2` is required and is the runtime, package manager, and script runner (pinned in `.bun-version` and `package.json` `engines.bun`; matched by `.flox/env/manifest.toml`).
 
 ## Commands
 
 ```bash
-npm run dev              # local dev server on http://localhost:5173
-npm run build            # static build → .vitepress/dist/
-npm run preview          # serve .vitepress/dist/ for local preview
+bun install              # install dependencies from bun.lock
 
-npm run lint:md          # markdownlint over **/*.md
-npm run lint:md:fix      # autofix markdownlint
-npm run format           # prettier --write .
-npm run format:check     # prettier --check .
+bun run dev              # local dev server on http://localhost:5173
+bun run build            # static build → .vitepress/dist/
+bun run preview          # serve .vitepress/dist/ for local preview
+
+bun run lint:md          # markdownlint over **/*.md
+bun run lint:md:fix      # autofix markdownlint
+bun run format           # prettier --write .
+bun run format:check     # prettier --check .
 ```
 
 CI (`.github/workflows/ci.yml`) runs `lint:md`, `format:check`, and `build` on every PR.
