@@ -6,16 +6,16 @@ This repository is the VitePress documentation site for Inference Gateway. Sourc
 
 ## Build, Test, and Development Commands
 
-- `npm ci` installs dependencies from `package-lock.json`.
-- `npm run dev` starts the VitePress dev server, usually at `http://localhost:5173`.
-- `npm run build` generates the static site in `.vitepress/dist/`.
-- `npm run preview` serves the built output locally.
-- `npm run format` applies Prettier to the repository.
-- `npm run format:check` verifies formatting without changing files.
-- `npm run lint:md` checks Markdown style.
-- `npm run lint:md:fix` applies safe Markdown lint fixes.
+- `bun install` installs dependencies from `bun.lock`.
+- `bun run dev` starts the VitePress dev server, usually at `http://localhost:5173`.
+- `bun run build` generates the static site in `.vitepress/dist/`.
+- `bun run preview` serves the built output locally.
+- `bun run format` applies Prettier to the repository.
+- `bun run format:check` verifies formatting without changing files.
+- `bun run lint:md` checks Markdown style.
+- `bun run lint:md:fix` applies safe Markdown lint fixes.
 
-Use Node `^24.15.0`, as declared in `package.json`.
+Use Bun `>= 1.2`, as pinned in `.bun-version` and `package.json` `engines.bun`.
 
 ## Coding Style & Naming Conventions
 
@@ -25,7 +25,7 @@ When adding a page, include `title` and `description` frontmatter, then add it t
 
 ## Testing Guidelines
 
-There is no separate unit test suite. Treat `npm run lint:md`, `npm run format:check`, and `npm run build` as the required validation set. For navigation, SEO, or theme changes, also run `npm run preview` and inspect the affected pages locally.
+There is no separate unit test suite. Treat `bun run lint:md`, `bun run format:check`, and `bun run build` as the required validation set. For navigation, SEO, or theme changes, also run `bun run preview` and inspect the affected pages locally.
 
 ## Commit & Pull Request Guidelines
 

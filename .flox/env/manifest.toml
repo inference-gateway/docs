@@ -1,17 +1,17 @@
 schema-version = "1.12.0"
 
 [install]
-nodejs.pkg-path = "nodejs_24"
-nodejs.version = "24.15.0"
+bun.pkg-path = "bun"
+bun.version = "^1.3.13"
 infer.flake = "github:inference-gateway/cli/v0.121.1"
 claude-code.pkg-path = "claude-code"
 claude-code.version = "^2.1.177"
 claude-code.pkg-group = "claude-code"
 codex.pkg-path = "codex"
-codex.version = "^0.135.0"
+codex.version = "^0.136.0"
 codex.pkg-group = "codex"
 
 [hook]
 on-activate = """
-  npm install
+  bun install
 """

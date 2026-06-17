@@ -1,17 +1,17 @@
 #!/bin/sh
 
 echo "Checking formatting..."
-if ! npm run format:check; then
+if ! bun run format:check; then
   echo "\n\033[1;31mFormatting check failed!\033[0m"
-  echo "\033[1;33mPlease run 'npm run format' to fix formatting issues before committing.\033[0m"
+  echo "\033[1;33mPlease run 'bun run format' to fix formatting issues before committing.\033[0m"
   echo "You can then try to commit again.\n"
   exit 1
 fi
 
 echo "Linting markdown files..."
-if ! npm run lint:md; then
+if ! bun run lint:md; then
   echo "\n\033[1;31mMarkdown linting failed!\033[0m"
-  echo "\033[1;33mPlease run 'npm run lint:md:fix' to fix markdown issues before committing.\033[0m"
+  echo "\033[1;33mPlease run 'bun run lint:md:fix' to fix markdown issues before committing.\033[0m"
   echo "You can then try to commit again.\n"
   exit 1
 fi

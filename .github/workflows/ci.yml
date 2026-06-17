@@ -24,21 +24,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6.0.3
 
-      - name: Setup Node
-        uses: actions/setup-node@v6.4.0
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          node-version-file: package.json
-          cache: npm
-          cache-dependency-path: package-lock.json
+          bun-version-file: .bun-version
 
       - name: Install dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       - name: Lint markdown
-        run: npm run lint:md
+        run: bun run lint:md
 
       - name: Check formatting
-        run: npm run format:check
+        run: bun run format:check
 
   build:
     name: Build
@@ -47,15 +45,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6.0.3
 
-      - name: Setup Node
-        uses: actions/setup-node@v6.4.0
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          node-version-file: package.json
-          cache: npm
-          cache-dependency-path: package-lock.json
+          bun-version-file: .bun-version
 
       - name: Install dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       - name: Build static site
-        run: npm run build
+        run: bun run build
