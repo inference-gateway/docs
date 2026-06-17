@@ -43,9 +43,9 @@ jobs:
       issues: write
       id-token: write
       actions: read
-    uses: inference-gateway/.github/.github/workflows/claude.yml@v0.10.1
+    uses: inference-gateway/.github/.github/workflows/claude.yml@v0.10.3
     with:
-      language: "bun"
+      language: "node"
       markdownlint: true
       prompt: ${{ inputs.prompt }}
     secrets: inherit
