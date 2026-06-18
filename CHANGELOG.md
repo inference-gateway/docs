@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.112](https://github.com/inference-gateway/docs/compare/0.6.111...0.6.112) (2026-06-18)
+
+### ♻️ Improvements
+
+* replace Node.js runtime and npm with Bun ([#233](https://github.com/inference-gateway/docs/issues/233)) ([befcdb1](https://github.com/inference-gateway/docs/commit/befcdb150a47369fb0154df995ad91da1592b83a))
+
+### 👷 CI
+
+* centralize claude.yml via reusable workflow ([#232](https://github.com/inference-gateway/docs/issues/232)) ([30eed73](https://github.com/inference-gateway/docs/commit/30eed73b4231e745cd961e13b3fce6bc17f75942))
+* centralize claude.yml via reusable workflow ([#240](https://github.com/inference-gateway/docs/issues/240)) ([f288995](https://github.com/inference-gateway/docs/commit/f2889955afd2eaf28deffef44adff5139df2b523))
+
+### 📚 Documentation
+
+* document new chat completion request parameters ([#241](https://github.com/inference-gateway/docs/issues/241)) ([f5c972e](https://github.com/inference-gateway/docs/commit/f5c972e9cc044b4b864d03701defc9149ff7970d))
+
+### 🔧 Miscellaneous
+
+* change language from 'node' to 'bun' in workflow ([9ebd5cf](https://github.com/inference-gateway/docs/commit/9ebd5cf979beb8fb94a59e36eebdcf21c5c204e9))
+* **deps:** bump claude-code 2.1.170 -> 2.1.177, claude-code-action v1.0.142 -> v1.0.150 ([#235](https://github.com/inference-gateway/docs/issues/235)) ([53c5854](https://github.com/inference-gateway/docs/commit/53c5854cd3dc642dfbcf14a90c8d0a32536a9e14))
+* **deps:** bump inference-gateway/.github/.github/workflows/infer.yml ([#238](https://github.com/inference-gateway/docs/issues/238)) ([9590e17](https://github.com/inference-gateway/docs/commit/9590e17ba6df2f6b2fc1c700862c112c16de8dcf))
+* **deps:** bump js-yaml and markdownlint-cli ([#237](https://github.com/inference-gateway/docs/issues/237)) ([c825a2d](https://github.com/inference-gateway/docs/commit/c825a2da816a70dbf1bcb883db29b54e985933dc))
+* **deps:** bump markdown-it and markdownlint-cli ([#236](https://github.com/inference-gateway/docs/issues/236)) ([0a7cbc2](https://github.com/inference-gateway/docs/commit/0a7cbc2355e42638bd01e9499925b18f905d1854))
+
 ## [0.6.111](https://github.com/inference-gateway/docs/compare/0.6.110...0.6.111) (2026-06-16)
 
 ### 📚 Documentation
