@@ -1073,6 +1073,7 @@ The full set of optional fields on `CreateChatCompletionRequest`:
 | `LogitBias`           | `*map[string]int`                             | bias `-100`-`100`                                  | Maps token ID to a sampling bias           |
 | `ResponseFormat`      | `*CreateChatCompletionRequest_ResponseFormat` | text / json_object / json_schema                   | oneOf union - see below                    |
 | `ToolChoice`          | `*ChatCompletionToolChoiceOption`             | `none` / `auto` / `required` / named               | oneOf union - see below                    |
+| `ParallelToolCalls`   | `*bool`                                       | default `true`                                     | Allow parallel function calls during tools |
 | `ReasoningEffort`     | `*CreateChatCompletionRequestReasoningEffort` | `sdk.Minimal`, `sdk.Low`, `sdk.Medium`, `sdk.High` | Reasoning models only                      |
 | `User`                | `*string`                                     | any string                                         | End-user identifier for abuse monitoring   |
 | `MaxCompletionTokens` | `*int`                                        | any integer                                        | Upper bound incl. reasoning tokens         |
@@ -1150,6 +1151,8 @@ resp, err := client.
     WithOptions(&sdk.CreateChatCompletionRequest{ToolChoice: &choice}).
     GenerateContent(ctx, sdk.Openai, "openai/gpt-4o", messages)
 ```
+
+`parallel_tool_calls` (default `true`) governs whether the model may emit several tool calls in one turn; set `ParallelToolCalls: ptr(false)` to force them one at a time.
 
 #### Deprecation: `MaxTokens`
 

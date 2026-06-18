@@ -386,7 +386,7 @@ curl -X POST http://localhost:8080/v1/chat/completions \
 
 ### Controlling Tool Selection
 
-By default the model decides whether to call a tool (`tool_choice` defaults to `"auto"` when `tools` are present). Use `tool_choice` to override that: `"none"` forces a plain text reply, `"required"` forces at least one tool call, and a named function forces that specific call.
+By default the model decides whether to call a tool (`tool_choice` defaults to `"auto"` when `tools` are present). Use `tool_choice` to override that: `"none"` forces a plain text reply, `"required"` forces at least one tool call, and a named function forces that specific call. The model can return several tool calls in one turn; set `parallel_tool_calls` to `false` to force them one at a time.
 
 ```bash
 curl -X POST http://localhost:8080/v1/chat/completions \
@@ -600,6 +600,7 @@ The body sent to `POST /v1/chat/completions`. Only `model` and `messages` are re
 | `logit_bias`            | `object`                         |          | Maps token IDs to a bias from `-100` to `100` applied to logits before sampling                        |
 | `tools`                 | `ChatCompletionTool[]`           |          | Tools available to the model                                                                           |
 | `tool_choice`           | `ChatCompletionToolChoiceOption` |          | Which tool (if any) the model calls: `"none"`, `"auto"`, `"required"`, or a named function             |
+| `parallel_tool_calls`   | `boolean`                        |          | Enable parallel function calling during tool use (default `true`)                                      |
 | `stream`                | `boolean`                        |          | Enable SSE streaming (default: `false`)                                                                |
 | `stream_options`        | `ChatCompletionStreamOptions`    |          | Streaming behaviour options                                                                            |
 | `reasoning_effort`      | `string`                         |          | Constrains reasoning effort: `"minimal"`, `"low"`, `"medium"`, or `"high"`                             |
