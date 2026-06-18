@@ -127,6 +127,158 @@ for tool_call in response.choices[0].message.tool_calls or []:
     print(tool_call.function.name, tool_call.function.arguments)
 ```
 
+### Request parameters
+
+`create_chat_completion` and `create_chat_completion_stream` require only `model` and `messages`. Every other field of the OpenAI-compatible chat-completion request - sampling controls, penalties, structured outputs, tool choice, and so on - is optional and passed as a keyword argument. These keyword arguments map one-to-one onto the fields of `CreateChatCompletionRequest`, which the client validates before sending.
+
+The SDK forwards only the parameters you set explicitly. Unset spec defaults (`temperature=1`, `top_p=1`, `n=1`, `parallel_tool_calls=True`, and so on) are never added to the request body, so a bare call ships just `model`, `messages`, and `stream`.
+
+```python
+from inference_gateway import InferenceGatewayClient, Message
+
+client = InferenceGatewayClient('http://localhost:8080/v1')
+
+response = client.create_chat_completion(
+    model='openai/gpt-4o',
+    messages=[Message(role='user', content='Summarize the CAP theorem.')],
+    temperature=0.7,           # 0-2, default 1
+    top_p=0.9,                 # 0-1, default 1
+    n=1,                       # 1-128 choices, default 1
+    max_completion_tokens=512, # upper bound incl. reasoning tokens
+    frequency_penalty=0.0,     # -2..2, default 0
+    presence_penalty=0.0,      # -2..2, default 0
+    seed=42,                   # best-effort determinism
+    user='user-123',           # end-user identifier
+    reasoning_effort='low',    # minimal | low | medium | high
+)
+```
+
+Values are validated against `CreateChatCompletionRequest` before the request goes out, so an out-of-range argument (for example `temperature=3`) raises `InferenceGatewayValidationError` rather than reaching the gateway. The same keyword arguments work on `create_chat_completion_stream`.
+
+The full set of optional request fields:
+
+| Parameter               | Python value         | Values                                | Notes                                        |
+| ----------------------- | -------------------- | ------------------------------------- | -------------------------------------------- |
+| `temperature`           | `float`              | `0`-`2` (default `1`)                 | Higher is more random; tune this or `top_p`  |
+| `top_p`                 | `float`              | `0`-`1` (default `1`)                 | Nucleus sampling mass                        |
+| `n`                     | `int`                | `1`-`128` (default `1`)               | Number of choices to generate                |
+| `stop`                  | `str` or `list[str]` | string or up to 4 strings             | See below                                    |
+| `frequency_penalty`     | `float`              | `-2`-`2` (default `0`)                | Penalize tokens by existing frequency        |
+| `presence_penalty`      | `float`              | `-2`-`2` (default `0`)                | Penalize tokens that already appeared        |
+| `seed`                  | `int`                | any integer                           | Best-effort deterministic sampling           |
+| `logprobs`              | `bool`               | default `False`                       | Return log probabilities of output tokens    |
+| `top_logprobs`          | `int`                | `0`-`20`                              | Requires `logprobs=True`                     |
+| `logit_bias`            | `dict[str, int]`     | bias `-100`-`100`                     | Maps token ID to a sampling bias             |
+| `response_format`       | `dict`               | text / json_object / json_schema      | See below                                    |
+| `tool_choice`           | `str` or `dict`      | `none` / `auto` / `required` / named  | See below                                    |
+| `parallel_tool_calls`   | `bool`               | default `True`                        | Allow parallel function calls during tools   |
+| `reasoning_effort`      | `str`                | `minimal` / `low` / `medium` / `high` | Reasoning models only                        |
+| `user`                  | `str`                | any string                            | End-user identifier for abuse monitoring     |
+| `max_completion_tokens` | `int`                | any integer                           | Upper bound incl. reasoning tokens           |
+| `max_tokens`            | `int`                | any integer                           | **Deprecated** - use `max_completion_tokens` |
+
+#### Stop sequences
+
+`stop` halts generation when the model is about to emit one of your sequences. Pass a single string or a list of up to four strings:
+
+```python
+# A single stop sequence.
+client.create_chat_completion(
+    model='openai/gpt-4o',
+    messages=[Message(role='user', content='Count to ten.')],
+    stop='\n\n',
+)
+
+# Or up to four sequences.
+client.create_chat_completion(
+    model='openai/gpt-4o',
+    messages=[Message(role='user', content='Count to ten.')],
+    stop=['END', 'STOP'],
+)
+```
+
+#### Response format (Structured Outputs)
+
+`response_format` constrains the shape of the model's output. Pass a dict whose `type` selects one of three modes:
+
+- `{'type': 'text'}` - free-form text, the default when the field is omitted.
+- `{'type': 'json_object'}` - JSON mode: the model is constrained to emit syntactically valid JSON. Tell it to produce JSON in a system or user message, otherwise it may stall.
+- `{'type': 'json_schema', 'json_schema': {...}}` - Structured Outputs: pins the response to a JSON Schema on models that support it.
+
+```python
+response = client.create_chat_completion(
+    model='openai/gpt-4o',
+    messages=[
+        Message(role='system', content='Respond with a JSON object.'),
+        Message(role='user', content='Return the capital of France as {"city": "..."}.'),
+    ],
+    response_format={'type': 'json_object'},
+)
+```
+
+For strict Structured Outputs, switch to `json_schema` and supply a named schema with `strict` set. Only a subset of JSON Schema is supported when `strict` is `True`.
+
+```python
+response = client.create_chat_completion(
+    model='openai/gpt-4o',
+    messages=[Message(role='user', content='Which city is the Eiffel Tower in?')],
+    response_format={
+        'type': 'json_schema',
+        'json_schema': {
+            'name': 'city',
+            'strict': True,
+            'schema': {
+                'type': 'object',
+                'properties': {'city': {'type': 'string'}},
+                'required': ['city'],
+            },
+        },
+    },
+)
+```
+
+#### Tool choice
+
+When you attach tools (see [Tool calls](#tool-calls)), `tool_choice` controls whether and which tool the model calls. Pass one of the string modes - `'none'`, `'auto'`, or `'required'` - or a dict that names a specific function. Here `tools` comes from the Tool calls example above.
+
+```python
+# Force the model to call at least one tool.
+client.create_chat_completion(
+    model='openai/gpt-4o',
+    messages=[Message(role='user', content='What is the weather in New York?')],
+    tools=tools,
+    tool_choice='required',
+)
+
+# Or force one specific function by name.
+client.create_chat_completion(
+    model='openai/gpt-4o',
+    messages=[Message(role='user', content='What is the weather in New York?')],
+    tools=tools,
+    tool_choice={'type': 'function', 'function': {'name': 'get_current_weather'}},
+)
+```
+
+`parallel_tool_calls` (default `True`) governs whether the model may emit several tool calls in one turn; pass `parallel_tool_calls=False` to force them one at a time.
+
+#### Log probabilities and logit bias
+
+Set `logprobs=True` to receive per-token log probabilities on each choice's `logprobs`, and `top_logprobs` (0-20) to also list the most likely alternatives at each position - `top_logprobs` requires `logprobs=True`. `logit_bias` nudges sampling by mapping a token ID (as a string) to a bias from -100 to 100:
+
+```python
+response = client.create_chat_completion(
+    model='openai/gpt-4o',
+    messages=[Message(role='user', content='Pick a number.')],
+    logprobs=True,
+    top_logprobs=5,             # 0-20; requires logprobs=True
+    logit_bias={'50256': -100}, # token ID -> bias (-100..100)
+)
+```
+
+#### Deprecation: `max_tokens`
+
+`max_tokens` still serializes to the wire, but it is deprecated in favor of `max_completion_tokens`, which also counts reasoning tokens and is compatible with o-series models. Prefer `max_completion_tokens` in new code.
+
 ### Vision (image input)
 
 ```python
