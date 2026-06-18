@@ -1184,7 +1184,7 @@ jobs:
           owner: ${{ github.repository_owner }}
 
       - name: Checkout Repository
-        uses: actions/checkout@v6.0.2
+        uses: actions/checkout@v7.0.0
         with:
           token: ${{ steps.generate-token.outputs.token }}
 

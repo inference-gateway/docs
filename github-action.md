@@ -42,7 +42,7 @@ jobs:
   infer:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v7.0.0
 
       - uses: inference-gateway/infer-action@v0.15.0
         with:
@@ -171,7 +171,7 @@ jobs:
   infer:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v7.0.0
 
       - uses: inference-gateway/infer-action@v0.15.0
         with:
@@ -239,7 +239,7 @@ jobs:
   review:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v7.0.0
         with:
           fetch-depth: 0
 
@@ -278,7 +278,7 @@ jobs:
   summary:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v7.0.0
 
       - uses: inference-gateway/infer-action@v0.15.0
         with:
@@ -315,7 +315,7 @@ jobs:
   notes:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v7.0.0
         with:
           fetch-depth: 0
 
