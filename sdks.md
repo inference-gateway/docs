@@ -1342,6 +1342,154 @@ if let Some(choice) = response.choices.first() {
 }
 ```
 
+### Request parameters
+
+`generate_content` and `generate_content_stream` take only the provider, model, and messages. Internally they build a `CreateChatCompletionRequest`, shaping it through the client's two request builders - `with_tools` sets the `tools` list and `with_max_tokens` sets the (now-deprecated) `max_tokens` - and filling every remaining field from the schema default via the type's `Default` impl. The other OpenAI-compatible fields (sampling controls, penalties, structured outputs, tool choice, and so on) are not yet surfaced through a client builder, but they are public on `CreateChatCompletionRequest`, which is re-exported from the crate root with every field `pub`. Construct one with `..Default::default()` to serialize a request, assert against it in tests, or return it from a mock of the `InferenceGatewayAPI` trait.
+
+```rust
+use inference_gateway_sdk::{
+    CreateChatCompletionRequest, CreateChatCompletionRequestReasoningEffort, MessageRole,
+};
+
+// `message` is the helper from the Chat completion example above.
+let request = CreateChatCompletionRequest {
+    model: "openai/gpt-4o".to_string(),
+    messages: vec![message(MessageRole::User, "Summarize the CAP theorem.")],
+    temperature: 0.7,                   // 0-2, default 1
+    top_p: 0.9,                         // 0-1, default 1
+    seed: Some(42),                     // best-effort determinism
+    user: Some("user-123".to_string()), // end-user identifier
+    reasoning_effort: Some(CreateChatCompletionRequestReasoningEffort::Low),
+    max_completion_tokens: Some(512),   // upper bound incl. reasoning tokens
+    ..Default::default()
+};
+```
+
+Seven fields carry a schema `default:` and are generated as non-`Option`, so they serialize on every request even when you leave them untouched: `temperature` (`1.0`), `top_p` (`1.0`), `n` (`1`), `frequency_penalty` (`0.0`), `presence_penalty` (`0.0`), `logprobs` (`false`), and `parallel_tool_calls` (`true`). This is a wire-format change from earlier releases - and from the Python and Go SDKs, which omit unset fields - so a bare Rust request now ships these documented defaults. The remaining optional fields stay off the wire until you set them (`logit_bias` and `tools` are skipped while empty; the rest are `Option<...>`).
+
+The full set of request fields on `CreateChatCompletionRequest`:
+
+| Field                   | Rust type                                            | Values                                | Notes                                        |
+| ----------------------- | ---------------------------------------------------- | ------------------------------------- | -------------------------------------------- |
+| `temperature`           | `f64`                                                | `0`-`2` (default `1`)                 | Always sent; tune this or `top_p`            |
+| `top_p`                 | `f64`                                                | `0`-`1` (default `1`)                 | Always sent; nucleus sampling mass           |
+| `n`                     | `NonZeroU64`                                         | `1`-`128` (default `1`)               | Always sent; number of choices to generate   |
+| `stop`                  | `Option<CreateChatCompletionRequestStop>`            | string or up to 4 strings             | Untagged union - see below                   |
+| `frequency_penalty`     | `f64`                                                | `-2`-`2` (default `0`)                | Always sent; penalize by existing frequency  |
+| `presence_penalty`      | `f64`                                                | `-2`-`2` (default `0`)                | Always sent; penalize already-present tokens |
+| `seed`                  | `Option<i64>`                                        | any integer                           | Best-effort deterministic sampling           |
+| `logprobs`              | `bool`                                               | default `false`                       | Always sent; return token log probabilities  |
+| `top_logprobs`          | `Option<i64>`                                        | `0`-`20`                              | Requires `logprobs = true`                   |
+| `logit_bias`            | `HashMap<String, i64>`                               | bias `-100`-`100`                     | Maps token ID to bias; omitted when empty    |
+| `response_format`       | `Option<CreateChatCompletionRequestResponseFormat>`  | text / json_object / json_schema      | Untagged union - see below                   |
+| `tool_choice`           | `Option<ChatCompletionToolChoiceOption>`             | `none` / `auto` / `required` / named  | Untagged union - see below                   |
+| `parallel_tool_calls`   | `bool`                                               | default `true`                        | Always sent; allow parallel tool calls       |
+| `reasoning_effort`      | `Option<CreateChatCompletionRequestReasoningEffort>` | `minimal` / `low` / `medium` / `high` | Reasoning models only                        |
+| `user`                  | `Option<String>`                                     | any string                            | End-user identifier for abuse monitoring     |
+| `max_completion_tokens` | `Option<i64>`                                        | any integer                           | Upper bound incl. reasoning tokens           |
+| `max_tokens`            | `Option<i64>`                                        | any integer                           | **Deprecated** - use `max_completion_tokens` |
+
+#### Log probabilities and logit bias
+
+Set `logprobs` to `true` to receive per-token log probabilities on each choice, and `top_logprobs` (0-20) to also list the most likely alternatives at each position - `top_logprobs` requires `logprobs = true`. `logit_bias` is a `HashMap` that maps a token ID (as a string) to a bias from -100 to 100, and is omitted from the wire while it is empty.
+
+```rust
+use std::collections::HashMap;
+use inference_gateway_sdk::{CreateChatCompletionRequest, MessageRole};
+
+let request = CreateChatCompletionRequest {
+    model: "openai/gpt-4o".to_string(),
+    messages: vec![message(MessageRole::User, "Pick a number.")],
+    logprobs: true,                                            // always present; flip to opt in
+    top_logprobs: Some(5),                                     // 0-20; requires logprobs = true
+    logit_bias: HashMap::from([("50256".to_string(), -100)]),  // token ID -> bias (-100..100)
+    ..Default::default()
+};
+```
+
+#### Stop sequences
+
+`stop` is a `oneOf` - a single string or an array of up to four strings - that typify emits as the `#[serde(untagged)]` enum `CreateChatCompletionRequestStop`. Build the variant you need and assign it to the field.
+
+```rust
+use inference_gateway_sdk::CreateChatCompletionRequestStop;
+
+// A single stop sequence.
+let stop = CreateChatCompletionRequestStop::String("\n\n".to_string());
+
+// Or up to four sequences.
+let stop = CreateChatCompletionRequestStop::Array(vec!["END".to_string(), "STOP".to_string()]);
+```
+
+#### Response format (Structured Outputs)
+
+`response_format` is the untagged enum `CreateChatCompletionRequestResponseFormat` over plain text, JSON mode, and a JSON Schema. Each variant disambiguates on its inner `type` field. Setting a schema with `strict: true` enables Structured Outputs, which forces the model to match it; only a subset of JSON Schema is supported when `strict` is `true`.
+
+```rust
+use inference_gateway_sdk::{
+    CreateChatCompletionRequestResponseFormat, ResponseFormatJsonObject,
+    ResponseFormatJsonObjectType, ResponseFormatJsonSchema, ResponseFormatJsonSchemaJsonSchema,
+    ResponseFormatJsonSchemaSchema, ResponseFormatJsonSchemaType,
+};
+use serde_json::json;
+
+// JSON mode: constrain the model to syntactically valid JSON.
+let response_format =
+    CreateChatCompletionRequestResponseFormat::JsonObject(ResponseFormatJsonObject {
+        type_: ResponseFormatJsonObjectType::JsonObject,
+    });
+
+// Structured Outputs: pin the response to a JSON Schema.
+let schema = json!({
+    "type": "object",
+    "properties": { "city": { "type": "string" } },
+    "required": ["city"]
+});
+let response_format =
+    CreateChatCompletionRequestResponseFormat::JsonSchema(ResponseFormatJsonSchema {
+        type_: ResponseFormatJsonSchemaType::JsonSchema,
+        json_schema: ResponseFormatJsonSchemaJsonSchema {
+            name: "city".to_string(),
+            description: None,
+            schema: Some(ResponseFormatJsonSchemaSchema(schema.as_object().unwrap().clone())),
+            strict: true,
+        },
+    });
+```
+
+The plain-text default is `CreateChatCompletionRequestResponseFormat::Text(ResponseFormatText { type_: ResponseFormatTextType::Text })`. Each enum also has `From` impls for its variants, so `.into()` works where the target type is known.
+
+#### Tool choice
+
+When you attach tools with `with_tools` (see the Tool calls example above), `tool_choice` controls whether and which tool the model calls. It is the untagged enum `ChatCompletionToolChoiceOption` over the string modes (`None`, `Auto`, `Required`) and a named function.
+
+```rust
+use inference_gateway_sdk::{
+    ChatCompletionNamedToolChoice, ChatCompletionNamedToolChoiceFunction,
+    ChatCompletionToolChoiceOption, ChatCompletionToolChoiceOptionString, ChatCompletionToolType,
+};
+
+// Force the model to call at least one tool.
+let tool_choice =
+    ChatCompletionToolChoiceOption::String(ChatCompletionToolChoiceOptionString::Required);
+
+// Or force one specific function by name.
+let tool_choice = ChatCompletionToolChoiceOption::ChatCompletionNamedToolChoice(
+    ChatCompletionNamedToolChoice {
+        type_: ChatCompletionToolType::Function,
+        function: ChatCompletionNamedToolChoiceFunction {
+            name: "get_current_weather".to_string(),
+        },
+    },
+);
+```
+
+`parallel_tool_calls` (default `true`, always sent) governs whether the model may emit several tool calls in one turn; set it to `false` to force them one at a time.
+
+#### Deprecation: `max_tokens`
+
+`with_max_tokens` still populates `max_tokens` for backward compatibility, and the field continues to serialize, but `max_tokens` is deprecated in favor of `max_completion_tokens`, which also counts reasoning tokens and is compatible with o-series models. There is no dedicated builder for `max_completion_tokens` yet - set it on the request struct, as in the example above - so prefer it in new code.
+
 ### Vision (image input)
 
 `MessageContent` is an enum: `String(...)` for plain text, `Array(Vec<ContentPart>)` for multimodal. Build image messages with `ContentPart::ImageContentPart`.
