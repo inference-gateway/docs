@@ -131,7 +131,9 @@ The request body conforms to the `CreateChatCompletionRequest` schema:
   "stream_options": {
     "include_usage": true
   },
-  "max_tokens": 1000,
+  "max_completion_tokens": 1000,
+  "temperature": 1,
+  "top_p": 1,
   "tools": [
     {
       "type": "function",
@@ -227,7 +229,7 @@ curl -X POST http://localhost:8080/v1/chat/completions\?provider\=ollama -d '{
   "stream_options": {
     "include_usage": true
   },
-  "max_tokens": 40
+  "max_completion_tokens": 40
 }'
 ```
 
@@ -382,6 +384,78 @@ curl -X POST http://localhost:8080/v1/chat/completions \
   }'
 ```
 
+### Controlling Tool Selection
+
+By default the model decides whether to call a tool (`tool_choice` defaults to `"auto"` when `tools` are present). Use `tool_choice` to override that: `"none"` forces a plain text reply, `"required"` forces at least one tool call, and a named function forces that specific call.
+
+```bash
+curl -X POST http://localhost:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "openai/gpt-5",
+    "messages": [{ "role": "user", "content": "What is the weather in Paris?" }],
+    "tools": [
+      {
+        "type": "function",
+        "function": {
+          "name": "get_weather",
+          "description": "Get the current weather in a location",
+          "parameters": {
+            "type": "object",
+            "properties": { "location": { "type": "string" } },
+            "required": ["location"]
+          }
+        }
+      }
+    ],
+    "tool_choice": { "type": "function", "function": { "name": "get_weather" } }
+  }'
+```
+
+### Structured Outputs
+
+Use `response_format` to constrain the shape of the response. `{ "type": "json_object" }` enables the older JSON mode, while `{ "type": "json_schema", ... }` enables Structured Outputs, which makes the model match a JSON Schema you supply. Set `strict: true` to enforce exact schema adherence.
+
+```bash
+curl -X POST http://localhost:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "openai/gpt-5",
+    "messages": [{ "role": "user", "content": "Extract the name and age from: Ada is 36." }],
+    "response_format": {
+      "type": "json_schema",
+      "json_schema": {
+        "name": "person",
+        "strict": true,
+        "schema": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" },
+            "age": { "type": "integer" }
+          },
+          "required": ["name", "age"],
+          "additionalProperties": false
+        }
+      }
+    }
+  }'
+```
+
+### Reasoning Effort
+
+For reasoning-capable models, `reasoning_effort` trades reasoning depth for latency and token cost. Supported values are `minimal`, `low`, `medium`, and `high`; lower effort yields faster responses with fewer reasoning tokens. Pair it with `reasoning_format` (`raw` or `parsed`) to control how the reasoning is returned.
+
+```bash
+curl -X POST http://localhost:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "deepseek/deepseek-reasoner",
+    "messages": [{ "role": "user", "content": "How many r are in strawberry?" }],
+    "reasoning_effort": "low",
+    "reasoning_format": "parsed"
+  }'
+```
+
 ### Vision/Multimodal Support
 
 For vision-capable models, you can include images in your requests using either HTTP URLs or base64-encoded data URLs. Vision support must be enabled with `ENABLE_VISION=true` in your configuration.
@@ -505,18 +579,32 @@ The raw response body returned by proxy endpoints (`{METHOD} /proxy/{provider}/{
 
 #### `CreateChatCompletionRequest`
 
-The body sent to `POST /v1/chat/completions`.
+The body sent to `POST /v1/chat/completions`. Only `model` and `messages` are required; every other field is optional and falls back to the model/provider default.
 
-| Field              | Type                          | Required | Description                                             |
-| ------------------ | ----------------------------- | -------- | ------------------------------------------------------- |
-| `model`            | `string`                      | Yes      | Model identifier (e.g., `"deepseek/deepseek-v4-flash"`) |
-| `messages`         | `Message[]`                   | Yes      | Conversation history                                    |
-| `stream`           | `boolean`                     |          | Enable SSE streaming (default: `false`)                 |
-| `stream_options`   | `ChatCompletionStreamOptions` |          | Streaming behaviour options                             |
-| `max_tokens`       | `integer`                     |          | Maximum tokens to generate                              |
-| `tools`            | `ChatCompletionTool[]`        |          | Tools available to the model                            |
-| `temperature`      | `number`                      |          | Sampling temperature (0-2)                              |
-| `reasoning_format` | `string`                      |          | Reasoning output format: `"raw"` or `"parsed"`          |
+| Field                   | Type                             | Required | Description                                                                                            |
+| ----------------------- | -------------------------------- | -------- | ------------------------------------------------------------------------------------------------------ |
+| `model`                 | `string`                         | Yes      | Model identifier (e.g., `"deepseek/deepseek-v4-flash"`)                                                |
+| `messages`              | `Message[]`                      | Yes      | Conversation history                                                                                   |
+| `max_completion_tokens` | `integer`                        |          | Upper bound for generated tokens, including visible output and reasoning tokens                        |
+| `max_tokens`            | `integer`                        |          | **Deprecated** - use `max_completion_tokens`. Maximum tokens to generate; not compatible with o-series |
+| `temperature`           | `number`                         |          | Sampling temperature, `0`-`2` (default `1`). Higher values make output more random                     |
+| `top_p`                 | `number`                         |          | Nucleus sampling mass, `0`-`1` (default `1`). Alter this or `temperature`, not both                    |
+| `frequency_penalty`     | `number`                         |          | `-2`-`2` (default `0`). Positive values penalize tokens by their existing frequency                    |
+| `presence_penalty`      | `number`                         |          | `-2`-`2` (default `0`). Positive values penalize tokens that already appeared                          |
+| `n`                     | `integer`                        |          | Number of completion choices to generate, `1`-`128` (default `1`)                                      |
+| `stop`                  | `string` \| `string[]`           |          | Up to 4 sequences where the API stops generating further tokens                                        |
+| `seed`                  | `integer`                        |          | Best-effort deterministic sampling; pair with the `system_fingerprint` response field                  |
+| `logprobs`              | `boolean`                        |          | Return log probabilities of the output tokens (default `false`)                                        |
+| `top_logprobs`          | `integer`                        |          | Most likely tokens to return per position, `0`-`20`. Requires `logprobs: true`                         |
+| `response_format`       | `ResponseFormat`                 |          | Output format: `text`, `json_object`, or `json_schema` (Structured Outputs)                            |
+| `logit_bias`            | `object`                         |          | Maps token IDs to a bias from `-100` to `100` applied to logits before sampling                        |
+| `tools`                 | `ChatCompletionTool[]`           |          | Tools available to the model                                                                           |
+| `tool_choice`           | `ChatCompletionToolChoiceOption` |          | Which tool (if any) the model calls: `"none"`, `"auto"`, `"required"`, or a named function             |
+| `stream`                | `boolean`                        |          | Enable SSE streaming (default: `false`)                                                                |
+| `stream_options`        | `ChatCompletionStreamOptions`    |          | Streaming behaviour options                                                                            |
+| `reasoning_effort`      | `string`                         |          | Constrains reasoning effort: `"minimal"`, `"low"`, `"medium"`, or `"high"`                             |
+| `reasoning_format`      | `string`                         |          | Reasoning output format: `"raw"` or `"parsed"`                                                         |
+| `user`                  | `string`                         |          | Unique end-user identifier to help monitor and detect abuse                                            |
 
 #### `ChatCompletionStreamOptions`
 
@@ -525,6 +613,48 @@ Controls streaming behaviour when `stream: true`.
 | Field           | Type      | Description                                                      |
 | --------------- | --------- | ---------------------------------------------------------------- |
 | `include_usage` | `boolean` | Include a final `CompletionUsage` chunk at the end of the stream |
+
+#### `ResponseFormat`
+
+The `response_format` field of a `CreateChatCompletionRequest`. A discriminated union - one of `ResponseFormatText`, `ResponseFormatJsonObject`, or `ResponseFormatJsonSchema`, distinguished by the `type` field. Omitting it returns free-form text (equivalent to `ResponseFormatText`).
+
+#### `ResponseFormatText`
+
+The default response format, used to generate free-form text.
+
+| Field  | Type     | Required | Description     |
+| ------ | -------- | -------- | --------------- |
+| `type` | `string` | Yes      | Always `"text"` |
+
+#### `ResponseFormatJsonObject`
+
+The older JSON mode. Ensures the model emits valid JSON. The prompt must still instruct the model to produce JSON. Prefer `ResponseFormatJsonSchema` on models that support it.
+
+| Field  | Type     | Required | Description            |
+| ------ | -------- | -------- | ---------------------- |
+| `type` | `string` | Yes      | Always `"json_object"` |
+
+#### `ResponseFormatJsonSchema`
+
+Structured Outputs. Constrains the model to emit JSON that matches a supplied JSON Schema.
+
+| Field         | Type     | Required | Description                                  |
+| ------------- | -------- | -------- | -------------------------------------------- |
+| `type`        | `string` | Yes      | Always `"json_schema"`                       |
+| `json_schema` | `object` | Yes      | Structured Outputs configuration (see below) |
+
+The `json_schema` object holds:
+
+| Field         | Type                             | Required | Description                                                                       |
+| ------------- | -------------------------------- | -------- | --------------------------------------------------------------------------------- |
+| `name`        | `string`                         | Yes      | Format name. `a-z`, `A-Z`, `0-9`, underscores, and dashes; max length 64          |
+| `schema`      | `ResponseFormatJsonSchemaSchema` |          | The JSON Schema the output must satisfy                                           |
+| `description` | `string`                         |          | What the format is for; helps the model decide how to respond                     |
+| `strict`      | `boolean`                        |          | Enforce exact schema adherence (default `false`). A subset of JSON Schema applies |
+
+#### `ResponseFormatJsonSchemaSchema`
+
+The JSON Schema object supplied in `json_schema.schema`, described as a standard JSON Schema document (arbitrary keys are allowed).
 
 ### Message Content
 
@@ -610,12 +740,12 @@ When present, `logprobs` contains `content` and `refusal` arrays of
 
 Why the model stopped generating tokens. One of:
 
-| Value              | Description                                |
-| ------------------ | ------------------------------------------ |
-| `"stop"`           | Natural end of output or stop sequence hit |
-| `"length"`         | `max_tokens` limit reached                 |
-| `"tool_calls"`     | Model issued one or more tool calls        |
-| `"content_filter"` | Output was filtered                        |
+| Value              | Description                                             |
+| ------------------ | ------------------------------------------------------- |
+| `"stop"`           | Natural end of output or stop sequence hit              |
+| `"length"`         | `max_completion_tokens` (or `max_tokens`) limit reached |
+| `"tool_calls"`     | Model issued one or more tool calls                     |
+| `"content_filter"` | Output was filtered                                     |
 
 #### `CompletionUsage`
 
@@ -736,6 +866,26 @@ A JSON Schema object that describes the parameters accepted by a `FunctionObject
   "required": ["param1"]
 }
 ```
+
+#### `ChatCompletionToolChoiceOption`
+
+The `tool_choice` field of a `CreateChatCompletionRequest`. Controls which (if any) tool the model calls. It is either a string mode or a `ChatCompletionNamedToolChoice` that forces a specific function.
+
+| Value / Type                    | Description                                                                                        |
+| ------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `"none"`                        | The model will not call a tool and instead generates a message (default when no tools are present) |
+| `"auto"`                        | The model chooses between a message or one or more tool calls (default when tools are present)     |
+| `"required"`                    | The model must call one or more tools                                                              |
+| `ChatCompletionNamedToolChoice` | Force the model to call one specific function                                                      |
+
+#### `ChatCompletionNamedToolChoice`
+
+Forces the model to call a specific function.
+
+| Field      | Type                     | Required | Description                                              |
+| ---------- | ------------------------ | -------- | -------------------------------------------------------- |
+| `type`     | `ChatCompletionToolType` | Yes      | The tool category (always `"function"`)                  |
+| `function` | `object`                 | Yes      | `{ "name": "my_function" }` identifying the tool to call |
 
 #### `ChatCompletionMessageToolCall`
 
