@@ -102,6 +102,8 @@ const mcpSettings = [
   { variable: 'MCP_ENABLE', description: 'Enable MCP middleware', defaultValue: 'false' },
   { variable: 'MCP_EXPOSE', description: 'Expose MCP endpoints for debugging', defaultValue: 'false' },
   { variable: 'MCP_SERVERS', description: 'Comma-separated list of MCP server URLs', defaultValue: '""' },
+  { variable: 'MCP_INCLUDE_TOOLS', description: 'Comma-separated allowlist of MCP tool names to inject. If empty, all tools are injected. Takes precedence over MCP_EXCLUDE_TOOLS', defaultValue: '""' },
+  { variable: 'MCP_EXCLUDE_TOOLS', description: 'Comma-separated denylist of MCP tool names to skip injecting. If empty, no tools are excluded. Takes lower precedence than MCP_INCLUDE_TOOLS', defaultValue: '""' },
   { variable: 'MCP_CLIENT_TIMEOUT', description: 'MCP client HTTP timeout', defaultValue: '5s' },
   { variable: 'MCP_DIAL_TIMEOUT', description: 'MCP client dial timeout', defaultValue: '3s' },
   { variable: 'MCP_TLS_HANDSHAKE_TIMEOUT', description: 'MCP client TLS handshake timeout', defaultValue: '3s' },
@@ -242,6 +244,13 @@ These settings control MCP integration for external tool access:
 
 <ConfigTable :rows="mcpSettings" />
 
+Use `MCP_INCLUDE_TOOLS` and `MCP_EXCLUDE_TOOLS` to control exactly which discovered tools are injected into LLM requests. Both accept a comma-separated list of tool names and default to empty:
+
+- `MCP_INCLUDE_TOOLS` is an allowlist. When empty (the default), all discovered tools are injected. When set, only the listed tools are injected.
+- `MCP_EXCLUDE_TOOLS` is a denylist. When empty (the default), no tools are excluded. When set, the listed tools are skipped.
+
+`MCP_INCLUDE_TOOLS` takes precedence over `MCP_EXCLUDE_TOOLS`: when both are set, the allowlist is applied and the denylist is ignored.
+
 ### Logging and Debugging
 
 These settings control logging and debugging behavior:
@@ -315,6 +324,8 @@ TELEMETRY_METRICS_PORT=9464
 MCP_ENABLE=false
 MCP_EXPOSE=false
 MCP_SERVERS=
+MCP_INCLUDE_TOOLS=
+MCP_EXCLUDE_TOOLS=
 MCP_CLIENT_TIMEOUT=5s
 MCP_DIAL_TIMEOUT=3s
 MCP_TLS_HANDSHAKE_TIMEOUT=3s
