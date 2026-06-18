@@ -559,6 +559,158 @@ await client.streamChatCompletion(
 );
 ```
 
+### Request parameters
+
+`createChatCompletion` and `streamChatCompletion` take a single request object, and only `model` and `messages` are required. Every other field of the OpenAI-compatible chat-completion request - sampling controls, penalties, structured outputs, tool choice, and so on - is optional. The object is typed as `SchemaCreateChatCompletionRequest` (exported from the package), so your editor type-checks and autocompletes every field.
+
+The SDK serializes only the fields you set, then manages `stream` for you - it forces `stream: false` for `createChatCompletion` and `stream: true` for `streamChatCompletion`, so you never set it yourself (both `stream` and `stream_options` are stripped from the request type). Unset fields, and the spec defaults they would carry (`temperature` `1`, `top_p` `1`, `n` `1`, `parallel_tool_calls` `true`, and so on), never appear in the request body, so a bare call ships just `model`, `messages`, and `stream`.
+
+```typescript
+import { InferenceGatewayClient, MessageRole } from '@inference-gateway/sdk';
+
+const client = new InferenceGatewayClient({
+  baseURL: 'http://localhost:8080/v1',
+});
+
+const response = await client.createChatCompletion({
+  model: 'openai/gpt-4o',
+  messages: [{ role: MessageRole.User, content: 'Summarize the CAP theorem.' }],
+  temperature: 0.7, // 0-2, default 1
+  top_p: 0.9, // 0-1, default 1
+  n: 1, // 1-128 choices, default 1
+  max_completion_tokens: 512, // upper bound incl. reasoning tokens
+  frequency_penalty: 0.0, // -2..2, default 0
+  presence_penalty: 0.0, // -2..2, default 0
+  seed: 42, // best-effort determinism
+  user: 'user-123', // end-user identifier
+  reasoning_effort: 'low', // minimal | low | medium | high
+});
+```
+
+The same fields work on `streamChatCompletion`. The full set of optional request fields:
+
+| Parameter               | TypeScript type          | Values                                | Notes                                        |
+| ----------------------- | ------------------------ | ------------------------------------- | -------------------------------------------- |
+| `temperature`           | `number`                 | `0`-`2` (default `1`)                 | Higher is more random; tune this or `top_p`  |
+| `top_p`                 | `number`                 | `0`-`1` (default `1`)                 | Nucleus sampling mass                        |
+| `n`                     | `number`                 | `1`-`128` (default `1`)               | Number of choices to generate                |
+| `stop`                  | `string \| string[]`     | string or up to 4 strings             | See below                                    |
+| `frequency_penalty`     | `number`                 | `-2`-`2` (default `0`)                | Penalize tokens by existing frequency        |
+| `presence_penalty`      | `number`                 | `-2`-`2` (default `0`)                | Penalize tokens that already appeared        |
+| `seed`                  | `number`                 | any integer                           | Best-effort deterministic sampling           |
+| `logprobs`              | `boolean`                | default `false`                       | Return log probabilities of output tokens    |
+| `top_logprobs`          | `number`                 | `0`-`20`                              | Requires `logprobs: true`                    |
+| `logit_bias`            | `Record<string, number>` | bias `-100`-`100`                     | Maps token ID to a sampling bias             |
+| `response_format`       | `object`                 | text / json_object / json_schema      | See below                                    |
+| `tool_choice`           | `string \| object`       | `none` / `auto` / `required` / named  | See below                                    |
+| `parallel_tool_calls`   | `boolean`                | default `true`                        | Allow parallel function calls during tools   |
+| `reasoning_effort`      | `string`                 | `minimal` / `low` / `medium` / `high` | Reasoning models only                        |
+| `user`                  | `string`                 | any string                            | End-user identifier for abuse monitoring     |
+| `max_completion_tokens` | `number`                 | any integer                           | Upper bound incl. reasoning tokens           |
+| `max_tokens`            | `number`                 | any integer                           | **Deprecated** - use `max_completion_tokens` |
+
+#### Stop sequences
+
+`stop` halts generation when the model is about to emit one of your sequences. Pass a single string or an array of up to four strings:
+
+```typescript
+// A single stop sequence.
+await client.createChatCompletion({
+  model: 'openai/gpt-4o',
+  messages: [{ role: MessageRole.User, content: 'Count to ten.' }],
+  stop: '\n\n',
+});
+
+// Or up to four sequences.
+await client.createChatCompletion({
+  model: 'openai/gpt-4o',
+  messages: [{ role: MessageRole.User, content: 'Count to ten.' }],
+  stop: ['END', 'STOP'],
+});
+```
+
+#### Response format (Structured Outputs)
+
+`response_format` constrains the shape of the model's output. The `type` field selects one of three modes:
+
+- `{ type: 'text' }` - free-form text, the default when the field is omitted.
+- `{ type: 'json_object' }` - JSON mode: the model is constrained to emit syntactically valid JSON. Tell it to produce JSON in a system or user message, otherwise it may stall.
+- `{ type: 'json_schema', json_schema: { ... } }` - Structured Outputs: pins the response to a JSON Schema on models that support it.
+
+```typescript
+const response = await client.createChatCompletion({
+  model: 'openai/gpt-4o',
+  messages: [
+    { role: MessageRole.System, content: 'Respond with a JSON object.' },
+    { role: MessageRole.User, content: 'Return the capital of France as {"city": "..."}.' },
+  ],
+  response_format: { type: 'json_object' },
+});
+```
+
+For strict Structured Outputs, switch to `json_schema` and supply a named schema with `strict` set. Only a subset of JSON Schema is supported when `strict` is `true`.
+
+```typescript
+const response = await client.createChatCompletion({
+  model: 'openai/gpt-4o',
+  messages: [{ role: MessageRole.User, content: 'Which city is the Eiffel Tower in?' }],
+  response_format: {
+    type: 'json_schema',
+    json_schema: {
+      name: 'city',
+      strict: true,
+      schema: {
+        type: 'object',
+        properties: { city: { type: 'string' } },
+        required: ['city'],
+      },
+    },
+  },
+});
+```
+
+#### Tool choice
+
+When you attach tools (see the Tool calls example above), `tool_choice` controls whether and which tool the model calls. Pass one of the string modes - `'none'`, `'auto'`, or `'required'` - or an object that names a specific function. Here `tools` is the weather-tool array from that example.
+
+```typescript
+// Force the model to call at least one tool.
+await client.createChatCompletion({
+  model: 'openai/gpt-4o',
+  messages: [{ role: MessageRole.User, content: "What's the weather in San Francisco?" }],
+  tools,
+  tool_choice: 'required',
+});
+
+// Or force one specific function by name.
+await client.createChatCompletion({
+  model: 'openai/gpt-4o',
+  messages: [{ role: MessageRole.User, content: "What's the weather in San Francisco?" }],
+  tools,
+  tool_choice: { type: 'function', function: { name: 'get_weather' } },
+});
+```
+
+`parallel_tool_calls` (default `true`) governs whether the model may emit several tool calls in one turn; pass `parallel_tool_calls: false` to force them one at a time.
+
+#### Log probabilities and logit bias
+
+Set `logprobs: true` to receive per-token log probabilities on each choice's `logprobs`, and `top_logprobs` (0-20) to also list the most likely alternatives at each position - `top_logprobs` requires `logprobs: true`. `logit_bias` nudges sampling by mapping a token ID (as a string) to a bias from -100 to 100:
+
+```typescript
+const response = await client.createChatCompletion({
+  model: 'openai/gpt-4o',
+  messages: [{ role: MessageRole.User, content: 'Pick a number.' }],
+  logprobs: true,
+  top_logprobs: 5, // 0-20; requires logprobs: true
+  logit_bias: { '50256': -100 }, // token ID -> bias (-100..100)
+});
+```
+
+#### Deprecation: `max_tokens`
+
+`max_tokens` still serializes to the wire, but it is deprecated in favor of `max_completion_tokens`, which also counts reasoning tokens and is compatible with o-series models. Prefer `max_completion_tokens` in new code.
+
 ### Vision (image input)
 
 Pass an array of content parts (text + `image_url`) as the message content. Works with the same `createChatCompletion` / `streamChatCompletion` methods.
