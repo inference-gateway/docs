@@ -101,6 +101,12 @@ MCP_EXPOSE=true
 # Comma-separated list of MCP server URLs
 MCP_SERVERS="http://time-server:8081/mcp,http://search-server:8082/mcp,http://filesystem-server:8083/mcp"
 
+# Tool filtering (optional)
+# Allowlist of tool names to inject - if empty, all discovered tools are injected
+MCP_INCLUDE_TOOLS=""
+# Denylist of tool names to skip - takes lower precedence than MCP_INCLUDE_TOOLS
+MCP_EXCLUDE_TOOLS=""
+
 # Timeout configurations (optional)
 MCP_CLIENT_TIMEOUT=10s
 MCP_DIAL_TIMEOUT=5s
@@ -151,6 +157,25 @@ env:
   MCP_CLIENT_TIMEOUT: '10s'
   MCP_REQUEST_TIMEOUT: '10s'
 ```
+
+### Filtering Injected Tools
+
+By default every tool discovered across all connected MCP servers is injected into LLM requests. Use `MCP_INCLUDE_TOOLS` and `MCP_EXCLUDE_TOOLS` to narrow that set - for example to hide destructive operations or to expose only a curated toolset. Both accept a comma-separated list of tool names and default to empty:
+
+- **`MCP_INCLUDE_TOOLS`** - allowlist. When empty (the default), all discovered tools are injected. When set, only the listed tools are injected.
+- **`MCP_EXCLUDE_TOOLS`** - denylist. When empty (the default), no tools are excluded. When set, the listed tools are skipped.
+
+`MCP_INCLUDE_TOOLS` takes precedence over `MCP_EXCLUDE_TOOLS`: when both are set, the allowlist is applied and the denylist is ignored.
+
+```bash
+# Inject only the time and search tools, ignore everything else
+MCP_INCLUDE_TOOLS="get_time,search"
+
+# Inject all discovered tools except the destructive filesystem ones
+MCP_EXCLUDE_TOOLS="delete_file,write_file"
+```
+
+Tool names match those reported by the `GET /v1/mcp/tools` endpoint (available when `MCP_EXPOSE=true`).
 
 ## Usage Examples
 
