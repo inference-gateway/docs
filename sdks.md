@@ -714,6 +714,143 @@ resp, err := client.WithTools(&tools).GenerateContent(
 )
 ```
 
+### Request parameters
+
+`GenerateContent` and `GenerateContentStream` only take the provider, model, and messages. Every other field of the chat-completion request - sampling controls, penalties, structured outputs, and so on - is optional and set through `WithOptions`, which stores a `*sdk.CreateChatCompletionRequest` and merges it into each subsequent call on that client.
+
+The optional fields are pointers, so the examples below use a one-line generic helper to take the address of a literal:
+
+```go
+func ptr[T any](v T) *T { return &v }
+```
+
+```go
+options := &sdk.CreateChatCompletionRequest{
+    Temperature:         ptr(float32(0.7)), // 0-2, default 1
+    TopP:                ptr(float32(0.9)), // 0-1, default 1
+    N:                   ptr(1),            // 1-128 choices, default 1
+    MaxCompletionTokens: ptr(512),          // upper bound incl. reasoning tokens
+    FrequencyPenalty:    ptr(float32(0.0)), // -2..2, default 0
+    PresencePenalty:     ptr(float32(0.0)), // -2..2, default 0
+    Seed:                ptr(42),           // best-effort determinism
+    User:                ptr("user-123"),   // end-user identifier
+    ReasoningEffort:     ptr(sdk.Low),      // minimal | low | medium | high
+}
+
+resp, err := client.WithOptions(options).GenerateContent(
+    ctx,
+    sdk.Openai,
+    "openai/gpt-4o",
+    []sdk.Message{
+        {Role: sdk.User, Content: sdk.NewMessageContent("Summarize the CAP theorem.")},
+    },
+)
+```
+
+Three rules govern how `WithOptions` interacts with the generation calls:
+
+- `Stream` is overwritten on every call - forced to `false` for `GenerateContent` and `true` for `GenerateContentStream` - so you never set it yourself.
+- The `model` and `messages` passed to `GenerateContent` / `GenerateContentStream` win over anything carried in the options.
+- Options persist on the client for all later calls; pass `WithOptions(nil)` to clear them.
+
+The full set of optional fields on `CreateChatCompletionRequest`:
+
+| Field                 | Go type                                       | Values                                             | Notes                                      |
+| --------------------- | --------------------------------------------- | -------------------------------------------------- | ------------------------------------------ |
+| `Temperature`         | `*float32`                                    | `0`-`2` (default `1`)                              | Higher is more random; tune this or `TopP` |
+| `TopP`                | `*float32`                                    | `0`-`1` (default `1`)                              | Nucleus sampling mass                      |
+| `N`                   | `*int`                                        | `1`-`128` (default `1`)                            | Number of choices to generate              |
+| `Stop`                | `*CreateChatCompletionRequest_Stop`           | string or up to 4 strings                          | oneOf union - see below                    |
+| `FrequencyPenalty`    | `*float32`                                    | `-2`-`2` (default `0`)                             | Penalize tokens by existing frequency      |
+| `PresencePenalty`     | `*float32`                                    | `-2`-`2` (default `0`)                             | Penalize tokens that already appeared      |
+| `Seed`                | `*int`                                        | any integer                                        | Best-effort deterministic sampling         |
+| `Logprobs`            | `*bool`                                       | default `false`                                    | Return log probabilities of output tokens  |
+| `TopLogprobs`         | `*int`                                        | `0`-`20`                                           | Requires `Logprobs: ptr(true)`             |
+| `LogitBias`           | `*map[string]int`                             | bias `-100`-`100`                                  | Maps token ID to a sampling bias           |
+| `ResponseFormat`      | `*CreateChatCompletionRequest_ResponseFormat` | text / json_object / json_schema                   | oneOf union - see below                    |
+| `ToolChoice`          | `*ChatCompletionToolChoiceOption`             | `none` / `auto` / `required` / named               | oneOf union - see below                    |
+| `ReasoningEffort`     | `*CreateChatCompletionRequestReasoningEffort` | `sdk.Minimal`, `sdk.Low`, `sdk.Medium`, `sdk.High` | Reasoning models only                      |
+| `User`                | `*string`                                     | any string                                         | End-user identifier for abuse monitoring   |
+| `MaxCompletionTokens` | `*int`                                        | any integer                                        | Upper bound incl. reasoning tokens         |
+| `MaxTokens`           | `*int`                                        | any integer                                        | **Deprecated** - use `MaxCompletionTokens` |
+
+#### Log probabilities and logit bias
+
+```go
+options := &sdk.CreateChatCompletionRequest{
+    Logprobs:    ptr(true),                     // return token log probabilities
+    TopLogprobs: ptr(5),                        // 0-20; requires Logprobs: ptr(true)
+    LogitBias:   &map[string]int{"1234": -100}, // token ID -> bias (-100..100)
+}
+```
+
+#### Stop sequences
+
+`stop` is a oneOf - a single string or an array of up to four strings. Build the value with the generated constructors, then point the field at it. The `From...` constructors return an `error` you should check in production code.
+
+```go
+// A single stop sequence.
+var stop sdk.CreateChatCompletionRequest_Stop
+_ = stop.FromCreateChatCompletionRequestStop0("\n\n")
+
+// Or up to four sequences.
+var stops sdk.CreateChatCompletionRequest_Stop
+_ = stops.FromCreateChatCompletionRequestStop1([]string{"END", "STOP"})
+
+options := &sdk.CreateChatCompletionRequest{Stop: &stop}
+```
+
+#### Response format (Structured Outputs)
+
+`response_format` is a oneOf over plain text, JSON mode, and a JSON Schema. Use the matching `From...` constructor. Setting a JSON Schema with `Strict: ptr(true)` enables Structured Outputs, which forces the model to match your schema.
+
+```go
+schema := sdk.ResponseFormatJSONSchema{Type: sdk.JSONSchema}
+schema.JSONSchema.Name = "weather"
+schema.JSONSchema.Strict = ptr(true)
+schema.JSONSchema.Schema = &sdk.ResponseFormatJSONSchemaSchema{
+    "type": "object",
+    "properties": map[string]any{
+        "city": map[string]any{"type": "string"},
+    },
+    "required": []string{"city"},
+}
+
+var format sdk.CreateChatCompletionRequest_ResponseFormat
+_ = format.FromResponseFormatJSONSchema(schema)
+
+options := &sdk.CreateChatCompletionRequest{ResponseFormat: &format}
+```
+
+`FromResponseFormatJSONObject` (`{"type":"json_object"}`) and `FromResponseFormatText` (`{"type":"text"}`, the default) cover the other two variants.
+
+#### Tool choice
+
+When you attach tools (see [Tool calls](#tool-calls)), `tool_choice` controls whether and which tool the model calls. It is a oneOf over the string modes `none`, `auto`, `required` and a named-function choice:
+
+```go
+// Force the model to call at least one tool.
+var choice sdk.ChatCompletionToolChoiceOption
+_ = choice.FromChatCompletionToolChoiceOption0(sdk.ChatCompletionToolChoiceOption0Required)
+
+// Or force one specific function by name.
+named := sdk.ChatCompletionNamedToolChoice{Type: sdk.Function}
+named.Function.Name = "get_current_weather"
+
+var namedChoice sdk.ChatCompletionToolChoiceOption
+_ = namedChoice.FromChatCompletionNamedToolChoice(named)
+
+// Chain WithTools and WithOptions; `tools` comes from the Tool calls example.
+resp, err := client.
+    WithTools(&tools).
+    WithOptions(&sdk.CreateChatCompletionRequest{ToolChoice: &choice}).
+    GenerateContent(ctx, sdk.Openai, "openai/gpt-4o", messages)
+```
+
+#### Deprecation: `MaxTokens`
+
+`MaxTokens` still serializes to the wire, but it is deprecated in favor of `MaxCompletionTokens`, which also counts reasoning tokens and is compatible with o-series models. Prefer `MaxCompletionTokens` in new code.
+
 ### Vision (image input)
 
 Use `NewImageContentPart` / `NewTextContentPart` and pass them via `NewImageMessage`.
@@ -722,7 +859,7 @@ Use `NewImageContentPart` / `NewTextContentPart` and pass them via `NewImageMess
 textPart, _ := sdk.NewTextContentPart("What is in this image?")
 imagePart, _ := sdk.NewImageContentPart(
     "https://example.com/image.jpg",
-    nil, // nil -> auto. Pass &sdk.High or &sdk.Low to override.
+    nil, // nil -> auto. Pass &sdk.ImageURLDetailHigh or &sdk.ImageURLDetailLow to override.
 )
 
 visionMessage, _ := sdk.NewImageMessage(sdk.User, []sdk.ContentPart{textPart, imagePart})
