@@ -1026,6 +1026,42 @@ Generated `.vercel/project.json`:
 
 > The `functions` glob key tracks the target language - `api/**/*.ts` for TypeScript, `api/**/*.go` for Go, `api/**/*.rs` for Rust.
 
+#### Cloudflare
+
+An ADL agent can also target **Cloudflare Workers**. Like Vercel - and unlike Kubernetes and Cloud Run - Workers deploy from source via wrangler rather than a prebuilt container image, so there is no `image` (`ImageConfig`) block. This target models **Workers** (the server/serverless product, the right fit for an A2A agent server), not Pages. Workers always run on the V8-isolate edge runtime, so there is no `runtime` enum as on Vercel - Node.js API needs are met with the `nodejs_compat` compatibility flag.
+
+```yaml
+deployment:
+  type: cloudflare
+  cloudflare:
+    name: customer-support-agent
+    accountId: ${CLOUDFLARE_ACCOUNT_ID}
+    compatibilityDate: '2025-01-01'
+    compatibilityFlags:
+      - nodejs_compat
+    routes:
+      - agent.example.com/*
+    workersDev: false
+    environment:
+      LOG_LEVEL: info
+```
+
+> **Enable Node.js APIs with `nodejs_compat`.** Workers run in V8 isolates, not Node, so anything relying on Node built-ins needs `nodejs_compat` listed under `compatibilityFlags`. `compatibilityDate` is effectively required by wrangler; omit it and the generator supplies a default.
+
+| Field                | Type     | Required | Description                                                                       |
+| -------------------- | -------- | -------- | --------------------------------------------------------------------------------- |
+| `name`               | string   | Yes      | Worker (script) name registered with Cloudflare; the wrangler `name`.             |
+| `accountId`          | string   | Yes      | Cloudflare account ID that owns the Worker. Prefer a `${VAR}` placeholder.        |
+| `compatibilityDate`  | string   | No       | Workers runtime compatibility date (`YYYY-MM-DD`); defaulted when omitted.        |
+| `compatibilityFlags` | string[] | No       | Runtime compatibility flags, e.g. `nodejs_compat` for Node.js APIs.               |
+| `routes`             | string[] | No       | Custom routes / domains, e.g. `agent.example.com/*`. Omit to use `*.workers.dev`. |
+| `workersDev`         | boolean  | No       | Expose the Worker on its `*.workers.dev` subdomain; `false` for routes only.      |
+| `environment`        | map      | No       | Plain-text vars (wrangler `vars`). Use `${VAR}`; never inline secrets.            |
+
+Put plain-text variables in `environment`; they are written as wrangler `vars`. Never inline a real secret there - reference it with a `${VAR}` placeholder and set true secrets out-of-band with `wrangler secret put`.
+
+> The ADL schema accepts `type: cloudflare` and `adl validate` honors it. Translating the block into wrangler configuration (`wrangler.toml` / `wrangler.jsonc`) and a Worker entrypoint is handled by code generators such as the ADL CLI, and that support ships separately from the schema - `adl generate` does not yet emit Cloudflare artifacts, so `--deployment` currently targets `kubernetes`, `cloudrun`, and `vercel`.
+
 ### CI/CD
 
 #### GitHub Actions CI
