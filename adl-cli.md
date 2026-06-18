@@ -18,7 +18,7 @@ The ADL CLI is a command-line tool for generating enterprise-ready [A2A (Agent-t
 - **Service Injection** - Type-safe dependency injection with interfaces and factory functions
 - **Configuration Management** - Automatic environment variable mapping with structured config sections
 - **CI/CD Generation** - GitHub Actions workflows with semantic-release CD pipelines
-- **Cloud Deployment** - Kubernetes manifests, Google Cloud Run, and Vercel deployment
+- **Cloud Deployment** - Kubernetes manifests, Google Cloud Run, Vercel, and Cloudflare Workers deployment
 - **Sandbox Environments** - Flox and DevContainer support for isolated development
 - **Smart Ignore Files** - Protect custom implementations with `.adl-ignore`
 - **Post-Generation Hooks** - Run custom commands after code generation
@@ -304,21 +304,24 @@ adl generate --file agent.yaml --output ./my-agent --deployment kubernetes
 # Generate with Vercel deployment
 adl generate --file agent.yaml --output ./my-agent --deployment vercel
 
+# Generate with Cloudflare Workers deployment (TypeScript only)
+adl generate --file agent.yaml --output ./my-agent --deployment cloudflare
+
 # Full-featured generation
 adl generate --file agent.yaml --output ./my-agent --ci --cd --deployment cloudrun
 ```
 
 #### Flags
 
-| Flag               | Description                                                          | Default      |
-| ------------------ | -------------------------------------------------------------------- | ------------ |
-| `--file`, `-f`     | ADL file to generate from                                            | `agent.yaml` |
-| `--output`, `-o`   | Output directory for generated code                                  | `.`          |
-| `--template`, `-t` | Template to use                                                      | `minimal`    |
-| `--overwrite`      | Overwrite existing files (respects `.adl-ignore`)                    | `false`      |
-| `--ci`             | Generate CI workflow (GitHub Actions). Overrides `spec.scm.ci`.      | `false`      |
-| `--cd`             | Generate CD pipeline with semantic-release. Overrides `spec.scm.cd`. | `false`      |
-| `--deployment`     | Deployment platform: `kubernetes`, `cloudrun`, or `vercel`           | -            |
+| Flag               | Description                                                              | Default      |
+| ------------------ | ------------------------------------------------------------------------ | ------------ |
+| `--file`, `-f`     | ADL file to generate from                                                | `agent.yaml` |
+| `--output`, `-o`   | Output directory for generated code                                      | `.`          |
+| `--template`, `-t` | Template to use                                                          | `minimal`    |
+| `--overwrite`      | Overwrite existing files (respects `.adl-ignore`)                        | `false`      |
+| `--ci`             | Generate CI workflow (GitHub Actions). Overrides `spec.scm.ci`.          | `false`      |
+| `--cd`             | Generate CD pipeline with semantic-release. Overrides `spec.scm.cd`.     | `false`      |
+| `--deployment`     | Deployment platform: `kubernetes`, `cloudrun`, `vercel`, or `cloudflare` | -            |
 
 > **Manifest-driven equivalents.** `--ci` and `--cd` mirror `spec.scm.ci` and `spec.scm.cd`. The CLI flag is OR-merged on top of the manifest value - passing the flag wins; omitting it falls back to whatever the manifest declares. There is no `--ai` flag on `generate`; AI-assistant generation is entirely manifest-driven via the per-agent toggles under `spec.development.ai.*` (see [AI Assistants](#ai-assistants)).
 
@@ -1025,6 +1028,73 @@ Generated `.vercel/project.json`:
 ```
 
 > The `functions` glob key tracks the target language - `api/**/*.ts` for TypeScript, `api/**/*.go` for Go, `api/**/*.rs` for Rust.
+
+#### Cloudflare Workers
+
+Cloudflare Workers run on the V8-isolate edge runtime and, like Vercel and unlike Kubernetes/Cloud Run, deploy **from source** via `wrangler` rather than a prebuilt container image - so there is no `image` (`ImageConfig`) block. This target is **TypeScript-only**: Workers execute JS/TS on the edge, so a Go or Rust agent produces no Worker artifacts. It models Workers (the server/serverless product), not Pages.
+
+```yaml
+deployment:
+  type: cloudflare
+  cloudflare:
+    name: cloudflare-example # Worker (script) name; falls back to metadata.name
+    accountId: '${CLOUDFLARE_ACCOUNT_ID}' # prefer a ${VAR} placeholder
+    compatibilityDate: '2025-01-01' # defaults to 2025-01-01 when omitted
+    compatibilityFlags:
+      - nodejs_compat # defaults to [nodejs_compat] when omitted
+    routes:
+      - agent.example.com/* # custom routes / domains
+    workersDev: false # set false to serve exclusively via custom routes
+    environment: # plain-text wrangler [vars]
+      LOG_LEVEL: info
+      ENVIRONMENT: production
+```
+
+> **Secrets stay out-of-band.** Only `${VAR}` placeholders for plain-text vars belong in `environment` (the `[vars]` table). Never inline a real secret - set Cloudflare secrets with `wrangler secret put <NAME>` and read them from `env` at runtime.
+
+| Field                | Type     | Required | Description                                                                                                              |
+| -------------------- | -------- | -------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `name`               | string   | No       | Worker (script) name registered with Cloudflare. Written to wrangler `name`. Falls back to `metadata.name` when omitted. |
+| `accountId`          | string   | No       | Cloudflare account ID that owns the Worker. Prefer a `${VAR}` placeholder over inlining the value.                       |
+| `compatibilityDate`  | string   | No       | Workers runtime compatibility date (`YYYY-MM-DD`). Defaults to `2025-01-01` when omitted.                                |
+| `compatibilityFlags` | string[] | No       | Workers runtime compatibility flags. Defaults to `[nodejs_compat]` when omitted (the scaffold relies on Node.js APIs).   |
+| `routes`             | string[] | No       | Custom routes / domains the Worker is served on (e.g. `agent.example.com/*`). Omit to rely on the workers.dev subdomain. |
+| `workersDev`         | boolean  | No       | Whether the Worker is exposed on its `*.workers.dev` subdomain. Set `false` when serving exclusively via custom routes.  |
+| `environment`        | map      | No       | Plain-text environment variables, written to the `[vars]` table. Use `${VAR}` placeholders; never inline secrets.        |
+
+This generates:
+
+- **`wrangler.toml`** with `name`, `main` (the `src/worker.ts` entrypoint), `compatibility_date`, `compatibility_flags`, `account_id`, `workers_dev`, `routes`, and a `[vars]` table from `environment`. `account_id`, `routes`, and `[vars]` are emitted only when set.
+- **`src/worker.ts`** - a module-format Worker entrypoint scaffold exporting a `fetch` handler. It is added to `.adl-ignore`, so your completed handler survives later `adl generate --overwrite` runs.
+
+Generated `wrangler.toml` (from the manifest above):
+
+```toml
+name = "cloudflare-example"
+main = "src/worker.ts"
+compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
+account_id = "${CLOUDFLARE_ACCOUNT_ID}"
+workers_dev = false
+routes = ["agent.example.com/*"]
+
+[vars]
+ENVIRONMENT = "production"
+LOG_LEVEL = "info"
+```
+
+The `wrangler` CLI is not installed by the scaffold. Set it up once, finish wiring the A2A handler in `src/worker.ts`, then deploy:
+
+```bash
+# One-time setup
+pnpm add -D wrangler @cloudflare/workers-types
+# then add "@cloudflare/workers-types" to compilerOptions.types in tsconfig.json
+
+# Finish the handler in src/worker.ts, then
+wrangler deploy
+```
+
+> Long-running / stateful work (the background task queue the Node entrypoint runs) needs Cloudflare Queues or Durable Objects. Resource bindings (KV, R2, D1, Durable Objects, Queues) are out of scope for the initial schema and may arrive in a later release.
 
 ### CI/CD
 
