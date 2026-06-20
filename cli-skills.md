@@ -1,13 +1,13 @@
 ---
 title: Agent Skills
-description: Install, enable, and invoke Agent Skills in the Inference Gateway CLI - the on-disk SKILL.md layout, project vs user scopes, infer skills install/list/uninstall, deterministic slash-name activation with metadata-only injection, and the Read-sandbox carve-out for ~/.infer/skills.
+description: Install, enable, and invoke Agent Skills in the Inference Gateway CLI - the on-disk SKILL.md layout, the three discovery scopes (project .infer/skills, the .agents/skills open standard, and user-global ~/.infer/skills), infer skills install/list/uninstall, deterministic slash-name activation with metadata-only injection, and the Read-sandbox carve-out for ~/.infer/skills.
 ---
 
 # Agent Skills
 
 **Agent Skills** are reusable, model-readable instruction folders that the [Inference Gateway CLI](/cli/) (`infer`) loads on demand. Each skill is a directory with a `SKILL.md` playbook; the agent reads the body only when the skill is relevant, so a skill costs only its one-line metadata until it is actually used (and nothing at all when disabled).
 
-The CLI uses the **same on-disk format** as Claude Code, Gemini CLI, and OpenAI Codex CLI, so a folder authored for any of those tools drops into `.infer/skills/` unchanged. To browse or publish skills in the shared index, see the [Skills Catalog](/skills/).
+The CLI uses the **same on-disk format** as Claude Code, Gemini CLI, and OpenAI Codex CLI, so a folder authored for any of those tools drops into `.infer/skills/` - or the cross-tool [`.agents/skills/` open standard](#on-disk-layout) - unchanged. To browse or publish skills in the shared index, see the [Skills Catalog](/skills/).
 
 > Skills are **enabled by default** ([since cli#618](https://github.com/inference-gateway/cli/pull/618)) - discovered skills are injected into every run's system prompt as lightweight metadata. Turn them off with `agent.skills.enabled: false` (or `INFER_AGENT_SKILLS_ENABLED=false`).
 
@@ -24,7 +24,7 @@ When skills are enabled, three things happen across every run mode (chat, `infer
 A skill is a directory containing a `SKILL.md` file, optionally alongside supporting material the model reads or executes once the skill is active:
 
 ```text
-.infer/skills/
+.infer/skills/            # also scanned: .agents/skills/ and ~/.infer/skills/
 └── pdf-helper/
     ├── SKILL.md          # required - the playbook + frontmatter
     ├── references/       # optional - long supporting docs, read on demand
@@ -32,14 +32,17 @@ A skill is a directory containing a `SKILL.md` file, optionally alongside suppor
     └── assets/           # optional - templates, fixtures, images
 ```
 
-The CLI scans two scopes:
+The same `<name>/SKILL.md` folder layout applies under every root. The CLI scans **three locations**, in precedence order (highest first):
 
-| Scope         | Path                              | Notes                                                                 |
-| ------------- | --------------------------------- | --------------------------------------------------------------------- |
-| Project-local | `.infer/skills/<name>/SKILL.md`   | Checked into the project; **overrides** a user skill of the same name |
-| User-global   | `~/.infer/skills/<name>/SKILL.md` | Personal defaults available across every project                      |
+| Scope         | Path                              | Precedence | Notes                                                                                  |
+| ------------- | --------------------------------- | ---------- | -------------------------------------------------------------------------------------- |
+| Project-local | `.infer/skills/<name>/SKILL.md`   | Highest    | Checked into the project; **overrides** a same-named skill in any other scope          |
+| Open standard | `.agents/skills/<name>/SKILL.md`  | Middle     | The shared `.agents/` convention, so community skill folders work without modification |
+| User-global   | `~/.infer/skills/<name>/SKILL.md` | Lowest     | Personal defaults available across every project                                       |
 
-When a project skill and a user skill share a `name`, the project copy wins - useful for overriding a personal default with a per-project variant.
+`.agents/skills/` is an emerging **open standard** adopted across agent tooling (Claude Code, Gemini CLI, OpenAI Codex CLI, and others). The CLI scans it as a middle-precedence location so a skill folder published by a community author works unchanged, without copying it into `.infer/skills/`.
+
+When the same `name` exists in more than one scope, the higher-precedence copy wins: a project `.infer/skills/` skill overrides an `.agents/skills/` skill, which in turn overrides a user-global `~/.infer/skills/` skill - useful for overriding a shared or personal default with a per-project variant.
 
 ## The SKILL.md contract
 
@@ -128,6 +131,7 @@ A bare `<name>` resolves through the public [Skills Catalog](/skills/) index. Th
 
 **Installer notes:**
 
+- `infer skills install` writes to **`./.infer/skills/` by default**, or to **`~/.infer/skills/` with `--user`**. It never installs into `.agents/skills/` - that location is for skill folders you vendor yourself or that another agent tool drops in, and the CLI discovers them there read-only (see [On-disk layout](#on-disk-layout)).
 - Frontmatter is **re-validated after download** against the same rules used at discovery - a half-installed skill is never left on disk. Without `--overwrite`, an existing folder is left untouched and the install fails fast.
 - Unauthenticated GitHub requests are limited to **60 per hour per IP** (easily exhausted on shared CI runners). Set `GITHUB_TOKEN` (or `GH_TOKEN`, matching the `gh` CLI) to raise the limit to 5,000/hour and to install from private repositories the token can access.
 - Refs containing a literal `/` (such as `feature/foo` branches) are not supported - use a tag, the default branch, or a single-segment branch.
