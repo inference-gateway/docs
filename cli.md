@@ -929,6 +929,8 @@ Two-layer configuration system with precedence from highest to lowest:
 - SQLite (default) - local file storage
 - PostgreSQL - shared database for teams
 - Redis - high-performance caching
+- JSONL - append-only files for portable, inspectable history
+- Cloudflare D1 - external SQLite-compatible store over HTTP (for ephemeral CI runners)
 - In-memory - temporary sessions
 
 **Conversation Features:**
@@ -1387,6 +1389,7 @@ infer chat
 - **PostgreSQL**: Shared team database
 - **Redis**: High-performance caching
 - **JSONL**: Append-only files under `.infer/conversations/`
+- **Cloudflare D1**: External SQLite over Cloudflare's HTTP query API
 - **In-memory**: Temporary sessions
 
 **Features:**
@@ -1395,7 +1398,7 @@ infer chat
 - AI-generated titles (batch: 10 messages)
 - Token optimization with compaction
 - Backend-agnostic inspection via the storage layer (works the same across `jsonl`, `sqlite`,
-  `postgres`, `redis`, and `memory`)
+  `postgres`, `redis`, `d1`, and `memory`)
 
 **Subcommands:**
 
@@ -1436,6 +1439,41 @@ infer conversations show <session-id> --include-hidden
 # One JSON object per line for piping into jq
 infer conversations show <session-id> --format json | jq .
 ```
+
+#### Cloudflare D1 backend
+
+[Cloudflare D1](https://developers.cloudflare.com/d1/) is an external, SQLite-compatible store the CLI writes to over D1's HTTP query API. It is built for **ephemeral CI runners** (for example a headless [`infer agent`](#headless-agent-stream-output) on GitHub Actions): unlike `sqlite`, `jsonl`, and `memory` - which live on the runner's disk and are wiped on recycle - D1 persists off-runner and stays readable by the gateway through its native binding. Unlike `postgres` and `redis`, it needs no wire-protocol connection, just HTTPS.
+
+Set `storage.type: d1` and configure the `storage.d1` block:
+
+```yaml
+storage:
+  enabled: true
+  type: d1
+  d1:
+    account_id: '<cloudflare-account-id>'
+    database_id: '<d1-database-id>'
+    api_token: '<api-token-with-d1-edit>' # inject via INFER_STORAGE_D1_API_TOKEN
+    base_url: 'https://api.cloudflare.com/client/v4' # optional
+```
+
+**Environment variables:**
+
+| Variable                       | Description                                                                |
+| ------------------------------ | -------------------------------------------------------------------------- |
+| `INFER_STORAGE_D1_ACCOUNT_ID`  | Cloudflare account id that owns the D1 database.                           |
+| `INFER_STORAGE_D1_DATABASE_ID` | Target D1 database id.                                                     |
+| `INFER_STORAGE_D1_API_TOKEN`   | API token with D1 edit permission. Secret - inject, never commit.          |
+| `INFER_STORAGE_D1_BASE_URL`    | Optional API base URL. Defaults to `https://api.cloudflare.com/client/v4`. |
+
+**Notes:**
+
+- **No manual migration.** Like `jsonl`, `redis`, and `memory`, D1 creates its schema automatically on first connect - there is no separate migration step to run.
+- **Schema parity.** The D1 driver runs the SQLite migrations verbatim over HTTP, so the `conversations` and `session_groups` tables stay byte-for-byte compatible with the SQLite backend - either side can initialise the database.
+- **UTC timestamps.** Timestamps are stored as UTC RFC3339 so `ORDER BY updated_at DESC` sorts stably across runners in any timezone and external reads stay unambiguous.
+- **Secret handling.** `api_token` follows the existing plaintext-config + env-override convention (like the Postgres password) and is never logged - inject it via `INFER_STORAGE_D1_API_TOKEN`.
+
+> Shipped in [inference-gateway/cli#646](https://github.com/inference-gateway/cli/pull/646).
 
 ### MCP Integration
 
