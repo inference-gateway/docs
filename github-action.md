@@ -135,6 +135,8 @@ The total and failed tool-call counts are also exposed as the `total-tool-calls-
 
 The action also accepts seven opt-in OpenTelemetry inputs (`otel-*`) for exporting run telemetry to an OTLP collector. They are disabled by default and change nothing for existing workflows - see [OpenTelemetry export](#opentelemetry-export).
 
+It also accepts five inputs for running on a Claude subscription instead of a provider API key (`use-claude-code-subscription`, `claude-code-oauth-token`, `claude-code-cli-version`, `claude-code-max-output-tokens`, `claude-code-thinking-budget`). They are off by default - see [Claude Code subscription mode](#claude-code-subscription-mode).
+
 ## Outputs
 
 | Output                    | Description                                                                                                             |
@@ -147,6 +149,128 @@ The action also accepts seven opt-in OpenTelemetry inputs (`otel-*`) for exporti
 | `total-tool-calls-count`  | Total number of tool calls the agent made during the run.                                                               |
 
 Reference outputs in downstream steps via <code v-pre>${{ steps.&lt;id&gt;.outputs.result }}</code>.
+
+## Claude Code subscription mode
+
+By default `infer-action` bills each run against a provider API key (`anthropic-api-key`, `openai-api-key`, ...) at pay-per-token rates. **Claude Code subscription mode** is an alternative: it runs the agent through the Infer CLI's Claude Code mode, billed against your **Claude Max or Pro subscription** instead of a provider API key.
+
+Enable it with two inputs and no provider key:
+
+```yaml
+- uses: inference-gateway/infer-action@main
+  with:
+    github-token: ${{ secrets.GITHUB_TOKEN }}
+    model: claude-sonnet-4-5-20250929 # bare Claude id - no provider prefix
+    use-claude-code-subscription: true
+    claude-code-oauth-token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+```
+
+When `use-claude-code-subscription: true`, the action runs a gated setup step that installs the official `claude` CLI (`npm install -g @anthropic-ai/claude-code@<version>`) on the runner, then runs the agent through it with `INFER_CLAUDE_CODE_ENABLED=true` and `INFER_GATEWAY_RUN=false`. The runner therefore needs `npm` - the default `ubuntu-24.04` image has it. The step is skipped under [`dry-run`](#local-testing-with-act).
+
+> **Release status:** this mode is available on `inference-gateway/infer-action@main` and ships in the next tagged release after `v0.17.2`. Pin to that tag once it is cut rather than tracking `@main` in production workflows.
+
+### Minting, storing, and rotating the OAuth token
+
+The mode authenticates with a long-lived Claude subscription OAuth token instead of a provider API key.
+
+1. **Mint the token.** On a machine signed in to a Claude Pro or Max account, run:
+
+   ```bash
+   claude setup-token
+   ```
+
+   It prints a token in the form `sk-ant-oat01-...`, valid for about one year. A Claude Pro or Max subscription is required to mint and use it.
+
+2. **Store it as a repository secret.** Save the token as the `CLAUDE_CODE_OAUTH_TOKEN` secret (repository **Settings -> Secrets and variables -> Actions**), then pass it through the `claude-code-oauth-token` input as shown above. The action keeps the token off `$GITHUB_ENV` and adds it to its redaction list, so it does not appear in comments, job summaries, or the run log.
+
+3. **Rotate before expiry.** Because the token lasts about a year, re-run `claude setup-token` and update the secret before it expires to avoid failed runs.
+
+**No provider API key is needed in this mode.** A stray `ANTHROPIC_API_KEY` in the environment is ignored - the Claude Code CLI strips it - so a run cannot silently reroute to paid pay-per-token API billing.
+
+### Inputs
+
+| Input                           | Required | Default   | Description                                                                                                                                                                                                                      |
+| ------------------------------- | -------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `use-claude-code-subscription`  | No       | `false`   | Run the agent via the Infer CLI's Claude Code mode, billed against a Claude Max/Pro subscription instead of a provider API key. Installs the `claude` CLI and sets `INFER_CLAUDE_CODE_ENABLED=true` / `INFER_GATEWAY_RUN=false`. |
+| `claude-code-oauth-token`       | No\*     | -         | Claude subscription OAuth token (`CLAUDE_CODE_OAUTH_TOKEN`) minted by `claude setup-token`. Required when `use-claude-code-subscription` is `true`.                                                                              |
+| `claude-code-cli-version`       | No       | `2.1.187` | Version of the `@anthropic-ai/claude-code` npm package to install for Claude Code mode.                                                                                                                                          |
+| `claude-code-max-output-tokens` | No       | -         | Optional max output tokens for Claude Code mode (`INFER_CLAUDE_CODE_MAX_OUTPUT_TOKENS`). Empty uses the CLI default.                                                                                                             |
+| `claude-code-thinking-budget`   | No       | -         | Optional extended-thinking token budget for Claude Code mode (`INFER_CLAUDE_CODE_THINKING_BUDGET`). Empty uses the CLI default.                                                                                                  |
+
+\* Required only when `use-claude-code-subscription: true`.
+
+These compose with the standard inputs (`github-token`, `model`, `max-turns`, `custom-instructions`, `bash-whitelist-*`, ...). In this mode `max-turns` bounds **both** the Infer agent loop (`INFER_AGENT_MAX_TURNS`) and the Claude CLI turn limit (`INFER_CLAUDE_CODE_MAX_TURNS`).
+
+### Use bare Claude model ids
+
+In subscription mode the `model` input - and any [`/model` override](#dynamic-model-selection) embedded in the trigger text - must be a **bare Claude id**, for example `claude-sonnet-4-5-20250929`. A provider-prefixed id such as `anthropic/claude-opus-4-8` is rejected by the CLI. This is the opposite of the default mode, where `model` uses the `provider/model-name` form.
+
+### Run metrics in this mode
+
+The [result-comment footer](#result-comment) renders differently here:
+
+- **Tool calls and failures render today** - the total tool-call count, success rate, and the collapsed failed-call list all work as usual, and the `total-tool-calls-count` / `failed-tool-calls-count` [outputs](#outputs) are populated.
+- **Token usage and per-session cost are omitted for now.** The Claude Code stream does not yet surface usage, so the **Tokens** and **Cost** footer lines are dropped rather than shown broken or as zero. This is pending an upstream CLI fix ([inference-gateway/cli#649](https://github.com/inference-gateway/cli/issues/649)); once it lands, those lines render in this mode automatically, with no change to your workflow.
+
+### Limitations
+
+- **Claude models only** - the agent runs through the `claude` CLI, so only Claude model ids are valid.
+- **Image inputs are dropped** - image content in issues or comments is not forwarded to the model.
+- **Prompt caching is unavailable** in this mode.
+- **Fork pull requests do not run this mode.** GitHub does not expose repository secrets (including `CLAUDE_CODE_OAUTH_TOKEN`) to workflows triggered from forks, so the OAuth token is absent there - by design.
+
+### Example workflow
+
+A ready-to-run workflow ships at [`examples/claude-code-subscription.yml`](https://github.com/inference-gateway/infer-action/blob/main/examples/claude-code-subscription.yml). Copy it into `.github/workflows/` in your repository:
+
+```yaml
+# Run the agent on a Claude Max/Pro subscription instead of a provider API key
+# (the Infer CLI's "Claude Code mode").
+#
+# Trigger: open/edit an issue, or post a comment, whose text contains "@infer".
+# The agent runs through the official `claude` CLI, billed against your Claude
+# subscription rather than a pay-per-token API key.
+#
+# Setup:
+#   1. Run `claude setup-token` locally (needs Claude Pro/Max) to mint a
+#      long-lived OAuth token (sk-ant-oat01-..., valid ~1 year).
+#   2. Store it as the repository secret CLAUDE_CODE_OAUTH_TOKEN.
+#   3. No provider API key is needed.
+#
+# Note: in this mode `model` must be a BARE Claude id (e.g.
+# claude-sonnet-4-5-20250929), not a provider-prefixed id like
+# anthropic/claude-opus-4-8.
+#
+# Copy this into `.github/workflows/` in your repo.
+name: Infer Agent (Claude subscription)
+
+on:
+  issues:
+    types:
+      - opened
+      - edited
+  issue_comment:
+    types:
+      - created
+
+permissions:
+  issues: write # post the progress/result comment
+  contents: write # create the branch and commit changes
+  pull-requests: write # open the pull request
+
+jobs:
+  infer:
+    runs-on: ubuntu-24.04 # needs npm to install the `claude` CLI (the default image has it)
+    steps:
+      - uses: actions/checkout@v7.0.0
+
+      - uses: inference-gateway/infer-action@main
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          model: claude-sonnet-4-5-20250929
+          use-claude-code-subscription: true
+          claude-code-oauth-token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+```
 
 ## Direct prompt (manual runs)
 
