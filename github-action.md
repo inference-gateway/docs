@@ -160,7 +160,7 @@ Enable it with two inputs and no provider key:
 - uses: inference-gateway/infer-action@main
   with:
     github-token: ${{ secrets.GITHUB_TOKEN }}
-    model: claude-sonnet-4-5-20250929 # bare Claude id - no provider prefix
+    model: anthropic/claude-sonnet-4-5-20250929 # provider-prefixed (bare ids also accepted)
     use-claude-code-subscription: true
     claude-code-oauth-token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
 ```
@@ -201,16 +201,17 @@ The mode authenticates with a long-lived Claude subscription OAuth token instead
 
 These compose with the standard inputs (`github-token`, `model`, `max-turns`, `custom-instructions`, `bash-whitelist-*`, ...). In this mode `max-turns` bounds **both** the Infer agent loop (`INFER_AGENT_MAX_TURNS`) and the Claude CLI turn limit (`INFER_CLAUDE_CODE_MAX_TURNS`).
 
-### Use bare Claude model ids
+### Model ids
 
-In subscription mode the `model` input - and any [`/model` override](#dynamic-model-selection) embedded in the trigger text - must be a **bare Claude id**, for example `claude-sonnet-4-5-20250929`. A provider-prefixed id such as `anthropic/claude-opus-4-8` is rejected by the CLI. This is the opposite of the default mode, where `model` uses the `provider/model-name` form.
+In subscription mode the `model` input - and any [`/model` override](#dynamic-model-selection) embedded in the trigger text - use the same `anthropic/`-prefixed form as the default mode and the pricing table, for example `anthropic/claude-sonnet-4-5-20250929`. Bare Claude ids such as `claude-sonnet-4-5-20250929` are still accepted and normalized for back-compat, so existing workflows keep working. The CLI strips the provider prefix before invoking the `claude` CLI.
 
 ### Run metrics in this mode
 
-The [result-comment footer](#result-comment) renders differently here:
+The [result-comment footer](#result-comment) renders the full set of metrics here, the same as in the default mode:
 
-- **Tool calls and failures render today** - the total tool-call count, success rate, and the collapsed failed-call list all work as usual, and the `total-tool-calls-count` / `failed-tool-calls-count` [outputs](#outputs) are populated.
-- **Token usage and per-session cost are omitted for now.** The Claude Code stream does not yet surface usage, so the **Tokens** and **Cost** footer lines are dropped rather than shown broken or as zero. This is pending an upstream CLI fix ([inference-gateway/cli#649](https://github.com/inference-gateway/cli/issues/649)); once it lands, those lines render in this mode automatically, with no change to your workflow.
+- **Tool calls and failures** - the total tool-call count, success rate, and the collapsed failed-call list all work as usual, and the `total-tool-calls-count` / `failed-tool-calls-count` [outputs](#outputs) are populated.
+- **Token usage and per-session cost render here too.** Per-turn token usage and per-session cost now surface in Claude Code mode, so the **Tokens** and **Cost** footer lines render automatically, with no change to your workflow.
+- **Cost is an estimate, not a billed amount.** A Claude subscription has no per-call billing, so the cost is estimated from the token counts via the CLI's own pricing list - the same way Claude Code itself estimates cost from a bundled price table. It reflects the equivalent pay-per-token API price, not a charge against your subscription.
 
 ### Limitations
 
@@ -237,9 +238,9 @@ A ready-to-run workflow ships at [`examples/claude-code-subscription.yml`](https
 #   2. Store it as the repository secret CLAUDE_CODE_OAUTH_TOKEN.
 #   3. No provider API key is needed.
 #
-# Note: in this mode `model` must be a BARE Claude id (e.g.
-# claude-sonnet-4-5-20250929), not a provider-prefixed id like
-# anthropic/claude-opus-4-8.
+# Note: `model` uses the same anthropic/-prefixed form as the default mode
+# (e.g. anthropic/claude-sonnet-4-5-20250929). Bare Claude ids (e.g.
+# claude-sonnet-4-5-20250929) are still accepted for back-compat.
 #
 # Copy this into `.github/workflows/` in your repo.
 name: Infer Agent (Claude subscription)
@@ -267,7 +268,7 @@ jobs:
       - uses: inference-gateway/infer-action@main
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          model: claude-sonnet-4-5-20250929
+          model: anthropic/claude-sonnet-4-5-20250929
           use-claude-code-subscription: true
           claude-code-oauth-token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
 ```
