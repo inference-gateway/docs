@@ -2,6 +2,36 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.113](https://github.com/inference-gateway/docs/compare/0.6.112...0.6.113) (2026-06-24)
+
+### 👷 CI
+
+* **deps:** upgrade actions/checkout from v6.0.3 to v7.0.0 across workflows ([f78b17d](https://github.com/inference-gateway/docs/commit/f78b17db97690a502008130aa1c73affb45f6088))
+* **infer:** centralize infer.yml + sync .infer config ([#260](https://github.com/inference-gateway/docs/issues/260)) ([9df8702](https://github.com/inference-gateway/docs/commit/9df87022515700a63a3be3713d76f8eeea858872))
+* **release:** update GitHub App user ID handling and configure Git settings ([a480285](https://github.com/inference-gateway/docs/commit/a480285012c1e3c2fbabcfb18ba5395be9a78ea2))
+
+### 📚 Documentation
+
+* add .agents/skills open standard location ([#264](https://github.com/inference-gateway/docs/issues/264)) ([f3ee843](https://github.com/inference-gateway/docs/commit/f3ee8437065461abe220cb14a0b1493f2771975e))
+* add cloudflare d1 conversation storage to cli.md ([#274](https://github.com/inference-gateway/docs/issues/274)) ([00f8698](https://github.com/inference-gateway/docs/commit/00f86988197c5f67e9a8f5408caf2f4cc758a542))
+* document Claude Code subscription mode for infer-action ([#277](https://github.com/inference-gateway/docs/issues/277)) ([03c67da](https://github.com/inference-gateway/docs/commit/03c67da46b3cbfb24c53aaf52bfc15cd59e273f7))
+* document cloudflare workers deployment target in adl-cli ([#248](https://github.com/inference-gateway/docs/issues/248)) ([b530f13](https://github.com/inference-gateway/docs/commit/b530f13f3821c23908db9777bbfeb9c0004515cc))
+* document MCP_INCLUDE_TOOLS/MCP_EXCLUDE_TOOLS config ([#253](https://github.com/inference-gateway/docs/issues/253)) ([0b37b2a](https://github.com/inference-gateway/docs/commit/0b37b2aa73781c39661c790252a6e2670c258f63))
+* document new chat completion request params in go sdk ([#254](https://github.com/inference-gateway/docs/issues/254)) ([5305291](https://github.com/inference-gateway/docs/commit/5305291c547cca4a777f1ff2a7d2a2701e58b885)), closes [#252](https://github.com/inference-gateway/docs/issues/252)
+* document new chat completion request params in python sdk ([#255](https://github.com/inference-gateway/docs/issues/255)) ([a7f1509](https://github.com/inference-gateway/docs/commit/a7f150912e6239e5091efad0d50c915df3d18d20))
+* document new chat completion request params in rust sdk ([#256](https://github.com/inference-gateway/docs/issues/256)) ([3dfd850](https://github.com/inference-gateway/docs/commit/3dfd850dc071bb528de6041b0e0d4202c3b2210e))
+* document new chat completion request params in typescript sdk ([#257](https://github.com/inference-gateway/docs/issues/257)) ([7c6cb94](https://github.com/inference-gateway/docs/commit/7c6cb942361e88e41dbbb788a13f55d769a44594))
+* document parallel_tool_calls request parameter ([#258](https://github.com/inference-gateway/docs/issues/258)) ([ecbcf2e](https://github.com/inference-gateway/docs/commit/ecbcf2e6b33b365012c7292555be92ff1e6f9a8a))
+* update schema version and codex version in manifest files ([ac0ae96](https://github.com/inference-gateway/docs/commit/ac0ae9660b9d642dc2c44b710905f56d94f3fd3b))
+
+### 🔧 Miscellaneous
+
+* **deps-dev:** bump @types/node from 25.9.3 to 26.0.0 in the bun group ([#267](https://github.com/inference-gateway/docs/issues/267)) ([00f21a8](https://github.com/inference-gateway/docs/commit/00f21a82cabcac08b87e0202fceaf2c53b7dfe29))
+* **deps:** bump claude-code-action v1.0.150 -> v1.0.152 ([#259](https://github.com/inference-gateway/docs/issues/259)) ([8a40c05](https://github.com/inference-gateway/docs/commit/8a40c05c132ad591c14cb20ad237ddcbbc68a23b))
+* **deps:** bump infer CLI v0.121.1 -> v0.122.2, infer-action v0.15.1 -> v0.15.4 ([#265](https://github.com/inference-gateway/docs/issues/265)) ([4456d69](https://github.com/inference-gateway/docs/commit/4456d6963fd5edb8f4c9c2292fb49250943a0482))
+* **deps:** bump inference-gateway/.github/.github/workflows/claude.yml ([#266](https://github.com/inference-gateway/docs/issues/266)) ([6be8146](https://github.com/inference-gateway/docs/commit/6be814670c118b7e64c553de4808c07c0ba102d5))
+* **infer:** remove default configuration ([5ee4690](https://github.com/inference-gateway/docs/commit/5ee4690b1a7ccf21e265c3992287865eab228482))
+
 ## [0.6.112](https://github.com/inference-gateway/docs/compare/0.6.111...0.6.112) (2026-06-18)
 
 ### ♻️ Improvements
