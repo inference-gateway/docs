@@ -883,7 +883,6 @@ The form always appends an **"Other"** free-text choice to every question, so th
 
 **Headless graceful-degrade.** When no interactive user is reachable to answer - a CI run, a heartbeat, or a scheduled job - the tool does **not** block. It returns a "proceed with assumptions" result so the agent keeps moving and picks a reasonable default instead of hanging.
 
-> Shipped in [inference-gateway/cli#661](https://github.com/inference-gateway/cli/pull/661).
 
 #### RequestPlanApproval
 
