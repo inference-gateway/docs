@@ -331,6 +331,8 @@ infer chat
 # Agent explores code structure and provides detailed plan
 ```
 
+While planning, the agent can pause to ask you up to four multiple-choice clarifying questions with the [`AskUserQuestion`](#askuserquestion) tool, then fold your answers into the plan it submits for approval.
+
 ### Auto-Accept Mode
 
 Zero approval prompts for maximum speed. Use with caution in version-controlled environments.
@@ -577,7 +579,7 @@ When tools are enabled, LLMs have access to a comprehensive suite across multipl
 | **File System**       | Read, Write, Edit, MultiEdit, Delete, Tree, Grep                                                  | File operations and search with safety controls                                                      |
 | **Command Execution** | Bash, BashOutput, KillShell, ListShells                                                           | Allow-listed shell execution (including `gh` for GitHub) and background shell control                |
 | **Web**               | WebSearch, WebFetch                                                                               | Internet research and content fetching                                                               |
-| **Workflow**          | TodoWrite, Schedule, RequestPlanApproval                                                          | Task tracking, cron jobs, plan-mode approval                                                         |
+| **Workflow**          | TodoWrite, Schedule, RequestPlanApproval, AskUserQuestion                                         | Task tracking, cron jobs, plan-mode approval and clarifying questions                                |
 | **A2A Integration**   | A2A_QueryAgent, A2A_SubmitTask, A2A_QueryTask                                                     | Delegate to external specialized agents - see [A2A](/a2a/)                                           |
 | **Local Subagents**   | Agent                                                                                             | Fan out short-lived local subagents in parallel - see [Local Subagents](#local-subagents-agent-tool) |
 | **Computer Use**      | GetLatestScreenshot, MouseMove, MouseClick, MouseScroll, KeyboardType, GetFocusedApp, ActivateApp | GUI automation - see the Computer Use section above                                                  |
@@ -835,6 +837,53 @@ Create, list, get, update, or delete cron jobs that fire through the same messag
 "0 9 * * 1-5"    weekdays at 09:00
 "@every 1h"      every hour
 ```
+
+#### AskUserQuestion
+
+Pause the plan and ask the user 1-4 multiple-choice clarifying questions as an interactive, keyboard-driven form. The agent reaches for this in Plan Mode to resolve ambiguity **before** it calls [`RequestPlanApproval`](#requestplanapproval) - your answers feed straight back into the plan it then proposes. It is read-only with **no approval gate**.
+
+- **Parameters**: `questions` (required array, **1-4** items). Each question has:
+  - `header` (required) - short chip label shown above the question, **<= 12 characters**
+  - `question` (required) - the full question text
+  - `options` (required array, **2-4** items) - each option is `{ label, description }`
+  - `multiSelect` (optional, default `false`) - allow more than one answer to be selected
+- **Approval**: not required (read-only)
+- **Availability**: **Plan Mode only** - the tool is excluded from Standard and Auto-Accept modes.
+
+The form always appends an **"Other"** free-text choice to every question, so the user can answer outside the offered options. Suffix a label with **`(Recommended)`** to preselect that option when the question opens.
+
+```json
+{
+  "questions": [
+    {
+      "header": "Datastore",
+      "question": "Which datastore should the new service use?",
+      "multiSelect": false,
+      "options": [
+        {
+          "label": "PostgreSQL (Recommended)",
+          "description": "Relational, strong consistency, already used by the gateway."
+        },
+        { "label": "MongoDB", "description": "Document store with a flexible schema." },
+        { "label": "Redis", "description": "In-memory, best for ephemeral or cache data." }
+      ]
+    }
+  ]
+}
+```
+
+**Keyboard controls:**
+
+| Key              | Action                                                                                    |
+| ---------------- | ----------------------------------------------------------------------------------------- |
+| `Up` / `Down`    | Move between options. For single-select questions the radio selection follows the cursor. |
+| `Space`          | Toggle the highlighted option (multi-select questions).                                   |
+| `Enter`          | Confirm the current question and advance - or submit on the last question.                |
+| `Esc` / `Ctrl+C` | Cancel the whole prompt.                                                                  |
+
+**Headless graceful-degrade.** When no interactive user is reachable to answer - a CI run, a heartbeat, or a scheduled job - the tool does **not** block. It returns a "proceed with assumptions" result so the agent keeps moving and picks a reasonable default instead of hanging.
+
+> Shipped in [inference-gateway/cli#661](https://github.com/inference-gateway/cli/pull/661).
 
 #### RequestPlanApproval
 
