@@ -407,6 +407,14 @@ When `pricing.enabled: false` (or pricing data is unavailable for the model), `i
 - Cost is attributed to a **single model per run**.
 - Consumers should **ignore unknown `type` values** to remain forward-compatible.
 
+#### Writing the result to a file (`--result-file`)
+
+`infer agent` accepts a `--result-file <path>` flag that **atomically** writes the final assistant message and the run outcome as JSON to `<path>` on exit. The [Agent tool](#local-subagents-agent-tool) uses it to harvest the result of a detached (tmux pane) subagent, but it is useful on its own whenever a script needs the final answer as a file rather than by parsing the stdout stream.
+
+```bash
+infer agent "Summarize the open PRs" --result-file /tmp/result.json
+```
+
 ## Computer Use
 
 GUI automation and visual understanding capabilities for interacting with applications and desktop environments.
@@ -564,15 +572,16 @@ When tools are enabled, LLMs have access to a comprehensive suite across multipl
 
 ### Tool Categories
 
-| Category              | Tools                                                                                             | Description                                                                           |
-| --------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| **File System**       | Read, Write, Edit, MultiEdit, Delete, Tree, Grep                                                  | File operations and search with safety controls                                       |
-| **Command Execution** | Bash, BashOutput, KillShell, ListShells                                                           | Allow-listed shell execution (including `gh` for GitHub) and background shell control |
-| **Web**               | WebSearch, WebFetch                                                                               | Internet research and content fetching                                                |
-| **Workflow**          | TodoWrite, Schedule, RequestPlanApproval                                                          | Task tracking, cron jobs, plan-mode approval                                          |
-| **A2A Integration**   | A2A_QueryAgent, A2A_SubmitTask, A2A_QueryTask                                                     | Delegate to specialized agents - see [A2A](/a2a/)                                     |
-| **Computer Use**      | GetLatestScreenshot, MouseMove, MouseClick, MouseScroll, KeyboardType, GetFocusedApp, ActivateApp | GUI automation - see the Computer Use section above                                   |
-| **MCP**               | `MCP_<server>_<tool>`                                                                             | Dynamically registered tools from MCP servers - see [MCP](/mcp/)                      |
+| Category              | Tools                                                                                             | Description                                                                                          |
+| --------------------- | ------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| **File System**       | Read, Write, Edit, MultiEdit, Delete, Tree, Grep                                                  | File operations and search with safety controls                                                      |
+| **Command Execution** | Bash, BashOutput, KillShell, ListShells                                                           | Allow-listed shell execution (including `gh` for GitHub) and background shell control                |
+| **Web**               | WebSearch, WebFetch                                                                               | Internet research and content fetching                                                               |
+| **Workflow**          | TodoWrite, Schedule, RequestPlanApproval                                                          | Task tracking, cron jobs, plan-mode approval                                                         |
+| **A2A Integration**   | A2A_QueryAgent, A2A_SubmitTask, A2A_QueryTask                                                     | Delegate to external specialized agents - see [A2A](/a2a/)                                           |
+| **Local Subagents**   | Agent                                                                                             | Fan out short-lived local subagents in parallel - see [Local Subagents](#local-subagents-agent-tool) |
+| **Computer Use**      | GetLatestScreenshot, MouseMove, MouseClick, MouseScroll, KeyboardType, GetFocusedApp, ActivateApp | GUI automation - see the Computer Use section above                                                  |
+| **MCP**               | `MCP_<server>_<tool>`                                                                             | Dynamically registered tools from MCP servers - see [MCP](/mcp/)                                     |
 
 ### File System Tools
 
@@ -833,6 +842,99 @@ Submit a completed plan for user approval. Available only in Plan Mode.
 
 - **Parameters**: `plan` (required - the complete, detailed plan text)
 - **Behavior**: pauses execution until the user approves (switches to execution mode) or rejects (provides feedback)
+
+### Local Subagents (Agent tool)
+
+The **Agent** tool lets the main agent - in chat or headless [`infer agent`](#headless-agent-stream-output) - spawn one or more **local subagents** that run work in parallel and fold their results back into the main conversation. A subagent is just an `infer agent` subprocess with its own isolated session, so it is cheap, isolated, and session-persisted. The tool is **enabled by default** and gated by the [`tools.agent.*` config block](#agent-tool-configuration).
+
+This is the lightweight, **local** complement to the [A2A tools](/a2a/) (`A2A_SubmitTask` / `A2A_QueryTask` / `A2A_QueryAgent`), which target external A2A servers:
+
+| Reach for...                          | When                                                                                                                                                               |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Agent** (local subagents)           | Short-lived helpers for the task at hand - parallel exploration, fan-out edits, scoped research - with no server to run. Each is a local `infer agent` subprocess. |
+| **A2A tools** (`A2A_SubmitTask`, ...) | Delegating to **external**, long-running, specialized A2A servers (calendar, docs, ...) discovered over the network. See [A2A](/a2a/).                             |
+
+#### Tool parameters
+
+The model calls the tool with either a batch of `tasks` or a single `description`:
+
+- `tasks` - an array of subagent tasks run **in parallel**, each with:
+  - `description` (required) - the task for that subagent
+  - `label` (optional) - short label shown in progress output / tmux panes
+  - `model` (optional) - per-subagent model override
+  - `system_prompt` (optional) - gives that subagent a specialized role/persona
+- `description` (optional) - shorthand for a **single-task** call (an alternative to `tasks`)
+- `system_prompt` (optional) - system prompt for the single-`description` form
+
+Each subagent runs in its own isolated session id of the form `subagent-<parentSession>-<uuid>`. Parallel fan-out is capped by `max_parallel` (default `4`) concurrent subagents per call.
+
+#### Result modes: async and wait-all
+
+- **Wait-all (`wait: true`)** - the **shipped default**. The call blocks until every spawned subagent reaches a terminal state, then returns the aggregated results in one tool result.
+- **Async (`wait: false`)** - the call returns immediately with the subagent ids; when each subagent finishes, its final result is injected back into the main conversation (mirroring `A2A_SubmitTask` notify behavior). In chat, running/completed status is surfaced in the sticky progress area.
+
+#### Execution surfaces: headless and interactive (tmux)
+
+The `mode` controls where subagents run. Either way the result aggregates back into the main context exactly the same - interactive is "headless plus a tmux pane attached to the live process":
+
+- `headless` - subagents run in the background; results aggregate back into the main context.
+- `interactive` (the shipped default) - each subagent runs in a live **tmux** pane/window you can watch while it works.
+
+tmux is an **optional runtime dependency**, required only for interactive mode (headless needs nothing extra). Interactive mode must be run from **inside tmux** (`$TMUX` set). When you are not inside tmux (or tmux is not installed), the `interactive.fallback` setting decides what happens:
+
+- `fallback: headless` (default) - warn and run headless.
+- `fallback: error` - fail the call instead.
+
+#### Agent tool configuration
+
+The new `tools.agent.*` block, with its shipped defaults (regenerated by `infer init`):
+
+```yaml
+tools:
+  agent:
+    enabled: true
+    require_approval: true # spawning work that can edit files is a mutating action
+    mode: interactive # headless | interactive (default when a call omits it)
+    wait: true # block and return aggregated results by default
+    max_parallel: 4 # cap on concurrent subagents per call
+    max_depth: 1 # recursion guard; a subagent is itself an `infer agent`
+    model: '' # default subagent model (inherits parent if blank)
+    interactive:
+      multiplexer: tmux # tmux only
+      layout: vertical # vertical | horizontal | window
+      fallback: headless # headless | error (when not inside tmux)
+```
+
+Every key has an `INFER_TOOLS_AGENT_*` environment-variable override, consistent with the rest of the config:
+
+| Setting                   | Environment variable                        |
+| ------------------------- | ------------------------------------------- |
+| `enabled`                 | `INFER_TOOLS_AGENT_ENABLED`                 |
+| `require_approval`        | `INFER_TOOLS_AGENT_REQUIRE_APPROVAL`        |
+| `mode`                    | `INFER_TOOLS_AGENT_MODE`                    |
+| `wait`                    | `INFER_TOOLS_AGENT_WAIT`                    |
+| `max_parallel`            | `INFER_TOOLS_AGENT_MAX_PARALLEL`            |
+| `max_depth`               | `INFER_TOOLS_AGENT_MAX_DEPTH`               |
+| `model`                   | `INFER_TOOLS_AGENT_MODEL`                   |
+| `interactive.multiplexer` | `INFER_TOOLS_AGENT_INTERACTIVE_MULTIPLEXER` |
+| `interactive.layout`      | `INFER_TOOLS_AGENT_INTERACTIVE_LAYOUT`      |
+| `interactive.fallback`    | `INFER_TOOLS_AGENT_INTERACTIVE_FALLBACK`    |
+
+```bash
+# Toggle the tool, or switch the default execution surface to headless
+infer config set tools.agent.enabled true
+infer config set tools.agent.mode headless
+```
+
+#### Approval and security
+
+- Subagents run in standard **bash mode** (the restricted [allowed-list](#command-allow-listing)), exactly like every other headless run - an off-list or mutating action is blocked in CI/heartbeat (no approver reachable) or sent for IPC approval under a channel (for example Telegram). See [Headless secure-by-default](#headless-secure-by-default).
+- The Agent tool is in the approval policy and **requires approval by default** (`require_approval: true`), with a per-tool override - consistent with `A2A_SubmitTask`. Spawning work that can edit files is treated as a mutating action.
+- A **depth guard** (`max_depth`, default `1`) prevents subagent fork-bombs: a subagent cannot itself spawn further subagents at the default cap.
+
+> **v1 scope.** Subagents do not nest (depth capped at 1), a subagent's tool-approval prompt is not routed back to the main chat TUI, only tmux is supported (no screen/zellij), and there is no `/agent` chat shortcut yet.
+>
+> Shipped in [inference-gateway/cli#658](https://github.com/inference-gateway/cli/pull/658).
 
 ### Security Features
 

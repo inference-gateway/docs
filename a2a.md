@@ -184,6 +184,20 @@ The Inference Gateway CLI acts as an **A2A agent client**, providing a seamless 
 
 Learn more about the CLI in our [CLI Documentation](/cli/).
 
+## Local Subagents vs. A2A Agents
+
+A2A targets **external**, independently deployed agent servers discovered over the network - long-running, specialized services (calendar, documentation, and so on) that you add with `infer agents add` and reach through `A2A_SubmitTask` / `A2A_QueryTask` / `A2A_QueryAgent`.
+
+For **short-lived, local** helpers there is a lighter-weight option: the CLI's built-in **[Agent tool](/cli/#local-subagents-agent-tool)**. It spawns one or more local subagents - each just an `infer agent` subprocess with its own isolated session - that run in parallel and fold their results back into the main conversation, with no agent server to stand up.
+
+| Use the **Agent tool** (local subagents)                          | Use the **A2A tools** (external agents)                       |
+| ----------------------------------------------------------------- | ------------------------------------------------------------- |
+| Parallel fan-out for the task at hand (exploration, scoped edits) | Delegating to a specialized, independently deployed service   |
+| Cheap, isolated, session-persisted local subprocesses             | Long-running, network-discovered, independently scaled server |
+| No server to run                                                  | Requires a running A2A server (local OCI or remote URL)       |
+
+Local subagents can run **headless** (in the background) or **interactive** (each subagent in a live tmux pane you can watch). Interactive mode uses **tmux**, an optional runtime dependency: it is required only for interactive mode and must be run from inside tmux, while headless mode needs nothing extra. See [Local Subagents (Agent tool)](/cli/#local-subagents-agent-tool) for the tool parameters, result modes, and the `tools.agent.*` configuration.
+
 ## Available Agents
 
 ### Google Calendar Agent
