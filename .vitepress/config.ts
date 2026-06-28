@@ -174,6 +174,7 @@ export default withMermaid(
             { text: 'REST API', link: pageLink('/api-reference') },
             { text: 'SDKs', link: pageLink('/sdks') },
             { text: 'CLI', link: pageLink('/cli') },
+            { text: 'Command Hooks', link: pageLink('/cli-hooks') },
             { text: 'Agent Definition Language', link: pageLink('/adl') },
             { text: 'ADL CLI', link: pageLink('/adl-cli') },
             { text: 'Channels', link: pageLink('/cli-channels') },
@@ -296,6 +297,7 @@ export default withMermaid(
           collapsed: false,
           items: [
             { text: 'CLI', link: pageLink('/cli') },
+            { text: 'Command Hooks', link: pageLink('/cli-hooks') },
             { text: 'Channels', link: pageLink('/cli-channels') },
             { text: 'Speech-to-Text', link: pageLink('/cli-speech-to-text') },
             { text: 'GitHub Action', link: pageLink('/github-action') },

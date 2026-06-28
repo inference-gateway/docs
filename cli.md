@@ -1048,6 +1048,22 @@ Two-layer configuration system with precedence from highest to lowest:
 | 4           | User Config           | `~/.infer/config.yaml`                   |
 | 5 (Lowest)  | Built-in Defaults     | Internal defaults                        |
 
+### Configuration Files
+
+`infer init` scaffolds the project configuration directory (`.infer/`) and `~/.infer/` holds user-global defaults. Configuration is split across purpose-specific YAML files rather than one giant file:
+
+| File               | Scope        | Purpose                                                                                     | Where it is documented                                      |
+| ------------------ | ------------ | ------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| `config.yaml`      | Project/user | Main config - agent, tools, storage, pricing, and everything `config get`/`set` touches.    | [Configuration](#configuration-commands)                    |
+| `prompts.yaml`     | Project/user | System prompts (`prompts.agent.system_prompt`, plan/auto variants) - edited, not `set`.     | [Configuration Commands](#configuration-commands)           |
+| `mcp.yaml`         | Project      | MCP server definitions and connection settings.                                             | [MCP Integration](#mcp-integration)                         |
+| `keybindings.yaml` | Project/user | Keybindings for the TUI and diff viewer (category `diff_viewer`).                           | [Diff viewer and git staging](#diff-viewer-and-git-staging) |
+| `hooks.yaml`       | Project/user | User-defined shell commands run at agent-loop hook points (feature-flagged off by default). | [Command Hooks](/cli-hooks/)                                |
+| `reminders.yaml`   | Project/user | System reminders injected into the conversation on a schedule.                              | [Key Configuration Areas](#key-configuration-areas)         |
+| `shortcuts/*.yaml` | Project      | Custom slash shortcuts - simple commands, subcommands, and AI-powered snippets.             | [Custom Shortcuts](#custom-shortcuts)                       |
+| `skills/`          | Project/user | Agent Skills folders (`name/SKILL.md`) discovered and injected on demand.                   | [Agent Skills](#agent-skills)                               |
+| `schedules/`       | User         | Persisted cron jobs created by the Schedule tool, run by the channels-manager daemon.       | [Schedule](#schedule)                                       |
+
 ### Key Configuration Areas
 
 **Gateway Settings:**
