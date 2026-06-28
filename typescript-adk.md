@@ -531,9 +531,7 @@ On success the handler returns the wire-format `Task` whose `status.state` is `T
     "state": "TASK_STATE_CANCELLED",
     "timestamp": "2026-05-26T12:00:01.500Z",
   },
-  "history": [
-    /* ... whatever messages had been recorded so far */
-  ],
+  "history": [/* ... whatever messages had been recorded so far */],
 }
 ```
 
@@ -1219,9 +1217,7 @@ import {
   type AgentCard,
 } from '@inference-gateway/adk';
 
-const extendedCard: AgentCard = {
-  /* ... */
-};
+const extendedCard: AgentCard = {/* ... */};
 
 const server = createA2AServer({ card: publicCard /* ...authenticator */ });
 server.registerMethod(
@@ -2384,9 +2380,7 @@ Concrete example:
       "state": "TASK_STATE_COMPLETED",
       "timestamp": "2026-05-28T12:00:03.250Z"
     },
-    "history": [
-      /* ... */
-    ]
+    "history": [/* ... */]
   }
 }
 ```
