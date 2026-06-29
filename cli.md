@@ -574,16 +574,16 @@ When tools are enabled, LLMs have access to a comprehensive suite across multipl
 
 ### Tool Categories
 
-| Category              | Tools                                                                                             | Description                                                                                          |
-| --------------------- | ------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| **File System**       | Read, Write, Edit, MultiEdit, Delete, Tree, Grep                                                  | File operations and search with safety controls                                                      |
-| **Command Execution** | Bash, BashOutput, KillShell, ListShells                                                           | Allow-listed shell execution (including `gh` for GitHub) and background shell control                |
-| **Web**               | WebSearch, WebFetch                                                                               | Internet research and content fetching                                                               |
-| **Workflow**          | TodoWrite, Schedule, RequestPlanApproval, AskUserQuestion                                         | Task tracking, cron jobs, plan-mode approval and clarifying questions                                |
-| **A2A Integration**   | A2A_QueryAgent, A2A_SubmitTask, A2A_QueryTask                                                     | Delegate to external specialized agents - see [A2A](/a2a/)                                           |
-| **Local Subagents**   | Agent                                                                                             | Fan out short-lived local subagents in parallel - see [Local Subagents](#local-subagents-agent-tool) |
-| **Computer Use**      | GetLatestScreenshot, MouseMove, MouseClick, MouseScroll, KeyboardType, GetFocusedApp, ActivateApp | GUI automation - see the Computer Use section above                                                  |
-| **MCP**               | `MCP_<server>_<tool>`                                                                             | Dynamically registered tools from MCP servers - see [MCP](/mcp/)                                     |
+| Category              | Tools                                                                                             | Description                                                                                             |
+| --------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| **File System**       | Read, Write, Edit, MultiEdit, Delete, Tree, Grep                                                  | File operations and search with safety controls                                                         |
+| **Command Execution** | Bash, BashOutput, KillShell, ListShells                                                           | Allow-listed shell execution (including `gh` for GitHub) and background shell control                   |
+| **Web**               | WebSearch, WebFetch                                                                               | Internet research and content fetching                                                                  |
+| **Workflow**          | TodoWrite, Schedule, RequestPlanApproval, AskUserQuestion, Memory                                 | Task tracking, cron jobs, plan-mode approval, clarifying questions, and persistent cross-session memory |
+| **A2A Integration**   | A2A_QueryAgent, A2A_SubmitTask, A2A_QueryTask                                                     | Delegate to external specialized agents - see [A2A](/a2a/)                                              |
+| **Local Subagents**   | Agent                                                                                             | Fan out short-lived local subagents in parallel - see [Local Subagents](#local-subagents-agent-tool)    |
+| **Computer Use**      | GetLatestScreenshot, MouseMove, MouseClick, MouseScroll, KeyboardType, GetFocusedApp, ActivateApp | GUI automation - see the Computer Use section above                                                     |
+| **MCP**               | `MCP_<server>_<tool>`                                                                             | Dynamically registered tools from MCP servers - see [MCP](/mcp/)                                        |
 
 ### File System Tools
 
@@ -1060,6 +1060,7 @@ Two-layer configuration system with precedence from highest to lowest:
 | `keybindings.yaml` | Project/user | Keybindings for the TUI and diff viewer (category `diff_viewer`).                           | [Diff viewer and git staging](#diff-viewer-and-git-staging) |
 | `hooks.yaml`       | Project/user | User-defined shell commands run at agent-loop hook points (feature-flagged off by default). | [Command Hooks](/cli-hooks/)                                |
 | `reminders.yaml`   | Project/user | System reminders injected into the conversation on a schedule.                              | [Key Configuration Areas](#key-configuration-areas)         |
+| `memory.yaml`      | Project/user | Persistent, cross-session agent memory - fact-files plus the `MEMORY.md` index.             | [Persistent Memory](#persistent-memory)                     |
 | `shortcuts/*.yaml` | Project      | Custom slash shortcuts - simple commands, subcommands, and AI-powered snippets.             | [Custom Shortcuts](#custom-shortcuts)                       |
 | `skills/`          | Project/user | Agent Skills folders (`name/SKILL.md`) discovered and injected on demand.                   | [Agent Skills](#agent-skills)                               |
 | `schedules/`       | User         | Persisted cron jobs created by the Schedule tool, run by the channels-manager daemon.       | [Schedule](#schedule)                                       |
@@ -1123,7 +1124,7 @@ export INFER_TOOLS_SAFETY_APPROVAL_BEHAVIOUR="prompt"
 
 ### Configuration Commands
 
-Configuration uses a generic key/value interface. `infer config get` reads the effective value of any key; `infer config set` writes one to `config.yaml`. Keys are dotted paths into the config (for example `agent.model`, `tools.bash.enabled`).
+Configuration uses a generic key/value interface. `infer config get` reads the effective value of any key; `infer config set` writes one to the userspace baseline (`~/.infer/config.yaml`) by default, or to the project config (`./.infer/config.yaml`) when you pass `--project`. Keys are dotted paths into the config (for example `agent.model`, `tools.bash.enabled`).
 
 ```bash
 # Initialize configuration
@@ -1147,8 +1148,11 @@ infer config set agent.verbose_tools true
 infer config set tools.sandbox.directories ".,/work/project"
 infer config set tools.web_fetch.allowed_domains "golang.org,github.com"
 
-# Target the user-global ~/.infer/config.yaml instead of the project .infer/config.yaml
-infer config set agent.model deepseek/deepseek-v4-flash --userspace
+# config set writes the userspace baseline (~/.infer/config.yaml) by default
+infer config set agent.model deepseek/deepseek-v4-flash
+
+# Target the project config (./.infer/config.yaml) instead - it overrides the baseline key-by-key
+infer config set agent.model deepseek/deepseek-v4-flash --project
 
 # Recreate config.yaml from defaults
 infer config init --overwrite
@@ -1639,6 +1643,60 @@ storage:
 - **Secret handling.** `api_token` follows the existing plaintext-config + env-override convention (like the Postgres password) and is never logged - inject it via `INFER_STORAGE_D1_API_TOKEN`.
 
 > Shipped in [inference-gateway/cli#646](https://github.com/inference-gateway/cli/pull/646).
+
+### Persistent Memory
+
+The **Memory** tool gives the agent durable, **cross-session** memory: facts it learns in one session survive into the next. Each fact is a single Markdown **fact-file** (with YAML frontmatter) stored under a global directory - `~/.infer/memory` by default - and catalogued by a `MEMORY.md` index. That index is injected into context at the **start of every session**, so the agent always knows what it has recorded; it then reads or writes individual facts on demand. A default [system reminder](#key-configuration-areas) (`memory-consult`) nudges it to consult and keep memory current. Memory is **enabled by default**.
+
+> **Not the same as `storage.type: memory`.** This is the agent's knowledge memory - durable facts on disk under `~/.infer/memory`. The `memory` [conversation storage backend](#conversation-management) is unrelated: an in-RAM transcript store that is wiped when the process exits.
+
+#### The Memory tool
+
+`Memory` is a [Workflow tool](#tool-categories) whose `operation` parameter selects one of three actions:
+
+| Operation | Parameters                                              | Effect                                                                        |
+| --------- | ------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `read`    | `name` (optional)                                       | With no `name`, returns the `MEMORY.md` index; with a `name`, that fact-file. |
+| `write`   | `name`, `description`, `type`, `content` (all required) | Creates or updates a fact-file and its index entry.                           |
+| `delete`  | `name` (required)                                       | Removes a fact-file and its index entry.                                      |
+
+`name` is a short slug (for example `build-commands`), `description` is the one-line summary shown in the `MEMORY.md` index, `content` is the Markdown fact body, and `type` is one of `user`, `feedback`, `project`, or `reference`.
+
+#### Configuration (`memory.yaml`)
+
+Runtime knobs live in `memory.yaml` (seeded by `infer init`; the in-code defaults apply when the file is absent):
+
+```yaml
+# .infer/memory.yaml (or ~/.infer/memory.yaml)
+enabled: true
+dir: '' # "" => ~/.infer/memory
+max_chars: 4000 # cap on the MEMORY.md index injected into context
+```
+
+| Key         | Default           | Environment variable     | Description                                                          |
+| ----------- | ----------------- | ------------------------ | -------------------------------------------------------------------- |
+| `enabled`   | `true`            | `INFER_MEMORY_ENABLED`   | Master switch - registers the `Memory` tool and the index injection. |
+| `dir`       | `~/.infer/memory` | `INFER_MEMORY_DIR`       | Directory holding the fact-files and `MEMORY.md`. `""` = default.    |
+| `max_chars` | `4000`            | `INFER_MEMORY_MAX_CHARS` | Upper bound on the `MEMORY.md` index injected at session start.      |
+
+#### Disabling memory
+
+Turn it off in `memory.yaml`:
+
+```yaml
+# .infer/memory.yaml (or ~/.infer/memory.yaml)
+enabled: false
+```
+
+or via the environment, without touching config:
+
+```bash
+export INFER_MEMORY_ENABLED=false
+```
+
+When disabled, the `Memory` tool is not registered, no `MEMORY.md` index is injected, and the `memory-consult` reminder is pruned automatically.
+
+> Shipped in [inference-gateway/cli#679](https://github.com/inference-gateway/cli/pull/679).
 
 ### MCP Integration
 
