@@ -333,6 +333,18 @@ infer chat
 
 While planning, the agent can pause to ask you up to four multiple-choice clarifying questions with the [`AskUserQuestion`](#askuserquestion) tool, then fold your answers into the plan it submits for approval.
 
+#### Approving a plan
+
+When the plan is ready, the agent calls [`RequestPlanApproval`](#requestplanapproval); the chat TUI renders the saved plan in a dedicated panel and shows a status line - use the arrow keys to select an option and **Enter** to confirm. Three options are offered:
+
+| Option                | Key           | Resulting mode  | Effect                                                                            |
+| --------------------- | ------------- | --------------- | --------------------------------------------------------------------------------- |
+| **Accept** (default)  | `Enter` / `y` | **Auto-Accept** | Executes the plan with no per-action approval prompts.                            |
+| **Approve Each Step** | `s`           | **Standard**    | Executes the plan but prompts for approval on each Write/Edit/Delete/Bash action. |
+| **Reject**            | `n`           | -               | Ends the session; reply with feedback and the agent re-iterates the plan.         |
+
+> **The default Accept enables [Auto-Accept mode](#auto-accept-mode)** - unrestricted execution with no per-action approval. Pick **Approve Each Step** to accept the plan but keep the [Standard-mode](#standard-mode) approval gate on every action. The plan file stays on disk whichever you choose; rejecting a plan does not delete it.
+
 ### Auto-Accept Mode
 
 Zero approval prompts for maximum speed. Use with caution in version-controlled environments.
@@ -888,7 +900,7 @@ The form always appends an **"Other"** free-text choice to every question, so th
 Submit a completed plan for user approval. Available only in Plan Mode.
 
 - **Parameters**: `plan` (required - the complete, detailed plan text)
-- **Behavior**: pauses execution until the user approves (switches to execution mode) or rejects (provides feedback)
+- **Behavior**: pauses execution and offers three choices (see [Approving a plan](#approving-a-plan)) - **Accept** (`Enter`/`y`) switches to [Auto-Accept mode](#auto-accept-mode) and executes with no per-action approval, **Approve Each Step** (`s`) executes in [Standard mode](#standard-mode) with approval on each action, and **Reject** (`n`) ends the session so you can reply with feedback.
 
 ### Local Subagents (Agent tool)
 
