@@ -1679,6 +1679,62 @@ max_chars: 4000 # cap on the MEMORY.md index injected into context
 | `dir`       | `~/.infer/memory` | `INFER_MEMORY_DIR`       | Directory holding the fact-files and `MEMORY.md`. `""` = default.    |
 | `max_chars` | `4000`            | `INFER_MEMORY_MAX_CHARS` | Upper bound on the `MEMORY.md` index injected at session start.      |
 
+The memory directory is local by default. To back it with a **git remote** - pull on run start, commit and push on change - configure a [Sync backend](#sync-backend).
+
+#### Sync backend
+
+By default the memory directory lives on a single machine (`backend.type: local`, a pure no-op). Point the backend at a **git remote** to share one memory across machines, CI runners, channels, and scheduled runs: the CLI **pulls on run start** and **commits + pushes on change**.
+
+```yaml
+# .infer/memory.yaml (or ~/.infer/memory.yaml)
+enabled: true
+dir: '' # "" => ~/.infer/memory
+max_chars: 4000
+backend:
+  type: local # local (default) | git
+  git:
+    repo: 'git@github.com:my-org/agent-memory.git'
+    branch: main
+    commit_message: 'chore(memory): sync'
+    timeout: 60 # seconds per git op
+    sync:
+      on_start: pull # pull (default) | off
+      on_finish: push # push (default) | off
+```
+
+`type: local` is the default and a pure no-op - existing users see no change.
+
+| Key                          | Default               | Environment variable                      | Notes                                           |
+| ---------------------------- | --------------------- | ----------------------------------------- | ----------------------------------------------- |
+| `backend.type`               | `local`               | `INFER_MEMORY_BACKEND_TYPE`               | `local` (no-op) or `git`.                       |
+| `backend.git.repo`           | `''`                  | `INFER_MEMORY_BACKEND_GIT_REPO`           | Remote URL. Required when `type: git`.          |
+| `backend.git.branch`         | `main`                | `INFER_MEMORY_BACKEND_GIT_BRANCH`         | Branch to track.                                |
+| `backend.git.commit_message` | `chore(memory): sync` | `INFER_MEMORY_BACKEND_GIT_COMMIT_MESSAGE` | Deterministic, non-LLM commit message.          |
+| `backend.git.timeout`        | `60`                  | `INFER_MEMORY_BACKEND_GIT_TIMEOUT`        | Seconds per git op (prevents credential hangs). |
+| `backend.git.sync.on_start`  | `pull`                | `INFER_MEMORY_BACKEND_GIT_SYNC_ON_START`  | `pull` or `off`.                                |
+| `backend.git.sync.on_finish` | `push`                | `INFER_MEMORY_BACKEND_GIT_SYNC_ON_FINISH` | `push` or `off`.                                |
+
+**Validation:** when memory is enabled and `type: git`, `repo` is required; `on_start` must be `pull` or `off`, and `on_finish` must be `push` or `off`.
+
+##### How it syncs
+
+- **On run start (SyncIn).** Clones the repo when the memory dir is missing, otherwise fast-forward / rebase pulls. An `ls-remote` probe decides clone vs. init-in-place - an empty remote, or a pre-existing local memory dir, is initialized in place instead of cloned.
+- **On change (SyncOut).** Commits and pushes **only when `git status --porcelain` reports changes**, through a bounded **push -> pull-rebase -> retry** loop. A per-host `flock` serializes concurrent runs (channels / scheduler / heartbeat) so they do not clobber each other.
+- **Where the push happens.** In **chat**, the `Memory` tool pushes on each write / delete - not a post-session hook, which would commit-storm once per message. In headless [`infer agent`](#headless-agent-stream-output), it pulls on start and pushes once at run finish. Either way it works across channel, scheduler, and heartbeat subprocess runs.
+- **Best-effort, never fatal.** A failed clone / pull / push is logged and the run continues - sync never aborts the agent run.
+
+##### Authentication
+
+Sync uses the **ambient git credential chain** - ssh-agent, a git credential helper, or `GIT_*` environment variables. The backend injects no ssh key or env override of its own, so pick whichever your environment already uses:
+
+- **SSH (preferred)** - a `git@github.com:...` remote plus a loaded ssh-agent key.
+- **`gh auth`** - the GitHub CLI credential helper for `https://` remotes.
+- **Token in URL** - works, but the CLI **logs a warning**, because credentials embedded in the remote URL persist in `.git/config`. Prefer SSH.
+
+The per-op `timeout` (default `60` seconds) keeps an interactive credential prompt from hanging a run.
+
+> Shipped in [inference-gateway/cli#707](https://github.com/inference-gateway/cli/pull/707) (closes [inference-gateway/cli#683](https://github.com/inference-gateway/cli/issues/683)).
+
 #### Disabling memory
 
 Turn it off in `memory.yaml`:
