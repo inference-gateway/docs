@@ -1154,39 +1154,39 @@ reminders:
   - name: memory-consult
     hook: pre_tool
     trigger: always
-    text: "Consult the Memory tool before making changes."
+    text: 'Consult the Memory tool before making changes.'
   - name: fail-nudge
     hook: post_tool
     trigger: on_failure
-    text: "A failed call means the change did not happen. Re-try or ask the user."
+    text: 'A failed call means the change did not happen. Re-try or ask the user.'
 ```
 
-| Field     | Type    | Description                                                                                                                      |
-| --------- | ------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `enabled` | boolean | Master switch. Default `true`. Can also be toggled via `INFER_REMINDERS_ENABLED`.                                                |
-| `name`    | string  | Unique identifier for the reminder. Used for deduplication and logging.                                                          |
-| `hook`    | string  | When the reminder fires. One of `pre_tool` (before each tool call) or `post_tool` (after each tool call completes).              |
-| `trigger` | string  | Condition under which the reminder fires. See [Trigger catalog](#trigger-catalog) below.                                        |
+| Field     | Type    | Description                                                                                                                        |
+| --------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `enabled` | boolean | Master switch. Default `true`. Can also be toggled via `INFER_REMINDERS_ENABLED`.                                                  |
+| `name`    | string  | Unique identifier for the reminder. Used for deduplication and logging.                                                            |
+| `hook`    | string  | When the reminder fires. One of `pre_tool` (before each tool call) or `post_tool` (after each tool call completes).                |
+| `trigger` | string  | Condition under which the reminder fires. See [Trigger catalog](#trigger-catalog) below.                                           |
 | `text`    | string  | The reminder text injected into the conversation. Supports `os.ExpandEnv` environment variable interpolation (`$VAR` or `${VAR}`). |
 
 #### Trigger catalog
 
-| Trigger      | Hook requirement | Description                                                                                                                      |
-| ------------ | ---------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `always`     | Any              | Fire on every hook invocation.                                                                                                   |
+| Trigger      | Hook requirement | Description                                                                                                                        |
+| ------------ | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `always`     | Any              | Fire on every hook invocation.                                                                                                     |
 | `on_failure` | `post_tool`      | Fire only when the tool call that just ran failed (returned an error). Requires `hook: post_tool`; validation rejects other hooks. |
 
 #### Configuration sources and precedence
 
 Reminders are resolved with the following precedence (highest first):
 
-| Priority    | Source                    | Description                                                                                             |
-| ----------- | ------------------------- | ------------------------------------------------------------------------------------------------------- |
-| 1 (Highest) | `INFER_REMINDERS_CONFIG`  | Inline YAML string. When set, it **replaces** all file-loaded reminders.                               |
-| 2           | `--reminders-file PATH`   | Load reminders from an arbitrary file path. Available on `infer agent` and `infer chat`.                |
-| 3           | Project config            | `./.infer/reminders.yaml`                                                                               |
-| 4           | User config               | `~/.infer/reminders.yaml`                                                                               |
-| 5 (Lowest)  | Built-in defaults         | The CLI ships a built-in `memory-consult` reminder that nudges the agent to consult the Memory tool.    |
+| Priority    | Source                   | Description                                                                                          |
+| ----------- | ------------------------ | ---------------------------------------------------------------------------------------------------- |
+| 1 (Highest) | `INFER_REMINDERS_CONFIG` | Inline YAML string. When set, it **replaces** all file-loaded reminders.                             |
+| 2           | `--reminders-file PATH`  | Load reminders from an arbitrary file path. Available on `infer agent` and `infer chat`.             |
+| 3           | Project config           | `./.infer/reminders.yaml`                                                                            |
+| 4           | User config              | `~/.infer/reminders.yaml`                                                                            |
+| 5 (Lowest)  | Built-in defaults        | The CLI ships a built-in `memory-consult` reminder that nudges the agent to consult the Memory tool. |
 
 `INFER_REMINDERS_ENABLED` toggles the master switch on top of all sources — set it to `false` to disable all reminders regardless of the resolved config.
 
