@@ -267,6 +267,29 @@ infer chat
 
 > Shipped in [inference-gateway/cli#574](https://github.com/inference-gateway/cli/pull/574).
 
+#### Status indicator row
+
+Below the chat input, a row of **status indicators** shows the current agent state. You can interact with these indicators using the keyboard:
+
+| Key                          | Action                                                                    |
+| ---------------------------- | ------------------------------------------------------------------------- |
+| `Down` arrow                 | Focus the indicator row from the chat input                               |
+| `Left` / `Right` arrow       | Cycle between indicators                                                  |
+| `Enter`                      | Open the matching view for the selected indicator                         |
+| `Esc` / `Up` arrow           | Return focus to the chat input                                            |
+
+The selected indicator is highlighted as an **accent-colored pill**.
+
+**Indicator labels:**
+
+| Indicator | Label format              | Description                                                                 |
+| --------- | ------------------------- | --------------------------------------------------------------------------- |
+| Tools     | `Tools: N (mode)`         | `N` is the number of tools available in the current [agent mode](#agent-modes). `mode` is the active mode name (Standard, Plan, or Auto-Accept). Opens the [`/tools` view](#tools-view). |
+| A2A       | `A2A: X/Y`                | `X` is the number of connected A2A agents, `Y` is the total number of configured agents. Opens the [`/a2a` view](#a2a-view). |
+| Theme     | `Theme`                   | Opens the theme selector to change the TUI color scheme.                    |
+
+> Shipped in [inference-gateway/cli#732](https://github.com/inference-gateway/cli/pull/732).
+
 #### Switching models (`/model`)
 
 `/model` is the unified model command - it replaces the deprecated `/switch`:
@@ -1209,7 +1232,8 @@ The CLI provides built-in shortcuts and supports custom user-defined shortcuts.
 | `/git <cmd>`          | Git operations                                                                                     | `/git status`, `/git commit`, `/git push` |
 | `/scm <cmd>`          | GitHub operations                                                                                  | `/scm pr-create`, `/scm issue view 123`   |
 | `/model [name] [msg]` | Switch the active model, or run one message with another model (replaces `/switch`)                | `/model deepseek/deepseek-v4-pro`         |
-| `/a2a`                | View connected A2A agents                                                                          | `/a2a`                                    |
+| `/a2a`                | View registered A2A agents and their connection state                                             | `/a2a`                                    |
+| `/tools`              | View a filterable list of tools available in the current agent mode, including MCP tools           | `/tools`                                  |
 | `/skills <cmd>`       | Manage Agent Skills                                                                                | `/skills list`, `/skills install <url>`   |
 | `/voice [seconds]`    | Record the mic and transcribe to the input field (requires [speech-to-text](/cli-speech-to-text/)) | `/voice`, `/voice 8`                      |
 
@@ -1853,6 +1877,34 @@ infer skills uninstall internal-comms
 Once enabled, invoke a skill explicitly with `/<name>` (for example `/pdf-helper`) or by asking the agent to "use the `<name>` skill"; the CLI deterministically activates it by injecting the skill's metadata and pointing the agent at its `SKILL.md`. Installed skills under `~/.infer/skills` and `./.infer/skills` stay readable by the Read tool through a sandbox carve-out, so they load even when the agent runs outside the project directory (for example in CI).
 
 See the full **[Agent Skills guide](/cli-skills/)** for the on-disk layout, the `SKILL.md` frontmatter contract, install flags, activation triggers, and the sandbox carve-out. To publish a skill in the shared index, see the [Skills Catalog](/skills/).
+
+### `/tools` view
+
+The `/tools` shortcut opens a **read-only, filterable list** of the tools available to the agent in the current [agent mode](#agent-modes). Each row shows the tool name plus a word-wrapped description (up to two lines, with an ellipsis on overflow).
+
+- **Filtering:** type `/` to start filtering; matching terms are underlined in the results.
+- **Status line:** shows `N tools` at the bottom.
+- **Live refresh:** the list refreshes on every entry, so agent-mode changes and asynchronously registered MCP tools are reflected immediately.
+- **Mode-aware:** [Plan mode](#plan-mode) hides mutating tools (Write, Edit, Delete, Bash), showing only read-only tools.
+- **MCP tools:** dynamically registered MCP tools appear as `MCP_<server>_<tool>` once their server is connected.
+
+```bash
+infer chat
+> /tools
+```
+
+> Shipped in [inference-gateway/cli#732](https://github.com/inference-gateway/cli/pull/732).
+
+### `/a2a` view
+
+The `/a2a` shortcut opens a **list of registered A2A agents** showing their connection state. Each entry displays whether the agent is connected or disconnected, alongside its name and URL.
+
+```bash
+infer chat
+> /a2a  # View connected agents
+```
+
+> Shipped in [inference-gateway/cli#732](https://github.com/inference-gateway/cli/pull/732).
 
 ### A2A Integration
 
