@@ -63,6 +63,31 @@ Open an issue (or comment on one) containing `@infer` and the workflow takes ove
 6. **PR creation** - when the agent produces file changes, it creates `fix/issue-{number}`, commits, pushes, and opens a PR titled `Fix #{number}: ...` with `Resolves #{number}` in the body.
 7. **Result posting** - the final comment summarises completed work and the model used, links the PR if any, and appends a footer with token usage, per-session cost, and the agent's tool-call count and success rate (see [Result comment](#result-comment)).
 
+### Native reminders
+
+The action composes a default set of [CLI system reminders](/cli/#system-reminders) and passes them to the CLI via `INFER_REMINDERS_CONFIG`. The composed default includes:
+
+- **Periodic context nudge** - a `pre_tool` / `always` reminder that keeps the agent focused on the task.
+- **Turns-before-max wrap-up** - a `pre_tool` / `always` reminder that fires near the turn limit, prompting the agent to wrap up.
+- **Post-tool failure nudge** - a `post_tool` / `on_failure` reminder that fires only after a failed tool call on writable runs, reminding the agent to retry or ask the user.
+- **Memory nudges** - when `memory-repo` is set, the CLI's built-in `memory-consult` and `memory-hygiene` reminders are re-emitted.
+
+To override the composed default and supply your own full set of reminders, use the [`reminders-config`](#inputs) input. When set, it **replaces** the action's default entirely (it is not merged), so any built-in behaviour you want must be re-declared.
+
+```yaml
+- uses: inference-gateway/infer-action@v0.22.0
+  with:
+    reminders-config: |
+      enabled: true
+      reminders:
+        - name: fail-nudge
+          hook: post_tool
+          trigger: on_failure
+          text: "A failed call means the change did not happen"
+```
+
+See the [CLI reminders documentation](/cli/#system-reminders) for the full YAML schema, trigger catalog (`always`, `on_failure`), and the `INFER_REMINDERS_CONFIG` / `--reminders-file` / `on_failure` trigger reference.
+
 ### Dynamic model selection
 
 Override the workflow's default model on a per-issue or per-comment basis by including `/model provider/model-name` in the trigger text:
@@ -110,7 +135,7 @@ The total and failed tool-call counts are also exposed as the `total-tool-calls-
 | `model`                   | Yes      | -          | Model identifier in `provider/model-name` form (e.g. `anthropic/claude-opus-4-8`).                                                                                                                                                                                                                           |
 | `trigger-phrase`          | No       | `@infer`   | Phrase that activates the agent. Case-sensitive.                                                                                                                                                                                                                                                             |
 | `direct-prompt`           | No       | `''`       | Free-text task to run directly, bypassing issue/comment triggers. When set, the agent runs against this text under `workflow_dispatch` (or any event), commits to a new branch, and opens a PR; the result and PR link go to the job summary. See [Direct prompt](#direct-prompt-manual-runs).               |
-| `version`                 | No       | `v0.121.1` | `infer` CLI version to install inside the runner.                                                                                                                                                                                                                                                            |
+| `version`                 | No       | `v0.129.0` | `infer` CLI version to install inside the runner.                                                                                                                                                                                                                                                            |
 | `max-turns`               | No       | `50`       | Maximum agent iterations - acts as a runaway-cost guard.                                                                                                                                                                                                                                                     |
 | `custom-instructions`     | No       | `''`       | Extra instructions appended to the default system prompt (does **not** replace the defaults).                                                                                                                                                                                                                |
 | `bash-whitelist-commands` | No       | `''`       | Comma-separated commands appended to the agent's bash allow-list (e.g. `npm,yarn,pnpm`).                                                                                                                                                                                                                     |
@@ -123,6 +148,7 @@ The total and failed tool-call counts are also exposed as the `total-tool-calls-
 | `memory-sync-on-finish`   | No       | `''`       | Push memory changes at run finish: `push` or `off` (`INFER_MEMORY_BACKEND_GIT_SYNC_ON_FINISH`). Empty = CLI default (`push`).                                                                                                                                                                                |
 | `memory-deploy-key`       | No       | `''`       | SSH private key (e.g. a deploy key with write access) authenticating an ssh `memory-repo`. Secret, auto-masked. See [Persistent Agent Memory](#persistent-agent-memory).                                                                                                                                     |
 | `memory-token`            | No       | `''`       | Token authenticating an https `memory-repo` (scoped git insteadOf rewrite). Secret, auto-masked. Empty on a same-instance https URL = falls back to `github-token`.                                                                                                                                          |
+| `reminders-config`        | No       | `''`       | Verbatim reminders YAML passed to the CLI via `INFER_REMINDERS_CONFIG`, replacing the action's composed default. Lets a power user take full control of the CLI's native reminders (hooks, triggers, cadences). A supplied config **replaces** the action's default, so built-in behaviour must be re-covered if desired. Requires Infer CLI >= v0.129.0. See [Native reminders](#native-reminders) and the [CLI reminders docs](/cli/#system-reminders). |
 | `dry-run`                 | No       | `false`    | Plan-only local-testing mode (e.g. with `act`): forces the bundled mock agent, simulates every GitHub mutation (`[dry-run] would ...`), and prints the resolved system/task/reminder prompts and tool allow-lists. Reads still run. See [Local testing with act](#local-testing-with-act).                   |
 | `mock-agent-scenario`     | No       | `happy`    | Which scenario the bundled mock agent runs under `dry-run`: `happy`, `failures`, `no-todos`, or `empty`.                                                                                                                                                                                                     |
 | `anthropic-api-key`       | No\*     | -          | Required when using an Anthropic model.                                                                                                                                                                                                                                                                      |
