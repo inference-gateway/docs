@@ -1094,7 +1094,7 @@ Two-layer configuration system with precedence from highest to lowest:
 | `mcp.yaml`         | Project      | MCP server definitions and connection settings.                                             | [MCP Integration](#mcp-integration)                         |
 | `keybindings.yaml` | Project/user | Keybindings for the TUI and diff viewer (category `diff_viewer`).                           | [Diff viewer and git staging](#diff-viewer-and-git-staging) |
 | `hooks.yaml`       | Project/user | User-defined shell commands run at agent-loop hook points (feature-flagged off by default). | [Command Hooks](/cli-hooks/)                                |
-| `reminders.yaml`   | Project/user | System reminders injected into the conversation on a schedule.                              | [Key Configuration Areas](#key-configuration-areas)         |
+| `reminders.yaml`   | Project/user | System reminders injected into the conversation on a schedule.                              | [System Reminders](#system-reminders)                       |
 | `memory.yaml`      | Project/user | Persistent, cross-session agent memory - fact-files plus the `MEMORY.md` index.             | [Persistent Memory](#persistent-memory)                     |
 | `shortcuts/*.yaml` | Project      | Custom slash shortcuts - simple commands, subcommands, and AI-powered snippets.             | [Custom Shortcuts](#custom-shortcuts)                       |
 | `skills/`          | Project/user | Agent Skills folders (`name/SKILL.md`) discovered and injected on demand.                   | [Agent Skills](#agent-skills)                               |
@@ -1141,6 +1141,92 @@ Two-layer configuration system with precedence from highest to lowest:
 - Token optimization and compaction
 - Export/import capabilities
 
+### System Reminders
+
+System reminders are YAML-configured prompts injected into the conversation on a schedule or in response to tool outcomes. They are defined in `reminders.yaml` (project or user scope) and can also be supplied inline or from an arbitrary path.
+
+#### Reminders YAML Schema
+
+```yaml
+# .infer/reminders.yaml (or ~/.infer/reminders.yaml)
+enabled: true
+reminders:
+  - name: memory-consult
+    hook: pre_tool
+    trigger: always
+    text: 'Consult the Memory tool before making changes.'
+  - name: fail-nudge
+    hook: post_tool
+    trigger: on_failure
+    text: 'A failed call means the change did not happen. Re-try or ask the user.'
+```
+
+| Field     | Type    | Description                                                                                                                        |
+| --------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `enabled` | boolean | Master switch. Default `true`. Can also be toggled via `INFER_REMINDERS_ENABLED`.                                                  |
+| `name`    | string  | Unique identifier for the reminder. Used for deduplication and logging.                                                            |
+| `hook`    | string  | When the reminder fires. One of `pre_tool` (before each tool call) or `post_tool` (after each tool call completes).                |
+| `trigger` | string  | Condition under which the reminder fires. See [Trigger catalog](#trigger-catalog) below.                                           |
+| `text`    | string  | The reminder text injected into the conversation. Supports `os.ExpandEnv` environment variable interpolation (`$VAR` or `${VAR}`). |
+
+#### Trigger catalog
+
+| Trigger      | Hook requirement | Description                                                                                                                        |
+| ------------ | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `always`     | Any              | Fire on every hook invocation.                                                                                                     |
+| `on_failure` | `post_tool`      | Fire only when the tool call that just ran failed (returned an error). Requires `hook: post_tool`; validation rejects other hooks. |
+
+#### Configuration sources and precedence
+
+Reminders are resolved with the following precedence (highest first):
+
+| Priority    | Source                   | Description                                                                                          |
+| ----------- | ------------------------ | ---------------------------------------------------------------------------------------------------- |
+| 1 (Highest) | `INFER_REMINDERS_CONFIG` | Inline YAML string. When set, it **replaces** all file-loaded reminders.                             |
+| 2           | `--reminders-file PATH`  | Load reminders from an arbitrary file path. Available on `infer agent` and `infer chat`.             |
+| 3           | Project config           | `./.infer/reminders.yaml`                                                                            |
+| 4           | User config              | `~/.infer/reminders.yaml`                                                                            |
+| 5 (Lowest)  | Built-in defaults        | The CLI ships a built-in `memory-consult` reminder that nudges the agent to consult the Memory tool. |
+
+`INFER_REMINDERS_ENABLED` toggles the master switch on top of all sources — set it to `false` to disable all reminders regardless of the resolved config.
+
+#### `INFER_REMINDERS_CONFIG`
+
+Set this environment variable to supply the full reminders YAML inline, without writing a `reminders.yaml` file. This is especially useful for CI/CD and embedded consumers (e.g. `infer-action`) that cannot write to `~/.infer/`.
+
+```bash
+export INFER_REMINDERS_CONFIG='enabled: true
+reminders:
+  - name: fail-nudge
+    hook: post_tool
+    trigger: on_failure
+    text: "A failed call means the change did not happen"
+'
+```
+
+When `INFER_REMINDERS_CONFIG` is set, it **replaces** the file-loaded config entirely — it is not merged. To disable it and fall back to file-based config, unset the variable.
+
+#### `--reminders-file`
+
+The `--reminders-file PATH` flag is available on `infer agent` and `infer chat`. It loads reminders from an arbitrary YAML file path, bypassing the default file resolution.
+
+```bash
+infer agent "Refactor the module" --reminders-file /path/to/custom-reminders.yaml
+infer chat --reminders-file ./ci-reminders.yaml
+```
+
+#### Example: CI with inline reminders
+
+```bash
+INFER_REMINDERS_CONFIG='enabled: true
+reminders:
+  - name: fail-nudge
+    hook: post_tool
+    trigger: on_failure
+    text: "A failed call means the change did not happen"
+' INFER_REMINDERS_ENABLED=true infer agent "..."
+```
+
 ### Essential Environment Variables
 
 ```bash
@@ -1155,6 +1241,18 @@ export INFER_TOOLS_BASH_ALLOW_APPEND="git commit,git push"
 
 # How a needed approval is delivered: prompt | ipc | block
 export INFER_TOOLS_SAFETY_APPROVAL_BEHAVIOUR="prompt"
+
+# Inline reminders YAML (replaces file-loaded reminders)
+export INFER_REMINDERS_CONFIG='enabled: true
+reminders:
+  - name: fail-nudge
+    hook: post_tool
+    trigger: on_failure
+    text: "A failed call means the change did not happen"
+'
+
+# Master switch for reminders (default: true)
+export INFER_REMINDERS_ENABLED=true
 ```
 
 ### Configuration Commands
@@ -1682,7 +1780,7 @@ storage:
 
 ### Persistent Memory
 
-The **Memory** tool gives the agent durable, **cross-session** memory: facts it learns in one session survive into the next. Each fact is a single Markdown **fact-file** (with YAML frontmatter) stored under a global directory - `~/.infer/memory` by default - and catalogued by a `MEMORY.md` index. That index is injected into context at the **start of every session**, so the agent always knows what it has recorded; it then reads or writes individual facts on demand. A default [system reminder](#key-configuration-areas) (`memory-consult`) nudges it to consult and keep memory current. Memory is **enabled by default**.
+The **Memory** tool gives the agent durable, **cross-session** memory: facts it learns in one session survive into the next. Each fact is a single Markdown **fact-file** (with YAML frontmatter) stored under a global directory - `~/.infer/memory` by default - and catalogued by a `MEMORY.md` index. That index is injected into context at the **start of every session**, so the agent always knows what it has recorded; it then reads or writes individual facts on demand. A default [system reminder](#system-reminders) (`memory-consult`) nudges it to consult and keep memory current. Memory is **enabled by default**.
 
 > **Not the same as `storage.type: memory`.** This is the agent's knowledge memory - durable facts on disk under `~/.infer/memory`. The `memory` [conversation storage backend](#conversation-management) is unrelated: an in-RAM transcript store that is wiped when the process exits.
 
