@@ -117,6 +117,12 @@ The total and failed tool-call counts are also exposed as the `total-tool-calls-
 | `bash-whitelist-patterns` | No       | `''`       | Comma-separated regex patterns appended to the agent's bash allow-list (e.g. `^npm .*,^yarn .*`).                                                                                                                                                                                                            |
 | `enable-git-operations`   | No       | `true`     | When `false`, the agent runs in comment-only mode - `git`/`gh` are not allow-listed and no PRs are created.                                                                                                                                                                                                  |
 | `mirror-agent-logs`       | No       | `true`     | When `true` (default), the agent's full stdout/stderr transcript (tool inputs, tool outputs, file contents it read, web-fetch payloads, intermediate text) is mirrored to the Actions run log. Set to `false` to suppress that transcript from the run log. See [Agent log mirroring](#agent-log-mirroring). |
+| `memory-repo`             | No       | `''`       | Git remote URL backing the agent's persistent cross-run memory (ssh or https, e.g. `git@github.com:my-org/agent-memory.git`). Enables the CLI's memory git backend: pull on run start, commit + push when a fact changes. Empty = feature off. See [Persistent Agent Memory](#persistent-agent-memory).      |
+| `memory-branch`           | No       | `''`       | Branch of `memory-repo` to sync (`INFER_MEMORY_BACKEND_GIT_BRANCH`). Empty = CLI default (`main`).                                                                                                                                                                                                           |
+| `memory-sync-on-start`    | No       | `''`       | Pull memory at run start: `pull` or `off` (`INFER_MEMORY_BACKEND_GIT_SYNC_ON_START`). Empty = CLI default (`pull`).                                                                                                                                                                                          |
+| `memory-sync-on-finish`   | No       | `''`       | Push memory changes at run finish: `push` or `off` (`INFER_MEMORY_BACKEND_GIT_SYNC_ON_FINISH`). Empty = CLI default (`push`).                                                                                                                                                                                |
+| `memory-deploy-key`       | No       | `''`       | SSH private key (e.g. a deploy key with write access) authenticating an ssh `memory-repo`. Secret, auto-masked. See [Persistent Agent Memory](#persistent-agent-memory).                                                                                                                                     |
+| `memory-token`            | No       | `''`       | Token authenticating an https `memory-repo` (scoped git insteadOf rewrite). Secret, auto-masked. Empty on a same-instance https URL = falls back to `github-token`.                                                                                                                                          |
 | `dry-run`                 | No       | `false`    | Plan-only local-testing mode (e.g. with `act`): forces the bundled mock agent, simulates every GitHub mutation (`[dry-run] would ...`), and prints the resolved system/task/reminder prompts and tool allow-lists. Reads still run. See [Local testing with act](#local-testing-with-act).                   |
 | `mock-agent-scenario`     | No       | `happy`    | Which scenario the bundled mock agent runs under `dry-run`: `happy`, `failures`, `no-todos`, or `empty`.                                                                                                                                                                                                     |
 | `anthropic-api-key`       | No\*     | -          | Required when using an Anthropic model.                                                                                                                                                                                                                                                                      |
@@ -272,6 +278,132 @@ jobs:
           use-claude-code-subscription: true
           claude-code-oauth-token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
 ```
+
+## Persistent Agent Memory
+
+`infer-action` supports the Infer CLI's persistent-memory git backend ([inference-gateway/cli#707](https://github.com/inference-gateway/cli/pull/707), shipped in CLI v0.127.0). When enabled, the agent's memory is pulled from a git remote at run start and committed + pushed when a fact changes, giving the agent cross-run memory in CI.
+
+**Opt-in and inert by default.** When `memory-repo` is empty (the default), no memory environment variables are set and nothing changes for existing workflows. The feature requires Infer CLI >= v0.127.0; the action's default version pin already satisfies this.
+
+### Inputs
+
+| Input                   | Env mapping                                                                                   | Default                    |
+| ----------------------- | --------------------------------------------------------------------------------------------- | -------------------------- |
+| `memory-repo`           | `INFER_MEMORY_ENABLED=true`, `INFER_MEMORY_BACKEND_TYPE=git`, `INFER_MEMORY_BACKEND_GIT_REPO` | `''` (off)                 |
+| `memory-branch`         | `INFER_MEMORY_BACKEND_GIT_BRANCH`                                                             | `''` (CLI default: `main`) |
+| `memory-sync-on-start`  | `INFER_MEMORY_BACKEND_GIT_SYNC_ON_START` (`pull` or `off`)                                    | `''` (CLI default: `pull`) |
+| `memory-sync-on-finish` | `INFER_MEMORY_BACKEND_GIT_SYNC_ON_FINISH` (`push` or `off`)                                   | `''` (CLI default: `push`) |
+| `memory-deploy-key`     | SSH private key for an ssh `memory-repo` (secret, auto-masked)                                | `''`                       |
+| `memory-token`          | Token for an https `memory-repo` (secret, auto-masked)                                        | `''`                       |
+
+The action maps these inputs to `INFER_MEMORY_*` environment variables via `$GITHUB_ENV`, writing only non-empty values so a consumer's own `.infer/memory.yaml` is never clobbered. The `memory-sync-on-start` and `memory-sync-on-finish` values are validated up front (`pull` or `off` only).
+
+### Auth options
+
+The action configures authentication for the memory remote based on the URL scheme of `memory-repo`:
+
+#### 1. SSH repo + deploy key
+
+Use an SSH remote with a dedicated deploy key. The key is written to `~/.ssh/infer-memory-deploy-key` (mode `600`), the host is keyscanned, and it is wired via `core.sshCommand` with `IdentitiesOnly=yes`.
+
+```yaml
+- uses: inference-gateway/infer-action@v0.21.1
+  with:
+    github-token: ${{ secrets.GITHUB_TOKEN }}
+    model: anthropic/claude-opus-4-8
+    anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+    memory-repo: git@github.com:my-org/agent-memory.git
+    memory-deploy-key: ${{ secrets.MEMORY_DEPLOY_KEY }}
+```
+
+Store the deploy key as a repository secret (`MEMORY_DEPLOY_KEY`) and grant it write access to the memory repository.
+
+#### 2. HTTPS repo + token
+
+Use an HTTPS remote with a personal access token or GitHub App installation token. The token is applied as a git `insteadOf` rewrite scoped to the memory repo URL (never persisted in the memory clone's `.git/config`).
+
+```yaml
+- uses: inference-gateway/infer-action@v0.21.1
+  with:
+    github-token: ${{ secrets.GITHUB_TOKEN }}
+    model: anthropic/claude-opus-4-8
+    anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+    memory-repo: https://github.com/my-org/agent-memory
+    memory-token: ${{ secrets.MEMORY_TOKEN }}
+```
+
+Store the token as a repository secret (`MEMORY_TOKEN`). Both `memory-deploy-key` and `memory-token` are auto-masked in logs and redacted from the cooking comment.
+
+#### 3. Workflow repo branch (no extra secret)
+
+When `memory-repo` is an HTTPS URL on the same GitHub instance and neither `memory-token` nor `memory-deploy-key` is set, the action falls back to `github-token`. This enables the lightest setup: a memory branch of the workflow repository itself, with no extra secret required. The `contents: write` permission (already needed for PR creation) covers the memory pushes too.
+
+```yaml
+name: Infer Agent (with memory)
+
+on:
+  issues:
+    types: [opened, edited]
+  issue_comment:
+    types: [created]
+
+permissions:
+  issues: write
+  contents: write
+  pull-requests: write
+
+jobs:
+  infer:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7.0.0
+
+      - uses: inference-gateway/infer-action@v0.21.1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          model: anthropic/claude-opus-4-8
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          memory-repo: https://github.com/${{ github.repository }}
+          memory-branch: agent-memory
+```
+
+The action emits a `::notice::` when falling back to `github-token` so the behaviour is transparent.
+
+### Identity
+
+Memory commits are attributed to the same bot identity as the agent's code commits. The action's Configure Git step exports the resolved bot identity as `GIT_AUTHOR_NAME`, `GIT_AUTHOR_EMAIL`, `GIT_COMMITTER_NAME`, and `GIT_COMMITTER_EMAIL`:
+
+- `<github-app-slug>[bot]` when a GitHub App token is used
+- `github-actions[bot]` otherwise
+
+These environment variables are set on `$GITHUB_ENV` so the CLI's memory git backend picks them up for commits made outside the workspace clone.
+
+### CLI-owned defaults
+
+The following defaults live in the Infer CLI and apply when the corresponding input is left empty:
+
+| Setting            | CLI default           |
+| ------------------ | --------------------- |
+| Branch             | `main`                |
+| Sync on start      | `pull`                |
+| Sync on finish     | `push`                |
+| Per-git-op timeout | `60s`                 |
+| Commit message     | `chore(memory): sync` |
+
+The `memory-branch`, `memory-sync-on-start`, and `memory-sync-on-finish` inputs override these only when set to a non-empty value.
+
+### Behaviour notes
+
+- **Best-effort.** Memory sync never fails the run. If the remote is unreachable, push fails, or a rebase conflict occurs, the agent run continues and the result comment is posted as usual.
+- **Concurrent runs.** When multiple workflow runs push to the same memory remote simultaneously, the CLI reconciles them with a push -> pull-rebase -> retry loop. Conflicting facts from the most recent push win.
+- **Independent of `enable-git-operations`.** Memory sync works regardless of whether the agent is allowed to create branches and PRs. A comment-only workflow (`enable-git-operations: false`) can still persist and retrieve memory.
+- **Requires Infer CLI >= v0.127.0.** The action's default version pin already satisfies this requirement.
+
+### Source references
+
+- Action PR: [inference-gateway/infer-action#142](https://github.com/inference-gateway/infer-action/pull/142) - feat: support the persistent memory git backend
+- CLI PR: [inference-gateway/cli#707](https://github.com/inference-gateway/cli/pull/707) - persistent memory git backend
+- Example workflow: [`examples/with-memory.yml`](https://github.com/inference-gateway/infer-action/blob/main/examples/with-memory.yml) in the action repository
 
 ## Direct prompt (manual runs)
 
