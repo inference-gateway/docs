@@ -271,22 +271,22 @@ infer chat
 
 Below the chat input, a row of **status indicators** shows the current agent state. You can interact with these indicators using the keyboard:
 
-| Key                          | Action                                                                    |
-| ---------------------------- | ------------------------------------------------------------------------- |
-| `Down` arrow                 | Focus the indicator row from the chat input                               |
-| `Left` / `Right` arrow       | Cycle between indicators                                                  |
-| `Enter`                      | Open the matching view for the selected indicator                         |
-| `Esc` / `Up` arrow           | Return focus to the chat input                                            |
+| Key                    | Action                                            |
+| ---------------------- | ------------------------------------------------- |
+| `Down` arrow           | Focus the indicator row from the chat input       |
+| `Left` / `Right` arrow | Cycle between indicators                          |
+| `Enter`                | Open the matching view for the selected indicator |
+| `Esc` / `Up` arrow     | Return focus to the chat input                    |
 
 The selected indicator is highlighted as an **accent-colored pill**.
 
 **Indicator labels:**
 
-| Indicator | Label format              | Description                                                                 |
-| --------- | ------------------------- | --------------------------------------------------------------------------- |
-| Tools     | `Tools: N (mode)`         | `N` is the number of tools available in the current [agent mode](#agent-modes). `mode` is the active mode name (Standard, Plan, or Auto-Accept). Opens the [`/tools` view](#tools-view). |
-| A2A       | `A2A: X/Y`                | `X` is the number of connected A2A agents, `Y` is the total number of configured agents. Opens the [`/a2a` view](#a2a-view). |
-| Theme     | `Theme`                   | Opens the theme selector to change the TUI color scheme.                    |
+| Indicator | Label format      | Description                                                                                                                                                                              |
+| --------- | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tools     | `Tools: N (mode)` | `N` is the number of tools available in the current [agent mode](#agent-modes). `mode` is the active mode name (Standard, Plan, or Auto-Accept). Opens the [`/tools` view](#tools-view). |
+| A2A       | `A2A: X/Y`        | `X` is the number of connected A2A agents, `Y` is the total number of configured agents. Opens the [`/a2a` view](#a2a-view).                                                             |
+| Theme     | `Theme`           | Opens the theme selector to change the TUI color scheme.                                                                                                                                 |
 
 > Shipped in [inference-gateway/cli#732](https://github.com/inference-gateway/cli/pull/732).
 
@@ -1232,7 +1232,7 @@ The CLI provides built-in shortcuts and supports custom user-defined shortcuts.
 | `/git <cmd>`          | Git operations                                                                                     | `/git status`, `/git commit`, `/git push` |
 | `/scm <cmd>`          | GitHub operations                                                                                  | `/scm pr-create`, `/scm issue view 123`   |
 | `/model [name] [msg]` | Switch the active model, or run one message with another model (replaces `/switch`)                | `/model deepseek/deepseek-v4-pro`         |
-| `/a2a`                | View registered A2A agents and their connection state                                             | `/a2a`                                    |
+| `/a2a`                | View registered A2A agents and their connection state                                              | `/a2a`                                    |
 | `/tools`              | View a filterable list of tools available in the current agent mode, including MCP tools           | `/tools`                                  |
 | `/skills <cmd>`       | Manage Agent Skills                                                                                | `/skills list`, `/skills install <url>`   |
 | `/voice [seconds]`    | Record the mic and transcribe to the input field (requires [speech-to-text](/cli-speech-to-text/)) | `/voice`, `/voice 8`                      |
