@@ -50,16 +50,16 @@ Every series carries a `source` label: `gateway` for gateway-observed traffic, o
 
 ### Labels
 
-| Label                     | Applies to                          | Description                                                |
-| ------------------------- | ----------------------------------- | ---------------------------------------------------------- |
-| `gen_ai_provider_name`    | All metrics                         | LLM provider (openai, anthropic, etc.)                     |
-| `gen_ai_request_model`    | All metrics                         | Model name (gpt-4o, claude-sonnet-4, etc.)                 |
-| `gen_ai_operation_name`   | All metrics                         | Operation (e.g. `chat`)                                   |
-| `gen_ai_token_type`       | `gen_ai_client_token_usage`         | `input` or `output`                                       |
-| `gen_ai_tool_type`        | `inference_gateway_tool_calls_total` | Tool type (`mcp`, `a2a`, `function`)                      |
-| `gen_ai_tool_name`        | `inference_gateway_tool_calls_total` | Fully qualified tool identifier                           |
-| `error_type`              | Duration histograms                 | HTTP status string, present only on errors                 |
-| `source`                  | All metrics                         | `gateway` for gateway-observed, client-supplied for pushed |
+| Label                   | Applies to                           | Description                                                |
+| ----------------------- | ------------------------------------ | ---------------------------------------------------------- |
+| `gen_ai_provider_name`  | All metrics                          | LLM provider (openai, anthropic, etc.)                     |
+| `gen_ai_request_model`  | All metrics                          | Model name (gpt-4o, claude-sonnet-4, etc.)                 |
+| `gen_ai_operation_name` | All metrics                          | Operation (e.g. `chat`)                                    |
+| `gen_ai_token_type`     | `gen_ai_client_token_usage`          | `input` or `output`                                        |
+| `gen_ai_tool_type`      | `inference_gateway_tool_calls_total` | Tool type (`mcp`, `a2a`, `function`)                       |
+| `gen_ai_tool_name`      | `inference_gateway_tool_calls_total` | Fully qualified tool identifier                            |
+| `error_type`            | Duration histograms                  | HTTP status string, present only on errors                 |
+| `source`                | All metrics                          | `gateway` for gateway-observed, client-supplied for pushed |
 
 ### Histogram bucket boundaries
 
@@ -202,13 +202,13 @@ Gzip compression is supported via the `Content-Encoding: gzip` header. The maxim
 
 Returns `200 OK` with an OTLP `ExportMetricsServiceResponse`. If any data points were rejected (e.g. unsupported metric names, wrong temporality), the response includes `partial_success` details with the count of rejected data points and an error message.
 
-| Status | Description |
-| ------ | ----------- |
-| `200`  | Success, possibly with partial success details |
-| `400`  | Malformed payload or invalid gzip data |
-| `401`  | Missing or invalid authentication |
-| `403`  | Metrics push is not enabled |
-| `413`  | Payload exceeds 4 MiB limit |
+| Status | Description                                                                       |
+| ------ | --------------------------------------------------------------------------------- |
+| `200`  | Success, possibly with partial success details                                    |
+| `400`  | Malformed payload or invalid gzip data                                            |
+| `401`  | Missing or invalid authentication                                                 |
+| `403`  | Metrics push is not enabled                                                       |
+| `413`  | Payload exceeds 4 MiB limit                                                       |
 | `415`  | Unsupported content type (must be `application/x-protobuf` or `application/json`) |
 
 ### Ingestion rules
@@ -304,13 +304,13 @@ Import it into Grafana via **Dashboards -> New -> Import**, paste the JSON, and 
 
 A minimal hand-rolled panel set you can build in Grafana:
 
-| Panel                    | Query                                                                                                                       |
-| ------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
-| Requests/sec by provider | `sum by (gen_ai_provider_name) (rate(gen_ai_server_request_duration_seconds_count[1m]))`                                    |
+| Panel                    | Query                                                                                                                                                                                             |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Requests/sec by provider | `sum by (gen_ai_provider_name) (rate(gen_ai_server_request_duration_seconds_count[1m]))`                                                                                                          |
 | Error rate by provider   | `sum by (gen_ai_provider_name) (rate(gen_ai_server_request_duration_seconds_count{error_type!=""}[5m])) / sum by (gen_ai_provider_name) (rate(gen_ai_server_request_duration_seconds_count[5m]))` |
-| p50 / p95 / p99 latency  | `histogram_quantile(0.95, sum by (le, gen_ai_provider_name) (rate(gen_ai_server_request_duration_seconds_bucket[5m])))`    |
-| Tokens/min by model      | `sum by (gen_ai_request_model, source) (rate(gen_ai_client_token_usage_sum[1m])) * 60`                                      |
-| Tool-call success rate   | `sum by (gen_ai_tool_name) (rate(gen_ai_execute_tool_duration_seconds_count{error_type=""}[5m])) / sum by (gen_ai_tool_name) (rate(gen_ai_execute_tool_duration_seconds_count[5m]))` |
+| p50 / p95 / p99 latency  | `histogram_quantile(0.95, sum by (le, gen_ai_provider_name) (rate(gen_ai_server_request_duration_seconds_bucket[5m])))`                                                                           |
+| Tokens/min by model      | `sum by (gen_ai_request_model, source) (rate(gen_ai_client_token_usage_sum[1m])) * 60`                                                                                                            |
+| Tool-call success rate   | `sum by (gen_ai_tool_name) (rate(gen_ai_execute_tool_duration_seconds_count{error_type=""}[5m])) / sum by (gen_ai_tool_name) (rate(gen_ai_execute_tool_duration_seconds_count[5m]))`              |
 
 ## Distributed Tracing
 

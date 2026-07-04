@@ -377,12 +377,12 @@ Content-Type: application/json
 
 **Error status codes**:
 
-| Status | Description |
-| ------ | ----------- |
-| `400`  | Malformed payload or invalid gzip data |
-| `401`  | Missing or invalid authentication |
-| `403`  | Metrics push is not enabled |
-| `413`  | Payload exceeds 4 MiB limit |
+| Status | Description                                                                       |
+| ------ | --------------------------------------------------------------------------------- |
+| `400`  | Malformed payload or invalid gzip data                                            |
+| `401`  | Missing or invalid authentication                                                 |
+| `403`  | Metrics push is not enabled                                                       |
+| `413`  | Payload exceeds 4 MiB limit                                                       |
 | `415`  | Unsupported content type (must be `application/x-protobuf` or `application/json`) |
 
 ## Error Responses
