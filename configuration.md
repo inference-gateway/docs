@@ -16,6 +16,7 @@ const generalSettings = [
 
 const telemetrySettings = [
   { variable: 'TELEMETRY_ENABLE', description: 'Enable OpenTelemetry metrics and tracing', defaultValue: 'false' },
+  { variable: 'TELEMETRY_METRICS_PUSH_ENABLE', description: 'Enable the OTLP metrics push endpoint (POST /v1/metrics)', defaultValue: 'false' },
   { variable: 'TELEMETRY_METRICS_PORT', description: 'Port for telemetry metrics server', defaultValue: '9464' },
 ];
 
@@ -155,6 +156,8 @@ These settings control telemetry and metrics exposure:
 <ConfigTable :rows="telemetrySettings" />
 
 When `TELEMETRY_ENABLE` is set to `true`, Inference Gateway exposes a `/metrics` endpoint for Prometheus scraping and generates distributed traces that can be collected by OpenTelemetry collectors.
+
+When `TELEMETRY_METRICS_PUSH_ENABLE` is also set to `true` (alongside `TELEMETRY_ENABLE=true`), the gateway exposes an OTLP/HTTP metrics push endpoint at `POST /v1/metrics`. This allows subscription clients that bypass the gateway's inference path (e.g. the infer CLI driving Claude Code directly) to push their usage metrics. See the [Observability](/observability/#pushing-metrics-otlp) page for details.
 
 ### OpenID Connect
 
@@ -319,6 +322,7 @@ DEBUG_CONTENT_TRUNCATE_WORDS=10
 DEBUG_MAX_MESSAGES=100
 # Telemetry
 TELEMETRY_ENABLE=false
+TELEMETRY_METRICS_PUSH_ENABLE=false
 TELEMETRY_METRICS_PORT=9464
 # Model Context Protocol (MCP)
 MCP_ENABLE=false
