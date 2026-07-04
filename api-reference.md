@@ -298,6 +298,93 @@ GET /health
 Status: 200 OK
 ```
 
+### Push Metrics (OTLP)
+
+Push usage metrics to the gateway via the OTLP/HTTP protocol. This endpoint is intended for subscription clients that bypass the gateway's inference path (e.g. the infer CLI driving Claude Code directly).
+
+```http
+POST /v1/metrics
+```
+
+**Opt-in**: This endpoint requires both `TELEMETRY_ENABLE=true` and `TELEMETRY_METRICS_PUSH_ENABLE=true`. Returns `403 Forbidden` when disabled.
+
+**Authentication**: When OIDC auth is enabled (`AUTH_ENABLE=true`), this endpoint requires a valid bearer token.
+
+**Request Body** (`ExportMetricsServiceRequest`):
+
+The request body is an OTLP `ExportMetricsServiceRequest` encoded as either:
+
+- `application/x-protobuf` — binary protobuf encoding
+- `application/json` — JSON encoding via protojson
+
+Gzip compression is supported via the `Content-Encoding: gzip` header. The maximum decoded payload size is 4 MiB.
+
+```bash
+curl -X POST http://localhost:8080/v1/metrics \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "resourceMetrics": [{
+      "resource": {
+        "attributes": [{ "key": "service.name", "value": { "stringValue": "infer-cli" } }]
+      },
+      "scopeMetrics": [{
+        "metrics": [{
+          "name": "gen_ai.client.token.usage",
+          "sum": {
+            "aggregationTemporality": 1,
+            "dataPoints": [{
+              "asInt": "1234",
+              "attributes": [
+                { "key": "gen_ai.provider.name", "value": { "stringValue": "anthropic" } },
+                { "key": "gen_ai.token.type", "value": { "stringValue": "input" } },
+                { "key": "source", "value": { "stringValue": "claude-code-subscription" } }
+              ]
+            }]
+          }
+        }]
+      }]
+    }]
+  }'
+```
+
+**Response** (`ExportMetricsServiceResponse`):
+
+```http
+Status: 200 OK
+Content-Type: application/json
+
+{
+  "partialSuccess": {
+    "rejectedDataPoints": "0",
+    "errorMessage": ""
+  }
+}
+```
+
+If any data points were rejected (e.g. unsupported metric names, wrong temporality), the response includes `partial_success` details:
+
+```http
+Status: 200 OK
+Content-Type: application/json
+
+{
+  "partialSuccess": {
+    "rejectedDataPoints": "2",
+    "errorMessage": "unsupported metric \"bogus\"; metric \"gen_ai.client.token.usage\": only delta temporality is supported"
+  }
+}
+```
+
+**Error status codes**:
+
+| Status | Description                                                                       |
+| ------ | --------------------------------------------------------------------------------- |
+| `400`  | Malformed payload or invalid gzip data                                            |
+| `401`  | Missing or invalid authentication                                                 |
+| `403`  | Metrics push is not enabled                                                       |
+| `413`  | Payload exceeds 4 MiB limit                                                       |
+| `415`  | Unsupported content type (must be `application/x-protobuf` or `application/json`) |
+
 ## Error Responses
 
 When an error occurs, the API returns an appropriate HTTP status code with an error message:
