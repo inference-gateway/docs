@@ -7,7 +7,7 @@ description: Run the Inference Gateway agent from GitHub Actions with infer-acti
 
 [`inference-gateway/infer-action`](https://github.com/inference-gateway/infer-action) is the official GitHub Action wrapper for the [`infer` CLI](/cli/). It lets you run the Inference Gateway agent from a GitHub Actions workflow so that mentioning a trigger phrase in an issue or comment kicks off an automated, AI-driven response: plan posting, code edits, branch creation, and a pull request - all without leaving GitHub.
 
-> **Current Version:** v0.15.0. Pin to a tagged release (`@v0.15.0`) rather than `@main` in production workflows.
+> **Current Version:** v0.23.1. Pin to a tagged release (`@v0.23.1`) rather than `@main` in production workflows.
 
 ## When to use it
 
@@ -44,7 +44,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.0
 
-      - uses: inference-gateway/infer-action@v0.15.0
+      - uses: inference-gateway/infer-action@v0.23.1
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           model: anthropic/claude-opus-4-8
@@ -75,7 +75,7 @@ The action composes a default set of [CLI system reminders](/cli/#system-reminde
 To override the composed default and supply your own full set of reminders, use the [`reminders-config`](#inputs) input. When set, it **replaces** the action's default entirely (it is not merged), so any built-in behaviour you want must be re-declared.
 
 ```yaml
-- uses: inference-gateway/infer-action@v0.22.0
+- uses: inference-gateway/infer-action@v0.23.1
   with:
     reminders-config: |
       enabled: true
@@ -333,7 +333,7 @@ The action configures authentication for the memory remote based on the URL sche
 Use an SSH remote with a dedicated deploy key. The key is written to `~/.ssh/infer-memory-deploy-key` (mode `600`), the host is keyscanned, and it is wired via `core.sshCommand` with `IdentitiesOnly=yes`.
 
 ```yaml
-- uses: inference-gateway/infer-action@v0.21.1
+- uses: inference-gateway/infer-action@v0.23.1
   with:
     github-token: ${{ secrets.GITHUB_TOKEN }}
     model: anthropic/claude-opus-4-8
@@ -349,7 +349,7 @@ Store the deploy key as a repository secret (`MEMORY_DEPLOY_KEY`) and grant it w
 Use an HTTPS remote with a personal access token or GitHub App installation token. The token is applied as a git `insteadOf` rewrite scoped to the memory repo URL (never persisted in the memory clone's `.git/config`).
 
 ```yaml
-- uses: inference-gateway/infer-action@v0.21.1
+- uses: inference-gateway/infer-action@v0.23.1
   with:
     github-token: ${{ secrets.GITHUB_TOKEN }}
     model: anthropic/claude-opus-4-8
@@ -384,7 +384,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.0
 
-      - uses: inference-gateway/infer-action@v0.21.1
+      - uses: inference-gateway/infer-action@v0.23.1
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           model: anthropic/claude-opus-4-8
@@ -456,7 +456,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.0
 
-      - uses: inference-gateway/infer-action@v0.15.0
+      - uses: inference-gateway/infer-action@v0.23.1
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           model: anthropic/claude-opus-4-8
@@ -526,7 +526,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: inference-gateway/infer-action@v0.15.0
+      - uses: inference-gateway/infer-action@v0.23.1
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           model: anthropic/claude-opus-4-8
@@ -563,7 +563,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.0
 
-      - uses: inference-gateway/infer-action@v0.15.0
+      - uses: inference-gateway/infer-action@v0.23.1
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           model: deepseek/deepseek-v4-flash
@@ -602,7 +602,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: inference-gateway/infer-action@v0.15.0
+      - uses: inference-gateway/infer-action@v0.23.1
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           model: anthropic/claude-opus-4-8
@@ -621,7 +621,7 @@ The default bash allow-list is intentionally narrow (read-only commands plus rea
 The action exposes inputs that append to the agent's allow-list:
 
 ```yaml
-- uses: inference-gateway/infer-action@v0.15.0
+- uses: inference-gateway/infer-action@v0.23.1
   with:
     github-token: ${{ secrets.GITHUB_TOKEN }}
     model: anthropic/claude-opus-4-8
@@ -635,7 +635,7 @@ The added entries are **appended** to the defaults - they do not replace them.
 You can also append at the CLI layer with the `INFER_TOOLS_BASH_ALLOW_APPEND` environment variable (comma- or newline-separated), which merges onto the every-mode `mode.all` baseline. Handy for adding a couple of commands - for example letting a release agent commit and push without shipping the unrestricted `.*` sentinel:
 
 ```yaml
-- uses: inference-gateway/infer-action@v0.15.0
+- uses: inference-gateway/infer-action@v0.23.1
   env:
     INFER_TOOLS_BASH_ALLOW_APPEND: 'git commit,git push'
   with:
@@ -649,7 +649,7 @@ You can also append at the CLI layer with the `INFER_TOOLS_BASH_ALLOW_APPEND` en
 A headless `infer agent` is [secure-by-default](/cli/#headless-secure-by-default): in CI there is no interactive approver, so any off-list or mutating action is **blocked** rather than auto-run. To let an unattended agent edit files and run a curated command set without prompting, combine a `block` approval behaviour with a relaxed write gate and a curated allow-list - set entirely through environment variables on the step:
 
 ```yaml
-- uses: inference-gateway/infer-action@v0.15.0
+- uses: inference-gateway/infer-action@v0.23.1
   env:
     INFER_TOOLS_SAFETY_APPROVAL_BEHAVIOUR: block # reject anything that would otherwise prompt
     INFER_TOOLS_WRITE_REQUIRE_APPROVAL: 'false' # ...but let the agent write/edit files
@@ -680,7 +680,7 @@ GitHub Actions run logs are persisted with the workflow run, downloadable as raw
 ### Example
 
 ```yaml
-- uses: inference-gateway/infer-action@v0.15.0
+- uses: inference-gateway/infer-action@v0.23.1
   with:
     model: anthropic/claude-opus-4-8
     github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -722,7 +722,7 @@ The standard resource attributes attached to every export are `service.name`, `s
 ### Example
 
 ```yaml
-- uses: inference-gateway/infer-action@v0.15.0
+- uses: inference-gateway/infer-action@v0.23.1
   with:
     github-token: ${{ secrets.GITHUB_TOKEN }}
     model: anthropic/claude-opus-4-8
