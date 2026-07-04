@@ -1494,7 +1494,7 @@ jobs:
           token: ${{ steps.generate-token.outputs.token }}
 
       - name: Run Infer Agent
-        uses: inference-gateway/infer-action@v0.4.0
+        uses: inference-gateway/infer-action@v0.23.6
         with:
           github-token: ${{ steps.generate-token.outputs.token }}
           trigger-phrase: '@infer'
