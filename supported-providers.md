@@ -45,11 +45,11 @@ ENABLE_VISION=true
 
 - **OpenAI**: GPT-5 series, GPT-4.1, GPT-4o
 - **Anthropic**: Claude Opus 4.8, Claude Sonnet 4.6, Claude Haiku 4.5
-- **Google**: Gemini 3 Flash, Gemini 3 Pro
 - **Cohere**: Command A Vision
+- **Groq**: vision models
 - **Ollama**: LLaVA, Llama 4, Llama 3.2 Vision
-- **Ollama Cloud**: Cloud-hosted vision models
-- **Groq**: Vision models
+- **Ollama Cloud**: cloud-hosted vision models
+- **Google**: Gemini 3 Flash, Gemini 3 Pro
 - **Mistral**: Pixtral Large, Ministral 3, Mistral Large 3
 - **MiniMax**: MiniMax-M3
 - **Moonshot**: moonshot-v1-\*-vision-preview, kimi-latest, kimi-thinking-preview
@@ -95,7 +95,7 @@ Each provider requires specific configuration through environment variables:
 
 <!-- GENERATED:provider-uppercase START (do not edit - run: task generate) -->
 
-Replace "PROVIDER" with the provider name (uppercase): OPENAI, ANTHROPIC, COHERE, GROQ, CLOUDFLARE, OLLAMA, OLLAMA_CLOUD, GOOGLE, DEEPSEEK, MISTRAL, MINIMAX, MOONSHOT, NVIDIA.
+Replace "PROVIDER" with the provider name (uppercase): OPENAI, DEEPSEEK, ANTHROPIC, COHERE, GROQ, CLOUDFLARE, OLLAMA, OLLAMA_CLOUD, GOOGLE, MISTRAL, MINIMAX, MOONSHOT, NVIDIA.
 
 <!-- GENERATED:provider-uppercase END (do not edit - run: task generate) -->
 
