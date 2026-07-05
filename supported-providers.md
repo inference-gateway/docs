@@ -23,7 +23,7 @@ Inference Gateway provides a unified interface to interact with multiple LLM pro
 | Mistral      | Bearer Token     | `https://api.mistral.ai/v1`                                     | Yes - Pixtral Large, Ministral 3, Mistral Large 3                       |
 | MiniMax      | Bearer Token     | `https://api.minimax.io/v1`                                     | Yes - MiniMax-M3                                                        |
 | Moonshot     | Bearer Token     | `https://api.moonshot.ai/v1`                                    | Yes - moonshot-v1-\*-vision-preview, kimi-latest, kimi-thinking-preview |
-| NVIDIA       | Bearer Token     | `https://integrate.api.nvidia.com/v1`                           | Yes - Nemotron, Llama, DeepSeek, Mistral, Qwen                        |
+| NVIDIA       | Bearer Token     | `https://integrate.api.nvidia.com/v1`                           | Yes - Nemotron, Llama, DeepSeek, Mistral, Qwen                          |
 
 ## Vision/Multimodal Support
 
