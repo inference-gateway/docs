@@ -12,6 +12,44 @@ tasks:
       - task --list
     silent: true
 
+  # The tasks below simply delegate to the matching bun script in package.json,
+  # so `task <name>` and `bun run <name>` are interchangeable.
+
+  dev:
+    desc: Start the VitePress dev server on http://localhost:5173
+    cmds:
+      - bun run dev
+
+  build:
+    desc: Build the static site into .vitepress/dist/
+    cmds:
+      - bun run build
+
+  preview:
+    desc: Serve the built site from .vitepress/dist/ locally
+    cmds:
+      - bun run preview
+
+  format:
+    desc: Format the repository with Prettier
+    cmds:
+      - bun run format
+
+  format:check:
+    desc: Check formatting with Prettier without writing changes
+    cmds:
+      - bun run format:check
+
+  lint:md:
+    desc: Lint Markdown with markdownlint
+    cmds:
+      - bun run lint:md
+
+  lint:md:fix:
+    desc: Autofix Markdown lint issues with markdownlint
+    cmds:
+      - bun run lint:md:fix
+
   generate:
     desc: Regenerate provider-derived docs from the canonical openapi.yaml
     env:
@@ -40,4 +78,4 @@ tasks:
   test:
     desc: Run the provider-docs generator regression tests against the fixture
     cmds:
-      - bun test
+      - bun run test

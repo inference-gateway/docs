@@ -21,6 +21,19 @@ bun run lint:md          # markdownlint over **/*.md
 bun run lint:md:fix      # autofix markdownlint
 bun run format           # prettier --write .
 bun run format:check     # prettier --check .
+
+bun test                 # provider-docs generator regression tests (scripts/*.test.mjs)
+```
+
+A [go-task](https://taskfile.dev) `Taskfile.yml` wraps the same workflow. Every bun
+script above has a matching task that just delegates to it (`task dev`, `task build`,
+`task preview`, `task format`, `task format:check`, `task lint:md`, `task lint:md:fix`,
+`task test`), so `task <name>` and `bun run <name>` are interchangeable. `task` with no
+args lists everything. The generator adds two tasks that have no bun-script equivalent:
+
+```bash
+task generate            # regenerate provider docs from the canonical openapi.yaml
+task generate:check      # fail if the committed provider docs have drifted from the schema
 ```
 
 CI (`.github/workflows/ci.yml`) runs `lint:md`, `format:check`, and `build` on every PR.
@@ -63,6 +76,17 @@ Homepage is special: `index.md` uses VitePress's hero `layout: home` with frontm
 ### `configuration.md` uses `<script setup>`
 
 Because Vue's `:rows="..."` attribute parsing breaks on inline string literals containing `""`, table data lives in a top-of-file `<script setup>` block and the ConfigTable receives it by reference (`:rows="generalSettings"`). When adding a new section, follow the same pattern - declare a const, then reference it.
+
+### Provider docs are generated from the canonical OpenAPI schema
+
+The provider-specific parts of `configuration.md` and `supported-providers.md` are **generated, not hand-authored**. They live between `GENERATED:<key> START` / `END` marker comments and are produced by `scripts/generate-provider-docs.mjs` from the canonical `inference-gateway/schemas` `openapi.yaml` (the `Provider` enum + the `x-provider-configs` extension), merged with the human-authored display data in `scripts/provider-overrides.json` (casing, descriptor labels, vision-model prose). Prose outside the markers is never touched.
+
+- The five generated regions are `provider-settings` and `provider-config-sections` (in `configuration.md`) and `providers-table`, `vision-list`, and `provider-uppercase` (in `supported-providers.md`). **Do not edit inside the markers by hand** - your edit is overwritten on the next `task generate`.
+- To change hard facts (provider list, default API URL, auth type, vision flag), edit the schema upstream. To change display-only data (casing, labels, vision-model prose), edit `scripts/provider-overrides.json`. Then run `task generate`.
+- `task generate` fetches the schema (`SCHEMA_REPO`/`SCHEMA_REF`, default `inference-gateway/schemas@main`), rewrites the marked regions, and runs `prettier --write` on the two files. Pin `SCHEMA_REF` to a tag or SHA for reproducible builds.
+- `task generate:check` regenerates and fails on any drift - wire it into CI to keep the docs in lockstep with the schema.
+- `task test` (a.k.a. `bun test`, `scripts/generate-provider-docs.test.mjs`) renders every region from the offline fixture `scripts/__fixtures__/openapi.sample.yaml` and asserts a byte-for-byte match against the committed docs. No network, no prettier pass - safe to run anywhere. Run it after touching the script or the overrides.
+- The script has zero runtime dependencies (runs under bun or node >= 18) and hand-rolls a minimal block-YAML reader, so it only parses the subset of YAML the schema uses.
 
 ### Inline GitHub Actions / Vue interpolation conflicts
 

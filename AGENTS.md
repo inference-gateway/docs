@@ -14,6 +14,12 @@ This repository is the VitePress documentation site for Inference Gateway. Sourc
 - `bun run format:check` verifies formatting without changing files.
 - `bun run lint:md` checks Markdown style.
 - `bun run lint:md:fix` applies safe Markdown lint fixes.
+- `bun test` runs the provider-docs generator regression tests (`scripts/*.test.mjs`).
+
+A [go-task](https://taskfile.dev) `Taskfile.yml` mirrors these: every bun script has a matching task that delegates to it (`task dev`, `task build`, `task test`, and so on), so `task <name>` equals `bun run <name>`. `task` with no args lists all targets. Two tasks are generator-only:
+
+- `task generate` regenerates the provider-derived doc sections from the canonical `inference-gateway/schemas` OpenAPI schema.
+- `task generate:check` fails if the committed provider docs have drifted from the schema.
 
 Use Bun `>= 1.2`, as pinned in `.bun-version` and `package.json` `engines.bun`.
 
@@ -25,7 +31,9 @@ When adding a page, include `title` and `description` frontmatter, then add it t
 
 ## Testing Guidelines
 
-There is no separate unit test suite. Treat `bun run lint:md`, `bun run format:check`, and `bun run build` as the required validation set. For navigation, SEO, or theme changes, also run `bun run preview` and inspect the affected pages locally.
+Treat `bun run lint:md`, `bun run format:check`, and `bun run build` as the required validation set for content changes. For navigation, SEO, or theme changes, also run `bun run preview` and inspect the affected pages locally.
+
+The `scripts/` provider-docs generator has a fixture-based regression suite: `bun test` (or `task test`) renders every generated region from `scripts/__fixtures__/openapi.sample.yaml` and asserts a byte-for-byte match against the committed `configuration.md` / `supported-providers.md`. It runs offline. Run it after editing `scripts/generate-provider-docs.mjs` or `scripts/provider-overrides.json`, and never hand-edit inside the `GENERATED:*` markers - run `task generate` instead.
 
 ## Commit & Pull Request Guidelines
 
