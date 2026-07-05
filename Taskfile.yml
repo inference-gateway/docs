@@ -1,16 +1,6 @@
 version: '3'
 
-# Provider-derived docs are generated from the canonical openapi.yaml in
-# inference-gateway/schemas. See scripts/README.md for the full flow.
-#
-# Onboarding a new provider becomes: add it to the schema, add an entry to
-# scripts/provider-overrides.json, then `task generate` - instead of hand-editing
-# the provider table, the *_API_URL / *_API_KEY rows, and the vision lists across
-# pages and keeping them in sync by hand.
-
 vars:
-  # Pin SCHEMA_REF to a tag or commit SHA for reproducible builds; `main` tracks
-  # the latest schema and lets `task generate:check` flag drift as it lands.
   SCHEMA_REPO: '{{.SCHEMA_REPO | default "inference-gateway/schemas"}}'
   SCHEMA_REF: '{{.SCHEMA_REF | default "main"}}'
   GENERATED_FILES: supported-providers.md configuration.md
@@ -29,7 +19,6 @@ tasks:
       SCHEMA_REF: '{{.SCHEMA_REF}}'
     cmds:
       - bun scripts/generate-provider-docs.mjs
-      # Keep the generated output prettier-clean so CI format:check stays green.
       - bunx prettier --write {{.GENERATED_FILES}}
 
   generate:check:

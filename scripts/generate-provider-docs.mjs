@@ -86,7 +86,6 @@ function indentOf(line) {
 }
 
 function stripInlineComment(value) {
-  // Only strip a " #..." comment when it is clearly not part of the value.
   if (value.startsWith('"') || value.startsWith("'")) return value;
   const i = value.indexOf(' #');
   return i === -1 ? value : value.slice(0, i).trimEnd();
@@ -130,7 +129,6 @@ function parseMap(tokens, start, indent) {
     const key = content.slice(0, colon).trim();
     const rest = stripInlineComment(content.slice(colon + 1).trim());
     if (/^[|>][+-]?\d*$/.test(rest)) {
-      // Block scalar - skip its deeper-indented body (we never read these).
       let j = i + 1;
       while (j < tokens.length && tokens[j].indent > indent) j++;
       obj[key] = '';
@@ -200,8 +198,6 @@ function findKeyIndex(lines, key, withinIndentGreaterThan = -1) {
 function extractProviderModel(schemaText) {
   const lines = schemaText.split('\n');
 
-  // Find the Provider schema whose subtree actually carries x-provider-configs,
-  // so an unrelated `Provider:` elsewhere can't be picked by mistake.
   let providerIndex = -1;
   const providerRe = /^( +)Provider:\s*$/;
   for (let i = 0; i < lines.length; i += 1) {
