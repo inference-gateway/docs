@@ -31,14 +31,6 @@ MCP tools are managed server-side. The SDKs expose `list_tools` for discovery an
 
 Reasoning content is emitted by reasoning-capable models rather than toggled by a dedicated flag: every SDK surfaces `reasoning` and `reasoning_content` on the streaming delta, and the TypeScript SDK adds an `onReasoning` callback. The shared `reasoning_format` request field (`raw` or `parsed`) controls whether think-tags stay inline or are split into `reasoning_content`.
 
-## Supported providers
-
-All four SDKs target the same gateway, so they share a single provider set. Route to a provider either by prefixing the model with its id - for example `nvidia/meta/llama-3.1-8b-instruct` - or, on `list_models`/`proxy`, by passing the id through your SDK's `Provider` enum (the Python SDK also accepts a plain string). The gateway routes to:
-
-`openai`, `anthropic`, `cohere`, `groq`, `cloudflare`, `ollama`, `ollama_cloud`, `google`, `deepseek`, `mistral`, `minimax`, `moonshot`, and `nvidia`.
-
-The newest addition, `nvidia`, reaches the Nvidia Nim catalog at `https://integrate.api.nvidia.com/v1` (Nemotron, Llama, DeepSeek, Mistral, and Qwen) with bearer-token auth. See [Supported Providers](/supported-providers/) for auth modes, default URLs, and vision-capable models, and [Configuration](/configuration/) for the matching `*_API_KEY` and `*_API_URL` variables.
-
 ## Python
 
 The Python SDK targets Python 3.12+, uses Pydantic models for validation, and ships with both a `requests` and an `httpx` backend.
@@ -406,7 +398,6 @@ for model in models.data:
 
 # Narrow the listing to a single provider.
 openai_models = client.list_models(provider='openai')
-nvidia_models = client.list_models(provider='nvidia')
 
 # MCP tools (requires MCP exposed on the gateway).
 tools = client.list_tools()
@@ -473,7 +464,7 @@ with InferenceGatewayClient(
 
 The TypeScript SDK targets Node 18+ and runs in any environment with `fetch` and Web Streams (Node, Deno, Bun, modern browsers, edge runtimes).
 
-- Package: [`@inference-gateway/sdk`](https://www.npmjs.com/package/@inference-gateway/sdk) (latest: `0.8.5`)
+- Package: [`@inference-gateway/sdk`](https://www.npmjs.com/package/@inference-gateway/sdk) (latest: `0.11.0`)
 - Repository: [inference-gateway/typescript-sdk](https://github.com/inference-gateway/typescript-sdk)
 - Examples: [typescript-sdk/examples](https://github.com/inference-gateway/typescript-sdk/tree/main/examples)
 
@@ -834,6 +825,7 @@ for (const model of models.data) {
 
 // Narrow the listing to a single provider.
 const openaiModels = await client.listModels(Provider.openai);
+const nvidiaModels = await client.listModels(Provider.nvidia);
 
 // MCP tools (requires MCP exposed on the gateway).
 const tools = await client.listTools();
@@ -901,7 +893,7 @@ const traced = client.withOptions({
 
 The Go SDK ships an idiomatic context-aware client with built-in exponential-backoff retries and header chaining.
 
-- Module: [`github.com/inference-gateway/sdk`](https://pkg.go.dev/github.com/inference-gateway/sdk) (latest: `v1.16.4`)
+- Module: [`github.com/inference-gateway/sdk`](https://pkg.go.dev/github.com/inference-gateway/sdk) (latest: `v1.19.0`)
 - Repository: [inference-gateway/sdk](https://github.com/inference-gateway/sdk)
 - Examples: [sdk/examples](https://github.com/inference-gateway/sdk/tree/main/examples)
 
@@ -1220,6 +1212,13 @@ if err != nil {
     log.Fatalf("list provider models: %v", err)
 }
 fmt.Printf("provider: %s\n", *groqModels.Provider)
+
+// Or scope to NVIDIA's GPU-served catalog.
+nvidiaModels, err := client.ListProviderModels(ctx, sdk.Nvidia)
+if err != nil {
+    log.Fatalf("list provider models: %v", err)
+}
+fmt.Printf("provider: %s\n", *nvidiaModels.Provider)
 
 // MCP tools (requires MCP exposed on the gateway).
 tools, err := client.ListTools(ctx)
