@@ -76,7 +76,7 @@ Get a list of available models for a specific provider.
 GET /v1/models?provider={provider}
 ```
 
-where `{provider}` is one of: `openai`, `anthropic`, `cohere`, `groq`, `cloudflare`, `ollama`, `deepseek`, `mistral`, `moonshot`.
+where `{provider}` is one of: `openai`, `anthropic`, `cohere`, `groq`, `cloudflare`, `ollama`, `deepseek`, `mistral`, `moonshot`, `nvidia`.
 
 **Response** (`ListModelsResponse`):
 
@@ -613,6 +613,7 @@ curl -X POST http://localhost:8080/v1/chat/completions \
 - Groq (vision models)
 - Mistral (Pixtral Large, Ministral 3, Mistral Large 3)
 - Moonshot (Kimi K2, Kimi K2 Thinking)
+- NVIDIA (Nemotron, Llama, DeepSeek, Mistral, Qwen)
 
 **Note:** When `ENABLE_VISION=false` (default), requests containing image content will be rejected even if the model supports vision. This is disabled by default for performance and security reasons.
 
@@ -670,7 +671,7 @@ The body sent to `POST /v1/chat/completions`. Only `model` and `messages` are re
 
 | Field                   | Type                             | Required | Description                                                                                            |
 | ----------------------- | -------------------------------- | -------- | ------------------------------------------------------------------------------------------------------ |
-| `model`                 | `string`                         | Yes      | Model identifier (e.g., `"deepseek/deepseek-v4-flash"`)                                                |
+| `model`                 | `string`                         | Yes      | Model identifier (e.g., `"deepseek/deepseek-v4-flash"`). Use the `nvidia/` prefix to route to NVIDIA NIM models (e.g. `"nvidia/meta/llama-3.1-8b-instruct"`). Alternatively, use `?provider=nvidia` in the query string.                                                |
 | `messages`              | `Message[]`                      | Yes      | Conversation history                                                                                   |
 | `max_completion_tokens` | `integer`                        |          | Upper bound for generated tokens, including visible output and reasoning tokens                        |
 | `max_tokens`            | `integer`                        |          | **Deprecated** - use `max_completion_tokens`. Maximum tokens to generate; not compatible with o-series |

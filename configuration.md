@@ -99,6 +99,11 @@ const moonshotSettings = [
   { variable: 'MOONSHOT_API_KEY', description: 'Moonshot AI API Key', defaultValue: '""' },
 ];
 
+const nvidiaSettings = [
+  { variable: 'NVIDIA_API_URL', description: 'NVIDIA NIM API URL', defaultValue: 'https://integrate.api.nvidia.com/v1' },
+  { variable: 'NVIDIA_API_KEY', description: 'NVIDIA API Key', defaultValue: '""' },
+];
+
 const mcpSettings = [
   { variable: 'MCP_ENABLE', description: 'Enable MCP middleware', defaultValue: 'false' },
   { variable: 'MCP_EXPOSE', description: 'Expose MCP endpoints for debugging', defaultValue: 'false' },
@@ -240,6 +245,10 @@ Configure access to various LLM providers. At minimum, you should configure the 
 #### Moonshot
 
 <ConfigTable :rows="moonshotSettings" />
+
+#### NVIDIA
+
+<ConfigTable :rows="nvidiaSettings" />
 
 ### Model Context Protocol (MCP) Settings
 
@@ -390,6 +399,8 @@ MISTRAL_API_URL=https://api.mistral.ai/v1
 MISTRAL_API_KEY=
 MOONSHOT_API_URL=https://api.moonshot.ai/v1
 MOONSHOT_API_KEY=
+NVIDIA_API_URL=https://integrate.api.nvidia.com/v1
+NVIDIA_API_KEY=
 ```
 
 ## Configuration Best Practices
