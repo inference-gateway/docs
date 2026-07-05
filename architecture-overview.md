@@ -48,7 +48,7 @@ flowchart LR
     class Providers provider
 ```
 
-The gateway tier is stateless - replicas scale horizontally behind any load balancer. Per-request state (tool-call iteration, MCP context, A2A delegation) lives in the request lifecycle, not the pod. See [Supported Providers](/supported-providers/) for the full provider matrix: OpenAI, DeepSeek, Anthropic, Cohere, Groq, Cloudflare, Ollama, Ollama Cloud, Google, Mistral, MiniMax, Moonshot, and NVIDIA.
+The gateway tier is stateless - replicas scale horizontally behind any load balancer. Per-request state (tool-call iteration, MCP context, A2A delegation) lives in the request lifecycle, not the pod. See [Supported Providers](/supported-providers/) for the full provider matrix: OpenAI, DeepSeek, Anthropic, Cohere, Groq, Cloudflare, Ollama, Ollama Cloud, Google, Mistral, MiniMax, Moonshot, and Nvidia.
 
 ## Kubernetes Setup
 

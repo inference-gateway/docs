@@ -1,6 +1,6 @@
 ---
 title: Supported Providers
-description: Provider matrix for Inference Gateway covering OpenAI, Anthropic, Cohere, Groq, Cloudflare, Ollama, Ollama Cloud, Google, DeepSeek, Mistral, MiniMax, Moonshot and NVIDIA, with auth modes, default URLs, vision support, and per-provider request examples.
+description: Provider matrix for Inference Gateway covering OpenAI, Anthropic, Cohere, Groq, Cloudflare, Ollama, Ollama Cloud, Google, DeepSeek, Mistral, MiniMax, Moonshot and Nvidia, with auth modes, default URLs, vision support, and per-provider request examples.
 ---
 
 # Supported Providers
