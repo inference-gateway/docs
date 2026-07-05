@@ -22,7 +22,7 @@ The ADL CLI is a command-line tool for generating enterprise-ready [A2A (Agent-t
 - **Sandbox Environments** - Flox and DevContainer support for isolated development
 - **Smart Ignore Files** - Protect custom implementations with `.adl-ignore`
 - **Post-Generation Hooks** - Run custom commands after code generation
-- **Multi-Provider AI** - OpenAI, Anthropic, DeepSeek, Ollama, Ollama Cloud, Google AI, Mistral, Groq, Cohere, Cloudflare, MiniMax, and Moonshot
+- **Multi-Provider AI** - OpenAI, Anthropic, DeepSeek, Ollama, Ollama Cloud, Google AI, Mistral, Groq, Cohere, Cloudflare, MiniMax, Moonshot, and Nvidia
 - **Artifacts Support** - Filesystem and MinIO object storage for artifact management
 
 ## Installation
@@ -225,14 +225,14 @@ adl init my-agent \
 
 **Agent Configuration:**
 
-| Flag              | Description                                                                                                                               |
-| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `--type`          | Agent type: `ai-powered` or `minimal`                                                                                                     |
-| `--provider`      | AI provider: `openai`, `anthropic`, `deepseek`, `ollama`, `google`, `mistral`, `groq`, `cohere`, `cloudflare`, `moonshot`, `ollama_cloud` |
-| `--model`         | AI model name                                                                                                                             |
-| `--system-prompt` | System prompt for the agent                                                                                                               |
-| `--max-tokens`    | Maximum tokens (integer)                                                                                                                  |
-| `--temperature`   | Temperature (0.0-2.0)                                                                                                                     |
+| Flag              | Description                                                                                                                                         |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--type`          | Agent type: `ai-powered` or `minimal`                                                                                                               |
+| `--provider`      | AI provider: `openai`, `anthropic`, `deepseek`, `ollama`, `google`, `mistral`, `groq`, `cohere`, `cloudflare`, `moonshot`, `ollama_cloud`, `nvidia` |
+| `--model`         | AI model name                                                                                                                                       |
+| `--system-prompt` | System prompt for the agent                                                                                                                         |
+| `--max-tokens`    | Maximum tokens (integer)                                                                                                                            |
+| `--temperature`   | Temperature (0.0-2.0)                                                                                                                               |
 
 **Capabilities:**
 
@@ -595,13 +595,15 @@ Optional A2A agent card configuration that controls how your agent is discovered
 
 AI provider and model settings.
 
-| Field          | Type    | Description                                                                                                                               |
-| -------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `provider`     | string  | AI provider: `openai`, `anthropic`, `deepseek`, `ollama`, `google`, `mistral`, `groq`, `cohere`, `cloudflare`, `moonshot`, `ollama_cloud` |
-| `model`        | string  | Model name (e.g., `deepseek-v4-flash`, `claude-opus-4-8`, `deepseek-v4-pro`)                                                              |
-| `systemPrompt` | string  | System prompt for the AI model                                                                                                            |
-| `maxTokens`    | integer | Maximum tokens for responses                                                                                                              |
-| `temperature`  | float   | Sampling temperature (0.0-2.0)                                                                                                            |
+| Field          | Type    | Description                                                                                                                                         |
+| -------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `provider`     | string  | AI provider: `openai`, `anthropic`, `deepseek`, `ollama`, `google`, `mistral`, `groq`, `cohere`, `cloudflare`, `moonshot`, `ollama_cloud`, `nvidia` |
+| `model`        | string  | Model name (e.g., `deepseek-v4-flash`, `claude-opus-4-8`, `deepseek-v4-pro`)                                                                        |
+| `systemPrompt` | string  | System prompt for the AI model                                                                                                                      |
+| `maxTokens`    | integer | Maximum tokens for responses                                                                                                                        |
+| `temperature`  | float   | Sampling temperature (0.0-2.0)                                                                                                                      |
+
+> **Nvidia validation caveat.** `adl init --provider nvidia` is accepted and the interactive `adl init` wizard lists Nvidia, so you can scaffold a manifest with `provider: nvidia` today. However, `adl validate` does not yet accept `nvidia` - the vendored ADL schema re-vendor for Nvidia is pending an upstream [inference-gateway/adl](https://github.com/inference-gateway/adl) release. Until that ships, validating a manifest with `provider: nvidia` fails against the current `schema/v1`, even though `adl init` and the [gateway](/supported-providers/) already support it.
 
 ### Tools
 
@@ -1396,6 +1398,7 @@ The ADL CLI supports multiple AI providers. Set the corresponding environment va
 | Cloudflare   | `cloudflare`          | `CLOUDFLARE_API_KEY`   | `@cf/meta/llama-3.3-70b-instruct-fp8-fast` |
 | Moonshot     | `moonshot`            | `MOONSHOT_API_KEY`     | `kimi-k2-thinking`                         |
 | Ollama Cloud | `ollama_cloud`        | `OLLAMA_CLOUD_API_KEY` | `gpt-oss:120b`                             |
+| Nvidia       | `nvidia`              | `NVIDIA_API_KEY`       | `meta/llama-3.1-8b-instruct`               |
 
 ## Integrating with Inference Gateway
 
