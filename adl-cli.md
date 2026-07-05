@@ -603,8 +603,6 @@ AI provider and model settings.
 | `maxTokens`    | integer | Maximum tokens for responses                                                                                                                                   |
 | `temperature`  | float   | Sampling temperature (0.0-2.0)                                                                                                                                 |
 
-> **Nvidia validation caveat.** `adl init --provider nvidia` is accepted and the interactive `adl init` wizard lists Nvidia, so you can scaffold a manifest with `provider: nvidia` today. However, `adl validate` does not yet accept `nvidia` - the vendored ADL schema re-vendor for Nvidia is pending an upstream [inference-gateway/adl](https://github.com/inference-gateway/adl) release. Until that ships, validating a manifest with `provider: nvidia` fails against the current `schema/v1`, even though `adl init` and the [gateway](/supported-providers/) already support it.
-
 ### Tools
 
 `spec.tools[]` defines function-call entrypoints the agent can invoke. Each user-defined tool is generated as code in the target language, with a JSON Schema describing its inputs. The agent decides at runtime when to invoke each tool based on its `description` and the conversation context.
