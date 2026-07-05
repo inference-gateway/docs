@@ -7,7 +7,7 @@ description: Inference Gateway is an open-source, cloud-native proxy that unifie
 hero:
   name: Inference Gateway
   text: One API for every LLM
-  tagline: Open-source, cloud-native proxy unifying OpenAI, Anthropic, Groq, Cohere, Ollama, Ollama Cloud, DeepSeek, Cloudflare, Google, Mistral, MiniMax and Moonshot behind a single OpenAI-compatible API.
+  tagline: Open-source, cloud-native proxy unifying OpenAI, Anthropic, Groq, Cohere, Ollama, Ollama Cloud, DeepSeek, Cloudflare, Google, Mistral, MiniMax, Moonshot and NVIDIA behind a single OpenAI-compatible API.
   image:
     src: /logo.png
     alt: Inference Gateway logo
@@ -25,7 +25,7 @@ hero:
 features:
   - icon: 🚀
     title: Unified API access
-    details: Talk to OpenAI, Anthropic, Groq, Cohere, Ollama, Ollama Cloud, DeepSeek, Cloudflare, Google, Mistral, MiniMax and Moonshot through one OpenAI-compatible endpoint.
+    details: Talk to OpenAI, Anthropic, Groq, Cohere, Ollama, Ollama Cloud, DeepSeek, Cloudflare, Google, Mistral, MiniMax, Moonshot and NVIDIA through one OpenAI-compatible endpoint.
     link: /supported-providers/
     linkText: Supported providers
   - icon: 🔌
