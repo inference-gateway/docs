@@ -27,7 +27,7 @@
 // Zero runtime dependencies: runs under both bun and node (>=18) with no install.
 
 import { readFileSync, writeFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
@@ -195,7 +195,7 @@ function findKeyIndex(lines, key, withinIndentGreaterThan = -1) {
   return -1;
 }
 
-function extractProviderModel(schemaText) {
+export function extractProviderModel(schemaText) {
   const lines = schemaText.split('\n');
 
   let providerIndex = -1;
@@ -244,7 +244,7 @@ function camelCase(id) {
   return head + rest.map((p) => p.charAt(0).toUpperCase() + p.slice(1)).join('');
 }
 
-function buildProviders(model, overrides) {
+export function buildProviders(model, overrides) {
   const { enumIds, configs } = model;
   const order = Object.keys(overrides.providers);
   const schemaIds = new Set(enumIds);
@@ -306,7 +306,7 @@ function buildProviders(model, overrides) {
 // Renderers - each returns an array of lines for one marked region
 // ---------------------------------------------------------------------------
 
-function renderProvidersTable(providers) {
+export function renderProvidersTable(providers) {
   const headers = ['Provider', 'Auth', 'Default URL', 'Vision Support'];
   const rows = providers.map((p) => [
     p.displayName,
@@ -320,18 +320,18 @@ function renderProvidersTable(providers) {
   return [fmt(headers), sep, ...rows.map(fmt)];
 }
 
-function renderUppercaseList(providers) {
+export function renderUppercaseList(providers) {
   const ids = providers.map((p) => p.envUpper).join(', ');
   return [`Replace "PROVIDER" with the provider name (uppercase): ${ids}.`];
 }
 
-function renderVisionList(providers) {
+export function renderVisionList(providers) {
   return providers
     .filter((p) => p.supportsVision)
     .map((p) => `- **${p.displayName}**: ${p.vision}`);
 }
 
-function renderSettingsConsts(providers) {
+export function renderSettingsConsts(providers) {
   const blocks = providers.map((p) => [
     `const ${p.constName} = [`,
     `  { variable: '${p.envUpper}_API_URL', description: '${p.urlLabel} API URL', defaultValue: '${p.url}' },`,
@@ -341,7 +341,7 @@ function renderSettingsConsts(providers) {
   return blocks.flatMap((b, i) => (i === 0 ? b : ['', ...b]));
 }
 
-function renderConfigSections(providers) {
+export function renderConfigSections(providers) {
   const blocks = providers.map((p) => [
     `#### ${p.displayName}`,
     '',
@@ -412,7 +412,17 @@ async function main() {
   console.log(`Updated: ${written.join(', ')}`);
 }
 
-main().catch((err) => {
-  console.error(`generate-provider-docs: ${err.message}`);
-  process.exit(1);
-});
+// Only run when invoked directly (bun/node scripts/generate-provider-docs.mjs),
+// not when imported by the fixture test. import.meta.main is set under bun and
+// node >=24; older node falls back to comparing the entry path.
+let isEntrypoint = import.meta.main;
+if (isEntrypoint === undefined) {
+  isEntrypoint = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+}
+
+if (isEntrypoint) {
+  main().catch((err) => {
+    console.error(`generate-provider-docs: ${err.message}`);
+    process.exit(1);
+  });
+}

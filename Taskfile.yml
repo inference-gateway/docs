@@ -36,3 +36,8 @@ tasks:
             exit 1
           }
         silent: true
+
+  test:
+    desc: Run the provider-docs generator regression tests against the fixture
+    cmds:
+      - bun test
