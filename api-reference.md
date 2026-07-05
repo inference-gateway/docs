@@ -76,7 +76,7 @@ Get a list of available models for a specific provider.
 GET /v1/models?provider={provider}
 ```
 
-where `{provider}` is one of: `openai`, `anthropic`, `cohere`, `groq`, `cloudflare`, `ollama`, `deepseek`, `mistral`, `moonshot`, `nvidia`.
+where `{provider}` is one of: `openai`, `anthropic`, `cohere`, `groq`, `cloudflare`, `ollama`, `ollama_cloud`, `google`, `deepseek`, `mistral`, `minimax`, `moonshot`, `nvidia`.
 
 **Response** (`ListModelsResponse`):
 
