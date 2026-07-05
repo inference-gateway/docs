@@ -15,7 +15,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint:md": "markdownlint \"**/*.md\" --ignore node_modules --ignore .vitepress",
-    "lint:md:fix": "markdownlint \"**/*.md\" --ignore node_modules --ignore .vitepress --fix"
+    "lint:md:fix": "markdownlint \"**/*.md\" --ignore node_modules --ignore .vitepress --fix",
+    "test": "bun test"
   },
   "devDependencies": {
     "@types/node": "^26.1.0",

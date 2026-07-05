@@ -1,0 +1,169 @@
+openapi: 3.1.0
+info:
+  title: Inference Gateway API (fixture)
+  version: 0.0.0
+components:
+  schemas:
+    Provider:
+      type: string
+      description: |
+        Supported LLM provider identifiers. The x-provider-configs extension
+        carries the per-provider defaults the docs restate.
+      enum:
+        - openai
+        - deepseek
+        - anthropic
+        - cohere
+        - groq
+        - cloudflare
+        - ollama
+        - ollama_cloud
+        - google
+        - mistral
+        - minimax
+        - moonshot
+        - nvidia
+      x-provider-configs:
+        openai:
+          url: https://api.openai.com/v1
+          auth_type: bearer
+          supports_vision: true
+          endpoints:
+            models:
+              method: GET
+              path: /models
+            chat:
+              method: POST
+              path: /chat/completions
+        deepseek:
+          url: https://api.deepseek.com
+          auth_type: bearer
+          supports_vision: false
+          endpoints:
+            models:
+              method: GET
+              path: /models
+            chat:
+              method: POST
+              path: /chat/completions
+        anthropic:
+          url: https://api.anthropic.com/v1
+          auth_type: xheader
+          supports_vision: true
+          endpoints:
+            models:
+              method: GET
+              path: /models
+            chat:
+              method: POST
+              path: /chat/completions
+        cohere:
+          url: https://api.cohere.ai
+          auth_type: bearer
+          supports_vision: true
+          endpoints:
+            models:
+              method: GET
+              path: /models
+            chat:
+              method: POST
+              path: /chat/completions
+        groq:
+          url: https://api.groq.com/openai/v1
+          auth_type: bearer
+          supports_vision: true
+          endpoints:
+            models:
+              method: GET
+              path: /models
+            chat:
+              method: POST
+              path: /chat/completions
+        cloudflare:
+          url: https://api.cloudflare.com/client/v4/accounts/{ACCOUNT_ID}/ai
+          auth_type: bearer
+          supports_vision: false
+          endpoints:
+            models:
+              method: GET
+              path: /models
+            chat:
+              method: POST
+              path: /chat/completions
+        ollama:
+          url: http://ollama:8080/v1
+          auth_type: none
+          supports_vision: true
+          endpoints:
+            models:
+              method: GET
+              path: /models
+            chat:
+              method: POST
+              path: /chat/completions
+        ollama_cloud:
+          url: https://ollama.com/v1
+          auth_type: bearer
+          supports_vision: true
+          endpoints:
+            models:
+              method: GET
+              path: /models
+            chat:
+              method: POST
+              path: /chat/completions
+        google:
+          url: https://generativelanguage.googleapis.com/v1beta/openai
+          auth_type: bearer
+          supports_vision: true
+          endpoints:
+            models:
+              method: GET
+              path: /models
+            chat:
+              method: POST
+              path: /chat/completions
+        mistral:
+          url: https://api.mistral.ai/v1
+          auth_type: bearer
+          supports_vision: true
+          endpoints:
+            models:
+              method: GET
+              path: /models
+            chat:
+              method: POST
+              path: /chat/completions
+        minimax:
+          url: https://api.minimax.io/v1
+          auth_type: bearer
+          supports_vision: true
+          endpoints:
+            models:
+              method: GET
+              path: /models
+            chat:
+              method: POST
+              path: /chat/completions
+        moonshot:
+          url: https://api.moonshot.ai/v1
+          auth_type: bearer
+          supports_vision: true
+          endpoints:
+            models:
+              method: GET
+              path: /models
+            chat:
+              method: POST
+              path: /chat/completions
+        nvidia:
+          url: https://integrate.api.nvidia.com/v1
+          auth_type: bearer
+          supports_vision: true
+          endpoints:
+            models:
+              method: GET
+              path: /models
+            chat:
+              method: POST
+              path: /chat/completions

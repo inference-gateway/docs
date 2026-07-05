@@ -47,9 +47,16 @@ const clientSettings = [
   { variable: 'CLIENT_EXPECT_CONTINUE_TIMEOUT', description: 'Expect continue timeout', defaultValue: '1s' },
 ];
 
-const openAiSettings = [
+// GENERATED:provider-settings START (do not edit - run: task generate)
+
+const openaiSettings = [
   { variable: 'OPENAI_API_URL', description: 'OpenAI API URL', defaultValue: 'https://api.openai.com/v1' },
   { variable: 'OPENAI_API_KEY', description: 'OpenAI API Key', defaultValue: '""' },
+];
+
+const deepseekSettings = [
+  { variable: 'DEEPSEEK_API_URL', description: 'DeepSeek API URL', defaultValue: 'https://api.deepseek.com' },
+  { variable: 'DEEPSEEK_API_KEY', description: 'DeepSeek API Key', defaultValue: '""' },
 ];
 
 const anthropicSettings = [
@@ -67,21 +74,19 @@ const groqSettings = [
   { variable: 'GROQ_API_KEY', description: 'Groq API Key', defaultValue: '""' },
 ];
 
-const ollamaSettings = [
-  { variable: 'OLLAMA_API_URL', description: 'Ollama API URL', defaultValue: 'http://ollama:8080/v1' },
-  { variable: 'OLLAMA_API_KEY', description: 'Ollama API Key', defaultValue: '""' },
-  { variable: 'OLLAMA_CLOUD_API_URL', description: 'Ollama Cloud API URL', defaultValue: 'https://ollama.com/v1' },
-  { variable: 'OLLAMA_CLOUD_API_KEY', description: 'Ollama Cloud API Key', defaultValue: '""' },
-];
-
 const cloudflareSettings = [
-  { variable: 'CLOUDFLARE_API_URL', description: 'Cloudflare API URL', defaultValue: 'https://api.cloudflare.com/client/v4/accounts/ACCOUNT_ID/ai' },
+  { variable: 'CLOUDFLARE_API_URL', description: 'Cloudflare API URL', defaultValue: 'https://api.cloudflare.com/client/v4/accounts/{ACCOUNT_ID}/ai' },
   { variable: 'CLOUDFLARE_API_KEY', description: 'Cloudflare API Key', defaultValue: '""' },
 ];
 
-const deepseekSettings = [
-  { variable: 'DEEPSEEK_API_URL', description: 'DeepSeek API URL', defaultValue: 'https://api.deepseek.com' },
-  { variable: 'DEEPSEEK_API_KEY', description: 'DeepSeek API Key', defaultValue: '""' },
+const ollamaSettings = [
+  { variable: 'OLLAMA_API_URL', description: 'Ollama API URL', defaultValue: 'http://ollama:8080/v1' },
+  { variable: 'OLLAMA_API_KEY', description: 'Ollama API Key', defaultValue: '""' },
+];
+
+const ollamaCloudSettings = [
+  { variable: 'OLLAMA_CLOUD_API_URL', description: 'Ollama Cloud API URL', defaultValue: 'https://ollama.com/v1' },
+  { variable: 'OLLAMA_CLOUD_API_KEY', description: 'Ollama Cloud API Key', defaultValue: '""' },
 ];
 
 const googleSettings = [
@@ -94,6 +99,11 @@ const mistralSettings = [
   { variable: 'MISTRAL_API_KEY', description: 'Mistral AI API Key', defaultValue: '""' },
 ];
 
+const minimaxSettings = [
+  { variable: 'MINIMAX_API_URL', description: 'MiniMax API URL', defaultValue: 'https://api.minimax.io/v1' },
+  { variable: 'MINIMAX_API_KEY', description: 'MiniMax API Key', defaultValue: '""' },
+];
+
 const moonshotSettings = [
   { variable: 'MOONSHOT_API_URL', description: 'Moonshot AI API URL', defaultValue: 'https://api.moonshot.ai/v1' },
   { variable: 'MOONSHOT_API_KEY', description: 'Moonshot AI API Key', defaultValue: '""' },
@@ -103,6 +113,8 @@ const nvidiaSettings = [
   { variable: 'NVIDIA_API_URL', description: 'NVIDIA NIM API URL', defaultValue: 'https://integrate.api.nvidia.com/v1' },
   { variable: 'NVIDIA_API_KEY', description: 'NVIDIA API Key', defaultValue: '""' },
 ];
+
+// GENERATED:provider-settings END (do not edit - run: task generate)
 
 const mcpSettings = [
   { variable: 'MCP_ENABLE', description: 'Enable MCP middleware', defaultValue: 'false' },
@@ -206,9 +218,15 @@ CLIENT_MAX_IDLE_CONNS_PER_HOST=50
 
 Configure access to various LLM providers. At minimum, you should configure the providers you plan to use.
 
+<!-- GENERATED:provider-config-sections START (do not edit - run: task generate) -->
+
 #### OpenAI
 
-<ConfigTable :rows="openAiSettings" />
+<ConfigTable :rows="openaiSettings" />
+
+#### DeepSeek
+
+<ConfigTable :rows="deepseekSettings" />
 
 #### Anthropic
 
@@ -222,17 +240,17 @@ Configure access to various LLM providers. At minimum, you should configure the 
 
 <ConfigTable :rows="groqSettings" />
 
-#### Ollama
-
-<ConfigTable :rows="ollamaSettings" />
-
 #### Cloudflare
 
 <ConfigTable :rows="cloudflareSettings" />
 
-#### DeepSeek
+#### Ollama
 
-<ConfigTable :rows="deepseekSettings" />
+<ConfigTable :rows="ollamaSettings" />
+
+#### Ollama Cloud
+
+<ConfigTable :rows="ollamaCloudSettings" />
 
 #### Google
 
@@ -242,6 +260,10 @@ Configure access to various LLM providers. At minimum, you should configure the 
 
 <ConfigTable :rows="mistralSettings" />
 
+#### MiniMax
+
+<ConfigTable :rows="minimaxSettings" />
+
 #### Moonshot
 
 <ConfigTable :rows="moonshotSettings" />
@@ -249,6 +271,8 @@ Configure access to various LLM providers. At minimum, you should configure the 
 #### NVIDIA
 
 <ConfigTable :rows="nvidiaSettings" />
+
+<!-- GENERATED:provider-config-sections END (do not edit - run: task generate) -->
 
 ### Model Context Protocol (MCP) Settings
 
@@ -377,26 +401,28 @@ CLIENT_DISABLE_COMPRESSION=true
 CLIENT_RESPONSE_HEADER_TIMEOUT=10s
 CLIENT_EXPECT_CONTINUE_TIMEOUT=1s
 # Providers
-ANTHROPIC_API_URL=https://api.anthropic.com/v1
-ANTHROPIC_API_KEY=
-CLOUDFLARE_API_URL=https://api.cloudflare.com/client/v4/accounts/{ACCOUNT_ID}/ai
-CLOUDFLARE_API_KEY=
-COHERE_API_URL=https://api.cohere.ai
-COHERE_API_KEY=
-GROQ_API_URL=https://api.groq.com/openai/v1
-GROQ_API_KEY=
-OLLAMA_API_URL=http://ollama:8080/v1
-OLLAMA_API_KEY=
-OLLAMA_CLOUD_API_URL=https://ollama.com/v1
-OLLAMA_CLOUD_API_KEY=
 OPENAI_API_URL=https://api.openai.com/v1
 OPENAI_API_KEY=
 DEEPSEEK_API_URL=https://api.deepseek.com
 DEEPSEEK_API_KEY=
+ANTHROPIC_API_URL=https://api.anthropic.com/v1
+ANTHROPIC_API_KEY=
+COHERE_API_URL=https://api.cohere.ai
+COHERE_API_KEY=
+GROQ_API_URL=https://api.groq.com/openai/v1
+GROQ_API_KEY=
+CLOUDFLARE_API_URL=https://api.cloudflare.com/client/v4/accounts/{ACCOUNT_ID}/ai
+CLOUDFLARE_API_KEY=
+OLLAMA_API_URL=http://ollama:8080/v1
+OLLAMA_API_KEY=
+OLLAMA_CLOUD_API_URL=https://ollama.com/v1
+OLLAMA_CLOUD_API_KEY=
 GOOGLE_API_URL=https://generativelanguage.googleapis.com/v1beta/openai
 GOOGLE_API_KEY=
 MISTRAL_API_URL=https://api.mistral.ai/v1
 MISTRAL_API_KEY=
+MINIMAX_API_URL=https://api.minimax.io/v1
+MINIMAX_API_KEY=
 MOONSHOT_API_URL=https://api.moonshot.ai/v1
 MOONSHOT_API_KEY=
 NVIDIA_API_URL=https://integrate.api.nvidia.com/v1

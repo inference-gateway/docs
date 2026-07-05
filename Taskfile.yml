@@ -1,0 +1,81 @@
+version: '3'
+
+vars:
+  SCHEMA_REPO: '{{.SCHEMA_REPO | default "inference-gateway/schemas"}}'
+  SCHEMA_REF: '{{.SCHEMA_REF | default "main"}}'
+  GENERATED_FILES: supported-providers.md configuration.md
+
+tasks:
+  default:
+    desc: List available tasks
+    cmds:
+      - task --list
+    silent: true
+
+  # The tasks below simply delegate to the matching bun script in package.json,
+  # so `task <name>` and `bun run <name>` are interchangeable.
+
+  dev:
+    desc: Start the VitePress dev server on http://localhost:5173
+    cmds:
+      - bun run dev
+
+  build:
+    desc: Build the static site into .vitepress/dist/
+    cmds:
+      - bun run build
+
+  preview:
+    desc: Serve the built site from .vitepress/dist/ locally
+    cmds:
+      - bun run preview
+
+  format:
+    desc: Format the repository with Prettier
+    cmds:
+      - bun run format
+
+  format:check:
+    desc: Check formatting with Prettier without writing changes
+    cmds:
+      - bun run format:check
+
+  lint:md:
+    desc: Lint Markdown with markdownlint
+    cmds:
+      - bun run lint:md
+
+  lint:md:fix:
+    desc: Autofix Markdown lint issues with markdownlint
+    cmds:
+      - bun run lint:md:fix
+
+  generate:
+    desc: Regenerate provider-derived docs from the canonical openapi.yaml
+    env:
+      SCHEMA_REPO: '{{.SCHEMA_REPO}}'
+      SCHEMA_REF: '{{.SCHEMA_REF}}'
+    cmds:
+      - bun scripts/generate-provider-docs.mjs
+      - bunx prettier --write {{.GENERATED_FILES}}
+
+  generate:check:
+    desc: Fail if the committed docs have drifted from the canonical openapi.yaml
+    env:
+      SCHEMA_REPO: '{{.SCHEMA_REPO}}'
+      SCHEMA_REF: '{{.SCHEMA_REF}}'
+    cmds:
+      - task: generate
+      - cmd: |
+          git diff --exit-code -- {{.GENERATED_FILES}} || {
+            echo ''
+            echo 'ERROR: provider docs are out of date with the canonical openapi.yaml.'
+            echo 'Run `task generate` and commit the result.'
+            exit 1
+          }
+        silent: true
+
+  test:
+    desc: Run the provider-docs generator regression tests against the fixture
+    cmds:
+      - bun run test
