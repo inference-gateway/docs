@@ -23,6 +23,7 @@ Inference Gateway provides a unified interface to interact with multiple LLM pro
 | Mistral      | Bearer Token     | `https://api.mistral.ai/v1`                                     | Yes - Pixtral Large, Ministral 3, Mistral Large 3                       |
 | MiniMax      | Bearer Token     | `https://api.minimax.io/v1`                                     | Yes - MiniMax-M3                                                        |
 | Moonshot     | Bearer Token     | `https://api.moonshot.ai/v1`                                    | Yes - moonshot-v1-\*-vision-preview, kimi-latest, kimi-thinking-preview |
+| NVIDIA       | Bearer Token     | `https://integrate.api.nvidia.com/v1`                           | Yes - Nemotron, Llama, DeepSeek, Mistral, Qwen                          |
 
 ## Vision/Multimodal Support
 
@@ -46,6 +47,7 @@ ENABLE_VISION=true
 - **Mistral**: Pixtral Large, Ministral 3, Mistral Large 3
 - **MiniMax**: MiniMax-M3
 - **Moonshot**: moonshot-v1-\*-vision-preview, kimi-latest, kimi-thinking-preview
+- **NVIDIA**: Nemotron, Llama, DeepSeek, Mistral, Qwen
 
 ### Example Vision Request
 
@@ -83,7 +85,7 @@ Each provider requires specific configuration through environment variables:
 - `PROVIDER_API_URL`: The base URL for the provider's API
 - `PROVIDER_API_KEY`: The authentication key for the provider
 
-Replace "PROVIDER" with the provider name (uppercase): OPENAI, ANTHROPIC, COHERE, GROQ, CLOUDFLARE, OLLAMA, OLLAMA_CLOUD, GOOGLE, DEEPSEEK, MISTRAL, MINIMAX, MOONSHOT.
+Replace "PROVIDER" with the provider name (uppercase): OPENAI, ANTHROPIC, COHERE, GROQ, CLOUDFLARE, OLLAMA, OLLAMA_CLOUD, GOOGLE, DEEPSEEK, MISTRAL, MINIMAX, MOONSHOT, NVIDIA.
 
 ### API Endpoints
 
@@ -413,3 +415,33 @@ curl -X POST http://localhost:8080/v1/chat/completions \
     ]
   }'
 ```
+
+### NVIDIA Provider
+
+Generate content with NVIDIA NIM models hosted on the build.nvidia.com API catalog:
+
+```bash
+curl -X POST http://localhost:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "nvidia/meta/llama-3.1-8b-instruct",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a helpful assistant."
+      },
+      {
+        "role": "user",
+        "content": "Explain the concept of GPU acceleration."
+      }
+    ]
+  }'
+```
+
+List available models:
+
+```bash
+curl http://localhost:8080/v1/models?provider=nvidia
+```
+
+> **Note:** NVIDIA is additive alongside Groq. Groq provides ultra-low-latency inference via LPU hardware, while NVIDIA offers a broad GPU-served catalog including Nemotron, Llama, DeepSeek, Mistral, and Qwen. They are complementary providers.

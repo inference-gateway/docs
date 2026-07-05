@@ -76,7 +76,7 @@ Get a list of available models for a specific provider.
 GET /v1/models?provider={provider}
 ```
 
-where `{provider}` is one of: `openai`, `anthropic`, `cohere`, `groq`, `cloudflare`, `ollama`, `deepseek`, `mistral`, `moonshot`.
+where `{provider}` is one of: `openai`, `anthropic`, `cohere`, `groq`, `cloudflare`, `ollama`, `deepseek`, `mistral`, `moonshot`, `nvidia`.
 
 **Response** (`ListModelsResponse`):
 
@@ -613,6 +613,7 @@ curl -X POST http://localhost:8080/v1/chat/completions \
 - Groq (vision models)
 - Mistral (Pixtral Large, Ministral 3, Mistral Large 3)
 - Moonshot (Kimi K2, Kimi K2 Thinking)
+- NVIDIA (Nemotron, Llama, DeepSeek, Mistral, Qwen)
 
 **Note:** When `ENABLE_VISION=false` (default), requests containing image content will be rejected even if the model supports vision. This is disabled by default for performance and security reasons.
 
@@ -668,31 +669,31 @@ The raw response body returned by proxy endpoints (`{METHOD} /proxy/{provider}/{
 
 The body sent to `POST /v1/chat/completions`. Only `model` and `messages` are required; every other field is optional and falls back to the model/provider default.
 
-| Field                   | Type                             | Required | Description                                                                                            |
-| ----------------------- | -------------------------------- | -------- | ------------------------------------------------------------------------------------------------------ |
-| `model`                 | `string`                         | Yes      | Model identifier (e.g., `"deepseek/deepseek-v4-flash"`)                                                |
-| `messages`              | `Message[]`                      | Yes      | Conversation history                                                                                   |
-| `max_completion_tokens` | `integer`                        |          | Upper bound for generated tokens, including visible output and reasoning tokens                        |
-| `max_tokens`            | `integer`                        |          | **Deprecated** - use `max_completion_tokens`. Maximum tokens to generate; not compatible with o-series |
-| `temperature`           | `number`                         |          | Sampling temperature, `0`-`2` (default `1`). Higher values make output more random                     |
-| `top_p`                 | `number`                         |          | Nucleus sampling mass, `0`-`1` (default `1`). Alter this or `temperature`, not both                    |
-| `frequency_penalty`     | `number`                         |          | `-2`-`2` (default `0`). Positive values penalize tokens by their existing frequency                    |
-| `presence_penalty`      | `number`                         |          | `-2`-`2` (default `0`). Positive values penalize tokens that already appeared                          |
-| `n`                     | `integer`                        |          | Number of completion choices to generate, `1`-`128` (default `1`)                                      |
-| `stop`                  | `string` \| `string[]`           |          | Up to 4 sequences where the API stops generating further tokens                                        |
-| `seed`                  | `integer`                        |          | Best-effort deterministic sampling; pair with the `system_fingerprint` response field                  |
-| `logprobs`              | `boolean`                        |          | Return log probabilities of the output tokens (default `false`)                                        |
-| `top_logprobs`          | `integer`                        |          | Most likely tokens to return per position, `0`-`20`. Requires `logprobs: true`                         |
-| `response_format`       | `ResponseFormat`                 |          | Output format: `text`, `json_object`, or `json_schema` (Structured Outputs)                            |
-| `logit_bias`            | `object`                         |          | Maps token IDs to a bias from `-100` to `100` applied to logits before sampling                        |
-| `tools`                 | `ChatCompletionTool[]`           |          | Tools available to the model                                                                           |
-| `tool_choice`           | `ChatCompletionToolChoiceOption` |          | Which tool (if any) the model calls: `"none"`, `"auto"`, `"required"`, or a named function             |
-| `parallel_tool_calls`   | `boolean`                        |          | Enable parallel function calling during tool use (default `true`)                                      |
-| `stream`                | `boolean`                        |          | Enable SSE streaming (default: `false`)                                                                |
-| `stream_options`        | `ChatCompletionStreamOptions`    |          | Streaming behaviour options                                                                            |
-| `reasoning_effort`      | `string`                         |          | Constrains reasoning effort: `"minimal"`, `"low"`, `"medium"`, or `"high"`                             |
-| `reasoning_format`      | `string`                         |          | Reasoning output format: `"raw"` or `"parsed"`                                                         |
-| `user`                  | `string`                         |          | Unique end-user identifier to help monitor and detect abuse                                            |
+| Field                   | Type                             | Required | Description                                                                                                                                                                                                              |
+| ----------------------- | -------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `model`                 | `string`                         | Yes      | Model identifier (e.g., `"deepseek/deepseek-v4-flash"`). Use the `nvidia/` prefix to route to NVIDIA NIM models (e.g. `"nvidia/meta/llama-3.1-8b-instruct"`). Alternatively, use `?provider=nvidia` in the query string. |
+| `messages`              | `Message[]`                      | Yes      | Conversation history                                                                                                                                                                                                     |
+| `max_completion_tokens` | `integer`                        |          | Upper bound for generated tokens, including visible output and reasoning tokens                                                                                                                                          |
+| `max_tokens`            | `integer`                        |          | **Deprecated** - use `max_completion_tokens`. Maximum tokens to generate; not compatible with o-series                                                                                                                   |
+| `temperature`           | `number`                         |          | Sampling temperature, `0`-`2` (default `1`). Higher values make output more random                                                                                                                                       |
+| `top_p`                 | `number`                         |          | Nucleus sampling mass, `0`-`1` (default `1`). Alter this or `temperature`, not both                                                                                                                                      |
+| `frequency_penalty`     | `number`                         |          | `-2`-`2` (default `0`). Positive values penalize tokens by their existing frequency                                                                                                                                      |
+| `presence_penalty`      | `number`                         |          | `-2`-`2` (default `0`). Positive values penalize tokens that already appeared                                                                                                                                            |
+| `n`                     | `integer`                        |          | Number of completion choices to generate, `1`-`128` (default `1`)                                                                                                                                                        |
+| `stop`                  | `string` \| `string[]`           |          | Up to 4 sequences where the API stops generating further tokens                                                                                                                                                          |
+| `seed`                  | `integer`                        |          | Best-effort deterministic sampling; pair with the `system_fingerprint` response field                                                                                                                                    |
+| `logprobs`              | `boolean`                        |          | Return log probabilities of the output tokens (default `false`)                                                                                                                                                          |
+| `top_logprobs`          | `integer`                        |          | Most likely tokens to return per position, `0`-`20`. Requires `logprobs: true`                                                                                                                                           |
+| `response_format`       | `ResponseFormat`                 |          | Output format: `text`, `json_object`, or `json_schema` (Structured Outputs)                                                                                                                                              |
+| `logit_bias`            | `object`                         |          | Maps token IDs to a bias from `-100` to `100` applied to logits before sampling                                                                                                                                          |
+| `tools`                 | `ChatCompletionTool[]`           |          | Tools available to the model                                                                                                                                                                                             |
+| `tool_choice`           | `ChatCompletionToolChoiceOption` |          | Which tool (if any) the model calls: `"none"`, `"auto"`, `"required"`, or a named function                                                                                                                               |
+| `parallel_tool_calls`   | `boolean`                        |          | Enable parallel function calling during tool use (default `true`)                                                                                                                                                        |
+| `stream`                | `boolean`                        |          | Enable SSE streaming (default: `false`)                                                                                                                                                                                  |
+| `stream_options`        | `ChatCompletionStreamOptions`    |          | Streaming behaviour options                                                                                                                                                                                              |
+| `reasoning_effort`      | `string`                         |          | Constrains reasoning effort: `"minimal"`, `"low"`, `"medium"`, or `"high"`                                                                                                                                               |
+| `reasoning_format`      | `string`                         |          | Reasoning output format: `"raw"` or `"parsed"`                                                                                                                                                                           |
+| `user`                  | `string`                         |          | Unique end-user identifier to help monitor and detect abuse                                                                                                                                                              |
 
 #### `ChatCompletionStreamOptions`
 
