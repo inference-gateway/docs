@@ -1,0 +1,86 @@
+{
+  "_note": "Non-schema, human-authored data for the provider docs generator. The canonical openapi.yaml drives the hard facts (id, default url, auth_type, supports_vision, env-var names). This file supplies what the schema does not model: display-name casing, the descriptor label used in the *_API_URL / *_API_KEY descriptions, and the per-provider vision-model prose. Provider ORDER in this file is the canonical render order across every generated region. To onboard a provider: add it to the schema, then add an entry here and run `task generate`.",
+  "authLabels": {
+    "bearer": "Bearer Token",
+    "xheader": "X-Header",
+    "none": "Optional API key"
+  },
+  "providers": {
+    "openai": {
+      "displayName": "OpenAI",
+      "urlLabel": "OpenAI",
+      "keyLabel": "OpenAI",
+      "vision": "GPT-5 series, GPT-4.1, GPT-4o"
+    },
+    "deepseek": {
+      "displayName": "DeepSeek",
+      "urlLabel": "DeepSeek",
+      "keyLabel": "DeepSeek"
+    },
+    "anthropic": {
+      "displayName": "Anthropic",
+      "urlLabel": "Anthropic",
+      "keyLabel": "Anthropic",
+      "vision": "Claude Opus 4.8, Claude Sonnet 4.6, Claude Haiku 4.5"
+    },
+    "cohere": {
+      "displayName": "Cohere",
+      "urlLabel": "Cohere",
+      "keyLabel": "Cohere",
+      "vision": "Command A Vision"
+    },
+    "groq": {
+      "displayName": "Groq",
+      "urlLabel": "Groq",
+      "keyLabel": "Groq",
+      "vision": "vision models"
+    },
+    "cloudflare": {
+      "displayName": "Cloudflare",
+      "urlLabel": "Cloudflare",
+      "keyLabel": "Cloudflare"
+    },
+    "ollama": {
+      "displayName": "Ollama",
+      "urlLabel": "Ollama",
+      "keyLabel": "Ollama",
+      "vision": "LLaVA, Llama 4, Llama 3.2 Vision"
+    },
+    "ollama_cloud": {
+      "displayName": "Ollama Cloud",
+      "urlLabel": "Ollama Cloud",
+      "keyLabel": "Ollama Cloud",
+      "vision": "cloud-hosted vision models"
+    },
+    "google": {
+      "displayName": "Google",
+      "urlLabel": "Google AI",
+      "keyLabel": "Google AI",
+      "vision": "Gemini 3 Flash, Gemini 3 Pro"
+    },
+    "mistral": {
+      "displayName": "Mistral",
+      "urlLabel": "Mistral AI",
+      "keyLabel": "Mistral AI",
+      "vision": "Pixtral Large, Ministral 3, Mistral Large 3"
+    },
+    "minimax": {
+      "displayName": "MiniMax",
+      "urlLabel": "MiniMax",
+      "keyLabel": "MiniMax",
+      "vision": "MiniMax-M3"
+    },
+    "moonshot": {
+      "displayName": "Moonshot",
+      "urlLabel": "Moonshot AI",
+      "keyLabel": "Moonshot AI",
+      "vision": "moonshot-v1-\\*-vision-preview, kimi-latest, kimi-thinking-preview"
+    },
+    "nvidia": {
+      "displayName": "NVIDIA",
+      "urlLabel": "NVIDIA NIM",
+      "keyLabel": "NVIDIA",
+      "vision": "Nemotron, Llama, DeepSeek, Mistral, Qwen"
+    }
+  }
+}

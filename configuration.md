@@ -47,6 +47,7 @@ const clientSettings = [
   { variable: 'CLIENT_EXPECT_CONTINUE_TIMEOUT', description: 'Expect continue timeout', defaultValue: '1s' },
 ];
 
+// GENERATED:provider-settings START (do not edit - run: task generate)
 const openAiSettings = [
   { variable: 'OPENAI_API_URL', description: 'OpenAI API URL', defaultValue: 'https://api.openai.com/v1' },
   { variable: 'OPENAI_API_KEY', description: 'OpenAI API Key', defaultValue: '""' },
@@ -103,6 +104,8 @@ const nvidiaSettings = [
   { variable: 'NVIDIA_API_URL', description: 'NVIDIA NIM API URL', defaultValue: 'https://integrate.api.nvidia.com/v1' },
   { variable: 'NVIDIA_API_KEY', description: 'NVIDIA API Key', defaultValue: '""' },
 ];
+
+// GENERATED:provider-settings END (do not edit - run: task generate)
 
 const mcpSettings = [
   { variable: 'MCP_ENABLE', description: 'Enable MCP middleware', defaultValue: 'false' },
@@ -206,6 +209,8 @@ CLIENT_MAX_IDLE_CONNS_PER_HOST=50
 
 Configure access to various LLM providers. At minimum, you should configure the providers you plan to use.
 
+<!-- GENERATED:provider-config-sections START (do not edit - run: task generate) -->
+
 #### OpenAI
 
 <ConfigTable :rows="openAiSettings" />
@@ -249,6 +254,8 @@ Configure access to various LLM providers. At minimum, you should configure the 
 #### NVIDIA
 
 <ConfigTable :rows="nvidiaSettings" />
+
+<!-- GENERATED:provider-config-sections END (do not edit - run: task generate) -->
 
 ### Model Context Protocol (MCP) Settings
 

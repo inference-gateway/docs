@@ -9,6 +9,8 @@ Inference Gateway provides a unified interface to interact with multiple LLM pro
 
 ## Available Providers
 
+<!-- GENERATED:providers-table START (do not edit - run: task generate) -->
+
 | Provider     | Auth             | Default URL                                                     | Vision Support                                                          |
 | ------------ | ---------------- | --------------------------------------------------------------- | ----------------------------------------------------------------------- |
 | OpenAI       | Bearer Token     | `https://api.openai.com/v1`                                     | Yes - GPT-5 series, GPT-4.1, GPT-4o                                     |
@@ -25,6 +27,8 @@ Inference Gateway provides a unified interface to interact with multiple LLM pro
 | Moonshot     | Bearer Token     | `https://api.moonshot.ai/v1`                                    | Yes - moonshot-v1-\*-vision-preview, kimi-latest, kimi-thinking-preview |
 | NVIDIA       | Bearer Token     | `https://integrate.api.nvidia.com/v1`                           | Yes - Nemotron, Llama, DeepSeek, Mistral, Qwen                          |
 
+<!-- GENERATED:providers-table END (do not edit - run: task generate) -->
+
 ## Vision/Multimodal Support
 
 Several providers support vision/multimodal capabilities, allowing you to process images alongside text. To use vision features, you must enable them in your configuration:
@@ -37,6 +41,8 @@ ENABLE_VISION=true
 
 ### Providers with Vision Support
 
+<!-- GENERATED:vision-list START (do not edit - run: task generate) -->
+
 - **OpenAI**: GPT-5 series, GPT-4.1, GPT-4o
 - **Anthropic**: Claude Opus 4.8, Claude Sonnet 4.6, Claude Haiku 4.5
 - **Google**: Gemini 3 Flash, Gemini 3 Pro
@@ -48,6 +54,8 @@ ENABLE_VISION=true
 - **MiniMax**: MiniMax-M3
 - **Moonshot**: moonshot-v1-\*-vision-preview, kimi-latest, kimi-thinking-preview
 - **NVIDIA**: Nemotron, Llama, DeepSeek, Mistral, Qwen
+
+<!-- GENERATED:vision-list END (do not edit - run: task generate) -->
 
 ### Example Vision Request
 
@@ -85,7 +93,11 @@ Each provider requires specific configuration through environment variables:
 - `PROVIDER_API_URL`: The base URL for the provider's API
 - `PROVIDER_API_KEY`: The authentication key for the provider
 
+<!-- GENERATED:provider-uppercase START (do not edit - run: task generate) -->
+
 Replace "PROVIDER" with the provider name (uppercase): OPENAI, ANTHROPIC, COHERE, GROQ, CLOUDFLARE, OLLAMA, OLLAMA_CLOUD, GOOGLE, DEEPSEEK, MISTRAL, MINIMAX, MOONSHOT, NVIDIA.
+
+<!-- GENERATED:provider-uppercase END (do not edit - run: task generate) -->
 
 ### API Endpoints
 
