@@ -278,7 +278,8 @@ function buildProviders(model, overrides) {
         `Provider "${id}" has auth_type "${authType}" with no label in overrides.authLabels.`
       );
     }
-    if (cfg.url == null) throw new Error(`Provider "${id}" is missing "url" in x-provider-configs.`);
+    if (cfg.url == null)
+      throw new Error(`Provider "${id}" is missing "url" in x-provider-configs.`);
     const supportsVision = cfg.supports_vision === true;
     if (supportsVision && !ov.vision) {
       throw new Error(
@@ -313,9 +314,7 @@ function renderProvidersTable(providers) {
     '`' + p.url + '`',
     p.supportsVision ? `Yes - ${p.vision}` : 'No',
   ]);
-  const widths = headers.map((h, i) =>
-    Math.max(h.length, 3, ...rows.map((r) => r[i].length))
-  );
+  const widths = headers.map((h, i) => Math.max(h.length, 3, ...rows.map((r) => r[i].length)));
   const fmt = (cells) => '| ' + cells.map((c, i) => c.padEnd(widths[i])).join(' | ') + ' |';
   const sep = '| ' + widths.map((w) => '-'.repeat(w)).join(' | ') + ' |';
   return [fmt(headers), sep, ...rows.map(fmt)];
@@ -343,7 +342,11 @@ function renderSettingsConsts(providers) {
 }
 
 function renderConfigSections(providers) {
-  const blocks = providers.map((p) => [`#### ${p.displayName}`, '', `<ConfigTable :rows="${p.constName}" />`]);
+  const blocks = providers.map((p) => [
+    `#### ${p.displayName}`,
+    '',
+    `<ConfigTable :rows="${p.constName}" />`,
+  ]);
   return blocks.flatMap((b, i) => (i === 0 ? b : ['', ...b]));
 }
 
