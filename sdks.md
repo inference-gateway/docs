@@ -37,7 +37,7 @@ All four SDKs target the same gateway, so they share a single provider set. Rout
 
 `openai`, `anthropic`, `cohere`, `groq`, `cloudflare`, `ollama`, `ollama_cloud`, `google`, `deepseek`, `mistral`, `minimax`, `moonshot`, and `nvidia`.
 
-The newest addition, `nvidia`, reaches the NVIDIA NIM catalog at `https://integrate.api.nvidia.com/v1` (Nemotron, Llama, DeepSeek, Mistral, and Qwen) with bearer-token auth. See [Supported Providers](/supported-providers/) for auth modes, default URLs, and vision-capable models, and [Configuration](/configuration/) for the matching `*_API_KEY` and `*_API_URL` variables.
+The newest addition, `nvidia`, reaches the Nvidia Nim catalog at `https://integrate.api.nvidia.com/v1` (Nemotron, Llama, DeepSeek, Mistral, and Qwen) with bearer-token auth. See [Supported Providers](/supported-providers/) for auth modes, default URLs, and vision-capable models, and [Configuration](/configuration/) for the matching `*_API_KEY` and `*_API_URL` variables.
 
 ## Python
 
