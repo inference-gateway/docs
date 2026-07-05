@@ -473,7 +473,7 @@ with InferenceGatewayClient(
 
 The TypeScript SDK targets Node 18+ and runs in any environment with `fetch` and Web Streams (Node, Deno, Bun, modern browsers, edge runtimes).
 
-- Package: [`@inference-gateway/sdk`](https://www.npmjs.com/package/@inference-gateway/sdk) (latest: `0.8.5`)
+- Package: [`@inference-gateway/sdk`](https://www.npmjs.com/package/@inference-gateway/sdk) (latest: `0.11.0`)
 - Repository: [inference-gateway/typescript-sdk](https://github.com/inference-gateway/typescript-sdk)
 - Examples: [typescript-sdk/examples](https://github.com/inference-gateway/typescript-sdk/tree/main/examples)
 
@@ -834,6 +834,7 @@ for (const model of models.data) {
 
 // Narrow the listing to a single provider.
 const openaiModels = await client.listModels(Provider.openai);
+const nvidiaModels = await client.listModels(Provider.nvidia);
 
 // MCP tools (requires MCP exposed on the gateway).
 const tools = await client.listTools();
@@ -901,7 +902,7 @@ const traced = client.withOptions({
 
 The Go SDK ships an idiomatic context-aware client with built-in exponential-backoff retries and header chaining.
 
-- Module: [`github.com/inference-gateway/sdk`](https://pkg.go.dev/github.com/inference-gateway/sdk) (latest: `v1.16.4`)
+- Module: [`github.com/inference-gateway/sdk`](https://pkg.go.dev/github.com/inference-gateway/sdk) (latest: `v1.19.0`)
 - Repository: [inference-gateway/sdk](https://github.com/inference-gateway/sdk)
 - Examples: [sdk/examples](https://github.com/inference-gateway/sdk/tree/main/examples)
 
@@ -1220,6 +1221,13 @@ if err != nil {
     log.Fatalf("list provider models: %v", err)
 }
 fmt.Printf("provider: %s\n", *groqModels.Provider)
+
+// Or scope to NVIDIA's GPU-served catalog.
+nvidiaModels, err := client.ListProviderModels(ctx, sdk.Nvidia)
+if err != nil {
+    log.Fatalf("list provider models: %v", err)
+}
+fmt.Printf("provider: %s\n", *nvidiaModels.Provider)
 
 // MCP tools (requires MCP exposed on the gateway).
 tools, err := client.ListTools(ctx)
