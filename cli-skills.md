@@ -78,6 +78,7 @@ Skills are **enabled by default**. To turn them off (or back on) use the config 
 agent:
   skills:
     enabled: true # default - set to false to turn skills off
+    max_chars: 4000 # cap on the rendered AVAILABLE SKILLS block (0 disables the cap)
     disabled_skills: [] # optional list of skill names to skip
 ```
 
@@ -95,9 +96,14 @@ INFER_AGENT_SKILLS_ENABLED=false infer chat
 | Setting                        | Type     | Default | Description                                                                     |
 | ------------------------------ | -------- | ------- | ------------------------------------------------------------------------------- |
 | `agent.skills.enabled`         | bool     | `true`  | Master switch. Also enables the [sandbox carve-out](#skills-sandbox-carve-out). |
+| `agent.skills.max_chars`       | int      | `4000`  | Cap on the rendered `AVAILABLE SKILLS` block. `0` disables the cap.             |
 | `agent.skills.disabled_skills` | string[] | `[]`    | Skill names to discover but never inject or activate.                           |
 
 The matching environment variable `INFER_AGENT_SKILLS_ENABLED` takes precedence over the config file. To keep skills off everywhere, set `agent.skills.enabled: false` in your user config (`~/.infer/config.yaml`).
+
+When `max_chars` is set (default `4000`), skills whose full entry would exceed the budget are listed by **name only** in the `AVAILABLE SKILLS` block - their descriptions and paths are omitted. These skills remain fully invocable via `/<name>` or the "use the `<name>` skill" phrase; the agent reads the full `SKILL.md` on demand through the [sandbox carve-out](#skills-sandbox-carve-out). Set `max_chars: 0` to disable the cap and render every skill's full entry.
+
+The matching environment variable `INFER_AGENT_SKILLS_MAX_CHARS` overrides the config value.
 
 ## Managing skills
 
