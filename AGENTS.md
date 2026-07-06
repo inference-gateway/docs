@@ -33,7 +33,7 @@ When adding a page, include `title` and `description` frontmatter, then add it t
 
 Treat `bun run lint:md`, `bun run format:check`, and `bun run build` as the required validation set for content changes. For navigation, SEO, or theme changes, also run `bun run preview` and inspect the affected pages locally.
 
-The `scripts/` provider-docs generator has a fixture-based regression suite: `bun test` (or `task test`) renders every generated region from `scripts/__fixtures__/openapi.sample.yaml` and asserts a byte-for-byte match against the committed `configuration.md` / `supported-providers.md`. It runs offline. Run it after editing `scripts/generate-provider-docs.mjs` or `scripts/provider-overrides.json`, and never hand-edit inside the `GENERATED:*` markers - run `task generate` instead.
+The `scripts/` provider-docs generator has a fixture-based regression suite: `bun test` (or `task test`) renders every generated region from `scripts/__fixtures__/openapi.sample.yaml` and asserts a byte-for-byte match against the committed `configuration.md`, `supported-providers.md`, `rust-adk.md`, and `typescript-adk.md`. It runs offline. Run it after editing `scripts/generate-provider-docs.mjs` or `scripts/provider-overrides.json`, and never hand-edit inside the `GENERATED:*` markers - run `task generate` instead.
 
 ## Commit & Pull Request Guidelines
 

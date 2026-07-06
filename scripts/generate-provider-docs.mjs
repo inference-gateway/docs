@@ -286,6 +286,17 @@ export function buildProviders(model, overrides) {
         `Provider "${id}" supports vision in the schema but has no "vision" string in overrides.`
       );
     }
+    if (!ov.adkExampleModel) {
+      throw new Error(
+        `Provider "${id}" has no "adkExampleModel" in overrides (needed for the ADK provider table).`
+      );
+    }
+    if (authType === 'none' && !ov.adkKeyNote) {
+      throw new Error(
+        `Provider "${id}" has auth_type "none" but no "adkKeyNote" in overrides ` +
+          `(the ADK provider table's API-key cell for a keyless provider).`
+      );
+    }
     return {
       id,
       url: String(cfg.url),
@@ -296,6 +307,8 @@ export function buildProviders(model, overrides) {
       urlLabel: ov.urlLabel || ov.displayName || id,
       keyLabel: ov.keyLabel || ov.displayName || id,
       vision: ov.vision || '',
+      adkExampleModel: ov.adkExampleModel,
+      adkKeyNote: ov.adkKeyNote || '',
       envUpper: id.toUpperCase(),
       constName: `${camelCase(id)}Settings`,
     };
@@ -313,6 +326,28 @@ export function renderProvidersTable(providers) {
     p.authLabel,
     '`' + p.url + '`',
     p.supportsVision ? `Yes - ${p.vision}` : 'No',
+  ]);
+  const widths = headers.map((h, i) => Math.max(h.length, 3, ...rows.map((r) => r[i].length)));
+  const fmt = (cells) => '| ' + cells.map((c, i) => c.padEnd(widths[i])).join(' | ') + ' |';
+  const sep = '| ' + widths.map((w) => '-'.repeat(w)).join(' | ') + ' |';
+  return [fmt(headers), sep, ...rows.map(fmt)];
+}
+
+// The "Switching providers and models" table shared by rust-adk.md and
+// typescript-adk.md. Provider + provider-id + a display-only example model +
+// the API-key env var (or the auth_type: none note carried in adkKeyNote).
+export function renderAdkProviderTable(providers) {
+  const headers = [
+    'Provider',
+    '`A2A_AGENT_CLIENT_PROVIDER`',
+    'Example `A2A_AGENT_CLIENT_MODEL`',
+    'API key env var',
+  ];
+  const rows = providers.map((p) => [
+    p.displayName,
+    '`' + p.id + '`',
+    '`' + p.adkExampleModel + '`',
+    p.authType === 'none' ? p.adkKeyNote : '`' + p.envUpper + '_API_KEY`',
   ]);
   const widths = headers.map((h, i) => Math.max(h.length, 3, ...rows.map((r) => r[i].length)));
   const fmt = (cells) => '| ' + cells.map((c, i) => c.padEnd(widths[i])).join(' | ') + ' |';
@@ -402,6 +437,9 @@ async function main() {
       ['provider-config-sections', renderConfigSections(providers)],
     ])
   );
+  const adkTable = renderAdkProviderTable(providers);
+  written.push(updateFile('rust-adk.md', [['adk-provider-table', adkTable]]));
+  written.push(updateFile('typescript-adk.md', [['adk-provider-table', adkTable]]));
 
   const localFile = argValue('schema-file') || process.env.SCHEMA_FILE;
   const source = localFile ? `local file ${localFile}` : SCHEMA_URL;
