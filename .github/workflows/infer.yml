@@ -44,4 +44,5 @@ jobs:
       language: "bun"
       markdownlint: true
       prompt: ${{ inputs.prompt }}
+      debug: true
     secrets: inherit
