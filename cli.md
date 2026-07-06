@@ -1911,12 +1911,12 @@ max_chars: 2000 # cap on the MEMORY.md index injected into context (truncates at
 max_entry_chars: 2000 # per-fact write cap (0 = default)
 ```
 
-| Key               | Default           | Environment variable           | Description                                                           |
-| ----------------- | ----------------- | ------------------------------ | --------------------------------------------------------------------- |
-| `enabled`         | `true`            | `INFER_MEMORY_ENABLED`         | Master switch - registers the `Memory` tool and the index injection.  |
-| `dir`             | `~/.infer/memory` | `INFER_MEMORY_DIR`             | Directory holding the fact-files and `MEMORY.md`. `""` = default.     |
+| Key               | Default           | Environment variable           | Description                                                                                          |
+| ----------------- | ----------------- | ------------------------------ | ---------------------------------------------------------------------------------------------------- |
+| `enabled`         | `true`            | `INFER_MEMORY_ENABLED`         | Master switch - registers the `Memory` tool and the index injection.                                 |
+| `dir`             | `~/.infer/memory` | `INFER_MEMORY_DIR`             | Directory holding the fact-files and `MEMORY.md`. `""` = default.                                    |
 | `max_chars`       | `2000`            | `INFER_MEMORY_MAX_CHARS`       | Upper bound on the `MEMORY.md` index injected at session start. Truncation respects line boundaries. |
-| `max_entry_chars` | `2000`            | `INFER_MEMORY_MAX_ENTRY_CHARS` | Per-fact character cap on `write` content. `0` means use the default. |
+| `max_entry_chars` | `2000`            | `INFER_MEMORY_MAX_ENTRY_CHARS` | Per-fact character cap on `write` content. `0` means use the default.                                |
 
 The memory directory is local by default. To back it with a **git remote** - pull on run start, commit and push on change - configure a [Sync backend](#sync-backend).
 
