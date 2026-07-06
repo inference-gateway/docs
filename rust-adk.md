@@ -206,6 +206,25 @@ let agent = AgentBuilder::new()
 
 > `AgentBuilder::build()` fails fast when `provider` or `model` are unset (or the provider is unsupported), so a misconfigured server errors out at startup instead of on the first chat request.
 
+### Switching providers and models
+
+The Rust ADK is provider-agnostic: every model is driven through the [Inference Gateway](https://github.com/inference-gateway/inference-gateway) SDK, so switching providers is a configuration change, not a code change. Set `A2A_AGENT_CLIENT_PROVIDER` and `A2A_AGENT_CLIENT_MODEL` (or call `with_provider(...)` / `with_model(...)`) and supply the matching API key - no rebuild required:
+
+| Provider     | `A2A_AGENT_CLIENT_PROVIDER` | Example `A2A_AGENT_CLIENT_MODEL`           | API key env var                                       |
+| ------------ | --------------------------- | ------------------------------------------ | ----------------------------------------------------- |
+| OpenAI       | `openai`                    | `gpt-5-mini`                               | `OPENAI_API_KEY`                                      |
+| Anthropic    | `anthropic`                 | `claude-opus-4-8`                          | `ANTHROPIC_API_KEY`                                   |
+| Groq         | `groq`                      | `llama-3.3-70b-versatile`                  | `GROQ_API_KEY`                                        |
+| DeepSeek     | `deepseek`                  | `deepseek-v4-flash`                        | `DEEPSEEK_API_KEY`                                    |
+| Cohere       | `cohere`                    | `command-a-03-2025`                        | `COHERE_API_KEY`                                      |
+| Mistral      | `mistral`                   | `mistral-large-3`                          | `MISTRAL_API_KEY`                                     |
+| Google       | `google`                    | `gemini-3-flash`                           | `GOOGLE_API_KEY`                                      |
+| Cloudflare   | `cloudflare`                | `@cf/meta/llama-3.3-70b-instruct-fp8-fast` | `CLOUDFLARE_API_KEY`                                  |
+| NVIDIA       | `nvidia`                    | `nvidia/meta/llama-3.1-8b-instruct`        | `NVIDIA_API_KEY`                                      |
+| Local Ollama | `ollama`                    | `llama3.3`                                 | none (set `A2A_AGENT_CLIENT_BASE_URL` to your Ollama) |
+
+NVIDIA serves the [build.nvidia.com](https://build.nvidia.com) NIM catalog (Nemotron, Llama, DeepSeek, Mistral, Qwen) with bearer-token auth at `https://integrate.api.nvidia.com/v1`. Point `A2A_AGENT_CLIENT_BASE_URL` at the Inference Gateway (recommended - it normalizes each provider's quirks so the same agent talks to every provider unchanged) or any other OpenAI-compatible endpoint. See [Supported Providers](/supported-providers) for the full matrix, auth modes, default URLs, and vision support.
+
 ### Custom LLM clients
 
 The default `OpenAICompatibleLLMClient` wraps the Inference Gateway SDK. To route requests through a different backend - or a mock for tests - implement the `LLMClient` trait (`create_chat_completion` + `create_streaming_chat_completion`, mirroring the Go ADK) and pass it to `with_llm_client(...)`:
@@ -949,7 +968,7 @@ The library never reads the environment itself. You pick a loader - typically [`
 
 | Variable                                          | Default   | Purpose                                                         |
 | ------------------------------------------------- | --------- | --------------------------------------------------------------- |
-| `A2A_AGENT_CLIENT_PROVIDER`                       | _(empty)_ | LLM provider id (e.g. `openai`, `ollama`, `groq`).              |
+| `A2A_AGENT_CLIENT_PROVIDER`                       | _(empty)_ | LLM provider id (e.g. `openai`, `nvidia`, `ollama`, `groq`).    |
 | `A2A_AGENT_CLIENT_MODEL`                          | _(empty)_ | Model name.                                                     |
 | `A2A_AGENT_CLIENT_BASE_URL`                       | _(unset)_ | Override the gateway/provider base URL.                         |
 | `A2A_AGENT_CLIENT_API_KEY`                        | _(unset)_ | Provider API key.                                               |
