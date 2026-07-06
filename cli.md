@@ -1163,6 +1163,8 @@ Two-layer configuration system with precedence from highest to lowest:
 - Max turns and tokens
 - Parallel tool execution (default: 5 concurrent)
 
+The built-in system prompt includes a `Current date:` line (date-only, no time) so provider-side prompt-prefix caching stays effective across turns. When the agent needs the current time, it runs the `date` command via Bash.
+
 **Tool Settings:**
 
 - Enable/disable individual tools
@@ -1905,7 +1907,7 @@ Runtime knobs live in `memory.yaml` (seeded by `infer init`; the in-code default
 # .infer/memory.yaml (or ~/.infer/memory.yaml)
 enabled: true
 dir: '' # "" => ~/.infer/memory
-max_chars: 2000 # cap on the MEMORY.md index injected into context
+max_chars: 2000 # cap on the MEMORY.md index injected into context (truncates at line boundary)
 max_entry_chars: 2000 # per-fact write cap (0 = default)
 ```
 
@@ -1913,7 +1915,7 @@ max_entry_chars: 2000 # per-fact write cap (0 = default)
 | ----------------- | ----------------- | ------------------------------ | --------------------------------------------------------------------- |
 | `enabled`         | `true`            | `INFER_MEMORY_ENABLED`         | Master switch - registers the `Memory` tool and the index injection.  |
 | `dir`             | `~/.infer/memory` | `INFER_MEMORY_DIR`             | Directory holding the fact-files and `MEMORY.md`. `""` = default.     |
-| `max_chars`       | `2000`            | `INFER_MEMORY_MAX_CHARS`       | Upper bound on the `MEMORY.md` index injected at session start.       |
+| `max_chars`       | `2000`            | `INFER_MEMORY_MAX_CHARS`       | Upper bound on the `MEMORY.md` index injected at session start. Truncation respects line boundaries. |
 | `max_entry_chars` | `2000`            | `INFER_MEMORY_MAX_ENTRY_CHARS` | Per-fact character cap on `write` content. `0` means use the default. |
 
 The memory directory is local by default. To back it with a **git remote** - pull on run start, commit and push on change - configure a [Sync backend](#sync-backend).
@@ -2065,6 +2067,7 @@ Reusable, model-readable instruction folders that the agent loads on demand. The
 agent:
   skills:
     enabled: true # default
+    max_chars: 4000 # cap on the rendered AVAILABLE SKILLS block (0 disables the cap)
     disabled_skills: [] # optional list of skill names to skip
 ```
 
