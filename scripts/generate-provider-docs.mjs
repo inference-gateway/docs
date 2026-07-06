@@ -345,28 +345,7 @@ export function renderProvidersTable(providers) {
 // typescript-adk.md. Every provider in the canonical schema order gets a row;
 // the example-model column is display-only (adkExampleModel in the overrides).
 // Providers with auth_type "none" (local Ollama) take no API key, so that cell
-// points the reader at A2A_AGENT_CLIENT_BASE_URL instead.
-export function renderAdkProviderTable(providers) {
-  const headers = [
-    'Provider',
-    '`A2A_AGENT_CLIENT_PROVIDER`',
-    'Example `A2A_AGENT_CLIENT_MODEL`',
-    'API key env var',
-  ];
-  const rows = providers.map((p) => [
-    p.displayName,
-    '`' + p.id + '`',
-    '`' + p.adkExampleModel + '`',
-    p.authType === 'none'
-      ? `none (set \`A2A_AGENT_CLIENT_BASE_URL\` to your ${p.displayName})`
-      : '`' + p.envUpper + '_API_KEY`',
-  ]);
-  return formatTable(headers, rows);
-}
-
-// The "Switching providers and models" table shared by rust-adk.md and
-// typescript-adk.md. Provider + provider-id + a display-only example model +
-// the API-key env var (or the auth_type: none note carried in adkKeyNote).
+// carries the adkKeyNote override instead of an API-key env var.
 export function renderAdkProviderTable(providers) {
   const headers = [
     'Provider',
@@ -380,10 +359,7 @@ export function renderAdkProviderTable(providers) {
     '`' + p.adkExampleModel + '`',
     p.authType === 'none' ? p.adkKeyNote : '`' + p.envUpper + '_API_KEY`',
   ]);
-  const widths = headers.map((h, i) => Math.max(h.length, 3, ...rows.map((r) => r[i].length)));
-  const fmt = (cells) => '| ' + cells.map((c, i) => c.padEnd(widths[i])).join(' | ') + ' |';
-  const sep = '| ' + widths.map((w) => '-'.repeat(w)).join(' | ') + ' |';
-  return [fmt(headers), sep, ...rows.map(fmt)];
+  return formatTable(headers, rows);
 }
 
 export function renderUppercaseList(providers) {
