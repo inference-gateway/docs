@@ -55,3 +55,26 @@ jobs:
 
       - name: Build static site
         run: bun run build
+
+  drift:
+    name: Docs drift
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7.0.0
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: .bun-version
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Provider-docs regression tests (offline)
+        run: bun test
+
+      - name: Fail on schema drift
+        run: |
+          bun scripts/generate-provider-docs.mjs
+          bunx prettier --write supported-providers.md configuration.md rust-adk.md typescript-adk.md
+          git diff --exit-code -- supported-providers.md configuration.md rust-adk.md typescript-adk.md \
+            || { echo 'Provider docs drifted from openapi.yaml - run `task generate` and commit.'; exit 1; }
