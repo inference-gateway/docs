@@ -1791,6 +1791,7 @@ Facts are organized by project to keep memory relevant and scoped:
 - **Legacy flat files** (pre-existing fact-files at the root) keep working as global facts - no migration needed.
 
 The project is detected automatically:
+
 1. Git remote origin is resolved to `org/repo` (e.g. `inference-gateway/cli`).
 2. If no git remote is found, the current working directory basename is used.
 3. If neither is available, the fact is stored as global.
@@ -1810,17 +1811,18 @@ metadata:
 ---
 ```
 
-| Field          | Description                                                              |
-| -------------- | ------------------------------------------------------------------------ |
-| `name`         | Short slug identifying the fact (e.g. `build-commands`).                 |
-| `description`  | One-line summary shown in the `MEMORY.md` index.                          |
-| `metadata.type` | Fact type: `user`, `feedback`, `project`, or `reference`.                |
+| Field              | Description                                                              |
+| ------------------ | ------------------------------------------------------------------------ |
+| `name`             | Short slug identifying the fact (e.g. `build-commands`).                 |
+| `description`      | One-line summary shown in the `MEMORY.md` index.                         |
+| `metadata.type`    | Fact type: `user`, `feedback`, `project`, or `reference`.                |
 | `metadata.project` | Human-readable `org/repo` that owns this fact. Omitted for global facts. |
 | `metadata.session` | The session ID that last wrote the fact (e.g. `channel-telegram-12345`). |
 
 #### Index filtering
 
 The `MEMORY.md` index injected at session start is **filtered** to show only:
+
 - Entries for the **current project** (facts under the detected project slug).
 - **Global entries** (facts at the memory directory root).
 
@@ -1832,21 +1834,21 @@ A single summary line at the bottom names other projects that have facts but are
 
 `Memory` is a [Workflow tool](#tool-categories) whose `operation` parameter selects one of three actions:
 
-| Operation | Parameters                                                                  | Effect                                                                        |
-| --------- | --------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| `read`    | `name` (optional)                                                           | With no `name`, returns the `MEMORY.md` index; with a `name`, that fact-file. |
+| Operation | Parameters                                                                    | Effect                                                                        |
+| --------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `read`    | `name` (optional)                                                             | With no `name`, returns the `MEMORY.md` index; with a `name`, that fact-file. |
 | `write`   | `name`, `description`, `type`, `content` (all required), `project` (optional) | Creates or updates a fact-file and its index entry.                           |
-| `delete`  | `name` (required)                                                           | Removes a fact-file and its index entry.                                      |
+| `delete`  | `name` (required)                                                             | Removes a fact-file and its index entry.                                      |
 
 `name` is a short slug (for example `build-commands`) for global facts, or `project/slug` (for example `inference-gateway-cli/build-commands`) for project facts - exactly as shown in the `MEMORY.md` index. `description` is the one-line summary shown in the `MEMORY.md` index, `content` is the Markdown fact body, and `type` is one of `user`, `feedback`, `project`, or `reference`.
 
 The optional `project` argument on `write` controls where the fact is filed:
 
-| `project` value | Behavior                                                                                     |
-| --------------- | -------------------------------------------------------------------------------------------- |
-| *(omitted)*     | Defaults by type: `user` facts are global; `feedback`/`project`/`reference` go under the detected project. |
-| `global`        | Forces the fact to be stored at the memory directory root (a global fact).                   |
-| `org/repo`      | Files the fact under another project's subdirectory (e.g. `inference-gateway/cli`).          |
+| `project` value | Behavior                                                                                                   |
+| --------------- | ---------------------------------------------------------------------------------------------------------- |
+| _(omitted)_     | Defaults by type: `user` facts are global; `feedback`/`project`/`reference` go under the detected project. |
+| `global`        | Forces the fact to be stored at the memory directory root (a global fact).                                 |
+| `org/repo`      | Files the fact under another project's subdirectory (e.g. `inference-gateway/cli`).                        |
 
 #### Configuration (`memory.yaml`)
 
@@ -1860,11 +1862,11 @@ max_chars: 2000 # cap on the MEMORY.md index injected into context
 max_entry_chars: 2000 # per-fact write cap (0 = default)
 ```
 
-| Key               | Default           | Environment variable           | Description                                                          |
-| ----------------- | ----------------- | ------------------------------ | -------------------------------------------------------------------- |
-| `enabled`         | `true`            | `INFER_MEMORY_ENABLED`         | Master switch - registers the `Memory` tool and the index injection. |
-| `dir`             | `~/.infer/memory` | `INFER_MEMORY_DIR`             | Directory holding the fact-files and `MEMORY.md`. `""` = default.    |
-| `max_chars`       | `2000`            | `INFER_MEMORY_MAX_CHARS`       | Upper bound on the `MEMORY.md` index injected at session start.      |
+| Key               | Default           | Environment variable           | Description                                                           |
+| ----------------- | ----------------- | ------------------------------ | --------------------------------------------------------------------- |
+| `enabled`         | `true`            | `INFER_MEMORY_ENABLED`         | Master switch - registers the `Memory` tool and the index injection.  |
+| `dir`             | `~/.infer/memory` | `INFER_MEMORY_DIR`             | Directory holding the fact-files and `MEMORY.md`. `""` = default.     |
+| `max_chars`       | `2000`            | `INFER_MEMORY_MAX_CHARS`       | Upper bound on the `MEMORY.md` index injected at session start.       |
 | `max_entry_chars` | `2000`            | `INFER_MEMORY_MAX_ENTRY_CHARS` | Per-fact character cap on `write` content. `0` means use the default. |
 
 The memory directory is local by default. To back it with a **git remote** - pull on run start, commit and push on change - configure a [Sync backend](#sync-backend).
