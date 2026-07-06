@@ -163,6 +163,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 Set `A2A_AGENT_CLIENT_API_KEY` to override the per-provider lookup, and `A2A_AGENT_CLIENT_BASE_URL` to point at the [Inference Gateway](https://github.com/inference-gateway/inference-gateway) (recommended - it normalizes provider quirks so the same agent code talks to every provider unchanged) or any other OpenAI-compatible endpoint. The full `A2A_AGENT_CLIENT_*` surface is in the [environment variable reference](#environment-variable-reference).
 
+NVIDIA serves the [build.nvidia.com](https://build.nvidia.com) NIM catalog (Nemotron, Llama, DeepSeek, Mistral, Qwen) with bearer-token auth at `https://integrate.api.nvidia.com/v1`. See [Supported Providers](/supported-providers) for the full matrix, auth modes, default URLs, and vision support.
+
 ## The server and its builder
 
 `A2AServer` is the runtime that terminates the A2A JSON-RPC protocol. You never construct it directly - `A2AServerBuilder` assembles one with a fluent interface, and `A2AServer::serve(addr)` binds the listener (plaintext, or TLS when `Config.tls_config` is enabled) and - when artifacts are enabled - spawns the artifacts server and retention loop alongside it.
@@ -975,7 +977,7 @@ The library never reads the environment itself. You pick a loader - typically [`
 
 | Variable                                          | Default   | Purpose                                                         |
 | ------------------------------------------------- | --------- | --------------------------------------------------------------- |
-| `A2A_AGENT_CLIENT_PROVIDER`                       | _(empty)_ | LLM provider id (e.g. `openai`, `ollama`, `groq`).              |
+| `A2A_AGENT_CLIENT_PROVIDER`                       | _(empty)_ | LLM provider id (e.g. `openai`, `nvidia`, `ollama`, `groq`).    |
 | `A2A_AGENT_CLIENT_MODEL`                          | _(empty)_ | Model name.                                                     |
 | `A2A_AGENT_CLIENT_BASE_URL`                       | _(unset)_ | Override the gateway/provider base URL.                         |
 | `A2A_AGENT_CLIENT_API_KEY`                        | _(unset)_ | Provider API key.                                               |

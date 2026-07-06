@@ -288,7 +288,8 @@ export function buildProviders(model, overrides) {
     }
     if (!ov.adkExampleModel) {
       throw new Error(
-        `Provider "${id}" has no "adkExampleModel" in overrides (needed for the ADK provider table).`
+        `Provider "${id}" has no "adkExampleModel" in overrides (required for the ADK ` +
+          `"Switching providers and models" table). Add one and re-run.`
       );
     }
     if (authType === 'none' && !ov.adkKeyNote) {
@@ -319,6 +320,16 @@ export function buildProviders(model, overrides) {
 // Renderers - each returns an array of lines for one marked region
 // ---------------------------------------------------------------------------
 
+// GitHub-flavored markdown table with left-aligned, space-padded columns.
+// The padding matches how `prettier --write` reflows markdown tables, so the
+// generated regions stay byte-stable across the prettier pass in `task generate`.
+function formatTable(headers, rows) {
+  const widths = headers.map((h, i) => Math.max(h.length, 3, ...rows.map((r) => r[i].length)));
+  const fmt = (cells) => '| ' + cells.map((c, i) => c.padEnd(widths[i])).join(' | ') + ' |';
+  const sep = '| ' + widths.map((w) => '-'.repeat(w)).join(' | ') + ' |';
+  return [fmt(headers), sep, ...rows.map(fmt)];
+}
+
 export function renderProvidersTable(providers) {
   const headers = ['Provider', 'Auth', 'Default URL', 'Vision Support'];
   const rows = providers.map((p) => [
@@ -327,15 +338,14 @@ export function renderProvidersTable(providers) {
     '`' + p.url + '`',
     p.supportsVision ? `Yes - ${p.vision}` : 'No',
   ]);
-  const widths = headers.map((h, i) => Math.max(h.length, 3, ...rows.map((r) => r[i].length)));
-  const fmt = (cells) => '| ' + cells.map((c, i) => c.padEnd(widths[i])).join(' | ') + ' |';
-  const sep = '| ' + widths.map((w) => '-'.repeat(w)).join(' | ') + ' |';
-  return [fmt(headers), sep, ...rows.map(fmt)];
+  return formatTable(headers, rows);
 }
 
 // The "Switching providers and models" table shared by rust-adk.md and
-// typescript-adk.md. Provider + provider-id + a display-only example model +
-// the API-key env var (or the auth_type: none note carried in adkKeyNote).
+// typescript-adk.md. Every provider in the canonical schema order gets a row;
+// the example-model column is display-only (adkExampleModel in the overrides).
+// Providers with auth_type "none" (local Ollama) take no API key, so that cell
+// carries the adkKeyNote override instead of an API-key env var.
 export function renderAdkProviderTable(providers) {
   const headers = [
     'Provider',
@@ -349,10 +359,7 @@ export function renderAdkProviderTable(providers) {
     '`' + p.adkExampleModel + '`',
     p.authType === 'none' ? p.adkKeyNote : '`' + p.envUpper + '_API_KEY`',
   ]);
-  const widths = headers.map((h, i) => Math.max(h.length, 3, ...rows.map((r) => r[i].length)));
-  const fmt = (cells) => '| ' + cells.map((c, i) => c.padEnd(widths[i])).join(' | ') + ' |';
-  const sep = '| ' + widths.map((w) => '-'.repeat(w)).join(' | ') + ' |';
-  return [fmt(headers), sep, ...rows.map(fmt)];
+  return formatTable(headers, rows);
 }
 
 export function renderUppercaseList(providers) {
@@ -389,13 +396,24 @@ export function renderConfigSections(providers) {
 // Marked-region injection
 // ---------------------------------------------------------------------------
 
-function injectRegion(content, key, innerLines) {
+export function injectRegion(content, key, innerLines) {
   const lines = content.split('\n');
-  const startIdx = lines.findIndex((l) => l.includes(`GENERATED:${key} START`));
-  const endIdx = lines.findIndex((l) => l.includes(`GENERATED:${key} END`));
-  if (startIdx === -1 || endIdx === -1) {
+  const starts = lines.flatMap((l, i) => (l.includes(`GENERATED:${key} START`) ? [i] : []));
+  const ends = lines.flatMap((l, i) => (l.includes(`GENERATED:${key} END`) ? [i] : []));
+  if (starts.length === 0 || ends.length === 0) {
     throw new Error(`Could not find the GENERATED:${key} START/END markers.`);
   }
+  // Exactly one region per key. A duplicate pair usually means a merge dropped
+  // two copies of a generated block into one file; injecting only the first
+  // would leave the second silently stale, so fail loudly instead.
+  if (starts.length > 1 || ends.length > 1) {
+    throw new Error(
+      `Expected exactly one GENERATED:${key} region but found ${starts.length} START / ` +
+        `${ends.length} END markers - remove the duplicate.`
+    );
+  }
+  const startIdx = starts[0];
+  const endIdx = ends[0];
   if (endIdx < startIdx) {
     throw new Error(`GENERATED:${key} END appears before START.`);
   }

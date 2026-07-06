@@ -10,6 +10,7 @@ import { dirname, join } from 'node:path';
 import {
   buildProviders,
   extractProviderModel,
+  injectRegion,
   renderAdkProviderTable,
   renderConfigSections,
   renderProvidersTable,
@@ -95,4 +96,35 @@ test('ADK provider table matches typescript-adk.md', () => {
   expect(renderAdkProviderTable(providers)).toEqual(
     committedRegion('typescript-adk.md', 'adk-provider-table')
   );
+});
+
+test('injectRegion replaces the body of a single marked region', () => {
+  const src = [
+    'before',
+    '<!-- GENERATED:x START -->',
+    '',
+    'old',
+    '',
+    '<!-- GENERATED:x END -->',
+    'after',
+  ].join('\n');
+  const out = injectRegion(src, 'x', ['new-1', 'new-2']);
+  expect(out).toBe(
+    [
+      'before',
+      '<!-- GENERATED:x START -->',
+      '',
+      'new-1',
+      'new-2',
+      '',
+      '<!-- GENERATED:x END -->',
+      'after',
+    ].join('\n')
+  );
+});
+
+test('injectRegion rejects a file with duplicate markers (the merge trap)', () => {
+  const one = ['<!-- GENERATED:x START -->', '', 'old', '', '<!-- GENERATED:x END -->'];
+  const dup = [...one, ...one].join('\n');
+  expect(() => injectRegion(dup, 'x', ['new'])).toThrow(/Expected exactly one GENERATED:x region/);
 });
