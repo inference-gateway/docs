@@ -210,20 +210,27 @@ let agent = AgentBuilder::new()
 
 The Rust ADK is provider-agnostic: every model is driven through the [Inference Gateway](https://github.com/inference-gateway/inference-gateway) SDK, so switching providers is a configuration change, not a code change. Set `A2A_AGENT_CLIENT_PROVIDER` and `A2A_AGENT_CLIENT_MODEL` (or call `with_provider(...)` / `with_model(...)`) and supply the matching API key - no rebuild required:
 
+<!-- GENERATED:adk-provider-table START (do not edit - run: task generate) -->
+
 | Provider     | `A2A_AGENT_CLIENT_PROVIDER` | Example `A2A_AGENT_CLIENT_MODEL`           | API key env var                                       |
 | ------------ | --------------------------- | ------------------------------------------ | ----------------------------------------------------- |
 | OpenAI       | `openai`                    | `gpt-5-mini`                               | `OPENAI_API_KEY`                                      |
-| Anthropic    | `anthropic`                 | `claude-opus-4-8`                          | `ANTHROPIC_API_KEY`                                   |
-| Groq         | `groq`                      | `llama-3.3-70b-versatile`                  | `GROQ_API_KEY`                                        |
 | DeepSeek     | `deepseek`                  | `deepseek-v4-flash`                        | `DEEPSEEK_API_KEY`                                    |
+| Anthropic    | `anthropic`                 | `claude-opus-4-8`                          | `ANTHROPIC_API_KEY`                                   |
 | Cohere       | `cohere`                    | `command-a-03-2025`                        | `COHERE_API_KEY`                                      |
-| Mistral      | `mistral`                   | `mistral-large-3`                          | `MISTRAL_API_KEY`                                     |
-| Google       | `google`                    | `gemini-3-flash`                           | `GOOGLE_API_KEY`                                      |
+| Groq         | `groq`                      | `llama-3.3-70b-versatile`                  | `GROQ_API_KEY`                                        |
 | Cloudflare   | `cloudflare`                | `@cf/meta/llama-3.3-70b-instruct-fp8-fast` | `CLOUDFLARE_API_KEY`                                  |
-| Nvidia       | `nvidia`                    | `nvidia/meta/llama-3.1-8b-instruct`        | `NVIDIA_API_KEY`                                      |
-| Local Ollama | `ollama`                    | `llama3.3`                                 | none (set `A2A_AGENT_CLIENT_BASE_URL` to your Ollama) |
+| Ollama       | `ollama`                    | `llama3.3`                                 | none (set `A2A_AGENT_CLIENT_BASE_URL` to your Ollama) |
+| Ollama Cloud | `ollama_cloud`              | `gpt-oss:120b`                             | `OLLAMA_CLOUD_API_KEY`                                |
+| Google       | `google`                    | `gemini-3-flash`                           | `GOOGLE_API_KEY`                                      |
+| Mistral      | `mistral`                   | `mistral-large-3`                          | `MISTRAL_API_KEY`                                     |
+| MiniMax      | `minimax`                   | `MiniMax-M3`                               | `MINIMAX_API_KEY`                                     |
+| Moonshot     | `moonshot`                  | `kimi-k2-thinking`                         | `MOONSHOT_API_KEY`                                    |
+| NVIDIA       | `nvidia`                    | `nvidia/meta/llama-3.1-8b-instruct`        | `NVIDIA_API_KEY`                                      |
 
-Nvidia serves the [build.nvidia.com](https://build.nvidia.com) NIM catalog (Nemotron, Llama, DeepSeek, Mistral, Qwen) with bearer-token auth at `https://integrate.api.nvidia.com/v1`. Point `A2A_AGENT_CLIENT_BASE_URL` at the Inference Gateway (recommended - it normalizes each provider's quirks so the same agent talks to every provider unchanged) or any other OpenAI-compatible endpoint. See [Supported Providers](/supported-providers) for the full matrix, auth modes, default URLs, and vision support.
+<!-- GENERATED:adk-provider-table END (do not edit - run: task generate) -->
+
+NVIDIA serves the [build.nvidia.com](https://build.nvidia.com) NIM catalog (Nemotron, Llama, DeepSeek, Mistral, Qwen) with bearer-token auth at `https://integrate.api.nvidia.com/v1`. Point `A2A_AGENT_CLIENT_BASE_URL` at the Inference Gateway (recommended - it normalizes each provider's quirks so the same agent talks to every provider unchanged) or any other OpenAI-compatible endpoint. See [Supported Providers](/supported-providers) for the full matrix, auth modes, default URLs, and vision support.
 
 ### Custom LLM clients
 

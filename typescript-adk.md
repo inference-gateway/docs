@@ -1089,17 +1089,25 @@ The full event-type matrix exposed on `AGENT_EVENT_TYPE` is documented in [Cloud
 
 `server.ts` is provider-agnostic. To swap models, change `A2A_AGENT_CLIENT_PROVIDER` and `A2A_AGENT_CLIENT_MODEL` and supply the matching API key - no code edits:
 
+<!-- GENERATED:adk-provider-table START (do not edit - run: task generate) -->
+
 | Provider     | `A2A_AGENT_CLIENT_PROVIDER` | Example `A2A_AGENT_CLIENT_MODEL`           | API key env var                                       |
 | ------------ | --------------------------- | ------------------------------------------ | ----------------------------------------------------- |
 | OpenAI       | `openai`                    | `gpt-5-mini`                               | `OPENAI_API_KEY`                                      |
-| Anthropic    | `anthropic`                 | `claude-opus-4-8`                          | `ANTHROPIC_API_KEY`                                   |
-| Groq         | `groq`                      | `llama-3.3-70b-versatile`                  | `GROQ_API_KEY`                                        |
 | DeepSeek     | `deepseek`                  | `deepseek-v4-flash`                        | `DEEPSEEK_API_KEY`                                    |
+| Anthropic    | `anthropic`                 | `claude-opus-4-8`                          | `ANTHROPIC_API_KEY`                                   |
 | Cohere       | `cohere`                    | `command-a-03-2025`                        | `COHERE_API_KEY`                                      |
-| Mistral      | `mistral`                   | `mistral-large-3`                          | `MISTRAL_API_KEY`                                     |
-| Google       | `google`                    | `gemini-3-flash`                           | `GOOGLE_API_KEY`                                      |
+| Groq         | `groq`                      | `llama-3.3-70b-versatile`                  | `GROQ_API_KEY`                                        |
 | Cloudflare   | `cloudflare`                | `@cf/meta/llama-3.3-70b-instruct-fp8-fast` | `CLOUDFLARE_API_KEY`                                  |
-| Local Ollama | `ollama`                    | `llama3.3`                                 | none (set `A2A_AGENT_CLIENT_BASE_URL` to your Ollama) |
+| Ollama       | `ollama`                    | `llama3.3`                                 | none (set `A2A_AGENT_CLIENT_BASE_URL` to your Ollama) |
+| Ollama Cloud | `ollama_cloud`              | `gpt-oss:120b`                             | `OLLAMA_CLOUD_API_KEY`                                |
+| Google       | `google`                    | `gemini-3-flash`                           | `GOOGLE_API_KEY`                                      |
+| Mistral      | `mistral`                   | `mistral-large-3`                          | `MISTRAL_API_KEY`                                     |
+| MiniMax      | `minimax`                   | `MiniMax-M3`                               | `MINIMAX_API_KEY`                                     |
+| Moonshot     | `moonshot`                  | `kimi-k2-thinking`                         | `MOONSHOT_API_KEY`                                    |
+| NVIDIA       | `nvidia`                    | `nvidia/meta/llama-3.1-8b-instruct`        | `NVIDIA_API_KEY`                                      |
+
+<!-- GENERATED:adk-provider-table END (do not edit - run: task generate) -->
 
 Set `A2A_AGENT_CLIENT_API_KEY` to override the per-provider lookup, and `A2A_AGENT_CLIENT_BASE_URL` to point at the [Inference Gateway](https://github.com/inference-gateway/inference-gateway) (recommended - it normalizes provider quirks so the same agent code talks to every provider unchanged) or any other OpenAI-compatible endpoint. The full configuration matrix, troubleshooting checklist, and example client output live in the example's [`README.md`](https://github.com/inference-gateway/typescript-adk/blob/main/examples/ai-powered-streaming/README.md).
 

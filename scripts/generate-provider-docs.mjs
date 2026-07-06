@@ -286,6 +286,12 @@ export function buildProviders(model, overrides) {
         `Provider "${id}" supports vision in the schema but has no "vision" string in overrides.`
       );
     }
+    if (!ov.adkExampleModel) {
+      throw new Error(
+        `Provider "${id}" has no "adkExampleModel" in overrides (required for the ADK ` +
+          `"Switching providers and models" table). Add one and re-run.`
+      );
+    }
     return {
       id,
       url: String(cfg.url),
@@ -296,6 +302,7 @@ export function buildProviders(model, overrides) {
       urlLabel: ov.urlLabel || ov.displayName || id,
       keyLabel: ov.keyLabel || ov.displayName || id,
       vision: ov.vision || '',
+      adkExampleModel: ov.adkExampleModel,
       envUpper: id.toUpperCase(),
       constName: `${camelCase(id)}Settings`,
     };
@@ -306,6 +313,16 @@ export function buildProviders(model, overrides) {
 // Renderers - each returns an array of lines for one marked region
 // ---------------------------------------------------------------------------
 
+// GitHub-flavored markdown table with left-aligned, space-padded columns.
+// The padding matches how `prettier --write` reflows markdown tables, so the
+// generated regions stay byte-stable across the prettier pass in `task generate`.
+function formatTable(headers, rows) {
+  const widths = headers.map((h, i) => Math.max(h.length, 3, ...rows.map((r) => r[i].length)));
+  const fmt = (cells) => '| ' + cells.map((c, i) => c.padEnd(widths[i])).join(' | ') + ' |';
+  const sep = '| ' + widths.map((w) => '-'.repeat(w)).join(' | ') + ' |';
+  return [fmt(headers), sep, ...rows.map(fmt)];
+}
+
 export function renderProvidersTable(providers) {
   const headers = ['Provider', 'Auth', 'Default URL', 'Vision Support'];
   const rows = providers.map((p) => [
@@ -314,10 +331,30 @@ export function renderProvidersTable(providers) {
     '`' + p.url + '`',
     p.supportsVision ? `Yes - ${p.vision}` : 'No',
   ]);
-  const widths = headers.map((h, i) => Math.max(h.length, 3, ...rows.map((r) => r[i].length)));
-  const fmt = (cells) => '| ' + cells.map((c, i) => c.padEnd(widths[i])).join(' | ') + ' |';
-  const sep = '| ' + widths.map((w) => '-'.repeat(w)).join(' | ') + ' |';
-  return [fmt(headers), sep, ...rows.map(fmt)];
+  return formatTable(headers, rows);
+}
+
+// The "Switching providers and models" table shared by rust-adk.md and
+// typescript-adk.md. Every provider in the canonical schema order gets a row;
+// the example-model column is display-only (adkExampleModel in the overrides).
+// Providers with auth_type "none" (local Ollama) take no API key, so that cell
+// points the reader at A2A_AGENT_CLIENT_BASE_URL instead.
+export function renderAdkProviderTable(providers) {
+  const headers = [
+    'Provider',
+    '`A2A_AGENT_CLIENT_PROVIDER`',
+    'Example `A2A_AGENT_CLIENT_MODEL`',
+    'API key env var',
+  ];
+  const rows = providers.map((p) => [
+    p.displayName,
+    '`' + p.id + '`',
+    '`' + p.adkExampleModel + '`',
+    p.authType === 'none'
+      ? `none (set \`A2A_AGENT_CLIENT_BASE_URL\` to your ${p.displayName})`
+      : '`' + p.envUpper + '_API_KEY`',
+  ]);
+  return formatTable(headers, rows);
 }
 
 export function renderUppercaseList(providers) {
@@ -402,6 +439,9 @@ async function main() {
       ['provider-config-sections', renderConfigSections(providers)],
     ])
   );
+  const adkTable = renderAdkProviderTable(providers);
+  written.push(updateFile('rust-adk.md', [['adk-provider-table', adkTable]]));
+  written.push(updateFile('typescript-adk.md', [['adk-provider-table', adkTable]]));
 
   const localFile = argValue('schema-file') || process.env.SCHEMA_FILE;
   const source = localFile ? `local file ${localFile}` : SCHEMA_URL;

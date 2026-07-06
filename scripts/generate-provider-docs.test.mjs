@@ -1,7 +1,7 @@
 // Regression net for the provider-docs generator. Runs the pure render pipeline
 // against the bundled fixture schema and asserts every generated region still
 // matches what is committed in the docs. This exercises the hand-rolled block
-// YAML reader, the schema/override merge and its validation, and all five
+// YAML reader, the schema/override merge and its validation, and all six
 // renderers - with no network access and no prettier pass. Run with: bun test.
 import { test, expect } from 'bun:test';
 import { readFileSync } from 'node:fs';
@@ -10,6 +10,7 @@ import { dirname, join } from 'node:path';
 import {
   buildProviders,
   extractProviderModel,
+  renderAdkProviderTable,
   renderConfigSections,
   renderProvidersTable,
   renderSettingsConsts,
@@ -81,5 +82,17 @@ test('provider settings consts match configuration.md', () => {
 test('provider config sections match configuration.md', () => {
   expect(renderConfigSections(providers)).toEqual(
     committedRegion('configuration.md', 'provider-config-sections')
+  );
+});
+
+test('ADK provider table matches rust-adk.md', () => {
+  expect(renderAdkProviderTable(providers)).toEqual(
+    committedRegion('rust-adk.md', 'adk-provider-table')
+  );
+});
+
+test('ADK provider table matches typescript-adk.md', () => {
+  expect(renderAdkProviderTable(providers)).toEqual(
+    committedRegion('typescript-adk.md', 'adk-provider-table')
   );
 });
