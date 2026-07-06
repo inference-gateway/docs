@@ -1104,7 +1104,7 @@ The full event-type matrix exposed on `AGENT_EVENT_TYPE` is documented in [Cloud
 | Google       | `google`                    | `gemini-3-flash`                           | `GOOGLE_API_KEY`                                      |
 | Mistral      | `mistral`                   | `mistral-large-3`                          | `MISTRAL_API_KEY`                                     |
 | MiniMax      | `minimax`                   | `MiniMax-M3`                               | `MINIMAX_API_KEY`                                     |
-| Moonshot     | `moonshot`                  | `kimi-k2-thinking`                         | `MOONSHOT_API_KEY`                                    |
+| Moonshot     | `moonshot`                  | `kimi-latest`                              | `MOONSHOT_API_KEY`                                    |
 | NVIDIA       | `nvidia`                    | `nvidia/meta/llama-3.1-8b-instruct`        | `NVIDIA_API_KEY`                                      |
 
 <!-- GENERATED:adk-provider-table END (do not edit - run: task generate) -->

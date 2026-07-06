@@ -292,6 +292,12 @@ export function buildProviders(model, overrides) {
           `"Switching providers and models" table). Add one and re-run.`
       );
     }
+    if (authType === 'none' && !ov.adkKeyNote) {
+      throw new Error(
+        `Provider "${id}" has auth_type "none" but no "adkKeyNote" in overrides ` +
+          `(the ADK provider table's API-key cell for a keyless provider).`
+      );
+    }
     return {
       id,
       url: String(cfg.url),
@@ -303,6 +309,7 @@ export function buildProviders(model, overrides) {
       keyLabel: ov.keyLabel || ov.displayName || id,
       vision: ov.vision || '',
       adkExampleModel: ov.adkExampleModel,
+      adkKeyNote: ov.adkKeyNote || '',
       envUpper: id.toUpperCase(),
       constName: `${camelCase(id)}Settings`,
     };
@@ -355,6 +362,28 @@ export function renderAdkProviderTable(providers) {
       : '`' + p.envUpper + '_API_KEY`',
   ]);
   return formatTable(headers, rows);
+}
+
+// The "Switching providers and models" table shared by rust-adk.md and
+// typescript-adk.md. Provider + provider-id + a display-only example model +
+// the API-key env var (or the auth_type: none note carried in adkKeyNote).
+export function renderAdkProviderTable(providers) {
+  const headers = [
+    'Provider',
+    '`A2A_AGENT_CLIENT_PROVIDER`',
+    'Example `A2A_AGENT_CLIENT_MODEL`',
+    'API key env var',
+  ];
+  const rows = providers.map((p) => [
+    p.displayName,
+    '`' + p.id + '`',
+    '`' + p.adkExampleModel + '`',
+    p.authType === 'none' ? p.adkKeyNote : '`' + p.envUpper + '_API_KEY`',
+  ]);
+  const widths = headers.map((h, i) => Math.max(h.length, 3, ...rows.map((r) => r[i].length)));
+  const fmt = (cells) => '| ' + cells.map((c, i) => c.padEnd(widths[i])).join(' | ') + ' |';
+  const sep = '| ' + widths.map((w) => '-'.repeat(w)).join(' | ') + ' |';
+  return [fmt(headers), sep, ...rows.map(fmt)];
 }
 
 export function renderUppercaseList(providers) {
