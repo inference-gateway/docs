@@ -267,6 +267,29 @@ infer chat
 
 > Shipped in [inference-gateway/cli#574](https://github.com/inference-gateway/cli/pull/574).
 
+#### Resuming a session (`--session-id`)
+
+`infer chat --session-id <id>` loads a persisted conversation before the TUI starts, letting you pick up where you left off. The session must have been persisted by a [storage backend](#conversation-management) (`storage.enabled: true`).
+
+```bash
+# Find session IDs from saved conversations
+infer conversations list
+
+# Resume a specific session
+infer chat --session-id abc-123-def
+```
+
+**Session ID resolution:**
+
+- A literal **UUID** is used as-is.
+- Any **non-UUID** value is treated as a **session group key** and resolved through the session rollover chain to the latest session in that group.
+
+**Fallback:** If the session cannot be loaded (e.g. the ID does not exist or storage is disabled), the CLI prints a visible notice and starts a new session under the requested ID — the same semantics as [`infer agent --session-id`](#session-id-agent).
+
+**Ignored in non-interactive modes:** The flag is ignored (with a printed notice) in `--web` mode and when input is piped (non-interactive).
+
+> Shipped in [inference-gateway/cli#760](https://github.com/inference-gateway/cli/pull/760).
+
 #### Status indicator row
 
 Below the chat input, a row of **status indicators** shows the current agent state. You can interact with these indicators using the keyboard:
@@ -451,6 +474,29 @@ When `pricing.enabled: false` (or pricing data is unavailable for the model), `i
 ```bash
 infer agent "Summarize the open PRs" --result-file /tmp/result.json
 ```
+
+#### Resuming a session (`--session-id`)
+
+`infer agent --session-id <id>` loads a persisted conversation before the agent starts, letting you resume a previous session. The session must have been persisted by a [storage backend](#conversation-management) (`storage.enabled: true`).
+
+```bash
+# Find session IDs from saved conversations
+infer conversations list
+
+# Resume a specific session
+infer agent "Continue the refactoring" --session-id abc-123-def
+```
+
+**Session ID resolution:**
+
+- A literal **UUID** is used as-is.
+- Any **non-UUID** value is treated as a **session group key** and resolved through the session rollover chain to the latest session in that group.
+
+**Fallback:** If the session cannot be loaded (e.g. the ID does not exist or storage is disabled), the CLI prints a visible notice and starts a new session under the requested ID.
+
+The same flag is also available on [`infer chat --session-id`](#resuming-a-session---session-id) for resuming chat sessions interactively.
+
+> Shipped in [inference-gateway/cli#760](https://github.com/inference-gateway/cli/pull/760).
 
 ## Computer Use
 
@@ -1719,7 +1765,8 @@ infer chat
 
 **Session id resolution:**
 
-`<session-id>` is resolved the same way as `infer agent --session-id`: a literal UUID is used
+`<session-id>` is resolved the same way as [`infer agent --session-id`](#session-id-agent) and
+[`infer chat --session-id`](#resuming-a-session---session-id): a literal UUID is used
 as-is, while any other value is treated as a session group key and resolved to that group's
 current session id (registering the group if it is new). This means you can show a conversation
 by group name such as `channel-telegram-12345`.
