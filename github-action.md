@@ -88,6 +88,29 @@ To override the composed default and supply your own full set of reminders, use 
 
 See the [CLI reminders documentation](/cli/#system-reminders) for the full YAML schema, trigger catalog (`always`, `on_failure`), and the `INFER_REMINDERS_CONFIG` / `--reminders-file` / `on_failure` trigger reference.
 
+### System prompt override
+
+The action bundles a default system prompt for each context kind (issue, PR, fork PR, direct). You can override it with one of four inputs:
+
+| Input                   | Context                     | Template variables                                                   |
+| ----------------------- | --------------------------- | -------------------------------------------------------------------- |
+| `system-prompt-issue`   | Issue-driven runs           | `{{issueNumber}}`                                                    |
+| `system-prompt-pr`      | PR-driven runs (non-fork)   | `{{prNumber}}`, `{{headRef}}`                                        |
+| `system-prompt-pr-fork` | Fork PR runs (view-only)    | `{{prNumber}}`, `{{headRef}}`, `{{headRepoFullName}}`, `{{baseRef}}` |
+| `system-prompt-direct`  | Direct-prompt (manual) runs | (none)                                                               |
+
+When set, the input **replaces** the action's bundled default prompt for that context (it is not merged). The resulting prompt (override or bundled) then **replaces** the CLI's own base system prompt text. The CLI still appends its dynamic context block - skills, memory, tools, sandbox, and bash allow-list information - because the action pins `INFER_AGENT_SYSTEM_PROMPT_WITH_DEFAULTS=true` (the CLI default, pinned explicitly so a consumer config cannot turn it off).
+
+The bundled defaults carry git-safety instructions (branch-first, commit-per-todo, push, draft PR, finish checklist). If your override omits those instructions, the action emits a `::warning::` in the run log so the lost-work guard is not dropped silently. Prefer `custom-instructions` to layer extras on top of the default unless you need a full replacement.
+
+#### Claude Code subscription mode
+
+In [Claude Code subscription mode](#claude-code-subscription-mode), the action sends its system prompt via `INFER_PROMPTS_AGENT_SYSTEM_PROMPT_CLAUDE_CODE`. The CLI sends no gateway system prompt in this mode; instead, the action's instructions are appended to Claude Code's own prompt via `--append-system-prompt`.
+
+#### Source reference
+
+- Action PR: [inference-gateway/infer-action#177](https://github.com/inference-gateway/infer-action/pull/177) - fix: send the agent system prompt via `INFER_PROMPTS_AGENT_SYSTEM_PROMPT` (dead env var since CLI v0.105.0)
+
 ### Dynamic model selection
 
 Override the workflow's default model on a per-issue or per-comment basis by including `/model provider/model-name` in the trigger text:
@@ -139,6 +162,10 @@ The total and failed tool-call counts are also exposed as the `total-tool-calls-
 | `version`                 | No       | `v0.131.0` | `infer` CLI version to install inside the runner.                                                                                                                                                                                                                                                                                                                                                                                                         |
 | `max-turns`               | No       | `50`       | Maximum agent iterations - acts as a runaway-cost guard.                                                                                                                                                                                                                                                                                                                                                                                                  |
 | `custom-instructions`     | No       | `''`       | Extra instructions appended to the default system prompt (does **not** replace the defaults).                                                                                                                                                                                                                                                                                                                                                             |
+| `system-prompt-issue`     | No       | `''`       | Overrides the action's bundled system prompt for issue-driven runs. Substitutes `{{issueNumber}}`. See [System prompt override](#system-prompt-override).                                                                                                                                                                                                                                                                                                 |
+| `system-prompt-pr`        | No       | `''`       | Overrides the action's bundled system prompt for PR-driven runs (non-fork). Substitutes `{{prNumber}}`, `{{headRef}}`. See [System prompt override](#system-prompt-override).                                                                                                                                                                                                                                                                             |
+| `system-prompt-pr-fork`   | No       | `''`       | Overrides the action's bundled system prompt for fork PR runs (view-only). Substitutes `{{prNumber}}`, `{{headRef}}`, `{{headRepoFullName}}`, `{{baseRef}}`. See [System prompt override](#system-prompt-override).                                                                                                                                                                                                                                       |
+| `system-prompt-direct`    | No       | `''`       | Overrides the action's bundled system prompt for direct-prompt (`workflow_dispatch`) runs. No variables. See [System prompt override](#system-prompt-override).                                                                                                                                                                                                                                                                                           |
 | `bash-whitelist-commands` | No       | `''`       | Comma-separated commands appended to the agent's bash allow-list (e.g. `npm,yarn,pnpm`).                                                                                                                                                                                                                                                                                                                                                                  |
 | `bash-whitelist-patterns` | No       | `''`       | Comma-separated regex patterns appended to the agent's bash allow-list (e.g. `^npm .*,^yarn .*`).                                                                                                                                                                                                                                                                                                                                                         |
 | `enable-git-operations`   | No       | `true`     | When `false`, the agent runs in comment-only mode - `git`/`gh` are not allow-listed and no PRs are created.                                                                                                                                                                                                                                                                                                                                               |
