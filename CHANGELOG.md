@@ -2,6 +2,38 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.8.0](https://github.com/inference-gateway/docs/compare/0.7.0...0.8.0) (2026-07-06)
+
+### ✨ Features
+
+* generate provider-derived docs from canonical openapi.yaml ([#340](https://github.com/inference-gateway/docs/issues/340)) ([796e48d](https://github.com/inference-gateway/docs/commit/796e48defd09470912c2f9e4938a9528b278c51d))
+
+### 🐛 Bug Fixes
+
+* **ci:** release notes are not being generated ([7c65e03](https://github.com/inference-gateway/docs/commit/7c65e032d7088f4b478d652aa55ff17e42bdc64f))
+
+### 👷 CI
+
+* **claude:** centralize claude.yml via reusable workflow ([#341](https://github.com/inference-gateway/docs/issues/341)) ([e382f6b](https://github.com/inference-gateway/docs/commit/e382f6b493c1bd880198868afbf0035123582ff1))
+* **deps:** update inference workflow to version 0.15.1 ([e30cc1e](https://github.com/inference-gateway/docs/commit/e30cc1e4ed416ff772eb714db8fda4213a428328))
+
+### 📚 Documentation
+
+* add minimax-api-key row to github-action inputs ([#332](https://github.com/inference-gateway/docs/issues/332)) ([d06673b](https://github.com/inference-gateway/docs/commit/d06673b5127f8e98413bd82dbdf9e50c3772086a))
+* add nvidia as an adl init llm provider ([#336](https://github.com/inference-gateway/docs/issues/336)) ([a42ce03](https://github.com/inference-gateway/docs/commit/a42ce0303489f9ea3cd68e2df16869c80ef1cdd8))
+* add NVIDIA provider documentation ([#325](https://github.com/inference-gateway/docs/issues/325)) ([43076b2](https://github.com/inference-gateway/docs/commit/43076b25610f9d693116b69cb9612ebeef7389ff))
+* add NVIDIA to SDK docs and provider lists ([#328](https://github.com/inference-gateway/docs/issues/328)) ([9d521e1](https://github.com/inference-gateway/docs/commit/9d521e1a9c9dc73ed00f5dd5ed04205f44551f0c))
+* **adl-cli:** add minimax provider to reference tables ([#344](https://github.com/inference-gateway/docs/issues/344)) ([3e1e0c6](https://github.com/inference-gateway/docs/commit/3e1e0c6f45ff1fa733970234f44992fb5a374af2)), references [#337](https://github.com/inference-gateway/docs/issues/337)
+* confirm nvidia in SDK Provider enums, add TS/Go examples ([#333](https://github.com/inference-gateway/docs/issues/333)) ([e6332af](https://github.com/inference-gateway/docs/commit/e6332afee9241656e06d5c0c2e26a72b70fe72b4))
+* document nvidia-api-key action input ([#338](https://github.com/inference-gateway/docs/issues/338)) ([68c3ace](https://github.com/inference-gateway/docs/commit/68c3acedc074f702b4b578f584a7b6af8d872bd7))
+* document OTLP metrics push endpoint and GenAI semconv metric names ([#321](https://github.com/inference-gateway/docs/issues/321)) ([f9a5117](https://github.com/inference-gateway/docs/commit/f9a511765670234d91d1530725e3bab0c5ab1b1d))
+
+### 🔧 Miscellaneous
+
+* **deps-dev:** bump the bun group with 2 updates ([#327](https://github.com/inference-gateway/docs/issues/327)) ([c0576ed](https://github.com/inference-gateway/docs/commit/c0576ed7ea2227ccf054dbf279f1eadf670ab12c))
+* **deps:** bump claude-code 2.1.177 -> 2.1.197, claude-code-action v1.0.164 -> v1.0.165 ([#335](https://github.com/inference-gateway/docs/issues/335)) ([a256e25](https://github.com/inference-gateway/docs/commit/a256e255e623c4aa1f23013fd30d377eef02df8b))
+* **deps:** bump inference-gateway/.github/.github/workflows/claude.yml ([#326](https://github.com/inference-gateway/docs/issues/326)) ([300d6a8](https://github.com/inference-gateway/docs/commit/300d6a8652fd59454a1fd97ca4425d143a1b225d))
+
 ## [0.7.0](https://github.com/inference-gateway/docs/compare/0.6.116...0.7.0) (2026-07-04)
 
 ## [0.6.116](https://github.com/inference-gateway/docs/compare/0.6.115...0.6.116) (2026-07-03)
