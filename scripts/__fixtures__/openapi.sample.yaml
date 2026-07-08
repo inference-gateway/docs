@@ -23,6 +23,7 @@ components:
         - minimax
         - moonshot
         - nvidia
+        - zai
       x-provider-configs:
         openai:
           url: https://api.openai.com/v1
@@ -158,6 +159,17 @@ components:
               path: /chat/completions
         nvidia:
           url: https://integrate.api.nvidia.com/v1
+          auth_type: bearer
+          supports_vision: true
+          endpoints:
+            models:
+              method: GET
+              path: /models
+            chat:
+              method: POST
+              path: /chat/completions
+        zai:
+          url: https://api.z.ai/v1
           auth_type: bearer
           supports_vision: true
           endpoints:
