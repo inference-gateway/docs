@@ -95,6 +95,13 @@
       "keyLabel": "NVIDIA",
       "vision": "Nemotron, Llama, DeepSeek, Mistral, Qwen",
       "adkExampleModel": "nvidia/meta/llama-3.1-8b-instruct"
+    },
+    "zai": {
+      "displayName": "Z-AI",
+      "urlLabel": "Z-AI",
+      "keyLabel": "Z-AI",
+      "vision": "GLM 5.2",
+      "adkExampleModel": "glm-5.2"
     }
   }
 }

@@ -26,6 +26,7 @@ Inference Gateway provides a unified interface to interact with multiple LLM pro
 | MiniMax      | Bearer Token     | `https://api.minimax.io/v1`                                     | Yes - MiniMax-M3                                                        |
 | Moonshot     | Bearer Token     | `https://api.moonshot.ai/v1`                                    | Yes - moonshot-v1-\*-vision-preview, kimi-latest, kimi-thinking-preview |
 | NVIDIA       | Bearer Token     | `https://integrate.api.nvidia.com/v1`                           | Yes - Nemotron, Llama, DeepSeek, Mistral, Qwen                          |
+| Z-AI         | Bearer Token     | `https://api.z.ai/v1`                                           | Yes - GLM 5.2                                                           |
 
 <!-- GENERATED:providers-table END (do not edit - run: task generate) -->
 
@@ -54,6 +55,7 @@ ENABLE_VISION=true
 - **MiniMax**: MiniMax-M3
 - **Moonshot**: moonshot-v1-\*-vision-preview, kimi-latest, kimi-thinking-preview
 - **NVIDIA**: Nemotron, Llama, DeepSeek, Mistral, Qwen
+- **Z-AI**: GLM 5.2
 
 <!-- GENERATED:vision-list END (do not edit - run: task generate) -->
 
@@ -95,7 +97,7 @@ Each provider requires specific configuration through environment variables:
 
 <!-- GENERATED:provider-uppercase START (do not edit - run: task generate) -->
 
-Replace "PROVIDER" with the provider name (uppercase): OPENAI, DEEPSEEK, ANTHROPIC, COHERE, GROQ, CLOUDFLARE, OLLAMA, OLLAMA_CLOUD, GOOGLE, MISTRAL, MINIMAX, MOONSHOT, NVIDIA.
+Replace "PROVIDER" with the provider name (uppercase): OPENAI, DEEPSEEK, ANTHROPIC, COHERE, GROQ, CLOUDFLARE, OLLAMA, OLLAMA_CLOUD, GOOGLE, MISTRAL, MINIMAX, MOONSHOT, NVIDIA, ZAI.
 
 <!-- GENERATED:provider-uppercase END (do not edit - run: task generate) -->
 
@@ -457,3 +459,31 @@ curl http://localhost:8080/v1/models?provider=nvidia
 ```
 
 > **Note:** NVIDIA is additive alongside Groq. Groq provides ultra-low-latency inference via LPU hardware, while NVIDIA offers a broad GPU-served catalog including Nemotron, Llama, DeepSeek, Mistral, and Qwen. They are complementary providers.
+
+### Z-AI Provider
+
+Generate content with Z-AI models for direct access to open-weight models like GLM:
+
+```bash
+curl -X POST http://localhost:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "zai/glm-5.2",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a helpful assistant."
+      },
+      {
+        "role": "user",
+        "content": "Explain the benefits of open-weight models."
+      }
+    ]
+  }'
+```
+
+List available models:
+
+```bash
+curl http://localhost:8080/v1/models?provider=zai
+```
