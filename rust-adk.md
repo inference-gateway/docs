@@ -158,6 +158,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 | MiniMax      | `minimax`                   | `MiniMax-M3`                               | `MINIMAX_API_KEY`                                     |
 | Moonshot     | `moonshot`                  | `kimi-latest`                              | `MOONSHOT_API_KEY`                                    |
 | NVIDIA       | `nvidia`                    | `nvidia/meta/llama-3.1-8b-instruct`        | `NVIDIA_API_KEY`                                      |
+| Z-AI         | `zai`                       | `glm-5.2`                                  | `ZAI_API_KEY`                                         |
 
 <!-- GENERATED:adk-provider-table END (do not edit - run: task generate) -->
 
