@@ -1176,21 +1176,19 @@ development:
       enabled: false
 ```
 
-| Toggle               | Coding agent              | Docs file the agent reads | GitHub Actions workflow generated?                                                |
-| -------------------- | ------------------------- | ------------------------- | --------------------------------------------------------------------------------- |
-| `claudecode.enabled` | Anthropic Claude Code     | `CLAUDE.md`               | yes (`.github/workflows/claude.yml`, uses `anthropics/claude-code-action`)        |
-| `codex.enabled`      | OpenAI Codex              | `AGENTS.md` (shared)      | yes (`.github/workflows/codex.yml`, uses `openai/codex-action`)                   |
-| `gemini.enabled`     | Google Gemini             | `GEMINI.md`               | yes (`.github/workflows/gemini.yml`, uses `google-github-actions/run-gemini-cli`) |
-| `opencode.enabled`   | OpenCode                  | `AGENTS.md` (shared)      | no - docs only                                                                    |
-| `infer.enabled`      | Inference Gateway `infer` | `AGENTS.md` (shared)      | no - docs only                                                                    |
+| Toggle             | Coding agent              | Docs file the agent reads | GitHub Actions workflow generated?                                                |
+| ------------------ | ------------------------- | ------------------------- | --------------------------------------------------------------------------------- |
+| `codex.enabled`    | OpenAI Codex              | `AGENTS.md` (shared)      | yes (`.github/workflows/codex.yml`, uses `openai/codex-action`)                   |
+| `gemini.enabled`   | Google Gemini             | `GEMINI.md`               | yes (`.github/workflows/gemini.yml`, uses `google-github-actions/run-gemini-cli`) |
+| `opencode.enabled` | OpenCode                  | `AGENTS.md` (shared)      | no - docs only                                                                    |
+| `infer.enabled`    | Inference Gateway `infer` | `AGENTS.md` (shared)      | no - docs only                                                                    |
 
 Notes:
 
 - `AGENTS.md` is generated **once** and is shared by every enabled agent that reads from it (`codex`, `opencode`, `infer`); its contents are agent-agnostic.
-- `CLAUDE.md` and `GEMINI.md` are agent-specific and only appear when the matching toggle is on.
-- When `claudecode.enabled: true`, the sandbox environments (Flox, DevContainer) also gain the `claude-code` CLI / extension automatically.
-- The `adl init --ai` flag is an init-time shortcut that writes `spec.development.ai.claudecode.enabled: true` into the manifest. Every other toggle stays `false`; enable additional agents by editing `agent.yaml` after init.
-- Pre-v0.8.0 manifests using `spec.development.ai.enabled: true` are no longer accepted - `adl validate` and `adl generate` will fail with a migration hint. Move `enabled: true` to the specific agent you want (e.g. `claudecode.enabled: true`).
+- `GEMINI.md` is agent-specific and only appears when the matching toggle is on.
+- The `adl init --ai` flag is an init-time shortcut that writes `spec.development.ai.codex.enabled: true` into the manifest. Every other toggle stays `false`; enable additional agents by editing `agent.yaml` after init.
+- Pre-v0.8.0 manifests using `spec.development.ai.enabled: true` are no longer accepted - `adl validate` and `adl generate` will fail with a migration hint. Move `enabled: true` to the specific agent you want (e.g. `codex.enabled: true`).
 
 ### Hooks
 
