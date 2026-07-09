@@ -2,6 +2,43 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.0](https://github.com/inference-gateway/docs/compare/0.8.0...0.9.0) (2026-07-09)
+
+### ✨ Features
+
+* generate ADK provider tables from the schema ([#347](https://github.com/inference-gateway/docs/issues/347)) ([aece944](https://github.com/inference-gateway/docs/commit/aece944dd2603194bcd6c18a6d4134bac02d736b)), closes [#346](https://github.com/inference-gateway/docs/issues/346)
+
+### 👷 CI
+
+* **claude:** centralize claude.yml via reusable workflow ([#372](https://github.com/inference-gateway/docs/issues/372)) ([9a41158](https://github.com/inference-gateway/docs/commit/9a41158e6883a4e8934b2fa16318eddd87f9b44f))
+* **infer:** centralize infer.yml via reusable workflow ([#367](https://github.com/inference-gateway/docs/issues/367)) ([47d5fb2](https://github.com/inference-gateway/docs/commit/47d5fb28ecaf9b25d2c4e50ae33518b98237f05e))
+* **infer:** centralize infer.yml via reusable workflow ([#368](https://github.com/inference-gateway/docs/issues/368)) ([305d621](https://github.com/inference-gateway/docs/commit/305d6217e5e2e4de3b6c22002268995669eb8123))
+
+### 📚 Documentation
+
+* add Wait tool documentation to CLI reference ([#371](https://github.com/inference-gateway/docs/issues/371)) ([8018c50](https://github.com/inference-gateway/docs/commit/8018c50fd07b66dc2818d1bf4c2f387ba2e613fb)), references [inference-gateway/cli#792](https://github.com/inference-gateway/cli/issues/792)
+* add Z-AI provider documentation ([#363](https://github.com/inference-gateway/docs/issues/363)) ([3c3db53](https://github.com/inference-gateway/docs/commit/3c3db538c7d6d622e5132fc62cc61e5f91f8d869))
+* document agent.skills.max_chars, line-boundary truncation, and date-only system prompt ([#359](https://github.com/inference-gateway/docs/issues/359)) ([73d49b5](https://github.com/inference-gateway/docs/commit/73d49b5cd4ca5c080e3a347e544a458a2a6df430))
+* document infer chat --session-id flag ([#351](https://github.com/inference-gateway/docs/issues/351)) ([d6b3cf6](https://github.com/inference-gateway/docs/commit/d6b3cf6bf483f5a987088edcea224fc9a76ec942))
+* document infer-action system prompt override semantics ([#357](https://github.com/inference-gateway/docs/issues/357)) ([58c8bc4](https://github.com/inference-gateway/docs/commit/58c8bc4536dd6534945fcfc8fdc977bc583e6fac))
+* **github-action:** add zai-api-key input to the inputs table ([#366](https://github.com/inference-gateway/docs/issues/366)) ([a129831](https://github.com/inference-gateway/docs/commit/a12983160e13cbae0a5a9765b19637e27d61ce05))
+* remove Claude Code subscription mode documentation ([#374](https://github.com/inference-gateway/docs/issues/374)) ([442a9fa](https://github.com/inference-gateway/docs/commit/442a9fa1af7ff084a8d302950552302056fdbdad)), references [inference-gateway/cli#812](https://github.com/inference-gateway/cli/issues/812)
+* **rust-adk:** add NVIDIA provider to Rust ADK docs ([#345](https://github.com/inference-gateway/docs/issues/345)) ([a329e43](https://github.com/inference-gateway/docs/commit/a329e43efd967a79e9125e6a555fc5024ce6c4db)), references [#347](https://github.com/inference-gateway/docs/issues/347)
+* update memory documentation for per-project fact organization and entry caps ([#350](https://github.com/inference-gateway/docs/issues/350)) ([8dca0cd](https://github.com/inference-gateway/docs/commit/8dca0cde4640b568f5d7d169156c8058adf3caac)), closes [#348](https://github.com/inference-gateway/docs/issues/348)
+
+### 🔧 Miscellaneous
+
+* **deps:** bump claude-code 2.1.197 -> 2.1.201 ([#353](https://github.com/inference-gateway/docs/issues/353)) ([5f714de](https://github.com/inference-gateway/docs/commit/5f714de65a0fd2fe4fe3c369cce098b10630a6fe))
+* **deps:** bump claude-code-action v1.0.165 -> v1.0.169 ([#370](https://github.com/inference-gateway/docs/issues/370)) ([293e9b8](https://github.com/inference-gateway/docs/commit/293e9b8f5faa811f89390bb69184a4c33451624b))
+* **deps:** bump infer CLI v0.130.1 -> v0.133.0, infer-action v0.24.0 -> v0.26.0 ([#354](https://github.com/inference-gateway/docs/issues/354)) ([824a288](https://github.com/inference-gateway/docs/commit/824a288613e404407d108a2e1877a7dd8b4fac6a))
+* **deps:** bump infer CLI v0.133.0 -> v0.133.1, infer-action v0.27.0 -> v0.27.1 ([#360](https://github.com/inference-gateway/docs/issues/360)) ([03ec147](https://github.com/inference-gateway/docs/commit/03ec147b30e835bdb21c10c0e8eea0718b967b5d))
+* **deps:** bump infer CLI v0.133.1 -> v0.137.0, infer-action v0.27.1 -> v0.29.0 ([#361](https://github.com/inference-gateway/docs/issues/361)) ([e7bec3e](https://github.com/inference-gateway/docs/commit/e7bec3e14d6b231ce49a3b59d7e7e34f00db445f))
+* **deps:** bump infer CLI v0.137.0 -> v0.138.0, infer-action v0.29.0 -> v0.30.1 ([#365](https://github.com/inference-gateway/docs/issues/365)) ([02be4c8](https://github.com/inference-gateway/docs/commit/02be4c843f445eddb46e2ac6f696d2d0da6a4429))
+* **deps:** bump infer CLI v0.138.0 -> v0.140.1 ([#375](https://github.com/inference-gateway/docs/issues/375)) ([2fd4097](https://github.com/inference-gateway/docs/commit/2fd409798bc8ac93ff5d36adac70fb17f12367eb))
+* **deps:** bump infer-action v0.26.0 -> v0.26.1 ([#356](https://github.com/inference-gateway/docs/issues/356)) ([17f74f8](https://github.com/inference-gateway/docs/commit/17f74f8dcbc9190a1c690576ac047ebeaf0c30c4))
+* **deps:** bump infer-action v0.26.1 -> v0.27.0 ([#358](https://github.com/inference-gateway/docs/issues/358)) ([89c944b](https://github.com/inference-gateway/docs/commit/89c944b615c72ce4fa3f1dff39b75f6a66731b97))
+* enable debug mode in infer.yml workflow ([9e373c6](https://github.com/inference-gateway/docs/commit/9e373c6e02914a23e97c153f4cc3f6c4a1e413b7))
+
 ## [0.8.0](https://github.com/inference-gateway/docs/compare/0.7.0...0.8.0) (2026-07-06)
 
 ### ✨ Features
