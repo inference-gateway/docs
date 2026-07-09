@@ -179,7 +179,7 @@ These settings control telemetry and metrics exposure:
 
 When `TELEMETRY_ENABLE` is set to `true`, Inference Gateway exposes a `/metrics` endpoint for Prometheus scraping and generates distributed traces that can be collected by OpenTelemetry collectors.
 
-When `TELEMETRY_METRICS_PUSH_ENABLE` is also set to `true` (alongside `TELEMETRY_ENABLE=true`), the gateway exposes an OTLP/HTTP metrics push endpoint at `POST /v1/metrics`. This allows subscription clients that bypass the gateway's inference path (e.g. the infer CLI driving Claude Code directly) to push their usage metrics. See the [Observability](/observability/#pushing-metrics-otlp) page for details.
+When `TELEMETRY_METRICS_PUSH_ENABLE` is also set to `true` (alongside `TELEMETRY_ENABLE=true`), the gateway exposes an OTLP/HTTP metrics push endpoint at `POST /v1/metrics`. This allows subscription clients that bypass the gateway's inference path to push their usage metrics. See the [Observability](/observability/#pushing-metrics-otlp) page for details.
 
 ### OpenID Connect
 

@@ -34,7 +34,7 @@ The metrics port is separate from the main API port. Do not expose `9464` to the
 
 The following metrics are exported when `TELEMETRY_ENABLE=true`. Metrics follow the [OpenTelemetry GenAI semantic conventions](https://opentelemetry.io/docs/specs/semconv/gen-ai/).
 
-Every series carries a `source` label: `gateway` for gateway-observed traffic, or a client-supplied value (e.g. `claude-code-subscription`) for pushed metrics.
+Every series carries a `source` label: `gateway` for gateway-observed traffic, or a client-supplied value for pushed metrics.
 
 ### Metric set
 
@@ -172,7 +172,7 @@ Make sure the `release:` label matches your kube-prometheus-stack release name s
 
 ## Pushing Metrics (OTLP)
 
-Subscription clients that bypass the gateway's inference path (e.g. the infer CLI driving Claude Code directly) can push their own usage metrics to the gateway via the OTLP/HTTP metrics push endpoint.
+Subscription clients that bypass the gateway's inference path can push their own usage metrics to the gateway via the OTLP/HTTP metrics push endpoint.
 
 ### Enabling the push endpoint
 
@@ -239,7 +239,7 @@ curl -X POST http://localhost:8080/v1/metrics \
               "attributes": [
                 { "key": "gen_ai.provider.name", "value": { "stringValue": "anthropic" } },
                 { "key": "gen_ai.token.type", "value": { "stringValue": "input" } },
-                { "key": "source", "value": { "stringValue": "claude-code-subscription" } }
+                { "key": "source", "value": { "stringValue": "infer-cli" } }
               ]
             }]
           }
@@ -249,7 +249,7 @@ curl -X POST http://localhost:8080/v1/metrics \
   }'
 ```
 
-Pushed series carry the client-supplied `source` label (e.g. `claude-code-subscription`), so they can be distinguished from gateway-observed traffic (`source="gateway"`) in dashboards and alerts.
+Pushed series carry the client-supplied `source` label, so they can be distinguished from gateway-observed traffic (`source="gateway"`) in dashboards and alerts.
 
 ### Recommended alerting rules
 

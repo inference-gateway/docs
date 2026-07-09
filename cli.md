@@ -2150,7 +2150,7 @@ See [MCP documentation](/mcp/) for detailed integration guide and server develop
 
 ### Agent Skills
 
-Reusable, model-readable instruction folders that the agent loads on demand. The CLI uses the same on-disk format as Claude Code, Gemini CLI, and OpenAI Codex CLI, so a skill authored for any of those tools drops into `.infer/skills/` unchanged. Skills are discovered from three locations, in precedence order: project `.infer/skills/`, the `.agents/skills/` open standard (a shared cross-tool convention), then user-global `~/.infer/skills/`. Skills are **enabled by default** ([since cli#618](https://github.com/inference-gateway/cli/pull/618)) - discovered skills are injected into the system prompt out of the box. Only the lightweight metadata (name + description) is added; each `SKILL.md` body is read on demand. Turn them off with `agent.skills.enabled: false`, or skip individual skills with `disabled_skills`.
+Reusable, model-readable instruction folders that the agent loads on demand. The CLI uses the same on-disk format as Gemini CLI and OpenAI Codex CLI, so a skill authored for any of those tools drops into `.infer/skills/` unchanged. Skills are discovered from three locations, in precedence order: project `.infer/skills/`, the `.agents/skills/` open standard (a shared cross-tool convention), then user-global `~/.infer/skills/`. Skills are **enabled by default** ([since cli#618](https://github.com/inference-gateway/cli/pull/618)) - discovered skills are injected into the system prompt out of the box. Only the lightweight metadata (name + description) is added; each `SKILL.md` body is read on demand. Turn them off with `agent.skills.enabled: false`, or skip individual skills with `disabled_skills`.
 
 ```yaml
 # .infer/config.yaml

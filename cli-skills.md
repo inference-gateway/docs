@@ -177,7 +177,7 @@ tools:
 
 Without a carve-out, `Read ~/.infer/skills/<name>/SKILL.md` is denied as "outside configured sandbox directories", so the skill never loads. This is exactly what broke the `@infer` CI bot, which installs to the user scope with `infer skills install <skill> --user --overwrite` and then runs the agent outside the project directory.
 
-**The carve-out:** when `agent.skills.enabled` is `true`, the Read sandbox automatically grants read access to `./.infer/skills` and `~/.infer/skills` (and everything under them), mirroring the existing `~/.claude` carve-out. Installed `SKILL.md` and `references/*.md` are therefore reachable even when the agent runs outside the project directory, such as in CI.
+**The carve-out:** when `agent.skills.enabled` is `true`, the Read sandbox automatically grants read access to `./.infer/skills` and `~/.infer/skills` (and everything under them). Installed `SKILL.md` and `references/*.md` are therefore reachable even when the agent runs outside the project directory, such as in CI.
 
 ### How it relates to `tools.sandbox.directories`
 

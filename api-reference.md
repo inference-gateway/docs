@@ -300,7 +300,7 @@ Status: 200 OK
 
 ### Push Metrics (OTLP)
 
-Push usage metrics to the gateway via the OTLP/HTTP protocol. This endpoint is intended for subscription clients that bypass the gateway's inference path (e.g. the infer CLI driving Claude Code directly).
+Push usage metrics to the gateway via the OTLP/HTTP protocol. This endpoint is intended for subscription clients that bypass the gateway's inference path.
 
 ```http
 POST /v1/metrics
@@ -337,7 +337,7 @@ curl -X POST http://localhost:8080/v1/metrics \
               "attributes": [
                 { "key": "gen_ai.provider.name", "value": { "stringValue": "anthropic" } },
                 { "key": "gen_ai.token.type", "value": { "stringValue": "input" } },
-                { "key": "source", "value": { "stringValue": "claude-code-subscription" } }
+                { "key": "source", "value": { "stringValue": "infer-cli" } }
               ]
             }]
           }
