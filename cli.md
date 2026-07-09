@@ -655,16 +655,16 @@ When tools are enabled, LLMs have access to a comprehensive suite across multipl
 
 ### Tool Categories
 
-| Category              | Tools                                                                                             | Description                                                                                             |
-| --------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| **File System**       | Read, Write, Edit, MultiEdit, Delete, Tree, Grep                                                  | File operations and search with safety controls                                                         |
-| **Command Execution** | Bash, BashOutput, KillShell, ListShells                                                           | Allow-listed shell execution (including `gh` for GitHub) and background shell control                   |
-| **Web**               | WebSearch, WebFetch                                                                               | Internet research and content fetching                                                                  |
-| **Workflow**          | TodoWrite, Schedule, RequestPlanApproval, AskUserQuestion, Memory                                 | Task tracking, cron jobs, plan-mode approval, clarifying questions, and persistent cross-session memory |
-| **A2A Integration**   | A2A_QueryAgent, A2A_SubmitTask, A2A_QueryTask                                                     | Delegate to external specialized agents - see [A2A](/a2a/)                                              |
-| **Local Subagents**   | Agent                                                                                             | Fan out short-lived local subagents in parallel - see [Local Subagents](#local-subagents-agent-tool)    |
-| **Computer Use**      | GetLatestScreenshot, MouseMove, MouseClick, MouseScroll, KeyboardType, GetFocusedApp, ActivateApp | GUI automation - see the Computer Use section above                                                     |
-| **MCP**               | `MCP_<server>_<tool>`                                                                             | Dynamically registered tools from MCP servers - see [MCP](/mcp/)                                        |
+| Category              | Tools                                                                                             | Description                                                                                                          |
+| --------------------- | ------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| **File System**       | Read, Write, Edit, MultiEdit, Delete, Tree, Grep                                                  | File operations and search with safety controls                                                                      |
+| **Command Execution** | Bash, BashOutput, KillShell, ListShells, Wait                                                     | Allow-listed shell execution (including `gh` for GitHub), background shell control, and blocking wait for conditions |
+| **Web**               | WebSearch, WebFetch                                                                               | Internet research and content fetching                                                                               |
+| **Workflow**          | TodoWrite, Schedule, RequestPlanApproval, AskUserQuestion, Memory                                 | Task tracking, cron jobs, plan-mode approval, clarifying questions, and persistent cross-session memory              |
+| **A2A Integration**   | A2A_QueryAgent, A2A_SubmitTask, A2A_QueryTask                                                     | Delegate to external specialized agents - see [A2A](/a2a/)                                                           |
+| **Local Subagents**   | Agent                                                                                             | Fan out short-lived local subagents in parallel - see [Local Subagents](#local-subagents-agent-tool)                 |
+| **Computer Use**      | GetLatestScreenshot, MouseMove, MouseClick, MouseScroll, KeyboardType, GetFocusedApp, ActivateApp | GUI automation - see the Computer Use section above                                                                  |
+| **MCP**               | `MCP_<server>_<tool>`                                                                             | Dynamically registered tools from MCP servers - see [MCP](/mcp/)                                                     |
 
 ### File System Tools
 
@@ -797,6 +797,96 @@ Background-shell management. These tools are only registered when `tools.bash.ba
 - **BashOutput** - `bash_id` (required), `filter` (optional regex). Returns only new output since the last read.
 - **KillShell** - `shell_id` (required). Sends SIGTERM, then SIGKILL after 5 seconds if the shell doesn't exit.
 - **ListShells** - no parameters. Lists all running and recently completed background shells with their IDs, state, and elapsed time.
+
+#### Wait
+
+Block inside a single tool execution until a condition is met (shells exit, file event, or check command succeeds), then return once with the outcome. Waiting costs zero chat completions - no LLM round-trip per iteration.
+
+- **Approval**: not required (passive utility tool - no side effects)
+- **Enabled by default**: yes (gated by `tools.wait.enabled`)
+- **Common parameters**: `timeout_seconds` (required, number) - maximum time to wait in seconds, bounded by the config ceiling (`tools.wait.max_timeout_seconds`, default 600)
+
+**Return value:** A structured result with `condition` (the condition type), `reason` (outcome: `condition_met`, `timeout`, `cancelled`, `check_failed`, `no_shells`, `error`, `not_allowed`), `elapsed_seconds` (time spent waiting), and condition-specific details (exit codes, last output, shell states) - included even on failure so the model can see why the wait ended.
+
+**Cancellation:** Pressing Esc in chat or session cancel interrupts the wait immediately (reason: `cancelled`).
+
+##### Condition: Shells (`condition=shells`)
+
+Block until the given background shell ID(s) exit. When `shell_ids` is omitted, waits for all currently running background shells.
+
+- **Parameters:** `shell_ids` (optional, array of strings) - specific shell IDs to wait for. Omit to wait for all pending background shells.
+- **Returns:** Exit codes and tail output (last 4096 bytes) for each shell.
+
+**Use cases:**
+
+- Wait for a long-running build or test to finish
+- Wait for multiple parallel background tasks to complete
+- Coordinate sequential steps that depend on background work
+
+##### Condition: File (`condition=file`)
+
+Block until a file path is created, modified, or removed (uses fsnotify for efficient inotify/FSEvents-based watching).
+
+- **Parameters:** `path` (required, string) - file path to watch. `event` (optional, string, enum: `create`, `modify`, `remove`, `any`) - file event to wait for. Default: `any`.
+- **Behavior:** For `create`: checks if the file already exists first (returns immediately if so). Watches the parent directory for the target filename. Uses OS-native file system notifications (no polling).
+
+**Use cases:**
+
+- Wait for a download to complete
+- Wait for a log file to be created
+- Wait for a lock file to be removed
+- Wait for a build artifact to appear
+
+##### Condition: Command (`condition=command`)
+
+Re-run a check command server-side at a fixed interval until it exits 0. The check command goes through the same bash allow-list as the Bash tool.
+
+- **Parameters:** `command` (required, string) - check command to re-run until it exits 0. `pending_exit_codes` (optional, array of numbers) - non-zero exit codes that mean "still pending, keep polling". Any other non-zero exit ends the wait immediately with reason `check_failed`.
+- **Behavior:** First run happens immediately (no initial delay). Subsequent runs at `command_poll_interval_ms` interval (default 2s). Each run has a 30-second per-execution timeout. Not available on Windows (requires bash).
+- **Exit code classification:**
+  - Exit 0: `condition_met` - success
+  - Exit in `pending_exit_codes`: keep polling
+  - Exit non-zero (not in pending): `check_failed` - ends immediately
+  - No pending_exit_codes specified: keep polling on any non-zero exit
+
+**Use cases:**
+
+- Wait for a service to become healthy: `curl -sf localhost:8080/health`
+- Wait for CI to complete: `gh pr checks` with `pending_exit_codes=[8]`
+- Wait for a file to contain specific content: `grep -q 'ready' /var/log/app.log`
+- Wait for a port to open: `nc -z localhost 3000`
+
+##### Configuration
+
+```yaml
+# .infer/config.yaml
+tools:
+  wait:
+    enabled: true # Enable/disable the Wait tool
+    max_timeout_seconds: 600 # Maximum allowed timeout (ceiling)
+    command_poll_interval_ms: 2000 # Poll interval for command condition (ms)
+```
+
+##### Examples
+
+```text
+# Wait for background build to finish
+Wait(condition=shells, shell_ids=["build-1"], timeout_seconds=300)
+
+# Wait for a file to be created
+Wait(condition=file, path="/tmp/result.json", event="create", timeout_seconds=60)
+
+# Wait for service health
+Wait(condition=command, command="curl -sf http://localhost:8080/health", timeout_seconds=120)
+
+# Wait for CI checks with pending exit codes
+Wait(condition=command, command="gh pr checks 792 --repo inference-gateway/cli", pending_exit_codes=[8], timeout_seconds=600)
+
+# Wait for all background shells
+Wait(condition=shells, timeout_seconds=300)
+```
+
+> Shipped in [inference-gateway/cli#792](https://github.com/inference-gateway/cli/pull/792).
 
 ### Web Tools
 
