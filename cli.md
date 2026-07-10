@@ -1245,6 +1245,26 @@ Two-layer configuration system with precedence from highest to lowest:
 - OCI image for auto-running gateway
 - Model filtering (include/exclude lists)
 
+**Logging Configuration:**
+
+Logging settings control log output, file location, and automatic log archiving:
+
+```yaml
+logging:
+  debug: false
+  dir: '' # Override log directory (defaults to <config-dir>/logs)
+  stdout: false # Also write logs to stdout/stderr in addition to the log file
+  archive:
+    enabled: true # Automatically archive oversized log files (default: true)
+    max_size_mb: 1024 # Threshold in MB; files exceeding this are gzip-compressed and truncated (default: 1024 = 1 GB)
+```
+
+- **logging.debug**: Enable debug logging for verbose output
+- **logging.dir**: Override the log directory (defaults to `<config-dir>/logs`)
+- **logging.stdout**: Also write logs to stdout/stderr in addition to the log file (default: `false`)
+- **logging.archive.enabled**: Enable automatic log archiving (default: `true`). When enabled, log files exceeding the size threshold are gzip-compressed to a timestamped `.gz` archive and the original file is truncated so logging continues at the same path. The check runs at process startup. Set via `INFER_LOGGING_ARCHIVE_ENABLED`.
+- **logging.archive.max_size_mb**: Maximum log file size in MB before archiving is triggered (default: `1024`, i.e. 1 GB). A value of `0` or less disables archiving. Set via `INFER_LOGGING_ARCHIVE_MAX_SIZE_MB`.
+
 **Agent Configuration:**
 
 - Default model for operations
@@ -1372,6 +1392,8 @@ export INFER_GATEWAY_URL="http://localhost:8080"
 export INFER_GATEWAY_API_KEY="your-api-key"
 export INFER_AGENT_MODEL="deepseek/deepseek-v4-flash"
 export INFER_LOGGING_DEBUG="true"
+export INFER_LOGGING_ARCHIVE_ENABLED="true"
+export INFER_LOGGING_ARCHIVE_MAX_SIZE_MB="1024"
 export GITHUB_TOKEN="your-github-token"  # used by the gh CLI credential chain for GitHub operations
 
 # Append a few commands onto the bash allowed-list baseline (comma- or newline-separated)
