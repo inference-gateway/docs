@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.1](https://github.com/inference-gateway/docs/compare/0.9.0...0.9.1) (2026-07-10)
+
+### 📚 Documentation
+
+* **cli:** document logging.archive configuration for log archiving ([#378](https://github.com/inference-gateway/docs/issues/378)) ([dea4474](https://github.com/inference-gateway/docs/commit/dea447424c9e7fac910412f6a85950c97870ddf2))
+* **cli:** document stream reconnection, stall threshold, and updated retry defaults ([#380](https://github.com/inference-gateway/docs/issues/380)) ([f5625f0](https://github.com/inference-gateway/docs/commit/f5625f0189d7872c02580ef6340fd5bea31c8a13))
+
+### 🔧 Miscellaneous
+
+* **deps:** bump infer CLI v0.140.1 -> v0.141.0 ([#376](https://github.com/inference-gateway/docs/issues/376)) ([e54c807](https://github.com/inference-gateway/docs/commit/e54c807cccaa0f03602a69f4f200592088d443e8))
+
 ## [0.9.0](https://github.com/inference-gateway/docs/compare/0.8.0...0.9.0) (2026-07-09)
 
 ### ✨ Features
