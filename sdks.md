@@ -1326,6 +1326,25 @@ client := sdk.NewClient(&sdk.ClientOptions{
 
 Leave `RetryConfig` nil to inherit the defaults above, or set `Enabled: false` to turn retries off entirely.
 
+#### Cancellation preserves the underlying error
+
+Cancelling the request mid-retry keeps the failure that triggered the backoff. If the context is cancelled (or its deadline expires) while the retry loop is sleeping between attempts, the returned error wraps both the last transport or HTTP error that caused the retry and the cancellation cause, formatted as `<last error> (cancelled while retrying: <context error>)`. `errors.Is(err, context.Canceled)` and `errors.Is(err, context.DeadlineExceeded)` still report the cancellation, and the underlying HTTP status stays readable in the error message and through `errors.Is` / `errors.As`. Bounding a slow request by cancelling its context no longer collapses every failure into a bare `context canceled` / `context deadline exceeded` and hides why the request was being retried.
+
+```go
+ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+defer cancel()
+
+resp, err := client.GenerateContent(ctx, sdk.Openai, "openai/gpt-4o", messages)
+if err != nil {
+    // The deadline can fire mid-retry, but the HTTP 500 that triggered the
+    // backoff is still visible, e.g.:
+    //   "... HTTP 500 ... (cancelled while retrying: context deadline exceeded)".
+    if errors.Is(err, context.DeadlineExceeded) {
+        log.Printf("gave up mid-retry, underlying failure preserved: %v", err)
+    }
+}
+```
+
 ### Client options
 
 `NewClient` takes a `ClientOptions` struct; only `BaseURL` is required.
