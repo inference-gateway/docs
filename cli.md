@@ -305,13 +305,14 @@ The selected indicator is highlighted as an **accent-colored pill**.
 
 **Indicator labels:**
 
-| Indicator | Label format      | Description                                                                                                                                                                              |
-| --------- | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Tools     | `Tools: N (mode)` | `N` is the number of tools available in the current [agent mode](#agent-modes). `mode` is the active mode name (Standard, Plan, or Auto-Accept). Opens the [`/tools` view](#tools-view). |
-| A2A       | `A2A: X/Y`        | `X` is the number of connected A2A agents, `Y` is the total number of configured agents. Opens the [`/a2a` view](#a2a-view).                                                             |
-| Theme     | `Theme`           | Opens the theme selector to change the TUI color scheme.                                                                                                                                 |
+| Indicator | Label format                             | Description                                                                                                                                                                                                     |
+| --------- | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tools     | `Tools: N (mode)`                        | `N` is the number of tools available in the current [agent mode](#agent-modes). `mode` is the active mode name (Standard, Plan, or Auto-Accept). Opens the [`/tools` view](#tools-view).                        |
+| A2A       | `A2A: X/Y`                               | `X` is the number of connected A2A agents, `Y` is the total number of configured agents. Opens the [`/a2a` view](#a2a-view).                                                                                    |
+| Theme     | `Theme`                                  | Opens the theme selector to change the TUI color scheme.                                                                                                                                                        |
+| Reconnect | `Reconnecting...` / `Reconnecting (N/M)` | Shown in red when the stream has stalled and the CLI is reconnecting. `N` is the current attempt, `M` is `client.retry.max_attempts`. Input is blocked until the stream recovers or all attempts are exhausted. |
 
-> Shipped in [inference-gateway/cli#732](https://github.com/inference-gateway/cli/pull/732).
+> Shipped in [inference-gateway/cli#732](https://github.com/inference-gateway/cli/pull/732). Reconnect indicator added in [inference-gateway/cli#845](https://github.com/inference-gateway/cli/pull/845).
 
 #### Switching models (`/model`)
 
@@ -1241,7 +1242,7 @@ Two-layer configuration system with precedence from highest to lowest:
 **Gateway Settings:**
 
 - Gateway URL and API key
-- Timeout and retry configuration
+- Timeout and retry configuration (see [Client retry and stream reconnection](#client-retry-and-stream-reconnection) below)
 - OCI image for auto-running gateway
 - Model filtering (include/exclude lists)
 
@@ -1298,6 +1299,37 @@ The built-in system prompt includes a `Current date:` line (date-only, no time) 
 - AI-generated titles
 - Token optimization and compaction
 - Export/import capabilities
+
+### Client Retry and Stream Reconnection
+
+The CLI automatically reconnects when a stream stalls or drops, using the `client.retry.*` settings for exponential backoff and attempt limits. A stall is detected when no progress is made - no response while connecting, no SSE chunk while streaming - for longer than `client.stall_threshold_sec`.
+
+```yaml
+# .infer/config.yaml
+client:
+  stall_threshold_sec: 30 # seconds without progress before reconnecting (0 disables)
+  retry:
+    enabled: true
+    max_attempts: 5 # maximum number of retry attempts (default: 5)
+    retryable_status_codes: [408, 429, 500, 502, 503, 504] # transient errors only
+    initial_backoff_sec: 1
+    max_backoff_sec: 60
+    backoff_multiplier: 2
+```
+
+**Settings:**
+
+- **client.stall_threshold_sec**: Seconds without progress - no response while connecting, no SSE chunk while streaming - before the CLI drops the connection and reconnects (default: `30`, `0` disables). Reconnects reuse `client.retry.*` for attempts and exponential backoff. Keep this above your provider's worst first-token latency, since a stall retry restarts the response from scratch. Set via `INFER_CLIENT_STALL_THRESHOLD_SEC`.
+- **client.retry.enabled**: Enable automatic retries for failed requests (default: `true`).
+- **client.retry.max_attempts**: Maximum number of retry attempts (default: `5`). Set via `INFER_CLIENT_RETRY_MAX_ATTEMPTS`.
+- **client.retry.retryable_status_codes**: HTTP status codes that trigger retries (default: `[408, 429, 500, 502, 503, 504]`); non-transient errors such as 401 fail fast with their real message. Set via `INFER_CLIENT_RETRY_RETRYABLE_STATUS_CODES`.
+- **client.retry.initial_backoff_sec**: Initial delay between retries in seconds (default: `1`).
+- **client.retry.max_backoff_sec**: Maximum delay between retries in seconds (default: `60`).
+- **client.retry.backoff_multiplier**: Backoff multiplier for exponential delay (default: `2`).
+
+**Reconnecting indicator:** In the chat TUI, the status bar shows a red `Reconnecting...` indicator when a stall is detected, then `Reconnecting (N/M)` per attempt (where `N` is the current attempt and `M` is `max_attempts`). Input is blocked until the stream recovers or all attempts are exhausted. See [Status indicator row](#status-indicator-row).
+
+> Shipped in [inference-gateway/cli#845](https://github.com/inference-gateway/cli/pull/845) (resolves [inference-gateway/cli#579](https://github.com/inference-gateway/cli/issues/579)).
 
 ### System Reminders
 
@@ -1394,6 +1426,7 @@ export INFER_AGENT_MODEL="deepseek/deepseek-v4-flash"
 export INFER_LOGGING_DEBUG="true"
 export INFER_LOGGING_ARCHIVE_ENABLED="true"
 export INFER_LOGGING_ARCHIVE_MAX_SIZE_MB="1024"
+export INFER_CLIENT_STALL_THRESHOLD_SEC="30"  # seconds without stream progress before reconnecting (0 disables)
 export GITHUB_TOKEN="your-github-token"  # used by the gh CLI credential chain for GitHub operations
 
 # Append a few commands onto the bash allowed-list baseline (comma- or newline-separated)
