@@ -1,6 +1,6 @@
 ---
 title: Agent Skills
-description: Install, enable, and invoke Agent Skills in the Inference Gateway CLI - the on-disk SKILL.md layout, the three discovery scopes (project .infer/skills, the .agents/skills open standard, and user-global ~/.infer/skills), infer skills install/list/uninstall, deterministic slash-name activation with metadata-only injection, and the Read-sandbox carve-out for ~/.infer/skills.
+description: Install, enable, and invoke Agent Skills in the Inference Gateway CLI - the on-disk SKILL.md layout, the three discovery scopes (project .infer/skills, the .agents/skills open standard, and user-global ~/.infer/skills), the built-in tmux skill seeded into ~/.infer/skills on infer init (seed-if-absent), infer skills install/list/uninstall, deterministic slash-name activation with metadata-only injection, and the Read-sandbox carve-out for ~/.infer/skills.
 ---
 
 # Agent Skills
@@ -68,6 +68,29 @@ Frontmatter rules, validated at discovery time and re-validated after every inst
 | `description` | Required. Non-empty, ≤1024 chars. This is the routing signal the model uses to decide when a skill is relevant - make it actionable (say _what_ it does and _when_ to use it). |
 
 Unknown frontmatter keys (for example Anthropic's `allowed-tools:` or Gemini's `disabled:`) are tolerated and ignored, so cross-vendor skills validate without edits.
+
+## Built-in skills
+
+The CLI ships a small set of **built-in skills** embedded in the binary. On `infer init` they are seeded into the user-global `~/.infer/skills/` - the same directory the [skills loader scans](#on-disk-layout) - **only if absent** ("seed-if-absent"). Once on disk they are ordinary user-scope skills: discovered, shown by `infer skills list`, and injected as lightweight metadata exactly like a skill you authored there yourself. Because seeding never overwrites an existing folder, **your edits survive** every later `infer init`.
+
+The first built-in is the **`tmux`** starter skill:
+
+| Skill  | What it teaches the agent                                                                                                                                                                                                                                                                                                                                                                                                  |
+| ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tmux` | Drive interactive terminal programs - TUIs, REPLs, pagers, a debugger, or another CLI's chat UI - that the plain [Bash tool](/cli/#bash) cannot script, by running them inside tmux and scripting them with `send-keys` / `capture-pane`. It prefers to **add a pane to the tmux session you already have open** so the work stays visible, and only falls back to a **detached session** in a headless, CI, or piped run. |
+
+### Customizing a built-in
+
+A built-in is just a user-scope skill, so you tune it with the same knobs as any other skill - there is no special "built-in" mode:
+
+| Goal                             | How                                                                                                                                          |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Edit in place**                | Change `~/.infer/skills/tmux/SKILL.md`. A later `infer init` never re-seeds over your edit.                                                  |
+| **Override per project**         | Add a `.infer/skills/tmux/` (or `.agents/skills/tmux/`) folder; it shadows the built-in for that repo ([first match wins](#on-disk-layout)). |
+| **Disable it**                   | Add the name to [`agent.skills.disabled_skills`](#enabling-and-disabling).                                                                   |
+| **Reset to the shipped default** | Run `infer init --overwrite` to re-seed it.                                                                                                  |
+
+> **Refreshing a built-in after a CLI upgrade.** A plain `infer init` will **not** re-seed over an already-initialized `~/.infer`, so a newer built-in shipped by a CLI upgrade does not land automatically. To pick it up today, either replace the one `~/.infer/skills/<name>/SKILL.md` by hand, or run `infer init --overwrite` - the latter also refreshes the _other_ shipped `~/.infer` defaults, so reach for it when you want a clean baseline rather than a single-skill update. (Moving seeding to load-time is a tracked CLI follow-up.)
 
 ## Enabling and disabling
 
@@ -208,3 +231,4 @@ A skill can instruct the model to run shell commands, read files, or call extern
 - [Configuration](/configuration/) - the full configuration system across the gateway and CLI.
 - [ADL CLI - Skills](/adl-cli/#skills) - declare skills inside an A2A agent project so they scaffold into `skills/<id>/SKILL.md`.
 - Source: [inference-gateway/cli#571](https://github.com/inference-gateway/cli/pull/571) (activation + sandbox carve-out), fixing [inference-gateway/cli#569](https://github.com/inference-gateway/cli/issues/569).
+- Built-in skills: [inference-gateway/cli#890](https://github.com/inference-gateway/cli/pull/890) (the seeded `tmux` starter skill), closing [inference-gateway/cli#827](https://github.com/inference-gateway/cli/issues/827).
