@@ -1118,6 +1118,7 @@ tools:
     max_parallel: 4 # cap on concurrent subagents per call
     max_depth: 1 # recursion guard; a subagent is itself an `infer agent`
     model: '' # default subagent model (inherits parent if blank)
+    inherit_mock: true # when gateway.mock is on, spawn subagents against the embedded mock too
     interactive:
       multiplexer: tmux # tmux only
       layout: vertical # vertical | horizontal | window
@@ -1135,6 +1136,7 @@ Every key has an `INFER_TOOLS_AGENT_*` environment-variable override, consistent
 | `max_parallel`            | `INFER_TOOLS_AGENT_MAX_PARALLEL`            |
 | `max_depth`               | `INFER_TOOLS_AGENT_MAX_DEPTH`               |
 | `model`                   | `INFER_TOOLS_AGENT_MODEL`                   |
+| `inherit_mock`            | `INFER_TOOLS_AGENT_INHERIT_MOCK`            |
 | `interactive.multiplexer` | `INFER_TOOLS_AGENT_INTERACTIVE_MULTIPLEXER` |
 | `interactive.layout`      | `INFER_TOOLS_AGENT_INTERACTIVE_LAYOUT`      |
 | `interactive.fallback`    | `INFER_TOOLS_AGENT_INTERACTIVE_FALLBACK`    |
@@ -1144,6 +1146,8 @@ Every key has an `INFER_TOOLS_AGENT_*` environment-variable override, consistent
 infer config set tools.agent.enabled true
 infer config set tools.agent.mode headless
 ```
+
+**Mock inheritance (`inherit_mock`, default `true`).** When the parent CLI runs against the embedded mock gateway (`gateway.mock: true`), spawned subagents inherit mock mode: the CLI passes `INFER_GATEWAY_MOCK=true` to each subagent - both the headless environment and the interactive tmux-pane command - so they exercise the same mock instead of talking to the real gateway. Set `tools.agent.inherit_mock: false` (or `INFER_TOOLS_AGENT_INHERIT_MOCK=false`) to opt out and have subagents always target the configured gateway.
 
 #### Approval and security
 
@@ -1524,6 +1528,7 @@ The CLI provides built-in shortcuts and supports custom user-defined shortcuts.
 | `/scm <cmd>`          | GitHub operations                                                                                  | `/scm pr-create`, `/scm issue view 123`   |
 | `/model [name] [msg]` | Switch the active model, or run one message with another model (replaces `/switch`)                | `/model deepseek/deepseek-v4-pro`         |
 | `/a2a`                | View registered A2A agents and their connection state                                              | `/a2a`                                    |
+| `/tasks`              | View background work (A2A tasks, shells, subagents) with live status and captured output           | `/tasks`                                  |
 | `/tools`              | View a filterable list of tools available in the current agent mode, including MCP tools           | `/tools`                                  |
 | `/skills <cmd>`       | Manage Agent Skills                                                                                | `/skills list`, `/skills install <url>`   |
 | `/voice [seconds]`    | Record the mic and transcribe to the input field (requires [speech-to-text](/cli-speech-to-text/)) | `/voice`, `/voice 8`                      |
@@ -2254,6 +2259,35 @@ infer chat
 ```
 
 > Shipped in [inference-gateway/cli#732](https://github.com/inference-gateway/cli/pull/732).
+
+### `/tasks` view
+
+The `/tasks` shortcut opens the **background-work panel** - a live list of everything running or recently finished outside the current chat turn. Rows are grouped into one table per kind: **A2A tasks**, **background shells**, and **subagents**. Each row shows a status (`Running`, `Completed`, or `Failed`) and an **Elapsed** column that updates live about once per second while any work is still in flight (the ticker stops once everything is terminal).
+
+```bash
+infer chat
+> /tasks
+```
+
+Selecting a row opens a **detail panel** with that task's metadata - `ID`, `Detail` (the command for a shell, or the task description for a subagent), `Status`, `Started`, and `Elapsed`. A2A rows additionally show their task history and the agent's **Final Result**; background-shell and subagent rows render an **Output** section instead.
+
+#### Output detail section
+
+Selecting a **background shell** row shows the shell's captured **stdout/stderr**:
+
+- **While the shell is running**, the output streams **live**, refreshed about once per second along with the Elapsed column.
+- **Once the shell finishes**, the panel shows the **full captured output**, bounded by the shell's output ring buffer.
+
+Selecting a **subagent** row shows the subagent's result:
+
+- **Headless subagents** show their **final result message**.
+- **Interactive** (tmux-pane) subagents show the **last harvested turn**.
+
+Rendering is bounded so a chatty shell cannot overflow the panel: the Output section shows **at most the last 10KB** of output. When the captured output is larger, it is prefixed with `(truncated, showing last 10KB)` and only the trailing 10KB is displayed.
+
+> The Output section brings background shells and subagents to parity with the A2A "Final Result" panel. Rows for jobs that expose no output (an A2A task keeps its own Final Result panel) show no Output section.
+>
+> Shipped in [inference-gateway/cli#897](https://github.com/inference-gateway/cli/pull/897).
 
 ### A2A Integration
 
