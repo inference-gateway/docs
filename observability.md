@@ -420,6 +420,69 @@ Useful queries:
 
 If you also export traces to Jaeger, the `request_id` field doubles as a correlation key between logs and traces.
 
+## CLI Telemetry
+
+The [Inference Gateway CLI](/cli/) records OpenTelemetry signals (metrics, traces, and logs) for every session. Data is written to local files under `~/.infer/telemetry/` and can optionally be exported to an OTLP/HTTP collector.
+
+### Local files
+
+| Signal  | File pattern                                     | Description                                                                |
+| ------- | ------------------------------------------------ | -------------------------------------------------------------------------- |
+| Metrics | `~/.infer/telemetry/\<session-id\>.jsonl`        | Token usage, tool outcomes, session duration, and cost (delta temporality) |
+| Traces  | `~/.infer/telemetry/\<session-id\>-traces.jsonl` | One root span per session, child spans for each LLM turn and tool call     |
+| Logs    | `~/.infer/telemetry/\<session-id\>-logs.jsonl`   | Structured log entries emitted during the session                          |
+
+### OTLP/HTTP export
+
+All three signals can be exported to an OpenTelemetry Collector by setting the standard OTel environment variables:
+
+```bash
+export OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+export OTEL_SERVICE_NAME=infer-cli
+```
+
+Per-signal endpoint overrides (`OTEL_EXPORTER_OTLP_METRICS_ENDPOINT`, `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`, `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT`) take precedence over the base endpoint. Headers are configured via `OTEL_EXPORTER_OTLP_HEADERS`.
+
+### Example collector setup
+
+To receive all three signals from the CLI, configure an OpenTelemetry Collector with OTLP/HTTP receivers:
+
+```yaml
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+
+exporters:
+  debug:
+    verbosity: detailed
+  otlp/jaeger:
+    endpoint: jaeger-collector:4317
+    tls:
+      insecure: true
+
+service:
+  pipelines:
+    metrics:
+      receivers: [otlp]
+      exporters: [debug]
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlp/jaeger, debug]
+    logs:
+      receivers: [otlp]
+      exporters: [debug]
+
+processors:
+  batch:
+    send_batch_size: 1024
+    timeout: 5s
+```
+
+See the [CLI Telemetry](/cli/#telemetry) section for the full documentation, including the span hierarchy, metric names, and local file inspection commands.
+
 ## Reference Monitoring Stack
 
 For a runnable end-to-end setup (Prometheus + Grafana + Loki + dashboards already wired), see the official examples:
