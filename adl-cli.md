@@ -270,11 +270,11 @@ adl init my-agent \
 
 **Pipelines & AI assistants** (declarative - written into the manifest as `false` by default):
 
-| Flag   | Manifest field written                         | Effect on `adl generate`                                 |
-| ------ | ---------------------------------------------- | -------------------------------------------------------- |
-| `--ai` | `spec.development.ai.claudecode.enabled: true` | Generates `CLAUDE.md` + `.github/workflows/claude.yml`   |
-| `--ci` | `spec.scm.ci: true`                            | Generates `.github/workflows/ci.yml`                     |
-| `--cd` | `spec.scm.cd: true`                            | Generates `.github/workflows/cd.yml` + `.releaserc.yaml` |
+| Flag   | Manifest field written                                       | Effect on `adl generate`                                 |
+| ------ | ------------------------------------------------------------ | -------------------------------------------------------- |
+| `--ai` | `spec.development.ai.orchestrators.claudecode.enabled: true` | Generates `CLAUDE.md` + `.github/workflows/claude.yml`   |
+| `--ci` | `spec.scm.ci: true`                                          | Generates `.github/workflows/ci.yml`                     |
+| `--cd` | `spec.scm.cd: true`                                          | Generates `.github/workflows/cd.yml` + `.releaserc.yaml` |
 
 To enable additional AI assistants (Codex, Gemini, OpenCode, Infer), edit `agent.yaml` after init - see [AI Assistants](#ai-assistants).
 
@@ -323,7 +323,7 @@ adl generate --file agent.yaml --output ./my-agent --ci --cd --deployment cloudr
 | `--cd`             | Generate CD pipeline with semantic-release. Overrides `spec.scm.cd`.     | `false`      |
 | `--deployment`     | Deployment platform: `kubernetes`, `cloudrun`, `vercel`, or `cloudflare` | -            |
 
-> **Manifest-driven equivalents.** `--ci` and `--cd` mirror `spec.scm.ci` and `spec.scm.cd`. The CLI flag is OR-merged on top of the manifest value - passing the flag wins; omitting it falls back to whatever the manifest declares. There is no `--ai` flag on `generate`; AI-assistant generation is entirely manifest-driven via the per-agent toggles under `spec.development.ai.*` (see [AI Assistants](#ai-assistants)).
+> **Manifest-driven equivalents.** `--ci` and `--cd` mirror `spec.scm.ci` and `spec.scm.cd`. The CLI flag is OR-merged on top of the manifest value - passing the flag wins; omitting it falls back to whatever the manifest declares. There is no `--ai` flag on `generate`; AI-assistant generation is entirely manifest-driven via the per-agent toggles under `spec.development.ai.orchestrators.*` (see [AI Assistants](#ai-assistants)).
 
 **CI Generation** automatically detects the SCM provider from `spec.scm.provider` and creates language-specific workflows with caching, testing, and linting.
 
@@ -518,16 +518,17 @@ spec:
       devcontainer:
         enabled: false
     ai:
-      claudecode:
-        enabled: true
-      codex:
-        enabled: false
-      gemini:
-        enabled: false
-      opencode:
-        enabled: false
-      infer:
-        enabled: false
+      orchestrators:
+        claudecode:
+          enabled: true
+        codex:
+          enabled: false
+        gemini:
+          enabled: false
+        opencode:
+          enabled: false
+        infer:
+          enabled: false
   deployment:
     type: cloudrun
     cloudrun:
@@ -1159,21 +1160,22 @@ Generates `docker-compose.yml` for a containerised dev environment.
 
 #### AI Assistants
 
-`spec.development.ai` configures generation of AI-assistant documentation (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`) and provisioning of coding agents inside the sandbox. Each supported agent is toggled independently via its own subsection, and **every agent is disabled by default**.
+`spec.development.ai.orchestrators` configures generation of AI-assistant documentation (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`) and provisioning of coding agents inside the sandbox. Each supported agent is toggled independently via its own subsection under `orchestrators`, and **every agent is disabled by default**.
 
 ```yaml
 development:
   ai:
-    claudecode:
-      enabled: true
-    codex:
-      enabled: false
-    gemini:
-      enabled: false
-    opencode:
-      enabled: false
-    infer:
-      enabled: false
+    orchestrators:
+      claudecode:
+        enabled: true
+      codex:
+        enabled: false
+      gemini:
+        enabled: false
+      opencode:
+        enabled: false
+      infer:
+        enabled: false
 ```
 
 | Toggle               | Coding agent              | Docs file the agent reads | GitHub Actions workflow generated?                                                |
@@ -1182,15 +1184,15 @@ development:
 | `codex.enabled`      | OpenAI Codex              | `AGENTS.md` (shared)      | yes (`.github/workflows/codex.yml`, uses `openai/codex-action`)                   |
 | `gemini.enabled`     | Google Gemini             | `GEMINI.md`               | yes (`.github/workflows/gemini.yml`, uses `google-github-actions/run-gemini-cli`) |
 | `opencode.enabled`   | OpenCode                  | `AGENTS.md` (shared)      | no - docs only                                                                    |
-| `infer.enabled`      | Inference Gateway `infer` | `AGENTS.md` (shared)      | no - docs only                                                                    |
+| `infer.enabled`      | Inference Gateway `infer` | `AGENTS.md` (shared)      | yes (`.github/workflows/infer.yml`, uses `inference-gateway/infer-action`)        |
 
 Notes:
 
 - `AGENTS.md` is generated **once** and is shared by every enabled agent that reads from it (`codex`, `opencode`, `infer`); its contents are agent-agnostic.
 - `CLAUDE.md` and `GEMINI.md` are agent-specific and only appear when the matching toggle is on.
 - When `claudecode.enabled: true`, the sandbox environments (Flox, DevContainer) also gain the `claude-code` CLI / extension automatically.
-- The `adl init --ai` flag is an init-time shortcut that writes `spec.development.ai.claudecode.enabled: true` into the manifest. Every other toggle stays `false`; enable additional agents by editing `agent.yaml` after init.
-- Pre-v0.8.0 manifests using `spec.development.ai.enabled: true` are no longer accepted - `adl validate` and `adl generate` will fail with a migration hint. Move `enabled: true` to the specific agent you want (e.g. `claudecode.enabled: true`).
+- The `adl init --ai` flag is an init-time shortcut that writes `spec.development.ai.orchestrators.claudecode.enabled: true` into the manifest. Every other toggle stays `false`; enable additional agents by editing `agent.yaml` after init.
+- The per-agent toggles live under `spec.development.ai.orchestrators`. Older manifests using the single `spec.development.ai.enabled: true` flag or the flat per-agent shape (e.g. `spec.development.ai.claudecode.enabled`, pre-`orchestrators`) are no longer accepted - `adl validate` and `adl generate` will fail with a migration hint. Move each toggle under `orchestrators` (e.g. `spec.development.ai.orchestrators.claudecode.enabled: true`).
 
 ### Hooks
 
@@ -1285,9 +1287,10 @@ my-go-agent/
 │   ├── workflows/
 │   │   ├── ci.yml                  # When spec.scm.ci (or --ci)
 │   │   ├── cd.yml                  # When spec.scm.cd (or --cd)
-│   │   ├── claude.yml              # When spec.development.ai.claudecode.enabled
-│   │   ├── codex.yml               # When spec.development.ai.codex.enabled
-│   │   ├── gemini.yml              # When spec.development.ai.gemini.enabled
+│   │   ├── claude.yml              # When spec.development.ai.orchestrators.claudecode.enabled
+│   │   ├── codex.yml               # When spec.development.ai.orchestrators.codex.enabled
+│   │   ├── gemini.yml              # When spec.development.ai.orchestrators.gemini.enabled
+│   │   ├── infer.yml               # When spec.development.ai.orchestrators.infer.enabled
 │   │   └── dependabot.yml          # When spec.scm.dependabot
 │   └── ISSUE_TEMPLATE/             # When spec.scm.issue_templates
 ├── .releaserc.yaml                 # When spec.scm.cd (or --cd)
@@ -1299,9 +1302,9 @@ my-go-agent/
 ├── .flox/                          # When spec.development.sandbox.flox.enabled
 ├── .devcontainer/
 │   └── devcontainer.json           # When spec.development.sandbox.devcontainer.enabled
-├── CLAUDE.md                       # When spec.development.ai.claudecode.enabled
+├── CLAUDE.md                       # When spec.development.ai.orchestrators.claudecode.enabled
 ├── AGENTS.md                       # When codex/opencode/infer enabled (shared)
-├── GEMINI.md                       # When spec.development.ai.gemini.enabled
+├── GEMINI.md                       # When spec.development.ai.orchestrators.gemini.enabled
 ├── .gitignore
 ├── .gitattributes                  # Marks generated files as linguist-generated
 ├── .editorconfig
@@ -1332,18 +1335,19 @@ my-rust-agent/
 ├── .github/workflows/
 │   ├── ci.yml                      # When spec.scm.ci (or --ci)
 │   ├── cd.yml                      # When spec.scm.cd (or --cd)
-│   ├── claude.yml                  # When spec.development.ai.claudecode.enabled
-│   ├── codex.yml                   # When spec.development.ai.codex.enabled
-│   └── gemini.yml                  # When spec.development.ai.gemini.enabled
+│   ├── claude.yml                  # When spec.development.ai.orchestrators.claudecode.enabled
+│   ├── codex.yml                   # When spec.development.ai.orchestrators.codex.enabled
+│   ├── gemini.yml                  # When spec.development.ai.orchestrators.gemini.enabled
+│   └── infer.yml                   # When spec.development.ai.orchestrators.infer.enabled
 ├── .releaserc.yaml                 # When spec.scm.cd (or --cd)
 ├── k8s/
 │   └── deployment.yaml             # When --deployment kubernetes
 ├── vercel.json                     # When --deployment vercel
 ├── .vercel/
 │   └── project.json                # When --deployment vercel
-├── CLAUDE.md                       # When spec.development.ai.claudecode.enabled
+├── CLAUDE.md                       # When spec.development.ai.orchestrators.claudecode.enabled
 ├── AGENTS.md                       # When codex/opencode/infer enabled (shared)
-├── GEMINI.md                       # When spec.development.ai.gemini.enabled
+├── GEMINI.md                       # When spec.development.ai.orchestrators.gemini.enabled
 └── README.md
 ```
 
@@ -1424,7 +1428,7 @@ The gateway discovers agent capabilities automatically via the `/.well-known/age
 - **Version control your ADL file** - Track `agent.yaml` alongside your code
 - **Leverage service injection** - Use the `inject` system instead of global state for testability
 - **Config subsection injection** - Inject only the config sections each tool needs (`config.email` instead of `config`)
-- **Enable AI assistants per agent** - Flip on the assistants you actually use under `spec.development.ai.*.enabled` (start with `claudecode`; add `codex`/`gemini`/`opencode`/`infer` as needed)
+- **Enable AI assistants per agent** - Flip on the assistants you actually use under `spec.development.ai.orchestrators.*.enabled` (start with `claudecode`; add `codex`/`gemini`/`opencode`/`infer` as needed)
 - **Set up CI/CD declaratively** - Set `spec.scm.ci: true` / `spec.scm.cd: true` so pipelines regenerate on every `adl generate` without remembering flags
 
 ## Troubleshooting
