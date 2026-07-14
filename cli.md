@@ -1157,6 +1157,19 @@ infer config set tools.agent.mode headless
 - The Agent tool is in the approval policy and **requires approval by default** (`require_approval: true`), with a per-tool override - consistent with `A2A_SubmitTask`. Spawning work that can edit files is treated as a mutating action.
 - A **depth guard** (`max_depth`, default `1`) prevents subagent fork-bombs: a subagent cannot itself spawn further subagents at the default cap.
 
+#### Tracing
+
+When telemetry is enabled, a **headless** subagent inherits the caller's trace context (`TRACEPARENT`), so its own `session` span nests under the caller's `execute_tool Agent` span - the whole fan-out reads as one cross-process trace in `infer traces`:
+
+```text
+session (standard, success)            152ms
+|-- execute_tool Agent                  89ms
+|   `-- session (readonly, success)     52ms
+|       `-- chat openai/gpt-4o          13ms
+```
+
+Interactive (tmux-pane) subagents are **not** stitched into the caller's trace; use `mode: headless` when you need the subagent's spans in the same trace. See [Trace context propagation to subprocesses](#trace-context-propagation-to-subprocesses) for the full contract.
+
 > **v1 scope.** Subagents do not nest (depth capped at 1), a subagent's tool-approval prompt is not routed back to the main chat TUI, only tmux is supported (no screen/zellij), and there is no `/agent` chat shortcut yet.
 >
 > Shipped in [inference-gateway/cli#658](https://github.com/inference-gateway/cli/pull/658).
@@ -1554,6 +1567,8 @@ The CLI emits one **trace per session** with the following span hierarchy:
 
 No prompt or response content is recorded in spans. Failed spans carry `error.type` and Error status per the OpenTelemetry recording-errors conventions.
 
+Spans emitted by subprocesses - Bash tool commands, [skill](/cli-skills/) scripts, and headless subagents - are ingested and nested under their originating `execute_tool` span, so a single trace can span multiple processes. See [Trace context propagation to subprocesses](#trace-context-propagation-to-subprocesses).
+
 ### Logs
 
 The CLI emits structured log entries as OTel log records. Each entry includes a timestamp, severity level, message, and contextual fields such as `session_id`, `model`, and `request_id`.
@@ -1628,6 +1643,66 @@ export OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
 infer agent "Analyze the codebase"
 ```
 
+### Trace context propagation to subprocesses
+
+When telemetry is enabled (`telemetry.enabled: true`, the default), the CLI propagates its active trace context into the processes it spawns, so spans emitted by tools and subagents stitch into the **same trace** as the CLI session. Propagation is built entirely on open standards - [W3C Trace Context](https://www.w3.org/TR/trace-context/) and [W3C Baggage](https://www.w3.org/TR/baggage/) on the way out, plain [OTLP](https://opentelemetry.io/docs/specs/otlp/) spans on the way back - so **any OpenTelemetry-instrumented tool participates with zero custom code**. When telemetry is disabled, none of these variables are set.
+
+#### Environment variables set for child processes
+
+The [Bash tool](#command-execution) (and therefore [skill](/cli-skills/) scripts) and headless [subagents](#local-subagents-agent-tool) receive:
+
+| Variable                     | Standard                                                  | Contents                                                                                     |
+| ---------------------------- | --------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `TRACEPARENT` / `TRACESTATE` | [W3C Trace Context](https://www.w3.org/TR/trace-context/) | The current trace, parented on the active `execute_tool` span, so child spans nest under it. |
+| `BAGGAGE`                    | [W3C Baggage](https://www.w3.org/TR/baggage/)             | `infer.session.id` and `infer.tool.call.id`, for correlating child spans back to the call.   |
+
+#### Where child spans are sent (OTLP sink selection)
+
+The CLI selects the span sink automatically so children report to the same place the CLI does:
+
+- **An OTLP endpoint is configured** (`telemetry.otlp.endpoint`, or the standard `OTEL_EXPORTER_OTLP_ENDPOINT`) - the endpoint and its headers are passed through to the child environment as `OTEL_EXPORTER_OTLP_ENDPOINT` / `OTEL_EXPORTER_OTLP_HEADERS`, so child spans land in the same remote backend and stitch into the trace there.
+- **No endpoint configured** (the default) - the CLI runs an **ephemeral localhost OTLP/HTTP receiver** for the session and points children at it. Received spans are persisted into the local per-session [trace store](#viewing-traces) and appear in `infer traces` / `/traces`, nested under the tool span that spawned them.
+
+Either way you get one coherent trace - local by default, in your backend when you have one.
+
+#### Example: any OTel-instrumented command
+
+Because propagation is standard OTLP, an off-the-shelf tool such as [`otel-cli`](https://github.com/equinix-labs/otel-cli) emits a correctly parented child span with no wiring. Run it inside a Bash tool call:
+
+```sh
+otel-cli exec --name "go test" -- go test ./...
+```
+
+The resulting `go test` span shows up as a child of `execute_tool Bash` in `infer traces`:
+
+```text
+session (standard, success)                12.4s
+`-- execute_tool Bash                        9.8s
+    `-- go test                              9.6s
+```
+
+The same holds for a program instrumented with an OpenTelemetry SDK: as long as it reads the standard `OTEL_EXPORTER_OTLP_ENDPOINT` and `TRACEPARENT` variables - which every conformant SDK does - its spans nest under the `execute_tool` span automatically, with no CLI-specific integration.
+
+#### Subagents: one cross-process trace
+
+`infer agent` honors an inherited `TRACEPARENT`, so a headless subagent's own `session` span nests under the caller's `execute_tool Agent` span - a single trace that spans both processes:
+
+```text
+session (standard, success)            152ms
+|-- execute_tool Agent                  89ms
+|   `-- session (readonly, success)     52ms
+|       `-- chat openai/gpt-4o          13ms
+```
+
+#### Remote A2A agents
+
+Outbound [A2A](/a2a/) requests carry `traceparent`, `tracestate`, and `baggage` HTTP headers, so a remote agent can continue the trace. This is **context-out only**: remote spans stitch into your trace through a **shared OTLP collector** that both sides export to - they are not written back into the local per-session trace store. Point both the CLI and the remote agent at the same `telemetry.otlp.endpoint` to see the full cross-service trace.
+
+#### Limitations
+
+- **Interactive (tmux-pane) subagents are not stitched** into the caller's trace - only headless subagents inherit the context. Use `mode: headless` when you need a subagent's spans in the same trace.
+- **Detached background shells that outlive the CLI lose late spans** - once the CLI (and its ephemeral receiver) exits, spans emitted afterward have nowhere local to land. Configure a persistent `telemetry.otlp.endpoint` for long-running detached work.
+
 ### Viewing telemetry data
 
 - **Local files** - the JSONL files under `~/.infer/telemetry/` are plain text and can be inspected with any JSON tool:
@@ -1675,6 +1750,8 @@ session (standard, success)                38.8s
 ```
 
 Spans that finished with an error status (or carry an `error.type` attribute) are flagged inline with an `[error: ...]` marker showing the error type - for example `[error: context_deadline_exceeded]`.
+
+Spans ingested from subprocesses appear in the same tree, nested under the `execute_tool` span that spawned them - Bash tool commands (including `otel-cli` and OpenTelemetry-SDK-instrumented programs) and headless subagents. See [Trace context propagation to subprocesses](#trace-context-propagation-to-subprocesses) for how the context is passed and where child spans are collected.
 
 `--format json` emits the same tree as structured output - each node carries the span name, start time, duration in fractional milliseconds, attributes, and an array of child spans - ready to pipe into `jq` or a custom viewer:
 
