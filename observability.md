@@ -432,6 +432,17 @@ The [Inference Gateway CLI](/cli/) records OpenTelemetry signals (metrics, trace
 | Traces  | `~/.infer/telemetry/\<session-id\>-traces.jsonl` | One root span per session, child spans for each LLM turn and tool call     |
 | Logs    | `~/.infer/telemetry/\<session-id\>-logs.jsonl`   | Structured log entries emitted during the session                          |
 
+Traces are recorded locally per session, so you can render a session's span tree offline - no collector required - with [`infer traces`](/cli/#viewing-traces):
+
+```text
+session (standard, success)                38.8s
+|-- chat ollama_cloud/deepseek-v4-flash     3.4s
+|-- execute_tool Read                      162us
+`-- chat ollama_cloud/deepseek-v4-flash     8.1s
+```
+
+Pass `--list` to enumerate sessions that have trace files, or `--format json` for structured output.
+
 ### OTLP/HTTP export
 
 All three signals can be exported to an OpenTelemetry Collector by setting the standard OTel environment variables:

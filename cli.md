@@ -231,6 +231,8 @@ infer version
 | `infer agent <task>` | Autonomous task execution        | Background operation, task planning, validation      |
 | `infer config <cmd>` | Configuration management         | Generic `get`/`set` for any config key               |
 | `infer tools <cmd>`  | Run agent tools directly         | Execute a tool or validate a bash command            |
+| `infer stats`        | Summarize local telemetry        | Token usage, tool outcomes, and cost across sessions |
+| `infer traces`       | View a session's trace span tree | Offline span-tree viewer, `--list` and JSON output   |
 
 ### Chat Interface Features
 
@@ -1642,7 +1644,62 @@ infer agent "Analyze the codebase"
   ```
 
 - **`infer stats`** - aggregates metrics from local files into a summary of tool outcomes, token usage, and sessions. Trace and log files are excluded from the aggregate.
+- **`infer traces`** - renders the span tree of a session from its local trace file. See [Viewing traces](#viewing-traces).
 - **Remote backend** - when OTLP export is configured, data appears in your collector's configured backend (Jaeger for traces, your metrics store, your log aggregator).
+
+### Viewing traces
+
+`infer traces` renders the span tree of a session - the session root span, its LLM turns, and the tool calls nested under each turn - with a duration next to every span. It reads the local per-session trace file (`~/.infer/telemetry/\<session-id\>-traces.jsonl`) directly, so it works **fully offline** with no OTLP collector required.
+
+```bash
+# Render the most recent session's span tree
+infer traces
+
+# Render a specific session by ID
+infer traces abc-123-def
+
+# List the sessions that have trace files
+infer traces --list
+
+# Emit the tree as structured JSON
+infer traces --format json
+```
+
+With no session ID, `infer traces` picks the **most recent** session. The default output is an indented span tree:
+
+```text
+session (standard, success)                38.8s
+|-- chat ollama_cloud/deepseek-v4-flash     3.4s
+|-- execute_tool Read                      162us
+`-- chat ollama_cloud/deepseek-v4-flash     8.1s
+```
+
+Spans that finished with an error status (or carry an `error.type` attribute) are flagged inline with an `[error: ...]` marker showing the error type - for example `[error: context_deadline_exceeded]`.
+
+`--format json` emits the same tree as structured output - each node carries the span name, start time, duration in fractional milliseconds, attributes, and an array of child spans - ready to pipe into `jq` or a custom viewer:
+
+```json
+{
+  "name": "session",
+  "start_time": "2026-07-14T09:12:03.145Z",
+  "duration_ms": 38800.0,
+  "attributes": {
+    "infer.execution.mode": "standard",
+    "infer.run.outcome": "success"
+  },
+  "children": [
+    {
+      "name": "chat ollama_cloud/deepseek-v4-flash",
+      "start_time": "2026-07-14T09:12:03.150Z",
+      "duration_ms": 3400.0,
+      "attributes": { "gen_ai.request.model": "deepseek-v4-flash" },
+      "children": []
+    }
+  ]
+}
+```
+
+The same view is available inside a chat session with the [`/traces`](#telemetry-shortcuts) shortcut.
 
 ## Shortcuts
 
@@ -1660,6 +1717,8 @@ The CLI provides built-in shortcuts and supports custom user-defined shortcuts.
 | `/a2a`                | View registered A2A agents and their connection state                                              | `/a2a`                                    |
 | `/tasks`              | View background work (A2A tasks, shells, subagents) with live status and captured output           | `/tasks`                                  |
 | `/tools`              | View a filterable list of tools available in the current agent mode, including MCP tools           | `/tools`                                  |
+| `/stats`              | Summarize the session's token usage, tool outcomes, and cost (mirrors `infer stats`)               | `/stats`                                  |
+| `/traces [id]`        | Render a session's trace span tree offline (mirrors `infer traces`)                                | `/traces`, `/traces abc-123-def`          |
 | `/skills <cmd>`       | Manage Agent Skills                                                                                | `/skills list`, `/skills install <url>`   |
 | `/voice [seconds]`    | Record the mic and transcribe to the input field (requires [speech-to-text](/cli-speech-to-text/)) | `/voice`, `/voice 8`                      |
 
@@ -1689,6 +1748,22 @@ The CLI provides built-in shortcuts and supports custom user-defined shortcuts.
 # Create pull request with AI-powered plan
 /scm pr-create
 ```
+
+### Telemetry Shortcuts
+
+`/stats` and `/traces` surface the CLI's local [telemetry](#telemetry) from inside a chat session, mirroring the `infer stats` and `infer traces` commands.
+
+- `/stats` summarizes the session's token usage, tool outcomes, and cost.
+- `/traces [session-id]` renders the span tree of a session - the session root, its LLM turns, and the tool calls under each turn - with per-span durations. With no argument it shows the most recent session.
+
+```text
+session (standard, success)                38.8s
+|-- chat ollama_cloud/deepseek-v4-flash     3.4s
+|-- execute_tool Read                      162us
+`-- chat ollama_cloud/deepseek-v4-flash     8.1s
+```
+
+Both read the local files under `~/.infer/telemetry/`, so they work fully offline. See [Viewing traces](#viewing-traces) for the `infer traces` command, its `--list` and `--format json` flags, and how error spans are marked.
 
 ### Voice Shortcut
 
