@@ -1514,6 +1514,136 @@ The per-setting subcommands were removed in [inference-gateway/cli#601](https://
 
 See the [full configuration reference](https://github.com/inference-gateway/cli/blob/main/docs/configuration.md) for detailed options.
 
+## Telemetry
+
+The CLI records OpenTelemetry signals (metrics, traces, and logs) for every session. Telemetry is **always on** when the CLI runs - there is no opt-out switch. Data is written to local files under `~/.infer/telemetry/` and can optionally be exported to an OTLP/HTTP collector.
+
+### Local files
+
+All three signals write per-session JSONL files to `~/.infer/telemetry/`:
+
+| Signal  | File pattern                                     | Description                                                                |
+| ------- | ------------------------------------------------ | -------------------------------------------------------------------------- |
+| Metrics | `~/.infer/telemetry/\<session-id\>.jsonl`        | Token usage, tool outcomes, session duration, and cost (delta temporality) |
+| Traces  | `~/.infer/telemetry/\<session-id\>-traces.jsonl` | One root span per session, child spans for each LLM turn and tool call     |
+| Logs    | `~/.infer/telemetry/\<session-id\>-logs.jsonl`   | Structured log entries emitted during the session                          |
+
+The `\<session-id\>` is the same UUID that appears in the CLI's session output and conversation storage. Local files use the OTLP/semconv JSON format as-is - no custom encoding.
+
+### Metrics
+
+The CLI records the following metrics using the [OpenTelemetry GenAI semantic conventions](https://opentelemetry.io/docs/specs/semconv/gen-ai/):
+
+- **gen_ai.client.token.usage** - input and output token counts per LLM request
+- **gen_ai.execute_tool.duration** - tool execution duration in seconds
+- **infer.agent.runs** - total agent session count
+- **infer.agent.run.duration** - session duration in seconds
+- **infer.client.cost** - computed dollar cost per session
+
+Metrics use **delta temporality** (required by the gateway ingest, and what makes the local files trivially summable by `infer stats`).
+
+### Traces
+
+The CLI emits one **trace per session** with the following span hierarchy:
+
+- **session** (root span) - carries `infer.execution.mode`, `infer.agent.mode`, `infer.run.outcome`, and `gen_ai.conversation.id`
+- **chat \<model\>** (CLIENT kind) - one per LLM request, with `gen_ai.request.model`, `gen_ai.provider.name`, `gen_ai.usage.input_tokens`, `gen_ai.usage.output_tokens`
+- **execute_tool \<name\>** (INTERNAL kind) - one per tool call, with `gen_ai.tool.name`, `gen_ai.tool.type`, `infer.tool.outcome`
+
+No prompt or response content is recorded in spans. Failed spans carry `error.type` and Error status per the OpenTelemetry recording-errors conventions.
+
+### Logs
+
+The CLI emits structured log entries as OTel log records. Each entry includes a timestamp, severity level, message, and contextual fields such as `session_id`, `model`, and `request_id`.
+
+### OTLP/HTTP export
+
+All three signals can be exported to an OpenTelemetry Collector or any OTLP/HTTP-compatible backend by setting the standard OpenTelemetry environment variables:
+
+```bash
+# Base endpoint (all signals append their own path: /v1/metrics, /v1/traces, /v1/logs)
+export OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+
+# Optional: per-signal endpoint overrides (takes precedence over the base)
+export OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=http://otel-collector:4318/v1/metrics
+export OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://otel-collector:4318/v1/traces
+export OTEL_EXPORTER_OTLP_LOGS_ENDPOINT=http://otel-collector:4318/v1/logs
+
+# Headers (e.g. for authentication)
+export OTEL_EXPORTER_OTLP_HEADERS="Authorization=Bearer%20my-token"
+
+# Service identity (merged into the resource attributes on every signal)
+export OTEL_SERVICE_NAME=infer-cli
+export OTEL_RESOURCE_ATTRIBUTES="deployment.environment=production,actor=ci-bot"
+```
+
+When `OTEL_EXPORTER_OTLP_ENDPOINT` is set, the CLI exports all three signals to that endpoint. Per-signal env vars (`OTEL_EXPORTER_OTLP_METRICS_ENDPOINT`, `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`, `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT`) override the base for that signal. Headers and timeouts follow the standard OTel exporter env-var spec.
+
+Local file export is **always active** regardless of OTLP configuration - remote export is additive, not a replacement.
+
+### Example: OpenTelemetry Collector
+
+To receive all three signals from the CLI, configure an OpenTelemetry Collector with OTLP/HTTP receivers:
+
+```yaml
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+
+exporters:
+  debug:
+    verbosity: detailed
+  otlp/jaeger:
+    endpoint: jaeger-collector:4317
+    tls:
+      insecure: true
+
+service:
+  pipelines:
+    metrics:
+      receivers: [otlp]
+      exporters: [debug]
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlp/jaeger, debug]
+    logs:
+      receivers: [otlp]
+      exporters: [debug]
+
+processors:
+  batch:
+    send_batch_size: 1024
+    timeout: 5s
+```
+
+Then run the CLI with the endpoint set:
+
+```bash
+export OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+infer agent "Analyze the codebase"
+```
+
+### Viewing telemetry data
+
+- **Local files** - the JSONL files under `~/.infer/telemetry/` are plain text and can be inspected with any JSON tool:
+
+  ```bash
+  # List telemetry files
+  ls ~/.infer/telemetry/
+
+  # View metrics for a session
+  cat ~/.infer/telemetry/\<session-id\>.jsonl | jq .
+
+  # View traces for a session
+  cat ~/.infer/telemetry/\<session-id\>-traces.jsonl | jq .
+  ```
+
+- **`infer stats`** - aggregates metrics from local files into a summary of tool outcomes, token usage, and sessions. Trace and log files are excluded from the aggregate.
+- **Remote backend** - when OTLP export is configured, data appears in your collector's configured backend (Jaeger for traces, your metrics store, your log aggregator).
+
 ## Shortcuts
 
 The CLI provides built-in shortcuts and supports custom user-defined shortcuts.
