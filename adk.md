@@ -555,7 +555,7 @@ The [`artifacts-filesystem`](https://github.com/inference-gateway/adk/tree/main/
 
 ## Telemetry
 
-The ADK's telemetry layer is built on [OpenTelemetry](https://opentelemetry.io/). `TELEMETRY_ENABLE=true` is the master switch; once it is on, the standard `OTEL_*` variables select which exporters run per signal. Metrics are exported either through a **Prometheus pull** endpoint (`/metrics`, default port `9090`) or **pushed via OTLP** to a collector; traces are exported over OTLP (off by default). The tracing service name is derived from the agent card `name`, so no extra variable is needed.
+The ADK's telemetry layer is built on [OpenTelemetry](https://opentelemetry.io/). `TELEMETRY_ENABLE=true` is the master switch; once it is on, the standard `OTEL_*` variables select which exporters run per signal. Metrics are exported either through a **Prometheus pull** endpoint (`/metrics`, default port `9090`) or **pushed via OTLP** to a collector; traces are exported over OTLP by default. The tracing service name is derived from the agent card `name`, so no extra variable is needed.
 
 ```bash
 export TELEMETRY_ENABLE=true
@@ -570,7 +570,7 @@ Exporters are selected with the standard OpenTelemetry variables, which are read
 | ------------------------------- | ----------------------- | --------------------------------------------------------- |
 | `TELEMETRY_ENABLE`              | `false`                 | Master switch for the telemetry subsystem.                |
 | `OTEL_METRICS_EXPORTER`         | `prometheus`            | Metrics exporter: `prometheus`, `otlp`, or `none`.        |
-| `OTEL_TRACES_EXPORTER`          | `none`                  | Traces exporter: `otlp` or `none`.                        |
+| `OTEL_TRACES_EXPORTER`          | `otlp`                  | Traces exporter: `otlp` or `none`.                        |
 | `OTEL_EXPORTER_OTLP_ENDPOINT`   | `http://localhost:4318` | OTLP endpoint base URL shared by traces and metrics.      |
 | `OTEL_EXPORTER_OTLP_PROTOCOL`   | `http/protobuf`         | OTLP transport: `http/protobuf` or `grpc`.                |
 | `OTEL_EXPORTER_PROMETHEUS_HOST` | _(all)_                 | Bind host for the Prometheus pull endpoint (empty = all). |
@@ -585,7 +585,7 @@ The session-id and tool-call-id keys used for both baggage propagation and the s
 | `TELEMETRY_ATTR_SESSION_ID_KEY`   | `session.id`          | Baggage member and span attribute key for the session id.   |
 | `TELEMETRY_ATTR_TOOL_CALL_ID_KEY` | `gen_ai.tool.call.id` | Baggage member and span attribute key for the tool-call id. |
 
-The original `TELEMETRY_*` names remain supported as **deprecated aliases** (`TELEMETRY_METRICS_HOST`/`PORT`, `TELEMETRY_TRACE_ENABLE`, `TELEMETRY_TRACE_ENDPOINT`, `TELEMETRY_TRACE_HEADERS`); the `OTEL_*` variable wins whenever both are set. Prefer the standard names in new deployments. See the upstream [telemetry guide](https://github.com/inference-gateway/adk/blob/main/docs/telemetry.md) for the full reference.
+The original `TELEMETRY_*` names remain supported as **deprecated aliases** (`TELEMETRY_METRICS_HOST`/`PORT`, `TELEMETRY_TRACE_ENDPOINT`, `TELEMETRY_TRACE_HEADERS`); the `OTEL_*` variable wins whenever both are set. Prefer the standard names in new deployments. See the upstream [telemetry guide](https://github.com/inference-gateway/adk/blob/main/docs/telemetry.md) for the full reference.
 
 ## Build-time agent metadata
 
