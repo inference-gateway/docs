@@ -345,7 +345,7 @@ Returns validation errors if the file structure or required fields are invalid.
 
 ## ADL Schema Reference
 
-> **Reflects ADL `schema/v1` (JSON Schema Draft-07) as of [`v0.14.0`](https://github.com/inference-gateway/adl/releases/tag/v0.14.0).** The field definitions below are an in-page convenience copy. The single source of truth is [`schema/v1/schema.json`](https://github.com/inference-gateway/adl/blob/main/schema/v1/schema.json) in `inference-gateway/adl` (rendered at [adl.inference-gateway.com](https://adl.inference-gateway.com)) - if anything here disagrees with the canonical schema, the canonical schema wins.
+> **Reflects ADL `schema/v1` (JSON Schema Draft-07) as of [`v0.19.0`](https://github.com/inference-gateway/adl/releases/tag/v0.19.0).** The field definitions below are an in-page convenience copy. The single source of truth is [`schema/v1/schema.json`](https://github.com/inference-gateway/adl/blob/main/schema/v1/schema.json) in `inference-gateway/adl` (rendered at [adl.inference-gateway.com](https://adl.inference-gateway.com)) - if anything here disagrees with the canonical schema, the canonical schema wins.
 
 ### Overview
 
@@ -495,6 +495,18 @@ spec:
     debug: false
     auth:
       enabled: true
+  telemetry:
+    enabled: true
+    traces:
+      exporter:
+        otlp:
+          endpoint: http://localhost:4318
+          protocol: http/protobuf
+    metrics:
+      exporter:
+        prometheus:
+          host: ''
+          port: 9464
   language:
     go:
       module: 'github.com/company/advanced-agent'
@@ -856,6 +868,82 @@ This generates type-safe code where the tool receives `*config.EmailConfig` inst
 | `scheme`       | string  | `http`  | URL scheme (`http` or `https`) |
 | `debug`        | boolean | `false` | Enable debug mode              |
 | `auth.enabled` | boolean | `false` | Enable authentication          |
+
+### Telemetry
+
+`spec.telemetry` configures [OpenTelemetry](https://opentelemetry.io/) instrumentation for the generated agent. `enabled` is the master switch; the optional `traces` and `metrics` blocks select a per-signal exporter following the [OpenTelemetry SDK declarative-configuration](https://opentelemetry.io/docs/specs/otel/configuration/) model. When `enabled: true`, the generator pulls in the OpenTelemetry dependencies, instruments the built-in tool calls with spans, and turns on the ADK telemetry/metrics server.
+
+```yaml
+telemetry:
+  enabled: true
+  traces:
+    exporter:
+      otlp:
+        endpoint: http://localhost:4318
+        protocol: http/protobuf
+  metrics:
+    exporter:
+      prometheus: # pull; or `otlp:` to push
+        host: ''
+        port: 9464
+```
+
+**Shape.** The exporter is nested **under each signal**, and the single key beneath `exporter` selects it - there is no separate exporter enum and no signal-agnostic protocol block.
+
+- `traces.exporter` accepts `otlp`.
+- `metrics.exporter` accepts `otlp` (push) or `prometheus` (pull).
+- Exactly one exporter key is allowed per signal (enforced with `oneOf`).
+- Omitting a signal - or its `exporter` block - disables that signal (`OTEL_TRACES_EXPORTER=none` / `OTEL_METRICS_EXPORTER=none`).
+
+The top-level `spec.telemetry` block:
+
+| Field     | Type    | Required | Description                                                                                |
+| --------- | ------- | :------: | ------------------------------------------------------------------------------------------ |
+| `enabled` | boolean |    ✓     | Master switch. `true` wires in OpenTelemetry and the ADK telemetry server. Off by default. |
+| `traces`  | object  |          | Tracing (spans) signal configuration. Omit to disable tracing.                             |
+| `metrics` | object  |          | Metrics signal configuration. Omit to disable metrics.                                     |
+
+Each signal (`traces`, `metrics`) takes a single `exporter`:
+
+| Field      | Type   | Description                                                        |
+| ---------- | ------ | ------------------------------------------------------------------ |
+| `exporter` | object | Selects the exporter. Exactly one key. Omit to disable the signal. |
+
+The `otlp` exporter (valid for `traces` and `metrics`):
+
+| Field      | Type   | Description                                                          |
+| ---------- | ------ | -------------------------------------------------------------------- |
+| `endpoint` | string | Collector endpoint, e.g. `http://localhost:4318`. `${VAR}` accepted. |
+| `protocol` | string | `http/protobuf` or `grpc`.                                           |
+
+The `prometheus` exporter (metrics only, pull/scrape):
+
+| Field  | Type    | Description                                        |
+| ------ | ------- | -------------------------------------------------- |
+| `host` | string  | Host/interface the scrape endpoint binds to.       |
+| `port` | integer | Scrape port (1-65535; OpenTelemetry default 9464). |
+
+Every field except `enabled` is optional. Selecting `otlp: {}` with no `endpoint`/`protocol` is valid - it turns the exporter on and leaves the details to the standard OTLP environment defaults.
+
+**Environment-variable mapping.** Every manifest field maps 1:1 to a standard `OTEL_*` environment variable, emitted as a generated `.env.example` default. The manifest fixes the field; the runtime always reads the env var, so an operator can override any of these at deploy time.
+
+| Manifest                       | Environment variable                                                                     |
+| ------------------------------ | ---------------------------------------------------------------------------------------- |
+| `enabled: true`                | `A2A_TELEMETRY_ENABLE=true` (ADK master switch)                                          |
+| `traces.exporter.otlp`         | `OTEL_TRACES_EXPORTER=otlp`                                                              |
+| `metrics.exporter.otlp`        | `OTEL_METRICS_EXPORTER=otlp`                                                             |
+| `metrics.exporter.prometheus`  | `OTEL_METRICS_EXPORTER=prometheus`                                                       |
+| _signal omitted / no exporter_ | `OTEL_TRACES_EXPORTER=none` / `OTEL_METRICS_EXPORTER=none`                               |
+| `otlp.endpoint`                | `OTEL_EXPORTER_OTLP_{TRACES,METRICS}_ENDPOINT` (or shared `OTEL_EXPORTER_OTLP_ENDPOINT`) |
+| `otlp.protocol`                | `OTEL_EXPORTER_OTLP_{TRACES,METRICS}_PROTOCOL` (or shared `OTEL_EXPORTER_OTLP_PROTOCOL`) |
+| `prometheus.host`              | `OTEL_EXPORTER_PROMETHEUS_HOST`                                                          |
+| `prometheus.port`              | `OTEL_EXPORTER_PROMETHEUS_PORT`                                                          |
+
+When **both** signals use `otlp` with identical settings, the generator may collapse them to the shared `OTEL_EXPORTER_OTLP_ENDPOINT` / `OTEL_EXPORTER_OTLP_PROTOCOL`; when they differ (or only one uses OTLP), it emits the per-signal `OTEL_EXPORTER_OTLP_TRACES_*` / `OTEL_EXPORTER_OTLP_METRICS_*` variants instead.
+
+**What stays out of the manifest.** Headers, credentials/authentication, and sampling are deliberately **not** manifest fields - they are secrets or per-environment tuning supplied through the standard runtime variables (`OTEL_EXPORTER_OTLP_HEADERS`, `OTEL_TRACES_SAMPLER`, `OTEL_TRACES_SAMPLER_ARG`, ...). Keeping them env-only leaves the manifest portable and secret-free.
+
+`traces` and `metrics` are additive - `enabled` remains the only required field, so an existing `telemetry: { enabled: true }` manifest validates and behaves exactly as before. The full field reference and env-var mapping table live in [`docs/reference/telemetry.md`](https://github.com/inference-gateway/adl/blob/main/docs/reference/telemetry.md) in `inference-gateway/adl`.
 
 ### Language Configuration
 
