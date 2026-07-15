@@ -1598,6 +1598,29 @@ When `OTEL_EXPORTER_OTLP_ENDPOINT` is set, the CLI exports all three signals to 
 
 Local file export is **always active** regardless of OTLP configuration - remote export is additive, not a replacement.
 
+### Local OTLP receiver (`telemetry.receiver_address`)
+
+By default, the CLI runs an ephemeral loopback OTLP/HTTP receiver (`127.0.0.1:0`) that accepts spans from subprocesses (Bash tool commands, headless subagents) and persists them into the per-session trace file. This receiver is **loopback-only** and auto-allocated, so it is invisible to external processes.
+
+When you need an external OpenTelemetry Collector (or any OTLP producer) to feed spans back into the CLI's local trace store - for example to see a remote A2A agent's spans in `infer traces` - set `telemetry.receiver_address` to a fixed address:
+
+```yaml
+# .infer/config.yaml
+telemetry:
+  receiver_address: 0.0.0.0:4318
+```
+
+```bash
+# Environment variable
+export INFER_TELEMETRY_RECEIVER_ADDRESS=0.0.0.0:4318
+```
+
+When set, the receiver binds to that address at startup (instead of a random loopback port) and accepts OTLP/HTTP `POST /v1/traces` (protobuf) from any reachable producer. Received spans are filtered to the session's trace ID and appended to the local trace file, where they appear in `infer traces` nested under the originating `execute_tool` span.
+
+**Defensive limits:** 4 MiB per request body, 5000 spans per session. The receiver always responds 200 - receiver failures never fail the tool.
+
+> Shipped in [inference-gateway/cli#909](https://github.com/inference-gateway/cli/pull/909).
+
 ### Example: OpenTelemetry Collector
 
 To receive all three signals from the CLI, configure an OpenTelemetry Collector with OTLP/HTTP receivers:
@@ -1698,6 +1721,41 @@ session (standard, success)            152ms
 
 Outbound [A2A](/a2a/) requests carry `traceparent`, `tracestate`, and `baggage` HTTP headers, so a remote agent can continue the trace. This is **context-out only**: remote spans stitch into your trace through a **shared OTLP collector** that both sides export to - they are not written back into the local per-session trace store. Point both the CLI and the remote agent at the same `telemetry.otlp.endpoint` to see the full cross-service trace.
 
+#### A2A traces example
+
+The [`examples/a2a-traces`](https://github.com/inference-gateway/cli/tree/main/examples/a2a-traces) directory in the CLI repository demonstrates end-to-end distributed telemetry between the CLI and a remote A2A agent (mock-agent), with an OpenTelemetry Collector in the middle. It exercises both telemetry models:
+
+- **Push (OTLP)**: the CLI exports its traces and metrics to the collector; the mock-agent exports its traces to the collector.
+- **Pull (Prometheus)**: the collector scrapes the mock-agent's `:9090/metrics` endpoint.
+
+The CLI injects W3C trace context into every outgoing A2A request, so the mock-agent's spans share the CLI's trace ID and parent under the CLI's `execute_tool` span. The collector fans all traces back to the CLI's local OTLP receiver (via `INFER_TELEMETRY_RECEIVER_ADDRESS: 0.0.0.0:4318`), so `infer traces` shows the **full distributed trace**, including the mock-agent's spans:
+
+```text
+session (standard, success)                 152ms
+|-- chat deepseek/deepseek-v4-pro             5ms
+|-- execute_tool A2A_SubmitTask              89ms
+|   `-- a2a.request [mock-agent]             52ms
+`-- chat deepseek/deepseek-v4-pro            12ms
+```
+
+Ingested foreign spans are labeled `name [service]` from the producer's `service.name` resource attribute - for example `a2a.request [mock-agent]`.
+
+To run the example:
+
+```bash
+cd examples/a2a-traces
+cp .env.example .env   # set at least one provider API key
+docker compose up -d --build
+docker compose attach cli
+# In the CLI, ask: "Ask the mock-agent to summarize the current project."
+# Detach with ctrl-p ctrl-q, then:
+docker compose exec cli infer traces
+```
+
+See the [example README](https://github.com/inference-gateway/cli/tree/main/examples/a2a-traces) for full configuration notes and troubleshooting.
+
+> Shipped in [inference-gateway/cli#909](https://github.com/inference-gateway/cli/pull/909).
+
 #### Limitations
 
 - **Interactive (tmux-pane) subagents are not stitched** into the caller's trace - only headless subagents inherit the context. Use `mode: headless` when you need a subagent's spans in the same trace.
@@ -1752,6 +1810,8 @@ session (standard, success)                38.8s
 Spans that finished with an error status (or carry an `error.type` attribute) are flagged inline with an `[error: ...]` marker showing the error type - for example `[error: context_deadline_exceeded]`.
 
 Spans ingested from subprocesses appear in the same tree, nested under the `execute_tool` span that spawned them - Bash tool commands (including `otel-cli` and OpenTelemetry-SDK-instrumented programs) and headless subagents. See [Trace context propagation to subprocesses](#trace-context-propagation-to-subprocesses) for how the context is passed and where child spans are collected.
+
+Spans ingested from external producers (for example a remote A2A agent or an OpenTelemetry Collector) are labeled with the producer's `service.name` resource attribute: `name [service]`. For example, a span named `a2a.request` from a service called `mock-agent` renders as `a2a.request [mock-agent]` in the tree. This makes it easy to identify which service produced each span in a distributed trace.
 
 `--format json` emits the same tree as structured output - each node carries the span name, start time, duration in fractional milliseconds, attributes, and an array of child spans - ready to pipe into `jq` or a custom viewer:
 
