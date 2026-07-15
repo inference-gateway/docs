@@ -941,6 +941,8 @@ Every field except `enabled` is optional. Selecting `otlp: {}` with no `endpoint
 
 When **both** signals use `otlp` with identical settings, the generator may collapse them to the shared `OTEL_EXPORTER_OTLP_ENDPOINT` / `OTEL_EXPORTER_OTLP_PROTOCOL`; when they differ (or only one uses OTLP), it emits the per-signal `OTEL_EXPORTER_OTLP_TRACES_*` / `OTEL_EXPORTER_OTLP_METRICS_*` variants instead.
 
+**Service identity from manifest metadata.** The generated agent's OpenTelemetry `service.name` resource attribute is sourced from the ADL manifest `metadata.name` (via build-time Go linker flags), and `service.version` from `metadata.version`. These are **build-time metadata** baked into the binary - they are NOT overridable via environment variables (the ADK does not env-map them). Before this fix, telemetry-enabled Go agents exported spans with an empty `service.name`, making them unattributable in tracing backends.
+
 **What stays out of the manifest.** Headers, credentials/authentication, and sampling are deliberately **not** manifest fields - they are secrets or per-environment tuning supplied through the standard runtime variables (`OTEL_EXPORTER_OTLP_HEADERS`, `OTEL_TRACES_SAMPLER`, `OTEL_TRACES_SAMPLER_ARG`, ...). Keeping them env-only leaves the manifest portable and secret-free.
 
 `traces` and `metrics` are additive - `enabled` remains the only required field, so an existing `telemetry: { enabled: true }` manifest validates and behaves exactly as before. The full field reference and env-var mapping table live in [`docs/reference/telemetry.md`](https://github.com/inference-gateway/adl/blob/main/docs/reference/telemetry.md) in `inference-gateway/adl`.
