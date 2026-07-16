@@ -18,6 +18,9 @@ const telemetrySettings = [
   { variable: 'TELEMETRY_ENABLE', description: 'Enable OpenTelemetry metrics and tracing', defaultValue: 'false' },
   { variable: 'TELEMETRY_METRICS_PUSH_ENABLE', description: 'Enable the OTLP metrics push endpoint (POST /v1/metrics)', defaultValue: 'false' },
   { variable: 'TELEMETRY_METRICS_PORT', description: 'Port for telemetry metrics server', defaultValue: '9464' },
+  { variable: 'OTEL_METRICS_EXPORTER', description: 'Metrics exporter mode: otlp (push), prometheus (pull), or none', defaultValue: 'otlp' },
+  { variable: 'OTEL_EXPORTER_PROMETHEUS_HOST', description: 'Prometheus pull endpoint bind host', defaultValue: '0.0.0.0' },
+  { variable: 'OTEL_EXPORTER_PROMETHEUS_PORT', description: 'Prometheus pull endpoint port', defaultValue: '9464' },
 ];
 
 const oidcSettings = [
@@ -366,6 +369,9 @@ DEBUG_MAX_MESSAGES=100
 TELEMETRY_ENABLE=false
 TELEMETRY_METRICS_PUSH_ENABLE=false
 TELEMETRY_METRICS_PORT=9464
+OTEL_METRICS_EXPORTER=otlp
+OTEL_EXPORTER_PROMETHEUS_HOST=0.0.0.0
+OTEL_EXPORTER_PROMETHEUS_PORT=9464
 # Model Context Protocol (MCP)
 MCP_ENABLE=false
 MCP_EXPOSE=false

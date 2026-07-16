@@ -30,6 +30,37 @@ When enabled, the gateway exposes a Prometheus exposition endpoint at `http://<g
 
 The metrics port is separate from the main API port. Do not expose `9464` to the public internet; scope it to your cluster network or behind your monitoring ingress.
 
+### Metrics Exporter Selection
+
+The `OTEL_METRICS_EXPORTER` environment variable controls how metrics are exported. It accepts the same values as the standard OpenTelemetry SDK and is supported by the Go ADK, TypeScript ADK, and the gateway itself:
+
+| Value        | Behaviour                                                                                                                    |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| `otlp`       | Push metrics over OTLP to the endpoint configured by `OTEL_EXPORTER_OTLP_ENDPOINT` (default).                                |
+| `prometheus` | Expose a Prometheus pull endpoint on `OTEL_EXPORTER_PROMETHEUS_HOST:OTEL_EXPORTER_PROMETHEUS_PORT` (default `0.0.0.0:9464`). |
+| `none`       | Disable the metrics signal entirely. Traces and logs (when supported) are unaffected.                                        |
+
+```bash
+# Prometheus pull mode (default host/port)
+OTEL_METRICS_EXPORTER=prometheus
+
+# Custom Prometheus bind address
+OTEL_METRICS_EXPORTER=prometheus
+OTEL_EXPORTER_PROMETHEUS_HOST=0.0.0.0
+OTEL_EXPORTER_PROMETHEUS_PORT=9464
+
+# OTLP push mode (default)
+OTEL_METRICS_EXPORTER=otlp
+OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+
+# Disable metrics entirely
+OTEL_METRICS_EXPORTER=none
+```
+
+When `OTEL_METRICS_EXPORTER=prometheus`, the Prometheus pull server runs on the configured host and port. When `OTEL_METRICS_EXPORTER=otlp`, metrics are pushed to the OTLP endpoint with a periodic reader and the Prometheus pull server is not started. When `OTEL_METRICS_EXPORTER=none`, no metrics are collected or exported.
+
+The default value is `otlp` in the TypeScript ADK and `prometheus` in the Go ADK. Set it explicitly to avoid ambiguity when deploying across ADKs.
+
 ## Exported Metrics
 
 The following metrics are exported when `TELEMETRY_ENABLE=true`. Metrics follow the [OpenTelemetry GenAI semantic conventions](https://opentelemetry.io/docs/specs/semconv/gen-ai/).
