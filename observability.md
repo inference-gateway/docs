@@ -536,6 +536,10 @@ processors:
 
 See the [CLI Telemetry](/cli/#telemetry) section for the full documentation, including the span hierarchy, metric names, and local file inspection commands.
 
+### Orchestrator (Kubernetes)
+
+When the CLI runs as an [Orchestrator](/operator/#orchestrator) under the Kubernetes operator, telemetry is configured declaratively through the CRD's `spec.telemetry` block rather than raw env vars. The operator maps it onto the same `INFER_TELEMETRY_ENABLED` and `INFER_TELEMETRY_OTLP_ENDPOINT` variables the `channels-manager` daemon reads, using a single shared OTLP endpoint for all signals. See [Orchestrator Telemetry](/operator/#orchestrator-telemetry) for the field reference, the traces-over-metrics endpoint precedence, and an example.
+
 ## Reference Monitoring Stack
 
 For a runnable end-to-end setup (Prometheus + Grafana + Loki + dashboards already wired), see the official examples:
