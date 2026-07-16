@@ -2948,14 +2948,17 @@ import { createTelemetryProvider, loadTelemetryConfigFromEnv } from '@inference-
 const telemetry = createTelemetryProvider({ config: loadTelemetryConfigFromEnv() });
 ```
 
-| Variable                      | Default                  | Maps to                                                                        |
-| ----------------------------- | ------------------------ | ------------------------------------------------------------------------------ |
-| `TELEMETRY_ENABLE`            | `false`                  | `config.enable`. Truthy set: `1` / `true` / `yes` / `on`.                      |
-| `OTEL_SERVICE_NAME`           | `@inference-gateway/adk` | `service.name` resource attribute.                                             |
-| `OTEL_SERVICE_VERSION`        | `0.0.0`                  | `service.version` resource attribute.                                          |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | OTel SDK default         | OTLP collector endpoint (consumed by the exporter, not pre-parsed by the ADK). |
-| `OTEL_EXPORTER_OTLP_HEADERS`  | -                        | OTLP exporter headers (e.g. auth).                                             |
-| `OTEL_EXPORTER_OTLP_PROTOCOL` | OTel SDK default         | `http/protobuf`, `http/json`, etc.                                             |
+| Variable                        | Default                  | Maps to                                                                        |
+| ------------------------------- | ------------------------ | ------------------------------------------------------------------------------ |
+| `TELEMETRY_ENABLE`              | `false`                  | `config.enable`. Truthy set: `1` / `true` / `yes` / `on`.                      |
+| `OTEL_SERVICE_NAME`             | `@inference-gateway/adk` | `service.name` resource attribute.                                             |
+| `OTEL_SERVICE_VERSION`          | `0.0.0`                  | `service.version` resource attribute.                                          |
+| `OTEL_EXPORTER_OTLP_ENDPOINT`   | OTel SDK default         | OTLP collector endpoint (consumed by the exporter, not pre-parsed by the ADK). |
+| `OTEL_EXPORTER_OTLP_HEADERS`    | -                        | OTLP exporter headers (e.g. auth).                                             |
+| `OTEL_EXPORTER_OTLP_PROTOCOL`   | OTel SDK default         | `http/protobuf`, `http/json`, etc.                                             |
+| `OTEL_METRICS_EXPORTER`         | `otlp`                   | Metrics exporter: `otlp` (push), `prometheus` (pull), or `none`.               |
+| `OTEL_EXPORTER_PROMETHEUS_HOST` | `0.0.0.0`                | Bind host for the Prometheus pull endpoint.                                    |
+| `OTEL_EXPORTER_PROMETHEUS_PORT` | `9464`                   | Port for the Prometheus pull endpoint.                                         |
 
 ### What gets instrumented
 

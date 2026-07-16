@@ -1027,13 +1027,16 @@ The library never reads the environment itself. You pick a loader - typically [`
 | `A2A_SERVER_TLS_KEY_PATH`       | _(empty)_ | PEM file with the server private key.                          |
 | `A2A_SERVER_TLS_CLIENT_CA_PATH` | _(unset)_ | Trusted client-CA bundle; presence flips the server into mTLS. |
 
-**Telemetry** - OpenTelemetry export. `A2A_TELEMETRY_ENABLE` is the sole telemetry switch, matching the [Go ADK](/adk#telemetry); when it is `true`, traces are exported over OTLP by default. Set `A2A_OTEL_TRACES_EXPORTER=none` to opt the trace signal out while telemetry stays enabled.
+**Telemetry** - OpenTelemetry export. `A2A_TELEMETRY_ENABLE` is the sole telemetry switch, matching the [Go ADK](/adk#telemetry); when it is `true`, traces are exported over OTLP by default. Set `A2A_OTEL_TRACES_EXPORTER=none` to opt the trace signal out while telemetry stays enabled. Metrics are exported through the standard `OTEL_METRICS_EXPORTER` variable.
 
-| Variable                   | Default   | Purpose                                                                            |
-| -------------------------- | --------- | ---------------------------------------------------------------------------------- |
-| `A2A_TELEMETRY_ENABLE`     | `false`   | Sole telemetry switch. When `true`, traces default to the OTLP exporter.           |
-| `A2A_OTEL_TRACES_EXPORTER` | `otlp`    | Trace exporter: `otlp` or `none`. `none` opts traces out while telemetry stays on. |
-| `A2A_TELEMETRY_ENDPOINT`   | _(unset)_ | OTLP collector endpoint.                                                           |
+| Variable                        | Default   | Purpose                                                                            |
+| ------------------------------- | --------- | ---------------------------------------------------------------------------------- |
+| `A2A_TELEMETRY_ENABLE`          | `false`   | Sole telemetry switch. When `true`, traces default to the OTLP exporter.           |
+| `A2A_OTEL_TRACES_EXPORTER`      | `otlp`    | Trace exporter: `otlp` or `none`. `none` opts traces out while telemetry stays on. |
+| `A2A_TELEMETRY_ENDPOINT`        | _(unset)_ | OTLP collector endpoint.                                                           |
+| `OTEL_METRICS_EXPORTER`         | `otlp`    | Metrics exporter: `otlp` (push), `prometheus` (pull), or `none`.                   |
+| `OTEL_EXPORTER_PROMETHEUS_HOST` | `0.0.0.0` | Bind host for the Prometheus pull endpoint.                                        |
+| `OTEL_EXPORTER_PROMETHEUS_PORT` | `9464`    | Port for the Prometheus pull endpoint.                                             |
 
 ## Related
 
