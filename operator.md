@@ -349,7 +349,7 @@ For runnable manifests, see [`gateway-with-routing-simple`](https://github.com/i
 
 ## Orchestrator Telemetry
 
-`spec.telemetry` on an `Orchestrator` configures OpenTelemetry traces and metrics. It reuses the shared `TelemetrySpec` that `Gateway` and `Agent` use, so the block accepts the same `enabled`, `traces`, `metrics`, and exporter fields. The orchestrator runs the CLI's `channels-manager` daemon, which consumes a narrower slice of that type: the controller maps the whole block onto just two environment variables on the orchestrator pod.
+`spec.telemetry` on an `Orchestrator` configures OpenTelemetry traces and metrics. It reuses the shared `TelemetrySpec` that `Gateway` and `Agent` use, so the block accepts the same `enabled`, `traces`, `metrics`, and exporter fields. The orchestrator runs the CLI's `channels-manager` daemon, which consumes a narrower slice of that type: the controller maps the whole block onto just two environment variables on the orchestrator pod. When telemetry is enabled, the daemon pushes operational metrics (messages processed, message duration, active channels) over OTLP alongside traces and logs.
 
 | Emitted env var                 | Sourced from                                                                                          | Description                                                                                                                    |
 | ------------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
@@ -360,7 +360,7 @@ For runnable manifests, see [`gateway-with-routing-simple`](https://github.com/i
 
 Unlike `Gateway` and `Agent`, the `channels-manager` CLI exposes **one** OTLP endpoint for both traces and metrics - there is no per-signal OTLP field. When both `telemetry.traces.exporter.otlp.endpoint` and `telemetry.metrics.exporter.otlp.endpoint` are set, the **traces endpoint wins** and the metrics endpoint is ignored. Point both signals at one collector that ingests them together, or export metrics over Prometheus pull (which needs no OTLP endpoint) to sidestep the conflict.
 
-The remaining `TelemetrySpec` fields - the `telemetry.metrics.*` Prometheus settings and the per-signal `protocol` - are accepted for schema parity with `Gateway`/`Agent` but are **inert for the orchestrator**: it is a forced singleton daemon with no scrape Service, so only the master switch and the shared OTLP endpoint reach the CLI. Configure Prometheus scraping and per-signal protocols on a `Gateway` or `Agent` instead. See [CLI Telemetry](/observability/#cli-telemetry) for how the daemon exports to the OTLP endpoint.
+The remaining `TelemetrySpec` fields - the `telemetry.metrics.*` Prometheus settings and the per-signal `protocol` - are accepted for schema parity with `Gateway`/`Agent` but are **inert for the orchestrator**: it is a forced singleton daemon with no scrape Service, so only the master switch and the shared OTLP endpoint reach the CLI. Configure Prometheus scraping and per-signal protocols on a `Gateway` or `Agent` instead. See [CLI Telemetry](/observability/#cli-telemetry) for how the daemon exports to the OTLP endpoint, and [Channels Manager (Daemon)](/observability/#channels-manager-daemon) for the daemon-specific metrics reference.
 
 ### Example: Orchestrator with OTLP traces and Prometheus metrics
 
@@ -402,7 +402,17 @@ INFER_TELEMETRY_ENABLED=true
 INFER_TELEMETRY_OTLP_ENDPOINT=http://otel-collector:4318
 ```
 
-Traces are pushed to the collector over OTLP/HTTP. The `metrics.exporter.prometheus` block is schema-valid but does not translate to any orchestrator env var today (no scrape endpoint is exposed); it is shown here to illustrate the full shared `TelemetrySpec` shape. Because Prometheus metrics do not claim an OTLP endpoint, pairing them with OTLP traces also keeps the single shared endpoint unambiguous.
+Traces and daemon-specific operational metrics are pushed to the collector over OTLP/HTTP. The `metrics.exporter.prometheus` block is schema-valid but does not translate to any orchestrator env var today (no scrape endpoint is exposed); it is shown here to illustrate the full shared `TelemetrySpec` shape. Because Prometheus metrics do not claim an OTLP endpoint, pairing them with OTLP traces also keeps the single shared endpoint unambiguous.
+
+The daemon emits the following metrics when telemetry is enabled:
+
+| Metric                            | Type           | Description                     |
+| --------------------------------- | -------------- | ------------------------------- |
+| `infer.daemon.messages_processed` | Counter        | Inbound messages processed      |
+| `infer.daemon.message.duration`   | Histogram      | Per-message processing duration |
+| `infer.daemon.active_channels`    | UpDown Counter | Number of active channels       |
+
+All daemon metrics carry the resource attribute `infer.execution.mode=daemon`. See [Channels Manager (Daemon)](/observability/#channels-manager-daemon) for example PromQL queries.
 
 ## Status and Monitoring
 

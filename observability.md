@@ -536,6 +536,35 @@ processors:
 
 See the [CLI Telemetry](/cli/#telemetry) section for the full documentation, including the span hierarchy, metric names, and local file inspection commands.
 
+### Channels Manager (Daemon)
+
+The `channels-manager` daemon pushes operational metrics over OTLP when telemetry is enabled. It reuses the same telemetry engine as the CLI agent, so the setup is identical - set `INFER_TELEMETRY_ENABLED=true` and `INFER_TELEMETRY_OTLP_ENDPOINT=<collector>` (or the corresponding YAML keys) before starting the daemon.
+
+#### Daemon-specific metrics
+
+In addition to the standard `infer.*` and `gen_ai.*` metrics from the shared telemetry engine, the daemon emits:
+
+| Metric                            | Type           | Description                     |
+| --------------------------------- | -------------- | ------------------------------- |
+| `infer.daemon.messages_processed` | Counter        | Inbound messages processed      |
+| `infer.daemon.message.duration`   | Histogram      | Per-message processing duration |
+| `infer.daemon.active_channels`    | UpDown Counter | Number of active channels       |
+
+All daemon metrics carry the resource attribute `infer.execution.mode=daemon`, so you can distinguish them from CLI agent sessions (`infer.execution.mode=cli`) in dashboards and alerts.
+
+#### Example queries (PromQL)
+
+```promql
+# Messages processed per minute
+rate(infer_daemon_messages_processed_total[1m])
+
+# p95 message processing duration (seconds)
+histogram_quantile(0.95, sum by (le) (rate(infer_daemon_message_duration_bucket[5m])))
+
+# Active channels (current value)
+infer_daemon_active_channels
+```
+
 ### Orchestrator (Kubernetes)
 
 When the CLI runs as an [Orchestrator](/operator/#orchestrator) under the Kubernetes operator, telemetry is configured declaratively through the CRD's `spec.telemetry` block rather than raw env vars. The operator maps it onto the same `INFER_TELEMETRY_ENABLED` and `INFER_TELEMETRY_OTLP_ENDPOINT` variables the `channels-manager` daemon reads, using a single shared OTLP endpoint for all signals. See [Orchestrator Telemetry](/operator/#orchestrator-telemetry) for the field reference, the traces-over-metrics endpoint precedence, and an example.
