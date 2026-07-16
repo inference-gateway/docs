@@ -250,9 +250,61 @@ Every YAML key has an `INFER_`-prefixed environment variable. Lists are comma-se
 | `INFER_CHANNELS_WHATSAPP_WEBHOOK_PORT`    | `channels.whatsapp.webhook_port`    |
 | `INFER_CHANNELS_WHATSAPP_ALLOWED_USERS`   | `channels.whatsapp.allowed_users`   |
 
+## Telemetry
+
+The channels-manager daemon pushes operational metrics over OTLP when telemetry is enabled. It reuses the same telemetry engine as the CLI agent, so the setup is identical.
+
+### Enabling telemetry
+
+Set the following environment variables before starting the daemon:
+
+```bash
+export INFER_TELEMETRY_ENABLED=true
+export INFER_TELEMETRY_OTLP_ENDPOINT=http://otel-collector:4318
+```
+
+Or in `.infer/config.yaml`:
+
+```yaml
+telemetry:
+  enabled: true
+  otlp:
+    endpoint: http://otel-collector:4318
+```
+
+When `telemetry.enabled` is `true` and `telemetry.otlp.endpoint` is set, the daemon pushes all signals (metrics, traces, and logs) to the configured OTLP/HTTP collector.
+
+### Exported metrics
+
+The daemon emits the following metrics in addition to the standard `infer.*` and `gen_ai.*` metrics from the shared telemetry engine:
+
+| Metric                            | Type           | Description                     |
+| --------------------------------- | -------------- | ------------------------------- |
+| `infer.daemon.messages_processed` | Counter        | Inbound messages processed      |
+| `infer.daemon.message.duration`   | Histogram      | Per-message processing duration |
+| `infer.daemon.active_channels`    | UpDown Counter | Number of active channels       |
+
+All daemon metrics carry the resource attribute `infer.execution.mode=daemon`, so you can distinguish them from CLI agent sessions (`infer.execution.mode=cli`) in dashboards and alerts.
+
+### Environment variables
+
+| Variable                        | Maps to                   | Description                                                     |
+| ------------------------------- | ------------------------- | --------------------------------------------------------------- |
+| `INFER_TELEMETRY_ENABLED`       | `telemetry.enabled`       | Master switch for telemetry (default `false`)                   |
+| `INFER_TELEMETRY_OTLP_ENDPOINT` | `telemetry.otlp.endpoint` | OTLP/HTTP collector endpoint, e.g. `http://otel-collector:4318` |
+
+### Operator deployments
+
+When the daemon runs as an [Orchestrator](/operator/#orchestrator) under the Kubernetes operator, telemetry is configured through the CRD's `spec.telemetry` block. The operator maps it onto the same `INFER_TELEMETRY_ENABLED` and `INFER_TELEMETRY_OTLP_ENDPOINT` variables. See [Orchestrator Telemetry](/operator/#orchestrator-telemetry) for the field reference and an example.
+
+The Orchestrator workload is outbound-only (no Service), so OTLP push is the only way to get metrics out. The operator sets `INFER_TELEMETRY_ENABLED=true` and `INFER_TELEMETRY_OTLP_ENDPOINT=<collector>` on the daemon container.
+
+For the full telemetry reference, including the standard `infer.*` and `gen_ai.*` metrics, tracing setup, and Grafana dashboards, see [Observability](/observability/).
+
 ## Related
 
 - [CLI](/cli/) - overview of the `infer` command-line tool and agent mode
 - [Configuration](/configuration/) - full configuration system across the gateway and CLI
+- [Observability](/observability/) - metrics, tracing, and logging reference
 - [Telegram Channel Example](https://github.com/inference-gateway/cli/tree/main/examples/telegram-channel) - Docker Compose stack (gateway + channels-manager + A2A browser agent + optional VNC)
 - [Examples](/examples/) - more end-to-end recipes
