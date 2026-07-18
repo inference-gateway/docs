@@ -192,7 +192,7 @@ If you've contributed to the agents catalog before, the only thing to relearn is
 ## Related
 
 - [Agent Skills in the CLI](/cli-skills/) - how `infer skills list / install / uninstall` work on the consumer side.
-- [ADL CLI - Skills](/adl-cli/#skills) - how to declare skills inside an A2A agent project so they get scaffolded into `skills/<id>/SKILL.md`.
+- [ADL CLI - Skills](/adl-cli/#skills) - how to declare skills inside an A2A agent project so they get scaffolded into `.agents/skills/<id>/SKILL.md`.
 - [A2A Registry](/registry/) - the parallel catalog for A2A agents (containerised services), browseable at [registry.inference-gateway.com](https://registry.inference-gateway.com).
 - [Skills repository](https://github.com/inference-gateway/skills) - source list, build script, vendored skill bodies.
 - [Agent Skills spec](https://github.com/anthropics/skills/tree/main/spec) - the upstream `SKILL.md` format the catalog enforces.
