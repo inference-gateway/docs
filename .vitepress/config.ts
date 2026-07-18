@@ -162,6 +162,7 @@ export default withMermaid(
             { text: 'Authentication', link: pageLink('/authentication') },
             { text: 'Kubernetes Operator', link: pageLink('/operator') },
             { text: 'Supported Providers', link: pageLink('/supported-providers') },
+            { text: 'llama.cpp Provider', link: pageLink('/llamacpp') },
             { text: 'Examples', link: pageLink('/examples') },
             { text: 'IDEs', link: pageLink('/ides') },
             { text: 'Observability', link: pageLink('/observability') },
@@ -226,6 +227,7 @@ export default withMermaid(
             { text: 'Configuration', link: pageLink('/configuration') },
             { text: 'Authentication', link: pageLink('/authentication') },
             { text: 'Supported Providers', link: pageLink('/supported-providers') },
+            { text: 'llama.cpp Provider', link: pageLink('/llamacpp') },
           ],
         },
         {

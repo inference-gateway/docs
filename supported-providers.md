@@ -460,6 +460,34 @@ curl http://localhost:8080/v1/models?provider=nvidia
 
 > **Note:** NVIDIA is additive alongside Groq. Groq provides ultra-low-latency inference via LPU hardware, while NVIDIA offers a broad GPU-served catalog including Nemotron, Llama, DeepSeek, Mistral, and Qwen. They are complementary providers.
 
+### llama.cpp Provider
+
+Generate content with self-hosted GGUF models via llama.cpp's `llama-server`:
+
+```bash
+curl -X POST http://localhost:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "llamacpp/llama-3.2-3b-instruct",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a helpful assistant."
+      },
+      {
+        "role": "user",
+        "content": "Explain how llama.cpp works in simple terms."
+      }
+    ]
+  }'
+```
+
+List available models:
+
+```bash
+curl http://localhost:8080/v1/models?provider=llamacpp
+```
+
 ### Z-AI Provider
 
 Generate content with Z-AI models for direct access to open-weight models like GLM:
