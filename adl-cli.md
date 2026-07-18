@@ -654,7 +654,7 @@ tools:
 
 ### Skills
 
-`spec.skills[]` defines **markdown playbooks** - separate from tools. Each entry is written to `skills/<id>/SKILL.md` in the generated project (matching [Anthropic's agent-skills convention](https://github.com/anthropics/skills)), advertised on the agent card so orchestrators can discover them, and prepended to the system prompt at runtime so the agent knows when and how to apply the playbook.
+`spec.skills[]` defines **markdown playbooks** - separate from tools. Each entry is written to `.agents/skills/<id>/SKILL.md` in the generated project (the portable `.agents/` layout, matching [Anthropic's agent-skills convention](https://github.com/anthropics/skills)), advertised on the agent card so orchestrators can discover them, and prepended to the system prompt at runtime so the agent knows when and how to apply the playbook. See [On-disk layout and the `.claude` pointer](#on-disk-layout-and-the-claude-pointer) for where the files land and how existing projects migrate.
 
 Skills are either **pulled from the skills registry** (when you omit `bare`) or **scaffolded locally** with `bare: true` so you can write the playbook yourself.
 
@@ -684,6 +684,18 @@ skills:
 > Required in practice for `bare: true` skills so the generator can scaffold `SKILL.md` frontmatter.
 >
 > **Skills require the `read` built-in.** When `spec.skills` is non-empty, the validator requires `- id: read` under `spec.tools` and `spec.config.tools.read.enabled: true` - the model loads each skill's full `SKILL.md` body on demand via `read` (only the frontmatter is auto-injected into the system prompt at startup). See [The read and skills coupling](#the-read-and-skills-coupling) below.
+
+#### On-disk layout and the `.claude` pointer
+
+Generated skills follow the portable `.agents/` convention:
+
+- Each skill is written to `.agents/skills/<id>/SKILL.md`, with any bundled assets under the same `.agents/skills/<id>/` directory.
+- A committed `.claude` -> `.agents` relative symlink exposes the identical tree at `.claude/skills/<id>/SKILL.md`, so the generated agent is directly usable by [Claude Code](https://claude.com/claude-code) (which reads `.claude/skills/`) alongside any runtime that follows the `.agents/` convention. The symlink is created idempotently and committed to the repo. **Known ceiling:** Windows checkouts with `core.symlinks=false` do not materialise the link - generation warns instead of failing; recreate it by hand or point `A2A_SKILLS_DIR` at `.agents/skills`.
+- The generated Dockerfiles `COPY .agents/skills` so each `SKILL.md` is readable at startup.
+
+At runtime the skills directory defaults to `.agents/skills` and is overridable with the `A2A_SKILLS_DIR` environment variable. Go, Rust, and TypeScript runtimes all honour it.
+
+> **Migration (breaking).** Projects generated before this change kept skills in a top-level `skills/` directory. On regenerate, skills move to `.agents/skills/<id>/SKILL.md` and the default `A2A_SKILLS_DIR` becomes `.agents/skills`. To adopt the new layout, move `skills/` to `.agents/skills/` (the `.claude` -> `.agents` symlink is regenerated for you). To keep the old layout, set `A2A_SKILLS_DIR=skills` or move the directory back.
 
 #### Accepted `license` values
 
@@ -1365,9 +1377,11 @@ my-go-agent/
 │   ├── send_notification.go
 │   ├── read.go                     # Built-in tool (when listed under spec.tools)
 │   └── ...                         # bash.go, write.go, edit.go, fetch.go (when listed)
-├── skills/                         # When spec.skills is non-empty
-│   └── <id>/
-│       └── SKILL.md                # Markdown playbook (one directory per skill)
+├── .agents/                        # When spec.skills is non-empty
+│   └── skills/
+│       └── <id>/
+│           └── SKILL.md            # Markdown playbook (one directory per skill)
+├── .claude -> .agents              # Symlink: exposes .claude/skills/<id>/SKILL.md for Claude Code
 ├── Taskfile.yml                    # Build, test, lint, run tasks
 ├── Dockerfile                      # Multi-stage container build
 ├── .adl-ignore                     # File protection configuration
@@ -1413,9 +1427,11 @@ my-rust-agent/
 │       ├── send_notification.rs
 │       ├── read.rs                 # Built-in tools (when listed under spec.tools)
 │       └── ...                     # bash.rs, write.rs, edit.rs, fetch.rs
-├── skills/                         # When spec.skills is non-empty
-│   └── <id>/
-│       └── SKILL.md                # Markdown playbook (one directory per skill)
+├── .agents/                        # When spec.skills is non-empty
+│   └── skills/
+│       └── <id>/
+│           └── SKILL.md            # Markdown playbook (one directory per skill)
+├── .claude -> .agents              # Symlink: exposes .claude/skills/<id>/SKILL.md for Claude Code
 ├── Cargo.toml                      # Rust package configuration
 ├── Taskfile.yml                    # Build, test, lint, run tasks
 ├── Dockerfile                      # Rust-optimised container
@@ -1456,7 +1472,7 @@ Uses glob patterns, one per line. Comments start with `#`.
 tools/*
 
 # Protect skill playbooks
-skills/**
+.agents/skills/**
 
 # Protect specific files
 main.go

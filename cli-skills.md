@@ -229,6 +229,6 @@ A skill can instruct the model to run shell commands, read files, or call extern
 - [Skills Catalog](/skills/) - browse the shared index and publish a skill via a one-line PR.
 - [CLI](/cli/) - overview of the `infer` command-line tool, modes, tools, and shortcuts.
 - [Configuration](/configuration/) - the full configuration system across the gateway and CLI.
-- [ADL CLI - Skills](/adl-cli/#skills) - declare skills inside an A2A agent project so they scaffold into `skills/<id>/SKILL.md`.
+- [ADL CLI - Skills](/adl-cli/#skills) - declare skills inside an A2A agent project so they scaffold into `.agents/skills/<id>/SKILL.md`.
 - Source: [inference-gateway/cli#571](https://github.com/inference-gateway/cli/pull/571) (activation + sandbox carve-out), fixing [inference-gateway/cli#569](https://github.com/inference-gateway/cli/issues/569).
 - Built-in skills: [inference-gateway/cli#890](https://github.com/inference-gateway/cli/pull/890) (the seeded `tmux` starter skill), closing [inference-gateway/cli#827](https://github.com/inference-gateway/cli/issues/827).
