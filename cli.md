@@ -307,12 +307,12 @@ The selected indicator is highlighted as an **accent-colored pill**.
 
 **Indicator labels:**
 
-| Indicator | Label format                             | Description                                                                                                                                                                                                     |
-| --------- | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Tools     | `Tools: N (mode)`                        | `N` is the number of tools available in the current [agent mode](#agent-modes). `mode` is the active mode name (Standard, Plan, or Auto-Accept). Opens the [`/tools` view](#tools-view).                        |
-| A2A       | `A2A: X/Y`                               | `X` is the number of connected A2A agents, `Y` is the total number of configured agents. Opens the [`/a2a` view](#a2a-view).                                                                                    |
-| Theme     | `Theme`                                  | Opens the theme selector to change the TUI color scheme.                                                                                                                                                        |
-| Reconnect | `Reconnecting...` / `Reconnecting (N/M)` | Shown in red when the stream has stalled and the CLI is reconnecting. `N` is the current attempt, `M` is `client.retry.max_attempts`. Input is blocked until the stream recovers or all attempts are exhausted. |
+| Indicator | Label format                             | Description                                                                                                                                                                                                                                                                                                     |
+| --------- | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tools     | `Tools: N (mode)`                        | `N` is the number of tools available in the current [agent mode](#agent-modes). `mode` is the active mode name (Standard, Plan, or Auto-Accept). Opens the [`/tools` view](#tools-view).                                                                                                                        |
+| A2A       | `A2A: X/Y`                               | `X` is the number of connected A2A agents, `Y` is the total number of configured agents. Opens the [`/a2a` view](#a2a-view). When [liveness probes](#a2a-liveness-probes) are enabled, `X` counts down as agents fail and counts back up when they recover - the indicator stays live for the session lifetime. |
+| Theme     | `Theme`                                  | Opens the theme selector to change the TUI color scheme.                                                                                                                                                                                                                                                        |
+| Reconnect | `Reconnecting...` / `Reconnecting (N/M)` | Shown in red when the stream has stalled and the CLI is reconnecting. `N` is the current attempt, `M` is `client.retry.max_attempts`. Input is blocked until the stream recovers or all attempts are exhausted.                                                                                                 |
 
 > Shipped in [inference-gateway/cli#732](https://github.com/inference-gateway/cli/pull/732). Reconnect indicator added in [inference-gateway/cli#845](https://github.com/inference-gateway/cli/pull/845).
 
@@ -2595,12 +2595,20 @@ infer chat
 
 The `/a2a` shortcut opens a **list of registered A2A agents** showing their connection state. Each entry displays whether the agent is connected or disconnected, alongside its name and URL.
 
+When [liveness probes](#a2a-liveness-probes) are enabled, the view stays **live for the session lifetime**:
+
+- An agent that was down at startup turns green automatically when it becomes reachable.
+- An agent that goes down mid-session shows the failure detail inline.
+- A recovered agent shows a **"Recovered"** status.
+
+The status bar `A2A: X/Y` indicator reflects the same live state - `X` counts down on failures and counts back up on recovery.
+
 ```bash
 infer chat
 > /a2a  # View connected agents
 ```
 
-> Shipped in [inference-gateway/cli#732](https://github.com/inference-gateway/cli/pull/732).
+> Shipped in [inference-gateway/cli#732](https://github.com/inference-gateway/cli/pull/732). Liveness probes added in [inference-gateway/cli#936](https://github.com/inference-gateway/cli/pull/936).
 
 ### `/tasks` view
 
@@ -2663,6 +2671,38 @@ infer chat
 ```
 
 See [A2A documentation](/a2a/) for creating custom agents, or use the [ADL CLI](/adl-cli/) to scaffold new A2A agents from YAML definitions.
+
+#### A2A Liveness Probes
+
+When A2A agents are configured, the CLI periodically re-probes them for the lifetime of the session instead of checking them only once at startup. This means an agent that was down at startup turns green automatically when it becomes reachable, and an agent that goes down mid-session is reflected in the `A2A: X/Y` indicator and the `/a2a` view.
+
+**How probes work:**
+
+- **External agents** (URLs in `a2a.agents`) are probed via their agent card (`/.well-known/agent-card.json`).
+- **Local Docker agents** are probed via `GET <url>/health`.
+- Status updates are emitted only on state changes (no noisy per-probe output).
+- Probes shut down cleanly when the session ends.
+
+**Configuration:**
+
+```yaml
+# .infer/config.yaml
+a2a:
+  enabled: true
+  agents:
+    - http://localhost:8081
+  liveness_probe_enabled: true # default: true
+  liveness_probe_interval: 30 # seconds, default: 30
+```
+
+| Setting                   | Default | Environment variable                | Description                                                       |
+| ------------------------- | ------- | ----------------------------------- | ----------------------------------------------------------------- |
+| `liveness_probe_enabled`  | `true`  | `INFER_A2A_LIVENESS_PROBE_ENABLED`  | Enable recurring liveness probes. Set `false` for one-shot checks |
+| `liveness_probe_interval` | `30`    | `INFER_A2A_LIVENESS_PROBE_INTERVAL` | Interval in seconds between probes                                |
+
+Setting `liveness_probe_enabled: false` restores the old behavior where agents are checked only once at startup.
+
+> Shipped in [inference-gateway/cli#936](https://github.com/inference-gateway/cli/pull/936) (resolves [inference-gateway/cli#932](https://github.com/inference-gateway/cli/issues/932)).
 
 ### Parallel Tool Execution
 

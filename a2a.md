@@ -170,6 +170,44 @@ infer chat
 
 This displays information about each configured agent, including their available skills and status.
 
+### A2A Liveness Probes
+
+When A2A agents are configured, the CLI periodically re-probes them for the lifetime of the session instead of checking them only once at startup. This keeps the `A2A: X/Y` status bar indicator and the `/a2a` view live throughout the session:
+
+- An agent that was down at startup turns green automatically when it becomes reachable.
+- An agent that goes down mid-session turns the `A2A: X/Y` indicator red and shows the failure detail in the `/a2a` view.
+- A recovered agent counts back up in the indicator and shows a **"Recovered"** status in the `/a2a` view.
+
+**How probes work:**
+
+- **External agents** (URLs in `a2a.agents`) are probed via their agent card (`/.well-known/agent-card.json`).
+- **Local Docker agents** are probed via `GET <url>/health`.
+- Status updates are emitted only on state changes (no noisy per-probe output).
+- Probes shut down cleanly when the session ends.
+
+**Configuration:**
+
+```yaml
+# .infer/config.yaml
+a2a:
+  enabled: true
+  agents:
+    - http://localhost:8081
+  liveness_probe_enabled: true # default: true
+  liveness_probe_interval: 30 # seconds, default: 30
+```
+
+| Setting                   | Default | Environment variable                | Description                                                       |
+| ------------------------- | ------- | ----------------------------------- | ----------------------------------------------------------------- |
+| `liveness_probe_enabled`  | `true`  | `INFER_A2A_LIVENESS_PROBE_ENABLED`  | Enable recurring liveness probes. Set `false` for one-shot checks |
+| `liveness_probe_interval` | `30`    | `INFER_A2A_LIVENESS_PROBE_INTERVAL` | Interval in seconds between probes                                |
+
+**Disabling probes:** Set `liveness_probe_enabled: false` to restore the old one-shot startup check. Agents are checked once when the session starts and never re-probed.
+
+**Tuning the interval:** Set `liveness_probe_interval` to a higher value (for example `60` for once per minute) to reduce network traffic, or lower it (for example `10`) for faster failure detection on critical agents.
+
+> Shipped in [inference-gateway/cli#936](https://github.com/inference-gateway/cli/pull/936) (resolves [inference-gateway/cli#932](https://github.com/inference-gateway/cli/issues/932)).
+
 ### Why Use the CLI for A2A?
 
 The Inference Gateway CLI acts as an **A2A agent client**, providing a seamless interface for interacting with A2A-compatible agents. The CLI provides several advantages for A2A integration:
