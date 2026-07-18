@@ -82,14 +82,19 @@ const cloudflareSettings = [
   { variable: 'CLOUDFLARE_API_KEY', description: 'Cloudflare API Key', defaultValue: '""' },
 ];
 
+const ollamaCloudSettings = [
+  { variable: 'OLLAMA_CLOUD_API_URL', description: 'Ollama Cloud API URL', defaultValue: 'https://ollama.com/v1' },
+  { variable: 'OLLAMA_CLOUD_API_KEY', description: 'Ollama Cloud API Key', defaultValue: '""' },
+];
+
 const ollamaSettings = [
   { variable: 'OLLAMA_API_URL', description: 'Ollama API URL', defaultValue: 'http://ollama:8080/v1' },
   { variable: 'OLLAMA_API_KEY', description: 'Ollama API Key', defaultValue: '""' },
 ];
 
-const ollamaCloudSettings = [
-  { variable: 'OLLAMA_CLOUD_API_URL', description: 'Ollama Cloud API URL', defaultValue: 'https://ollama.com/v1' },
-  { variable: 'OLLAMA_CLOUD_API_KEY', description: 'Ollama Cloud API Key', defaultValue: '""' },
+const llamacppSettings = [
+  { variable: 'LLAMACPP_API_URL', description: 'llama.cpp API URL', defaultValue: 'http://llamacpp:8080/v1' },
+  { variable: 'LLAMACPP_API_KEY', description: 'llama.cpp API Key', defaultValue: '""' },
 ];
 
 const googleSettings = [
@@ -115,11 +120,6 @@ const moonshotSettings = [
 const nvidiaSettings = [
   { variable: 'NVIDIA_API_URL', description: 'NVIDIA NIM API URL', defaultValue: 'https://integrate.api.nvidia.com/v1' },
   { variable: 'NVIDIA_API_KEY', description: 'NVIDIA API Key', defaultValue: '""' },
-];
-
-const llamacppSettings = [
-  { variable: 'LLAMACPP_API_URL', description: 'llama.cpp API URL', defaultValue: 'http://llamacpp:8080/v1' },
-  { variable: 'LLAMACPP_API_KEY', description: 'llama.cpp API Key', defaultValue: '""' },
 ];
 
 const zaiSettings = [
@@ -257,13 +257,17 @@ Configure access to various LLM providers. At minimum, you should configure the 
 
 <ConfigTable :rows="cloudflareSettings" />
 
+#### Ollama Cloud
+
+<ConfigTable :rows="ollamaCloudSettings" />
+
 #### Ollama
 
 <ConfigTable :rows="ollamaSettings" />
 
-#### Ollama Cloud
+#### llama.cpp
 
-<ConfigTable :rows="ollamaCloudSettings" />
+<ConfigTable :rows="llamacppSettings" />
 
 #### Google
 
@@ -284,10 +288,6 @@ Configure access to various LLM providers. At minimum, you should configure the 
 #### NVIDIA
 
 <ConfigTable :rows="nvidiaSettings" />
-
-#### llama.cpp
-
-<ConfigTable :rows="llamacppSettings" />
 
 #### Z-AI
 

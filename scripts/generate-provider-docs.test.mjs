@@ -46,14 +46,14 @@ test('fixture yields the full canonical provider set in schema order', () => {
     'cohere',
     'groq',
     'cloudflare',
-    'ollama',
     'ollama_cloud',
+    'ollama',
+    'llamacpp',
     'google',
     'mistral',
     'minimax',
     'moonshot',
     'nvidia',
-    'llamacpp',
     'zai',
   ]);
 });

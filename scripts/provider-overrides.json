@@ -46,6 +46,13 @@
       "keyLabel": "Cloudflare",
       "adkExampleModel": "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
     },
+    "ollama_cloud": {
+      "displayName": "Ollama Cloud",
+      "urlLabel": "Ollama Cloud",
+      "keyLabel": "Ollama Cloud",
+      "vision": "cloud-hosted vision models",
+      "adkExampleModel": "gpt-oss:120b"
+    },
     "ollama": {
       "displayName": "Ollama",
       "urlLabel": "Ollama",
@@ -54,12 +61,13 @@
       "adkExampleModel": "llama3.3",
       "adkKeyNote": "none (gateway reaches Ollama via `OLLAMA_API_URL`)"
     },
-    "ollama_cloud": {
-      "displayName": "Ollama Cloud",
-      "urlLabel": "Ollama Cloud",
-      "keyLabel": "Ollama Cloud",
-      "vision": "cloud-hosted vision models",
-      "adkExampleModel": "gpt-oss:120b"
+    "llamacpp": {
+      "displayName": "llama.cpp",
+      "urlLabel": "llama.cpp",
+      "keyLabel": "llama.cpp",
+      "vision": "multimodal GGUF models (via --mmproj)",
+      "adkExampleModel": "llama-3.2-3b-instruct",
+      "adkKeyNote": "none (gateway reaches llama-server via `LLAMACPP_API_URL`)"
     },
     "google": {
       "displayName": "Google",
@@ -95,14 +103,6 @@
       "keyLabel": "NVIDIA",
       "vision": "Nemotron, Llama, DeepSeek, Mistral, Qwen",
       "adkExampleModel": "nvidia/meta/llama-3.1-8b-instruct"
-    },
-    "llamacpp": {
-      "displayName": "llama.cpp",
-      "urlLabel": "llama.cpp",
-      "keyLabel": "llama.cpp",
-      "vision": "multimodal GGUF models (via --mmproj)",
-      "adkExampleModel": "llama-3.2-3b-instruct",
-      "adkKeyNote": "none (gateway reaches llama-server via `LLAMACPP_API_URL`)"
     },
     "zai": {
       "displayName": "Z-AI",

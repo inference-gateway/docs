@@ -1099,14 +1099,14 @@ The full event-type matrix exposed on `AGENT_EVENT_TYPE` is documented in [Cloud
 | Cohere       | `cohere`                    | `command-a-03-2025`                        | `COHERE_API_KEY`                                           |
 | Groq         | `groq`                      | `llama-3.3-70b-versatile`                  | `GROQ_API_KEY`                                             |
 | Cloudflare   | `cloudflare`                | `@cf/meta/llama-3.3-70b-instruct-fp8-fast` | `CLOUDFLARE_API_KEY`                                       |
-| Ollama       | `ollama`                    | `llama3.3`                                 | none (gateway reaches Ollama via `OLLAMA_API_URL`)         |
 | Ollama Cloud | `ollama_cloud`              | `gpt-oss:120b`                             | `OLLAMA_CLOUD_API_KEY`                                     |
+| Ollama       | `ollama`                    | `llama3.3`                                 | none (gateway reaches Ollama via `OLLAMA_API_URL`)         |
+| llama.cpp    | `llamacpp`                  | `llama-3.2-3b-instruct`                    | none (gateway reaches llama-server via `LLAMACPP_API_URL`) |
 | Google       | `google`                    | `gemini-3-flash`                           | `GOOGLE_API_KEY`                                           |
 | Mistral      | `mistral`                   | `mistral-large-3`                          | `MISTRAL_API_KEY`                                          |
 | MiniMax      | `minimax`                   | `MiniMax-M3`                               | `MINIMAX_API_KEY`                                          |
 | Moonshot     | `moonshot`                  | `kimi-latest`                              | `MOONSHOT_API_KEY`                                         |
 | NVIDIA       | `nvidia`                    | `nvidia/meta/llama-3.1-8b-instruct`        | `NVIDIA_API_KEY`                                           |
-| llama.cpp    | `llamacpp`                  | `llama-3.2-3b-instruct`                    | none (gateway reaches llama-server via `LLAMACPP_API_URL`) |
 | Z-AI         | `zai`                       | `glm-5.2`                                  | `ZAI_API_KEY`                                              |
 
 <!-- GENERATED:adk-provider-table END (do not edit - run: task generate) -->
