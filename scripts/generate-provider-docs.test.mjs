@@ -1,7 +1,7 @@
 // Regression net for the provider-docs generator. Runs the pure render pipeline
 // against the bundled fixture schema and asserts every generated region still
 // matches what is committed in the docs. This exercises the hand-rolled block
-// YAML reader, the schema/override merge and its validation, and all six
+// YAML reader, the schema/override merge and its validation, and all seven
 // renderers - with no network access and no prettier pass. Run with: bun test.
 import { test, expect } from 'bun:test';
 import { readFileSync } from 'node:fs';
@@ -14,6 +14,7 @@ import {
   renderAdkProviderTable,
   renderConfigSections,
   renderProvidersTable,
+  renderSdksProviderList,
   renderSettingsConsts,
   renderUppercaseList,
   renderVisionList,
@@ -73,6 +74,12 @@ test('uppercase provider list matches supported-providers.md', () => {
 test('vision list matches supported-providers.md', () => {
   expect(renderVisionList(providers)).toEqual(
     committedRegion('supported-providers.md', 'vision-list')
+  );
+});
+
+test('SDKs provider list matches sdks.md', () => {
+  expect(renderSdksProviderList(providers)).toEqual(
+    committedRegion('sdks.md', 'sdks-provider-list')
   );
 });
 

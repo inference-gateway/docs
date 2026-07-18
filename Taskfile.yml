@@ -3,7 +3,7 @@ version: '3'
 vars:
   SCHEMA_REPO: '{{.SCHEMA_REPO | default "inference-gateway/schemas"}}'
   SCHEMA_REF: '{{.SCHEMA_REF | default "main"}}'
-  GENERATED_FILES: supported-providers.md configuration.md rust-adk.md typescript-adk.md
+  GENERATED_FILES: supported-providers.md configuration.md rust-adk.md typescript-adk.md sdks.md
 
 tasks:
   default:

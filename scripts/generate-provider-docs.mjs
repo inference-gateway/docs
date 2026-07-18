@@ -367,6 +367,15 @@ export function renderUppercaseList(providers) {
   return [`Replace "PROVIDER" with the provider name (uppercase): ${ids}.`];
 }
 
+// The inline, comma-separated provider-id list in the sdks.md "Supported
+// providers" section - backtick-wrapped ids in canonical order, Oxford comma
+// before the final "and". One paragraph line.
+export function renderSdksProviderList(providers) {
+  const ids = providers.map((p) => '`' + p.id + '`');
+  const last = ids.pop();
+  return [`${ids.join(', ')}, and ${last}.`];
+}
+
 export function renderVisionList(providers) {
   return providers
     .filter((p) => p.supportsVision)
@@ -455,6 +464,7 @@ async function main() {
       ['provider-config-sections', renderConfigSections(providers)],
     ])
   );
+  written.push(updateFile('sdks.md', [['sdks-provider-list', renderSdksProviderList(providers)]]));
   const adkTable = renderAdkProviderTable(providers);
   written.push(updateFile('rust-adk.md', [['adk-provider-table', adkTable]]));
   written.push(updateFile('typescript-adk.md', [['adk-provider-table', adkTable]]));
