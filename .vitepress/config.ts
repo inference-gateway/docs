@@ -226,7 +226,6 @@ export default withMermaid(
             { text: 'Configuration', link: pageLink('/configuration') },
             { text: 'Authentication', link: pageLink('/authentication') },
             { text: 'Supported Providers', link: pageLink('/supported-providers') },
-            { text: 'llama.cpp Provider', link: pageLink('/llamacpp') },
           ],
         },
         {
