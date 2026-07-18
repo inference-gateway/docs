@@ -390,6 +390,57 @@ final = client.create_chat_completion(
 )
 ```
 
+### Responses API
+
+`create_response` calls the OpenAI-compatible Responses API at `POST /responses` - an alternative to chat completions that takes either a single text `input` or a list of input items (for batched, multi-turn input in one request) and returns a `Response` whose `output` is a list of typed items (output messages, function tool calls, and reasoning items). `create_response_stream` streams the same request, yielding `SSEvent` chunks you decode into `ResponseStreamEvent`.
+
+> **Note:** The Responses API is provider-dependent. Today only the **OpenAI** provider implements it - routing to any other provider returns `400 Bad Request`, so use [`create_chat_completion`](#chat-completion) for those providers. It is also not served by the gateway yet: `POST /responses` is defined in the OpenAI-compatible schema and the SDK ships the typed client, but the gateway does not route the endpoint at this time, so calls return `404` until a future gateway release adds the handler.
+
+```python
+from inference_gateway import InferenceGatewayClient
+from inference_gateway.models import ResponseOutputMessage, ResponseOutputText
+
+client = InferenceGatewayClient('http://localhost:8080/v1')
+
+response = client.create_response(
+    model='openai/gpt-4o',
+    input='Write a haiku about the ocean.',
+    max_output_tokens=256,
+)
+
+# response.output is a list of typed items; print each output_text part.
+for item in response.output:
+    message = item.root
+    if isinstance(message, ResponseOutputMessage):
+        for part in message.content:
+            if isinstance(part.root, ResponseOutputText):
+                print(part.root.text)
+```
+
+`input` accepts a plain string (above) or a list of `ResponseInputItem` (or plain dicts) for multi-turn conversations. Pass `tools` as a list of `ResponseTool` to expose function tools - note the Responses API uses a flattened function shape (`name`, `description`, and `parameters` at the top level) rather than the nested `function` object that [chat completions](#tool-calls) uses. Extra request fields (`instructions`, `temperature`, `top_p`, `tool_choice`, `reasoning`, and so on) pass through as keyword arguments and are validated against `CreateResponseRequest` before the request is sent.
+
+#### Streaming
+
+`create_response_stream` yields `SSEvent` objects. Parse `chunk.data` into `ResponseStreamEvent` and switch on `event.type` - text arrives on `response.output_text.delta` events (mirroring the chat [Streaming](#streaming) example).
+
+```python
+import json
+from inference_gateway import InferenceGatewayClient
+from inference_gateway.models import ResponseStreamEvent
+
+client = InferenceGatewayClient('http://localhost:8080/v1')
+
+for chunk in client.create_response_stream(
+    model='openai/gpt-4o',
+    input='Tell me a story about a lighthouse.',
+):
+    if not chunk.data:
+        continue
+    event = ResponseStreamEvent.model_validate(json.loads(chunk.data))
+    if event.type == 'response.output_text.delta' and event.delta:
+        print(event.delta, end='', flush=True)
+```
+
 ### Models, tools, and health
 
 `list_models` returns every model across configured providers, or a single provider's catalog when you pass `provider=`. `list_tools` enumerates gateway-managed MCP tools and requires MCP to be exposed (`MCP_ENABLE=true` and `MCP_EXPOSE=true`); otherwise the call raises `InferenceGatewayAPIError`. `health_check` probes the gateway and returns a `bool` - it swallows transport errors and returns `False` rather than raising.
