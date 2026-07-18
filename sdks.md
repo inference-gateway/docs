@@ -35,7 +35,7 @@ Reasoning content is emitted by reasoning-capable models rather than toggled by 
 
 All four SDKs target the same gateway, so they share a single provider set. Route to a provider either by prefixing the model with its id - for example `nvidia/meta/llama-3.1-8b-instruct` - or, on `list_models`/`proxy`, by passing the id through your SDK's `Provider` enum (the Python SDK also accepts a plain string). The gateway routes to:
 
-`openai`, `anthropic`, `cohere`, `groq`, `cloudflare`, `ollama`, `ollama_cloud`, `google`, `deepseek`, `mistral`, `minimax`, `moonshot`, and `nvidia`.
+`openai`, `anthropic`, `cohere`, `groq`, `cloudflare`, `ollama`, `ollama_cloud`, `llamacpp`, `google`, `deepseek`, `mistral`, `minimax`, `moonshot`, and `nvidia`.
 
 The newest addition, `nvidia`, reaches the Nvidia Nim catalog at `https://integrate.api.nvidia.com/v1` (Nemotron, Llama, DeepSeek, Mistral, and Qwen) with bearer-token auth. See [Supported Providers](/supported-providers/) for auth modes, default URLs, and vision-capable models, and [Configuration](/configuration/) for the matching `*_API_KEY` and `*_API_URL` variables.
 
