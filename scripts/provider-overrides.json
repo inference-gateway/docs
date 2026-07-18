@@ -96,6 +96,13 @@
       "vision": "Nemotron, Llama, DeepSeek, Mistral, Qwen",
       "adkExampleModel": "nvidia/meta/llama-3.1-8b-instruct"
     },
+    "llamacpp": {
+      "displayName": "llama.cpp",
+      "urlLabel": "llama.cpp",
+      "keyLabel": "llama.cpp",
+      "vision": "multimodal GGUF models (via --mmproj)",
+      "adkExampleModel": "llama-3.2-3b-instruct"
+    },
     "zai": {
       "displayName": "Z-AI",
       "urlLabel": "Z-AI",

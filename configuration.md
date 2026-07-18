@@ -117,6 +117,11 @@ const nvidiaSettings = [
   { variable: 'NVIDIA_API_KEY', description: 'NVIDIA API Key', defaultValue: '""' },
 ];
 
+const llamacppSettings = [
+  { variable: 'LLAMACPP_API_URL', description: 'llama.cpp API URL', defaultValue: 'http://llamacpp:8000/v1' },
+  { variable: 'LLAMACPP_API_KEY', description: 'llama.cpp API Key', defaultValue: '""' },
+];
+
 const zaiSettings = [
   { variable: 'ZAI_API_URL', description: 'Z-AI API URL', defaultValue: 'https://api.z.ai/v1' },
   { variable: 'ZAI_API_KEY', description: 'Z-AI API Key', defaultValue: '""' },
@@ -279,6 +284,10 @@ Configure access to various LLM providers. At minimum, you should configure the 
 #### NVIDIA
 
 <ConfigTable :rows="nvidiaSettings" />
+
+#### llama.cpp
+
+<ConfigTable :rows="llamacppSettings" />
 
 #### Z-AI
 

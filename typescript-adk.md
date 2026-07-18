@@ -1106,6 +1106,7 @@ The full event-type matrix exposed on `AGENT_EVENT_TYPE` is documented in [Cloud
 | MiniMax      | `minimax`                   | `MiniMax-M3`                               | `MINIMAX_API_KEY`                                     |
 | Moonshot     | `moonshot`                  | `kimi-latest`                              | `MOONSHOT_API_KEY`                                    |
 | NVIDIA       | `nvidia`                    | `nvidia/meta/llama-3.1-8b-instruct`        | `NVIDIA_API_KEY`                                      |
+| llama.cpp    | `llamacpp`                  | `llama-3.2-3b-instruct`                    | `LLAMACPP_API_KEY`                                    |
 | Z-AI         | `zai`                       | `glm-5.2`                                  | `ZAI_API_KEY`                                         |
 
 <!-- GENERATED:adk-provider-table END (do not edit - run: task generate) -->

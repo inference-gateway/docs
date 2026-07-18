@@ -26,6 +26,7 @@ Inference Gateway provides a unified interface to interact with multiple LLM pro
 | MiniMax      | Bearer Token     | `https://api.minimax.io/v1`                                     | Yes - MiniMax-M3                                                        |
 | Moonshot     | Bearer Token     | `https://api.moonshot.ai/v1`                                    | Yes - moonshot-v1-\*-vision-preview, kimi-latest, kimi-thinking-preview |
 | NVIDIA       | Bearer Token     | `https://integrate.api.nvidia.com/v1`                           | Yes - Nemotron, Llama, DeepSeek, Mistral, Qwen                          |
+| llama.cpp    | Bearer Token     | `http://llamacpp:8000/v1`                                       | Yes - multimodal GGUF models (via --mmproj)                             |
 | Z-AI         | Bearer Token     | `https://api.z.ai/v1`                                           | Yes - GLM 5.2                                                           |
 
 <!-- GENERATED:providers-table END (do not edit - run: task generate) -->
@@ -55,6 +56,7 @@ ENABLE_VISION=true
 - **MiniMax**: MiniMax-M3
 - **Moonshot**: moonshot-v1-\*-vision-preview, kimi-latest, kimi-thinking-preview
 - **NVIDIA**: Nemotron, Llama, DeepSeek, Mistral, Qwen
+- **llama.cpp**: multimodal GGUF models (via --mmproj)
 - **Z-AI**: GLM 5.2
 
 <!-- GENERATED:vision-list END (do not edit - run: task generate) -->
@@ -97,7 +99,7 @@ Each provider requires specific configuration through environment variables:
 
 <!-- GENERATED:provider-uppercase START (do not edit - run: task generate) -->
 
-Replace "PROVIDER" with the provider name (uppercase): OPENAI, DEEPSEEK, ANTHROPIC, COHERE, GROQ, CLOUDFLARE, OLLAMA, OLLAMA_CLOUD, GOOGLE, MISTRAL, MINIMAX, MOONSHOT, NVIDIA, ZAI.
+Replace "PROVIDER" with the provider name (uppercase): OPENAI, DEEPSEEK, ANTHROPIC, COHERE, GROQ, CLOUDFLARE, OLLAMA, OLLAMA_CLOUD, GOOGLE, MISTRAL, MINIMAX, MOONSHOT, NVIDIA, LLAMACPP, ZAI.
 
 <!-- GENERATED:provider-uppercase END (do not edit - run: task generate) -->
 
