@@ -53,6 +53,7 @@ test('fixture yields the full canonical provider set in schema order', () => {
     'minimax',
     'moonshot',
     'nvidia',
+    'llamacpp',
     'zai',
   ]);
 });

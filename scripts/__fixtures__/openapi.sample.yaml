@@ -23,6 +23,7 @@ components:
         - minimax
         - moonshot
         - nvidia
+        - llamacpp
         - zai
       x-provider-configs:
         openai:
@@ -159,6 +160,17 @@ components:
               path: /chat/completions
         nvidia:
           url: https://integrate.api.nvidia.com/v1
+          auth_type: bearer
+          supports_vision: true
+          endpoints:
+            models:
+              method: GET
+              path: /models
+            chat:
+              method: POST
+              path: /chat/completions
+        llamacpp:
+          url: http://llamacpp:8000/v1
           auth_type: bearer
           supports_vision: true
           endpoints:
