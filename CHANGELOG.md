@@ -2,6 +2,38 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.2](https://github.com/inference-gateway/docs/compare/0.9.1...0.9.2) (2026-07-18)
+
+### 📚 Documentation
+
+* add CLI telemetry documentation for traces, logs, and metrics ([#392](https://github.com/inference-gateway/docs/issues/392)) ([f8bfcdc](https://github.com/inference-gateway/docs/commit/f8bfcdc1305772aa2a0ac0ac804400e3646e95ab))
+* **adk:** align telemetry docs with A2A_TELEMETRY_ENABLE as single trace gate ([#403](https://github.com/inference-gateway/docs/issues/403)) ([fea405f](https://github.com/inference-gateway/docs/commit/fea405fa9bf59c047c084f15710356ea757e82bd)), references [inference-gateway/adk#234](https://github.com/inference-gateway/adk/issues/234)
+* **adl-cli,adk:** document OTel service.name/service.version from ADL manifest metadata ([#408](https://github.com/inference-gateway/docs/issues/408)) ([be1b66e](https://github.com/inference-gateway/docs/commit/be1b66e055a0b044c3b667e97a1275a939b6e3da))
+* **adl-cli:** move generated skills to .agents/skills layout ([#421](https://github.com/inference-gateway/docs/issues/421)) ([2e4e925](https://github.com/inference-gateway/docs/commit/2e4e92510b567d994a25a571ccafbd473f1d8fbf))
+* align ADK telemetry config with OpenTelemetry ([#400](https://github.com/inference-gateway/docs/issues/400)) ([aa0a862](https://github.com/inference-gateway/docs/commit/aa0a8624e737d025876e2aedf8c48dee7c805793))
+* **cli-channels:** document channels-manager OTLP telemetry setup ([#415](https://github.com/inference-gateway/docs/issues/415)) ([283ddff](https://github.com/inference-gateway/docs/commit/283ddff7ec92e86d17e314e007bc88557df0ccd2))
+* **cli,a2a:** document A2A agent liveness probes ([#425](https://github.com/inference-gateway/docs/issues/425)) ([5844ea9](https://github.com/inference-gateway/docs/commit/5844ea9070f1ba90e02006d36b6042bf2da72ec3)), closes [#424](https://github.com/inference-gateway/docs/issues/424)
+* **cli:** document distributed tracing - infer traces, telemetry.receiver_address, a2a-traces example ([#406](https://github.com/inference-gateway/docs/issues/406)) ([4fc24f5](https://github.com/inference-gateway/docs/commit/4fc24f5f263c4ee7b33f71f16cc1a06378a8811b)), references [inference-gateway/cli#909](https://github.com/inference-gateway/cli/issues/909)
+* document /tasks output panel and agent inherit_mock ([#388](https://github.com/inference-gateway/docs/issues/388)) ([7f3d72b](https://github.com/inference-gateway/docs/commit/7f3d72b2f45b24ec28817f13e6a75774bdaaaa46))
+* document built-in skills and tmux skill ([#386](https://github.com/inference-gateway/docs/issues/386)) ([fc013ab](https://github.com/inference-gateway/docs/commit/fc013ab29c277f83a35c36f92da09acb77aebaab))
+* document extended spec.telemetry otel exporter fields ([#399](https://github.com/inference-gateway/docs/issues/399)) ([712f6de](https://github.com/inference-gateway/docs/commit/712f6def79b3d3baf6db8286a3dec4e7570bb75a))
+* document infer traces command and /traces shortcut ([#393](https://github.com/inference-gateway/docs/issues/393)) ([b938a19](https://github.com/inference-gateway/docs/commit/b938a1968a4a19c917fb908703e548b445b786ff))
+* document infer-action workflow for infer orchestrator ([#396](https://github.com/inference-gateway/docs/issues/396)) ([4e1d792](https://github.com/inference-gateway/docs/commit/4e1d792f35628116735a1fdc86ff8295592742a5))
+* document W3C trace propagation and OTLP span ingestion ([#394](https://github.com/inference-gateway/docs/issues/394)) ([f26494c](https://github.com/inference-gateway/docs/commit/f26494c20592caaddd349f82896398a9a69f924a))
+* **llamacpp:** add llama.cpp provider documentation ([#417](https://github.com/inference-gateway/docs/issues/417)) ([356f9ac](https://github.com/inference-gateway/docs/commit/356f9ac1bccf9a76c69addd615c327b136d658ab))
+* note Go SDK retry cancellation preserves HTTP error ([#382](https://github.com/inference-gateway/docs/issues/382)) ([e39bcab](https://github.com/inference-gateway/docs/commit/e39bcab8ebf414d0ef2dc93920dcf172c043aa53))
+* **observability:** document OTEL_METRICS_EXPORTER and Prometheus pull env vars ([#412](https://github.com/inference-gateway/docs/issues/412)) ([b450177](https://github.com/inference-gateway/docs/commit/b4501777bf8fe9faadf170a19cfe692b99e07a84)), closes [#409](https://github.com/inference-gateway/docs/issues/409)
+* **operator:** add Orchestrator CRD telemetry reference ([#413](https://github.com/inference-gateway/docs/issues/413)) ([8210e06](https://github.com/inference-gateway/docs/commit/8210e06b3b3e727ce5e89a98e731b554688b914b))
+* **rust-adk:** document A2A_OTEL_TRACES_EXPORTER trace gating ([#407](https://github.com/inference-gateway/docs/issues/407)) ([29c5f67](https://github.com/inference-gateway/docs/commit/29c5f67563034fb92fac2589f94574902b1dde4b))
+* **sdks:** add llamacpp to supported providers list ([#422](https://github.com/inference-gateway/docs/issues/422)) ([ed2a466](https://github.com/inference-gateway/docs/commit/ed2a46640009e20e3cbbe4a891340a0e2de64b2e))
+* **sdks:** document python responses api and zai provider ([#423](https://github.com/inference-gateway/docs/issues/423)) ([c5b608e](https://github.com/inference-gateway/docs/commit/c5b608e7b41fe7a37926b7c1a31be61bea9dd474))
+
+### 🔧 Miscellaneous
+
+* **deps-dev:** bump the bun group with 2 updates ([#384](https://github.com/inference-gateway/docs/issues/384)) ([fc813d8](https://github.com/inference-gateway/docs/commit/fc813d8a41aa5a0dea0cfd2ded29fc8b0feb9a1e))
+* **deps:** bump infer CLI v0.141.0 -> v0.147.1 ([#411](https://github.com/inference-gateway/docs/issues/411)) ([03b6342](https://github.com/inference-gateway/docs/commit/03b6342eb78abfa70de62889682673d94d4f8581))
+* **release:** update GitHub App credentials to use RELEASER_APP_ID and RELEASER_APP_PRIVATE_KEY ([4275006](https://github.com/inference-gateway/docs/commit/42750069e990d6a60d80319bce1b4a51b0c99447))
+
 ## [0.9.1](https://github.com/inference-gateway/docs/compare/0.9.0...0.9.1) (2026-07-10)
 
 ### 📚 Documentation
