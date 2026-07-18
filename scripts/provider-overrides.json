@@ -46,20 +46,28 @@
       "keyLabel": "Cloudflare",
       "adkExampleModel": "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
     },
-    "ollama": {
-      "displayName": "Ollama",
-      "urlLabel": "Ollama",
-      "keyLabel": "Ollama",
-      "vision": "LLaVA, Llama 4, Llama 3.2 Vision",
-      "adkExampleModel": "llama3.3",
-      "adkKeyNote": "none (set `A2A_AGENT_CLIENT_BASE_URL` to your Ollama)"
-    },
     "ollama_cloud": {
       "displayName": "Ollama Cloud",
       "urlLabel": "Ollama Cloud",
       "keyLabel": "Ollama Cloud",
       "vision": "cloud-hosted vision models",
       "adkExampleModel": "gpt-oss:120b"
+    },
+    "ollama": {
+      "displayName": "Ollama",
+      "urlLabel": "Ollama",
+      "keyLabel": "Ollama",
+      "vision": "LLaVA, Llama 4, Llama 3.2 Vision",
+      "adkExampleModel": "llama3.3",
+      "adkKeyNote": "none (gateway reaches Ollama via `OLLAMA_API_URL`)"
+    },
+    "llamacpp": {
+      "displayName": "llama.cpp",
+      "urlLabel": "llama.cpp",
+      "keyLabel": "llama.cpp",
+      "vision": "multimodal GGUF models (via --mmproj)",
+      "adkExampleModel": "llama-3.2-3b-instruct",
+      "adkKeyNote": "none (gateway reaches llama-server via `LLAMACPP_API_URL`)"
     },
     "google": {
       "displayName": "Google",

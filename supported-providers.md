@@ -19,8 +19,9 @@ Inference Gateway provides a unified interface to interact with multiple LLM pro
 | Cohere       | Bearer Token     | `https://api.cohere.ai`                                         | Yes - Command A Vision                                                  |
 | Groq         | Bearer Token     | `https://api.groq.com/openai/v1`                                | Yes - vision models                                                     |
 | Cloudflare   | Bearer Token     | `https://api.cloudflare.com/client/v4/accounts/{ACCOUNT_ID}/ai` | No                                                                      |
-| Ollama       | Optional API key | `http://ollama:8080/v1`                                         | Yes - LLaVA, Llama 4, Llama 3.2 Vision                                  |
 | Ollama Cloud | Bearer Token     | `https://ollama.com/v1`                                         | Yes - cloud-hosted vision models                                        |
+| Ollama       | Optional API key | `http://ollama:8080/v1`                                         | Yes - LLaVA, Llama 4, Llama 3.2 Vision                                  |
+| llama.cpp    | Optional API key | `http://llamacpp:8080/v1`                                       | Yes - multimodal GGUF models (via --mmproj)                             |
 | Google       | Bearer Token     | `https://generativelanguage.googleapis.com/v1beta/openai`       | Yes - Gemini 3 Flash, Gemini 3 Pro                                      |
 | Mistral      | Bearer Token     | `https://api.mistral.ai/v1`                                     | Yes - Pixtral Large, Ministral 3, Mistral Large 3                       |
 | MiniMax      | Bearer Token     | `https://api.minimax.io/v1`                                     | Yes - MiniMax-M3                                                        |
@@ -48,8 +49,9 @@ ENABLE_VISION=true
 - **Anthropic**: Claude Opus 4.8, Claude Sonnet 4.6, Claude Haiku 4.5
 - **Cohere**: Command A Vision
 - **Groq**: vision models
-- **Ollama**: LLaVA, Llama 4, Llama 3.2 Vision
 - **Ollama Cloud**: cloud-hosted vision models
+- **Ollama**: LLaVA, Llama 4, Llama 3.2 Vision
+- **llama.cpp**: multimodal GGUF models (via --mmproj)
 - **Google**: Gemini 3 Flash, Gemini 3 Pro
 - **Mistral**: Pixtral Large, Ministral 3, Mistral Large 3
 - **MiniMax**: MiniMax-M3
@@ -97,7 +99,7 @@ Each provider requires specific configuration through environment variables:
 
 <!-- GENERATED:provider-uppercase START (do not edit - run: task generate) -->
 
-Replace "PROVIDER" with the provider name (uppercase): OPENAI, DEEPSEEK, ANTHROPIC, COHERE, GROQ, CLOUDFLARE, OLLAMA, OLLAMA_CLOUD, GOOGLE, MISTRAL, MINIMAX, MOONSHOT, NVIDIA, ZAI.
+Replace "PROVIDER" with the provider name (uppercase): OPENAI, DEEPSEEK, ANTHROPIC, COHERE, GROQ, CLOUDFLARE, OLLAMA_CLOUD, OLLAMA, LLAMACPP, GOOGLE, MISTRAL, MINIMAX, MOONSHOT, NVIDIA, ZAI.
 
 <!-- GENERATED:provider-uppercase END (do not edit - run: task generate) -->
 
@@ -459,6 +461,34 @@ curl http://localhost:8080/v1/models?provider=nvidia
 ```
 
 > **Note:** NVIDIA is additive alongside Groq. Groq provides ultra-low-latency inference via LPU hardware, while NVIDIA offers a broad GPU-served catalog including Nemotron, Llama, DeepSeek, Mistral, and Qwen. They are complementary providers.
+
+### llama.cpp Provider
+
+Generate content with self-hosted GGUF models via llama.cpp's `llama-server`:
+
+```bash
+curl -X POST http://localhost:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "llamacpp/llama-3.2-3b-instruct",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a helpful assistant."
+      },
+      {
+        "role": "user",
+        "content": "Explain how llama.cpp works in simple terms."
+      }
+    ]
+  }'
+```
+
+List available models:
+
+```bash
+curl http://localhost:8080/v1/models?provider=llamacpp
+```
 
 ### Z-AI Provider
 

@@ -103,6 +103,28 @@ curl -X POST http://localhost:8080/v1/chat/completions \
   }'
 ```
 
+### Create Chat Completions with llama.cpp
+
+Generate content with a self-hosted GGUF model via llama.cpp's `llama-server`:
+
+```bash
+curl -X POST http://localhost:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "llamacpp/llama-3.2-3b-instruct",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a helpful assistant."
+      },
+      {
+        "role": "user",
+        "content": "Explain how llama.cpp works in simple terms."
+      }
+    ]
+  }'
+```
+
 ### Vision/Multimodal Image Processing
 
 Process images with vision-capable models. First, enable vision support:
