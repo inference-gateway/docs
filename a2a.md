@@ -180,7 +180,7 @@ When A2A agents are configured, the CLI periodically re-probes them for the life
 
 **How probes work:**
 
-- **External agents** (URLs in `a2a.agents`) are probed via their agent card (`/.well-known/agent.json`).
+- **External agents** (URLs in `a2a.agents`) are probed via their agent card (`/.well-known/agent-card.json`).
 - **Local Docker agents** are probed via `GET <url>/health`.
 - Status updates are emitted only on state changes (no noisy per-probe output).
 - Probes shut down cleanly when the session ends.
