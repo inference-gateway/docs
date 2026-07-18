@@ -26,7 +26,7 @@ Inference Gateway provides a unified interface to interact with multiple LLM pro
 | MiniMax      | Bearer Token     | `https://api.minimax.io/v1`                                     | Yes - MiniMax-M3                                                        |
 | Moonshot     | Bearer Token     | `https://api.moonshot.ai/v1`                                    | Yes - moonshot-v1-\*-vision-preview, kimi-latest, kimi-thinking-preview |
 | NVIDIA       | Bearer Token     | `https://integrate.api.nvidia.com/v1`                           | Yes - Nemotron, Llama, DeepSeek, Mistral, Qwen                          |
-| llama.cpp    | Bearer Token     | `http://llamacpp:8000/v1`                                       | Yes - multimodal GGUF models (via --mmproj)                             |
+| llama.cpp    | Optional API key | `http://llamacpp:8080/v1`                                       | Yes - multimodal GGUF models (via --mmproj)                             |
 | Z-AI         | Bearer Token     | `https://api.z.ai/v1`                                           | Yes - GLM 5.2                                                           |
 
 <!-- GENERATED:providers-table END (do not edit - run: task generate) -->

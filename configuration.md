@@ -118,7 +118,7 @@ const nvidiaSettings = [
 ];
 
 const llamacppSettings = [
-  { variable: 'LLAMACPP_API_URL', description: 'llama.cpp API URL', defaultValue: 'http://llamacpp:8000/v1' },
+  { variable: 'LLAMACPP_API_URL', description: 'llama.cpp API URL', defaultValue: 'http://llamacpp:8080/v1' },
   { variable: 'LLAMACPP_API_KEY', description: 'llama.cpp API Key', defaultValue: '""' },
 ];
 

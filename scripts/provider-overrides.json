@@ -101,7 +101,8 @@
       "urlLabel": "llama.cpp",
       "keyLabel": "llama.cpp",
       "vision": "multimodal GGUF models (via --mmproj)",
-      "adkExampleModel": "llama-3.2-3b-instruct"
+      "adkExampleModel": "llama-3.2-3b-instruct",
+      "adkKeyNote": "none (set `A2A_AGENT_CLIENT_BASE_URL` to your llama-server)"
     },
     "zai": {
       "displayName": "Z-AI",
