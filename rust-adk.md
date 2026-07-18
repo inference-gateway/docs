@@ -143,23 +143,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 <!-- GENERATED:adk-provider-table START (do not edit - run: task generate) -->
 
-| Provider     | `A2A_AGENT_CLIENT_PROVIDER` | Example `A2A_AGENT_CLIENT_MODEL`           | API key env var                                             |
-| ------------ | --------------------------- | ------------------------------------------ | ----------------------------------------------------------- |
-| OpenAI       | `openai`                    | `gpt-5-mini`                               | `OPENAI_API_KEY`                                            |
-| DeepSeek     | `deepseek`                  | `deepseek-v4-flash`                        | `DEEPSEEK_API_KEY`                                          |
-| Anthropic    | `anthropic`                 | `claude-opus-4-8`                          | `ANTHROPIC_API_KEY`                                         |
-| Cohere       | `cohere`                    | `command-a-03-2025`                        | `COHERE_API_KEY`                                            |
-| Groq         | `groq`                      | `llama-3.3-70b-versatile`                  | `GROQ_API_KEY`                                              |
-| Cloudflare   | `cloudflare`                | `@cf/meta/llama-3.3-70b-instruct-fp8-fast` | `CLOUDFLARE_API_KEY`                                        |
-| Ollama       | `ollama`                    | `llama3.3`                                 | none (set `A2A_AGENT_CLIENT_BASE_URL` to your Ollama)       |
-| Ollama Cloud | `ollama_cloud`              | `gpt-oss:120b`                             | `OLLAMA_CLOUD_API_KEY`                                      |
-| Google       | `google`                    | `gemini-3-flash`                           | `GOOGLE_API_KEY`                                            |
-| Mistral      | `mistral`                   | `mistral-large-3`                          | `MISTRAL_API_KEY`                                           |
-| MiniMax      | `minimax`                   | `MiniMax-M3`                               | `MINIMAX_API_KEY`                                           |
-| Moonshot     | `moonshot`                  | `kimi-latest`                              | `MOONSHOT_API_KEY`                                          |
-| NVIDIA       | `nvidia`                    | `nvidia/meta/llama-3.1-8b-instruct`        | `NVIDIA_API_KEY`                                            |
-| llama.cpp    | `llamacpp`                  | `llama-3.2-3b-instruct`                    | none (set `A2A_AGENT_CLIENT_BASE_URL` to your llama-server) |
-| Z-AI         | `zai`                       | `glm-5.2`                                  | `ZAI_API_KEY`                                               |
+| Provider     | `A2A_AGENT_CLIENT_PROVIDER` | Example `A2A_AGENT_CLIENT_MODEL`           | API key env var                                            |
+| ------------ | --------------------------- | ------------------------------------------ | ---------------------------------------------------------- |
+| OpenAI       | `openai`                    | `gpt-5-mini`                               | `OPENAI_API_KEY`                                           |
+| DeepSeek     | `deepseek`                  | `deepseek-v4-flash`                        | `DEEPSEEK_API_KEY`                                         |
+| Anthropic    | `anthropic`                 | `claude-opus-4-8`                          | `ANTHROPIC_API_KEY`                                        |
+| Cohere       | `cohere`                    | `command-a-03-2025`                        | `COHERE_API_KEY`                                           |
+| Groq         | `groq`                      | `llama-3.3-70b-versatile`                  | `GROQ_API_KEY`                                             |
+| Cloudflare   | `cloudflare`                | `@cf/meta/llama-3.3-70b-instruct-fp8-fast` | `CLOUDFLARE_API_KEY`                                       |
+| Ollama       | `ollama`                    | `llama3.3`                                 | none (gateway reaches Ollama via `OLLAMA_API_URL`)         |
+| Ollama Cloud | `ollama_cloud`              | `gpt-oss:120b`                             | `OLLAMA_CLOUD_API_KEY`                                     |
+| Google       | `google`                    | `gemini-3-flash`                           | `GOOGLE_API_KEY`                                           |
+| Mistral      | `mistral`                   | `mistral-large-3`                          | `MISTRAL_API_KEY`                                          |
+| MiniMax      | `minimax`                   | `MiniMax-M3`                               | `MINIMAX_API_KEY`                                          |
+| Moonshot     | `moonshot`                  | `kimi-latest`                              | `MOONSHOT_API_KEY`                                         |
+| NVIDIA       | `nvidia`                    | `nvidia/meta/llama-3.1-8b-instruct`        | `NVIDIA_API_KEY`                                           |
+| llama.cpp    | `llamacpp`                  | `llama-3.2-3b-instruct`                    | none (gateway reaches llama-server via `LLAMACPP_API_URL`) |
+| Z-AI         | `zai`                       | `glm-5.2`                                  | `ZAI_API_KEY`                                              |
 
 <!-- GENERATED:adk-provider-table END (do not edit - run: task generate) -->
 

@@ -52,7 +52,7 @@
       "keyLabel": "Ollama",
       "vision": "LLaVA, Llama 4, Llama 3.2 Vision",
       "adkExampleModel": "llama3.3",
-      "adkKeyNote": "none (set `A2A_AGENT_CLIENT_BASE_URL` to your Ollama)"
+      "adkKeyNote": "none (gateway reaches Ollama via `OLLAMA_API_URL`)"
     },
     "ollama_cloud": {
       "displayName": "Ollama Cloud",
@@ -102,7 +102,7 @@
       "keyLabel": "llama.cpp",
       "vision": "multimodal GGUF models (via --mmproj)",
       "adkExampleModel": "llama-3.2-3b-instruct",
-      "adkKeyNote": "none (set `A2A_AGENT_CLIENT_BASE_URL` to your llama-server)"
+      "adkKeyNote": "none (gateway reaches llama-server via `LLAMACPP_API_URL`)"
     },
     "zai": {
       "displayName": "Z-AI",
