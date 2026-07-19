@@ -253,6 +253,28 @@ kubectl port-forward -n inference-gateway svc/my-gateway 8080:8080
 
 For a full end-to-end example with an `Orchestrator`, two `Agent`s, and Redis state, see [`examples/orchestrator/`](https://github.com/inference-gateway/operator/tree/main/examples/orchestrator) in the operator repository.
 
+## Keyless Providers (Self-Hosted)
+
+Self-hosted, OpenAI-compatible providers - `llamacpp` (llama.cpp's `llama-server`) and `ollama` - use `auth_type: none`, so their `Gateway` provider block needs no Secret and no `*_API_KEY`. Point the provider's `*_API_URL` at your in-cluster server and enable it:
+
+```yaml
+apiVersion: core.inference-gateway.com/v1alpha1
+kind: Gateway
+metadata:
+  name: my-gateway
+  namespace: inference-gateway
+spec:
+  replicas: 1
+  providers:
+    - name: Llamacpp
+      enabled: true
+      env:
+        - name: LLAMACPP_API_URL
+          value: http://llama-server:8080/v1
+```
+
+`name` is matched case-insensitively against the schema `Provider` enum, so `Llamacpp` resolves to the `llamacpp` provider. `LLAMACPP_API_URL` defaults to `http://llamacpp:8080/v1`; override it (as above) to reach your own `llama-server` Service. Address models with the `llamacpp/` prefix, for example `llamacpp/llama-3.2-3b-instruct`. Ollama follows the same keyless shape with `OLLAMA_API_URL`.
+
 ## Routing (Gateway API)
 
 `spec.routing` exposes the gateway to north-south traffic through the [Kubernetes Gateway API](https://gateway-api.sigs.k8s.io/) (`gateway.networking.k8s.io`). It is the `v1alpha1` successor to the removed `ingress` field: instead of an `Ingress` fronted by ingress-nginx, the operator provisions a Gateway API `Gateway` and `HTTPRoute` for the gateway Service, served by [Envoy Gateway](https://gateway.envoyproxy.io/) (the `envoy` GatewayClass).
