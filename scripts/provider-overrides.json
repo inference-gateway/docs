@@ -66,8 +66,7 @@
       "urlLabel": "llama.cpp",
       "keyLabel": "llama.cpp",
       "vision": "multimodal GGUF models (via --mmproj)",
-      "adkExampleModel": "llama-3.2-3b-instruct",
-      "adkKeyNote": "none (gateway reaches llama-server via `LLAMACPP_API_URL`)"
+      "adkExampleModel": "llama-3.2-3b-instruct"
     },
     "google": {
       "displayName": "Google",

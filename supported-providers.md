@@ -21,7 +21,7 @@ Inference Gateway provides a unified interface to interact with multiple LLM pro
 | Cloudflare   | Bearer Token     | `https://api.cloudflare.com/client/v4/accounts/{ACCOUNT_ID}/ai` | No                                                                      |
 | Ollama Cloud | Bearer Token     | `https://ollama.com/v1`                                         | Yes - cloud-hosted vision models                                        |
 | Ollama       | Optional API key | `http://ollama:8080/v1`                                         | Yes - LLaVA, Llama 4, Llama 3.2 Vision                                  |
-| llama.cpp    | Optional API key | `http://llamacpp:8080/v1`                                       | Yes - multimodal GGUF models (via --mmproj)                             |
+| llama.cpp    | Bearer Token     | `http://llamacpp:8080/v1`                                       | Yes - multimodal GGUF models (via --mmproj)                             |
 | Google       | Bearer Token     | `https://generativelanguage.googleapis.com/v1beta/openai`       | Yes - Gemini 3 Flash, Gemini 3 Pro                                      |
 | Mistral      | Bearer Token     | `https://api.mistral.ai/v1`                                     | Yes - Pixtral Large, Ministral 3, Mistral Large 3                       |
 | MiniMax      | Bearer Token     | `https://api.minimax.io/v1`                                     | Yes - MiniMax-M3                                                        |
@@ -489,6 +489,8 @@ List available models:
 ```bash
 curl http://localhost:8080/v1/models?provider=llamacpp
 ```
+
+> **Note:** `LLAMACPP_API_KEY` is optional. When your `llama-server` is started with `--api-key`, set `LLAMACPP_API_KEY` to the same value and the gateway forwards it to llama.cpp as an `Authorization: Bearer <key>` header. Leave it empty or unset for local, unauthenticated servers - no `Authorization` header is sent, so existing deployments are unaffected.
 
 ### Z-AI Provider
 
