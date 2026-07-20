@@ -451,7 +451,7 @@ MOONSHOT_API_URL=https://api.moonshot.ai/v1
 MOONSHOT_API_KEY=
 NVIDIA_API_URL=https://integrate.api.nvidia.com/v1
 NVIDIA_API_KEY=
-ZAI_API_URL=https://api.z.ai/v1
+ZAI_API_URL=https://api.z.ai/api/paas/v4
 ZAI_API_KEY=
 ```
 
