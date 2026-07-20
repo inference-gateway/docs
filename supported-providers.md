@@ -27,7 +27,7 @@ Inference Gateway provides a unified interface to interact with multiple LLM pro
 | MiniMax      | Bearer Token     | `https://api.minimax.io/v1`                                     | Yes - MiniMax-M3                                                        |
 | Moonshot     | Bearer Token     | `https://api.moonshot.ai/v1`                                    | Yes - moonshot-v1-\*-vision-preview, kimi-latest, kimi-thinking-preview |
 | NVIDIA       | Bearer Token     | `https://integrate.api.nvidia.com/v1`                           | Yes - Nemotron, Llama, DeepSeek, Mistral, Qwen                          |
-| Z-AI         | Bearer Token     | `https://api.z.ai/v1`                                           | Yes - GLM 5.2                                                           |
+| Z-AI         | Bearer Token     | `https://api.z.ai/api/paas/v4`                                  | Yes - GLM 5.2                                                           |
 
 <!-- GENERATED:providers-table END (do not edit - run: task generate) -->
 

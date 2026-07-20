@@ -181,7 +181,7 @@ components:
               method: POST
               path: /chat/completions
         zai:
-          url: https://api.z.ai/v1
+          url: https://api.z.ai/api/paas/v4
           auth_type: bearer
           supports_vision: true
           endpoints:
