@@ -86,7 +86,15 @@ GET /v1/models?include=context_window
 GET /v1/models?include=pricing,context_window
 ```
 
-When `include` is specified, each `Model` object includes the requested fields. Requested-but-unresolved keys are returned as an explicit `null` (present, not absent), so clients can distinguish "not requested" from "requested but unavailable". Both `context_window` and `pricing` resolve to `null` until the follow-up implementations land.
+When `include` is specified, each `Model` object includes the requested fields. Requested-but-unresolved keys are returned as an explicit `null` (present, not absent), so clients can distinguish "not requested" from "requested but unavailable".
+
+The `context_window` field resolves in the following order (first hit wins):
+
+1. **`runtime`** - the serving runtime's configured window (e.g. llama.cpp `--ctx-size` / `/props` n_ctx, Ollama `num_ctx` / `context_length`). This can be smaller than the model's theoretical maximum and is the limit clients must respect.
+2. **`provider`** - a window published by the upstream provider in its model listing (e.g. Mistral `max_context_length`, Cohere `context_length`).
+3. **`null`** - no window could be resolved; a slow or failing lookup also resolves to `null` without failing the request.
+
+Example response for a llama.cpp model with a reduced `--ctx-size` of 4096:
 
 ```http
 Status: 200 OK
@@ -96,12 +104,15 @@ Content-Type: application/json
   "object": "list",
   "data": [
     {
-      "id": "gpt-5",
+      "id": "llama-3.1-8b-instruct",
       "object": "model",
       "created": 1741879542,
-      "owned_by": "openai",
-      "served_by": "openai",
-      "context_window": null,
+      "owned_by": "Meta",
+      "served_by": "llamacpp",
+      "context_window": {
+        "tokens": 4096,
+        "source": "runtime"
+      },
       "pricing": null
     }
   ]
@@ -696,15 +707,15 @@ This section documents each request and response schema defined in the [OpenAPI 
 
 A model descriptor returned in the `data` array of a `ListModelsResponse`.
 
-| Field            | Type                | Description                                                                                                                              |
-| ---------------- | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`             | `string`            | Model identifier (e.g., `"gpt-5"`)                                                                                                       |
-| `object`         | `string`            | Always `"model"`                                                                                                                         |
-| `created`        | `integer`           | Unix timestamp of model creation                                                                                                         |
-| `owned_by`       | `string`            | Organization that owns the model                                                                                                         |
-| `served_by`      | `string`            | Provider serving the model                                                                                                               |
-| `context_window` | `integer` \| `null` | Context window size in tokens. Only present when `include=context_window` is requested. Returns `null` until the feature is implemented. |
-| `pricing`        | `object` \| `null`  | Pricing information. Only present when `include=pricing` is requested. Returns `null` until the feature is implemented.                  |
+| Field            | Type               | Description                                                                                                                                                                                                                                                                                                                                                                                    |
+| ---------------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`             | `string`           | Model identifier (e.g., `"gpt-5"`)                                                                                                                                                                                                                                                                                                                                                             |
+| `object`         | `string`           | Always `"model"`                                                                                                                                                                                                                                                                                                                                                                               |
+| `created`        | `integer`          | Unix timestamp of model creation                                                                                                                                                                                                                                                                                                                                                               |
+| `owned_by`       | `string`           | Organization that owns the model                                                                                                                                                                                                                                                                                                                                                               |
+| `served_by`      | `string`           | Provider serving the model                                                                                                                                                                                                                                                                                                                                                                     |
+| `context_window` | `object` \| `null` | Context window object with `tokens` (int) and `source` (`"runtime"` or `"provider"`). Only present when `include=context_window` is requested. Resolution order, first hit wins: (1) `runtime` - the serving runtime's configured window (e.g. llama.cpp `--ctx-size`, Ollama `num_ctx`), (2) `provider` - the upstream provider's published window, (3) `null` - no window could be resolved. |
+| `pricing`        | `object` \| `null` | Pricing information. Only present when `include=pricing` is requested. Returns `null` until the feature is implemented.                                                                                                                                                                                                                                                                        |
 
 #### `ListModelsResponse`
 
