@@ -31,6 +31,12 @@ Get a list of all available language models across all configured providers.
 GET /v1/models
 ```
 
+**Query Parameters:**
+
+| Parameter | Type     | Required | Description                                                                                                                                                                                                                                                               |
+| --------- | -------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `include` | `string` |          | Comma-separated list of additional metadata keys to include per model. Supported keys: `context_window`, `pricing`. Unknown keys return `400 Bad Request`. Keys are trimmed and de-duplicated. When omitted, the response is byte-for-byte unchanged (OpenAI-compatible). |
+
 **Response** (`ListModelsResponse`):
 
 ```http
@@ -68,15 +74,62 @@ Content-Type: application/json
 
 The response body conforms to the `ListModelsResponse` schema, where `data` is an array of `Model` objects.
 
+**Examples with `include`:**
+
+Request additional metadata fields per model:
+
+```http
+GET /v1/models?include=context_window
+```
+
+```http
+GET /v1/models?include=pricing,context_window
+```
+
+When `include` is specified, each `Model` object includes the requested fields. Requested-but-unresolved keys are returned as an explicit `null` (present, not absent), so clients can distinguish "not requested" from "requested but unavailable". Both `context_window` and `pricing` resolve to `null` until the follow-up implementations land.
+
+```http
+Status: 200 OK
+Content-Type: application/json
+
+{
+  "object": "list",
+  "data": [
+    {
+      "id": "gpt-5",
+      "object": "model",
+      "created": 1741879542,
+      "owned_by": "openai",
+      "served_by": "openai",
+      "context_window": null,
+      "pricing": null
+    }
+  ]
+}
+```
+
 ### List Provider Models
 
-Get a list of available models for a specific provider.
+Get a list of available models for a specific provider. The `include` parameter can be combined with `provider`.
 
 ```http
 GET /v1/models?provider={provider}
 ```
 
 where `{provider}` is one of: `openai`, `anthropic`, `cohere`, `groq`, `cloudflare`, `ollama`, `ollama_cloud`, `google`, `deepseek`, `mistral`, `minimax`, `moonshot`, `nvidia`.
+
+**Query Parameters:**
+
+| Parameter  | Type     | Required | Description                                                                                |
+| ---------- | -------- | -------- | ------------------------------------------------------------------------------------------ |
+| `provider` | `string` |          | Filter models by provider                                                                  |
+| `include`  | `string` |          | Comma-separated list of additional metadata keys (see [List All Models](#list-all-models)) |
+
+**Example:**
+
+```http
+GET /v1/models?provider=deepseek&include=pricing,context_window
+```
 
 **Response** (`ListModelsResponse`):
 
@@ -638,6 +691,20 @@ curl -X POST http://localhost:8080/proxy/openai/v1/chat/completions \
 This section documents each request and response schema defined in the [OpenAPI specification](https://github.com/inference-gateway/schemas/blob/main/openapi.yaml).
 
 ### Models and Providers
+
+#### `Model`
+
+A model descriptor returned in the `data` array of a `ListModelsResponse`.
+
+| Field            | Type                | Description                                                                                                                              |
+| ---------------- | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`             | `string`            | Model identifier (e.g., `"gpt-5"`)                                                                                                       |
+| `object`         | `string`            | Always `"model"`                                                                                                                         |
+| `created`        | `integer`           | Unix timestamp of model creation                                                                                                         |
+| `owned_by`       | `string`            | Organization that owns the model                                                                                                         |
+| `served_by`      | `string`            | Provider serving the model                                                                                                               |
+| `context_window` | `integer` \| `null` | Context window size in tokens. Only present when `include=context_window` is requested. Returns `null` until the feature is implemented. |
+| `pricing`        | `object` \| `null`  | Pricing information. Only present when `include=pricing` is requested. Returns `null` until the feature is implemented.                  |
 
 #### `ListModelsResponse`
 
