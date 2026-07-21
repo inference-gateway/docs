@@ -867,7 +867,7 @@ await client.streamChatCompletion(
 
 ### Models, tools, and health
 
-`listModels` returns every model across configured providers, or a single provider's catalog when you pass a `Provider`. `listTools` enumerates MCP tools and only resolves when MCP is exposed on the gateway - an un-exposed gateway answers `403 Forbidden`. `healthCheck` probes the gateway's root `/health` endpoint and resolves to a boolean rather than throwing.
+`listModels(provider?, include?)` returns every model across configured providers, or a single provider's catalog when you pass a `Provider`. The optional `include` array requests additional per-model metadata - pass `'context_window'` to populate `model.context_window`, `'pricing'` for pricing data, or both. `listTools` enumerates MCP tools and only resolves when MCP is exposed on the gateway - an un-exposed gateway answers `403 Forbidden`. `healthCheck` probes the gateway's root `/health` endpoint and resolves to a boolean rather than throwing.
 
 ```typescript
 import { InferenceGatewayClient, Provider } from '@inference-gateway/sdk';
@@ -890,6 +890,26 @@ for (const model of models.data) {
 // Narrow the listing to a single provider.
 const openaiModels = await client.listModels(Provider.openai);
 const nvidiaModels = await client.listModels(Provider.nvidia);
+
+// Request context_window metadata for every model.
+const detailedModels = await client.listModels(undefined, ['context_window']);
+for (const model of detailedModels.data) {
+  if (model.context_window) {
+    console.log(
+      `${model.id}: ${model.context_window.tokens} tokens (source: ${model.context_window.source})`
+    );
+  }
+}
+
+// Combine with a provider filter and request both context_window and pricing.
+const groqModels = await client.listModels(Provider.groq, ['context_window', 'pricing']);
+for (const model of groqModels.data) {
+  if (model.pricing) {
+    console.log(
+      `${model.id}: ${model.pricing.currency} ${model.pricing.input_price}/${model.pricing.output_price}`
+    );
+  }
+}
 
 // MCP tools (requires MCP exposed on the gateway).
 const tools = await client.listTools();
