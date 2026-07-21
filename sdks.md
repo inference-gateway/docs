@@ -1296,6 +1296,57 @@ for _, tool := range tools.Data {
 
 `ListModelsResponse.Provider` is a `*Provider`, so dereference it (`*groqModels.Provider`) when you read the scoped listing's provider back.
 
+#### Requesting per-model metadata
+
+`ListModels` and `ListProviderModels` accept optional variadic `include` values that request additional per-model fields from the gateway. Pass `sdk.ListModelsParamsIncludeContextWindow` to populate `Model.ContextWindow`, or `sdk.ListModelsParamsIncludePricing` for pricing data. Multiple values are joined as `?include=context_window,pricing`.
+
+`Model.ContextWindow` is `nil` when not requested, populated when the gateway resolves a window, and an explicit `null` from the gateway when requested but unresolvable (for example, a local provider with no runtime window).
+
+```go
+// Request context_window for every model.
+detailedModels, err := client.ListModels(ctx, sdk.ListModelsParamsIncludeContextWindow)
+if err != nil {
+    log.Fatalf("list models: %v", err)
+}
+for _, model := range detailedModels.Data {
+    if model.ContextWindow != nil {
+        fmt.Printf("%s context window: %d tokens (source: %s)\n",
+            model.ID, model.ContextWindow.Tokens, model.ContextWindow.Source)
+    }
+}
+
+// Combine with a provider filter and request both context_window and pricing.
+providerModels, err := client.ListProviderModels(
+    ctx, sdk.Groq,
+    sdk.ListModelsParamsIncludeContextWindow,
+    sdk.ListModelsParamsIncludePricing,
+)
+if err != nil {
+    log.Fatalf("list provider models: %v", err)
+}
+for _, model := range providerModels.Data {
+    if model.ContextWindow != nil {
+        fmt.Printf("%s: %d tokens\n", model.ID, model.ContextWindow.Tokens)
+    }
+}
+```
+
+Example JSON output for a model with `include=context_window`:
+
+```json
+{
+  "id": "llama-3.1-8b-instruct",
+  "object": "model",
+  "created": 1741879542,
+  "owned_by": "Meta",
+  "served_by": "llamacpp",
+  "context_window": {
+    "tokens": 4096,
+    "source": "runtime"
+  }
+}
+```
+
 ### Middleware bypass
 
 `WithMiddlewareOptions` is a Go-only escape hatch that controls gateway middleware for subsequent requests. `SkipMCP` sends `X-MCP-Bypass: true` to skip MCP processing, and `DirectProvider` sends `X-Direct-Provider: true` to route straight to the upstream provider. Both flags are off by default, and the call clears any bypass header it does not set, so pass every flag you want enabled in a single call.
