@@ -615,6 +615,63 @@ AI provider and model settings.
 | `systemPrompt` | string  | System prompt for the AI model                                                                                                                                 |
 | `maxTokens`    | integer | Maximum tokens for responses                                                                                                                                   |
 | `temperature`  | float   | Sampling temperature (0.0-2.0)                                                                                                                                 |
+| `mcp`          | object  | MCP client configuration - servers the agent connects to at runtime plus client tuning. See [MCP Servers](#mcp-servers).                                       |
+
+### MCP Servers
+
+`spec.agent.mcp` connects the agent to [Model Context Protocol (MCP)](/mcp/) servers at runtime, so it can discover and call their tools in addition to the locally generated `spec.tools`. The block has two parts: `servers[]` declares _which_ servers to connect to, and the remaining fields tune the ADK's built-in MCP client - the _how_ (enable toggle, endpoint, refresh, timeouts, retry/backoff) - applied globally across every server.
+
+```yaml
+spec:
+  agent:
+    provider: deepseek
+    model: deepseek-v4-flash
+    mcp:
+      enabled: true
+      endpoint: /mcp
+      refreshInterval: 5m
+      dialTimeout: 30s
+      callTimeout: 30s
+      maxRetries: 0
+      retryInterval: 2s
+      retryMaxInterval: 30s
+      servers:
+        - name: filesystem
+          transport: http
+          url: http://localhost:3000
+        - name: local-tools
+          transport: stdio
+          command: npx
+          args:
+            - -y
+            - '@modelcontextprotocol/server-everything'
+```
+
+`enabled` is **required** whenever the `mcp` block is present. When it is `false` (the default) no MCP client is generated or wired in, regardless of what `servers` lists - so omit the block or set `enabled: false` to keep MCP off. Every other field is optional and maps 1:1 to an `A2A_MCP_*` environment variable, so the manifest value becomes the generated default and an operator can override it at runtime.
+
+| Field              | Type     | Required | Default | Env var                      | Description                                                                             |
+| ------------------ | -------- | :------: | ------- | ---------------------------- | --------------------------------------------------------------------------------------- |
+| `enabled`          | boolean  |    ✓     | `false` | `A2A_MCP_ENABLE`             | Master switch. When `false`, no MCP client is generated even if `servers` is populated. |
+| `servers`          | object[] |          | -       | derived (`A2A_MCP_SERVERS`)  | MCP servers to connect to. See the per-entry fields below.                              |
+| `endpoint`         | string   |          | `/mcp`  | `A2A_MCP_ENDPOINT`           | Path appended to each server base URL to reach its MCP endpoint.                        |
+| `refreshInterval`  | string   |          | `5m`    | `A2A_MCP_REFRESH_INTERVAL`   | How often the client re-discovers each server's tools (Go duration string).             |
+| `dialTimeout`      | string   |          | `30s`   | `A2A_MCP_DIAL_TIMEOUT`       | Timeout for establishing a connection to a server (Go duration string).                 |
+| `callTimeout`      | string   |          | `30s`   | `A2A_MCP_CALL_TIMEOUT`       | Timeout for a single MCP tool call (Go duration string).                                |
+| `maxRetries`       | integer  |          | `0`     | `A2A_MCP_MAX_RETRIES`        | Retries for a failed MCP operation. `0` means retry forever.                            |
+| `retryInterval`    | string   |          | `2s`    | `A2A_MCP_RETRY_INTERVAL`     | Initial backoff between retries (Go duration string).                                   |
+| `retryMaxInterval` | string   |          | `30s`   | `A2A_MCP_RETRY_MAX_INTERVAL` | Maximum backoff between retries once the interval has grown (Go duration string).       |
+
+Each entry in `servers[]` is one MCP server. `stdio` launches a local subprocess and talks over stdin/stdout (`command`, `args`, `env`); `http` and `sse` connect to a remote endpoint (`url`, `headers`). Only the fields relevant to the chosen `transport` are used.
+
+| Field       | Type     | Required | Description                                                                                            |
+| ----------- | -------- | :------: | ------------------------------------------------------------------------------------------------------ |
+| `name`      | string   |    ✓     | Server identifier, unique within the agent. Pattern: `^[a-zA-Z0-9_-]+$`. Namespaces its tools.         |
+| `transport` | string   |    ✓     | Connection transport: `stdio`, `http`, or `sse`.                                                       |
+| `command`   | string   |          | Executable to launch for a `stdio` server (e.g. `npx`, `uvx`, `docker`). Ignored by remote transports. |
+| `args`      | string[] |          | Arguments passed to `command` for a `stdio` server.                                                    |
+| `env`       | map      |          | Environment variables set when launching a `stdio` server.                                             |
+| `url`       | string   |          | Endpoint URL for an `http` or `sse` server. Ignored by `stdio`.                                        |
+| `headers`   | map      |          | Extra HTTP headers sent to an `http` or `sse` server (e.g. `Authorization`).                           |
 
 ### Tools
 

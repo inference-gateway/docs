@@ -87,6 +87,8 @@ flowchart TB
 
 ## Configuration
 
+> **Gateway-level vs agent-level MCP.** This page covers MCP on the **Inference Gateway** itself, configured through `MCP_*` environment variables (or the Operator's `Gateway` `spec.mcp` block). An individual [ADL](/adl/) agent has its own MCP client, declared in its `agent.yaml` manifest under [`spec.agent.mcp`](/adl-cli/#mcp-servers) - that connects the agent directly to MCP servers, independently of the gateway.
+
 ### Environment Variables
 
 Enable MCP integration by setting these environment variables:
