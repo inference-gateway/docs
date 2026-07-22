@@ -52,6 +52,11 @@ const clientSettings = [
   { variable: 'CLIENT_EXPECT_CONTINUE_TIMEOUT', description: 'Expect continue timeout', defaultValue: '1s' },
 ];
 
+const routingSettings = [
+  { variable: 'ROUTING_ENABLED', description: 'Enable gateway-native model routing: logical model aliases backed by a pool of upstream provider deployments, selected round-robin per replica. Opt-in; when disabled, direct provider/model routing is unchanged', defaultValue: 'false' },
+  { variable: 'ROUTING_CONFIG_PATH', description: 'Path to a YAML file mapping logical model aliases to their upstream deployment pools. Required when ROUTING_ENABLED is true', defaultValue: '""' },
+];
+
 // GENERATED:provider-settings START (do not edit - run: task generate)
 
 const openaiSettings = [
@@ -297,6 +302,14 @@ Configure access to various LLM providers. At minimum, you should configure the 
 
 <!-- GENERATED:provider-config-sections END (do not edit - run: task generate) -->
 
+### Routing
+
+These settings control gateway-native model routing - mapping a logical model alias to a pool of upstream provider deployments:
+
+<ConfigTable :rows="routingSettings" />
+
+Routing is opt-in. When `ROUTING_ENABLED=false` (the default), the gateway routes only by explicit `provider/model` prefix or `?provider=` query parameter. When enabled, set `ROUTING_CONFIG_PATH` to a YAML file that maps each logical alias to its deployment pool. Selection is round-robin per replica, and the chosen upstream is returned in the `X-Selected-Provider` / `X-Selected-Model` response headers. See the [Model Routing](/model-routing/) guide for the file format, semantics, and a migration example.
+
 ### Model Context Protocol (MCP) Settings
 
 These settings control MCP integration for external tool access:
@@ -428,6 +441,9 @@ CLIENT_TLS_MIN_VERSION=TLS12
 CLIENT_DISABLE_COMPRESSION=true
 CLIENT_RESPONSE_HEADER_TIMEOUT=10s
 CLIENT_EXPECT_CONTINUE_TIMEOUT=1s
+# Routing
+ROUTING_ENABLED=false
+ROUTING_CONFIG_PATH=
 # Providers
 OPENAI_API_URL=https://api.openai.com/v1
 OPENAI_API_KEY=
