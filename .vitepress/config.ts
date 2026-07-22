@@ -231,10 +231,7 @@ export default withMermaid(
         {
           text: 'Kubernetes',
           collapsed: false,
-          items: [
-            { text: 'Operator', link: pageLink('/operator') },
-            { text: 'GPU CRD', link: pageLink('/gpu') },
-          ],
+          items: [{ text: 'Operator', link: pageLink('/operator') }],
         },
         {
           text: 'Model Context Protocol',
