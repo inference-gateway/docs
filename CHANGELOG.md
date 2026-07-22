@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.3](https://github.com/inference-gateway/docs/compare/0.9.2...0.9.3) (2026-07-22)
+
+### 🐛 Bug Fixes
+
+* **configuration:** update Z-AI API URL to match canonical schema ([#443](https://github.com/inference-gateway/docs/issues/443)) ([2ad9f95](https://github.com/inference-gateway/docs/commit/2ad9f95d1dd5e7f69885e64f2bc1d92c72256fa5))
+
+### 📚 Documentation
+
+* **api-reference:** document community context-window fallback ([#450](https://github.com/inference-gateway/docs/issues/450)) ([be74471](https://github.com/inference-gateway/docs/commit/be74471357b7a55b094f0b3969f237d717f4e0fb))
+* **api-reference:** document community pricing fallback ([#449](https://github.com/inference-gateway/docs/issues/449)) ([3504c8f](https://github.com/inference-gateway/docs/commit/3504c8f23e5144f839fc2b570422446feb3c2682))
+* **api-reference:** document context_window resolution for GET /v1/models include param ([#445](https://github.com/inference-gateway/docs/issues/445)) ([ca01a1b](https://github.com/inference-gateway/docs/commit/ca01a1b3f53d56b9a4425b9503b4d8db030ec713))
+* **api-reference:** document include query parameter on GET /v1/models ([#442](https://github.com/inference-gateway/docs/issues/442)) ([566dd19](https://github.com/inference-gateway/docs/commit/566dd192ac4e848798dc78baae9c088b12288be1))
+* **api-reference:** document include=pricing model pricing metadata on GET /v1/models ([#446](https://github.com/inference-gateway/docs/issues/446)) ([88f0573](https://github.com/inference-gateway/docs/commit/88f0573cf0b313dba89cfd3f122cc97a304f66f2))
+* **api-reference:** document subscription field in pricing metadata ([#456](https://github.com/inference-gateway/docs/issues/456)) ([ae251c1](https://github.com/inference-gateway/docs/commit/ae251c1f1612d9bdd6190a6ffa6ec99c24d105ed))
+* document llamacpp LLAMACPP_API_KEY bearer auth ([#437](https://github.com/inference-gateway/docs/issues/437)) ([c8cd256](https://github.com/inference-gateway/docs/commit/c8cd256f4cb03cf318c26280cef98e9c9f9b9a3c))
+* **go-sdk:** document include=context_window on ListModels and ListProviderModels ([#452](https://github.com/inference-gateway/docs/issues/452)) ([ec3a520](https://github.com/inference-gateway/docs/commit/ec3a52070bcdaadaef2f019c6f5740c7403733d4))
+* **observability:** document tracing config env vars ([#459](https://github.com/inference-gateway/docs/issues/459)) ([60a2cc2](https://github.com/inference-gateway/docs/commit/60a2cc236f827f3764f6f1c3e52dcf547c7e6954)), closes [#457](https://github.com/inference-gateway/docs/issues/457)
+* **operator:** add GPU CRD reference page with spec, status, lifecycle, and Gateway consumption example ([#458](https://github.com/inference-gateway/docs/issues/458)) ([39c66e7](https://github.com/inference-gateway/docs/commit/39c66e7149475f412ab05465efd277053773dd7d))
+* **operator:** add keyless Llamacpp Gateway CR example ([#431](https://github.com/inference-gateway/docs/issues/431)) ([2937e3c](https://github.com/inference-gateway/docs/commit/2937e3ce30340cfda48024db535cb54fea9e7ae2))
+* **operator:** note llamacpp requires operator v0.19.0+ ([#433](https://github.com/inference-gateway/docs/issues/433)) ([eca2735](https://github.com/inference-gateway/docs/commit/eca27353821cbeda31623729ac61860f1cffdf1d))
+* **typescript-adk:** PascalCase MessageRole enum members ([#427](https://github.com/inference-gateway/docs/issues/427)) ([23d43bc](https://github.com/inference-gateway/docs/commit/23d43bcd88dadbfc876d3f67213faf0a87e5be11))
+* **typescript-sdk:** document listModels include parameter and model metadata fields ([#454](https://github.com/inference-gateway/docs/issues/454)) ([a0cfd8b](https://github.com/inference-gateway/docs/commit/a0cfd8b0ec2aa485f488684ce20bd29515fff84a))
+
+### 🔧 Miscellaneous
+
+* **deps-dev:** bump the bun group with 2 updates ([#435](https://github.com/inference-gateway/docs/issues/435)) ([cc8f36c](https://github.com/inference-gateway/docs/commit/cc8f36c2314e0b16967be25fcb288171d38afe3c))
+* **deps:** bump actions/setup-node in the github-actions group ([#434](https://github.com/inference-gateway/docs/issues/434)) ([53324e0](https://github.com/inference-gateway/docs/commit/53324e09b21fdd1c7b19f3a512ec2d4e9d99a509))
+
 ## [0.9.2](https://github.com/inference-gateway/docs/compare/0.9.1...0.9.2) (2026-07-18)
 
 ### 📚 Documentation
