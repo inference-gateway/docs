@@ -35,6 +35,17 @@ Treat `bun run lint:md`, `bun run format:check`, and `bun run build` as the requ
 
 The `scripts/` provider-docs generator has a fixture-based regression suite: `bun test` (or `task test`) renders every generated region from `scripts/__fixtures__/openapi.sample.yaml` and asserts a byte-for-byte match against the committed `configuration.md`, `supported-providers.md`, `rust-adk.md`, and `typescript-adk.md`. It runs offline. Run it after editing `scripts/generate-provider-docs.mjs` or `scripts/provider-overrides.json`, and never hand-edit inside the `GENERATED:*` markers - run `task generate` instead.
 
+## Regenerating provider docs offline
+
+`task generate` and `task generate:check` fetch the canonical schema over the network, so they fail where outbound network is blocked. The generator itself runs offline, so do a real regen rather than hand-editing inside the `GENERATED:*` markers:
+
+1. Fetch the schema with an authenticated API call and save it locally, for example `gh api "repos/inference-gateway/schemas/contents/openapi.yaml?ref=main" -H "Accept: application/vnd.github.raw"` into `.schema.yaml`.
+2. Run `bun scripts/generate-provider-docs.mjs --schema-file=.schema.yaml`. Use the `--schema-file=` argument form; the `SCHEMA_FILE=` env-variable form can be blocked by a restricted shell.
+3. Run `bunx prettier --write` on the regenerated files, then `bun test`.
+4. Delete `.schema.yaml` when done - it is untracked but trips `format:check`.
+
+When a provider's hard facts change (auth type, base URL, vision flag), also update the fixture `scripts/__fixtures__/openapi.sample.yaml` to match, or `bun test` fails its byte-for-byte comparison. `adkKeyNote` in `scripts/provider-overrides.json` is only consumed for `auth_type: none` providers (the ADK API-key note), so drop it when a provider switches to bearer auth.
+
 ## Commit & Pull Request Guidelines
 
 Git history follows Conventional Commits, for example `docs: add model picker tiers`, `chore(deps): bump infer CLI`, and `ci(infer): centralize infer.yml`. Keep commits scoped and descriptive. Pull requests should explain the documentation change, link related issues when available, and include screenshots or preview notes for visible UI/theme changes. CI must pass before merge.
