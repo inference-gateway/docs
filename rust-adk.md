@@ -1,6 +1,6 @@
 ---
 title: Rust ADK
-description: The Rust ADK (inference-gateway-adk) for building A2A-compatible agents in Rust. Covers the A2AServerBuilder and AgentBuilder fluent builders, the A2AClient and its typed JSON-RPC method helpers, custom function tools (with_function_tool / with_async_function_tool) and custom TaskHandler / StreamableTaskHandler implementations, OIDC bearer-token authentication (OidcJwtVerifier / AuthVerifier), TLS and mutual-TLS termination (PeerCert / ClientCertPrincipal), runtime AgentCardOverrides, the artifacts subsystem with filesystem and MinIO backends, and the full A2A_ and ARTIFACTS_ environment-variable surface with defaults.
+description: The Rust ADK (inference-gateway-adk) for building A2A-compatible agents in Rust. Covers the A2AServerBuilder and AgentBuilder fluent builders, the A2AClient and its typed JSON-RPC method helpers, custom function tools (with_function_tool / with_async_function_tool) and custom TaskHandler / StreamableTaskHandler implementations, OIDC bearer-token authentication (OidcJwtVerifier / AuthVerifier), TLS and mutual-TLS termination (PeerCert / ClientCertPrincipal), runtime AgentCardOverrides, the optional MCP client (McpClient / with_mcp_client) exposing the mcp_list_tools and mcp_call_tool selector tools over Streamable HTTP, the artifacts subsystem with filesystem and MinIO backends, and the full A2A_, MCP_, and ARTIFACTS_ environment-variable surface with defaults.
 ---
 
 # Rust ADK
@@ -314,6 +314,57 @@ let agent = AgentBuilder::new()
 ```
 
 See [`examples/ai-powered/`](https://github.com/inference-gateway/rust-adk/tree/main/examples/ai-powered) for a multi-tool walkthrough (weather, math, search).
+
+## MCP client
+
+The Rust ADK ships an optional [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) client that connects an agent to one or more MCP servers over Streamable HTTP, discovers the tools they expose, and lets the LLM invoke them - the same selector-tool design as the [Go ADK](/adk#mcp-client), so an agent reaches a shared MCP server (or a fleet of them) identically across ADKs. It is **disabled by default** (`MCP_ENABLE=false`) and only makes sense with an [LLM-backed agent](#agentbuilder) - the selector tools are useless without a model to drive them.
+
+### The selector pattern
+
+A single MCP server can expose dozens or hundreds of tools, and loading every schema into the model context would overwhelm the window. So the client does **not** register MCP tools individually. It registers just **two selector tools** onto the agent, regardless of how many tools the servers offer:
+
+- **`mcp_list_tools`** - lists discovered tools (server, name, description, input schema); accepts an optional `search` filter.
+- **`mcp_call_tool`** - invokes a tool by `name` (optionally disambiguated by `server`) with an `arguments` object.
+
+A typical turn: the model calls `mcp_list_tools` to find a relevant tool, reads its input schema, then calls `mcp_call_tool` to run it. Only the metadata the model actually asks for reaches the context window. The catalog is discovered in the background and refreshed on an interval, so `mcp_list_tools` returns fast from an in-memory snapshot.
+
+### Wiring it up
+
+`McpClient::from_config` builds the client from an `McpConfig`, and `AgentBuilder::with_mcp_client` registers it onto the agent. Like the [artifacts subsystem](#loading-config-from-the-environment), MCP config loads under its own `MCP_` prefix, separate from the `A2A_` `Config`:
+
+```rust
+use inference_gateway_adk::{AgentBuilder, Config, McpClient, McpConfig};
+
+let config: Config = envy::prefixed("A2A_").from_env()?;
+let mcp_config = envy::prefixed("MCP_")
+    .from_env::<McpConfig>()
+    .unwrap_or_default();
+
+let mut builder = AgentBuilder::new()
+    .with_config(&config.agent_config)
+    .with_system_prompt("You are a helpful assistant.");
+
+// Attach the client only when MCP is enabled. It connects and refreshes the
+// tool catalog in the background, so it never blocks startup when a server is
+// still coming up.
+if mcp_config.enable {
+    builder = builder.with_mcp_client(McpClient::from_config(&mcp_config)?);
+}
+
+let agent = builder.build().await?;
+```
+
+Connecting in the background means the agent starts even when an MCP server comes up later or restarts independently: each server retries with exponential backoff (`MCP_RETRY_INTERVAL` doubling up to `MCP_RETRY_MAX_INTERVAL`, forever by default with `MCP_MAX_RETRIES=0`), and a failing server never drops the catalog of the healthy ones.
+
+### Limitations
+
+Matching the Go ADK:
+
+- Transport is **Streamable HTTP** only; stdio/subprocess MCP servers are not wired.
+- Tool listing fetches a single page - cursor-based pagination is not yet handled.
+- MCP resources and prompts are not exposed; tools only.
+
+The `MCP_*` tuning knobs and their defaults are in the [environment variable reference](#environment-variable-reference).
 
 ## Custom task handlers
 
@@ -963,7 +1014,7 @@ The [`examples/`](https://github.com/inference-gateway/rust-adk/tree/main/exampl
 
 The library never reads the environment itself. You pick a loader - typically [`envy::prefixed("A2A_").from_env::<Config>()`](https://docs.rs/envy/latest/envy/fn.prefixed.html) - and hand the resulting `Config` to [`A2AServerBuilder::with_config`](#the-server-and-its-builder). Every variable below is optional and falls back to the default shown; switch prefixes by changing the loader, not the code.
 
-`*_SECS` variables are plain integer seconds. The Go-style duration grammar (`30s`, `15m`, `2h`, `7d`) applies only to the `ARTIFACTS_` durations in the [artifacts configuration reference](#artifacts-configuration-reference). The artifacts subsystem loads under its own `ARTIFACTS_` prefix and is **not** part of the `A2A_` surface. The agent card's identity fields are read from build-time `AGENT_*` variables (see [Agent card and metadata](#agent-card-and-metadata)), separate from the runtime `A2A_` config here.
+`*_SECS` variables are plain integer seconds. The Go-style duration grammar (`30s`, `15m`, `2h`, `7d`) applies to the `MCP_` durations below and to the `ARTIFACTS_` durations in the [artifacts configuration reference](#artifacts-configuration-reference). The artifacts subsystem loads under its own `ARTIFACTS_` prefix and is **not** part of the `A2A_` surface. The agent card's identity fields are read from build-time `AGENT_*` variables (see [Agent card and metadata](#agent-card-and-metadata)), separate from the runtime `A2A_` config here.
 
 **Server and core** - the listener and top-level toggles.
 
@@ -998,6 +1049,20 @@ The library never reads the environment itself. You pick a loader - typically [`
 | `A2A_CAPABILITIES_STREAMING`                | `true`  | Advertise `message/stream` support.         |
 | `A2A_CAPABILITIES_PUSH_NOTIFICATIONS`       | `true`  | Advertise push-notification config support. |
 | `A2A_CAPABILITIES_STATE_TRANSITION_HISTORY` | `false` | Record task state-transition history.       |
+
+**MCP client** (`MCP_` prefix) - connect the agent to [MCP servers](#mcp-client); disabled by default. Loaded under its own `MCP_` prefix (like `ARTIFACTS_`), separate from the `A2A_` `Config`.
+
+| Variable                 | Default   | Purpose                                                            |
+| ------------------------ | --------- | ------------------------------------------------------------------ |
+| `MCP_ENABLE`             | `false`   | Enable the MCP client.                                             |
+| `MCP_SERVERS`            | _(unset)_ | Comma-separated MCP server base URLs, e.g. `http://mcp:8080`.      |
+| `MCP_ENDPOINT`           | `/mcp`    | Path appended to each server URL for the Streamable HTTP endpoint. |
+| `MCP_REFRESH_INTERVAL`   | `5m`      | How often to refresh the tool catalog from each server.            |
+| `MCP_DIAL_TIMEOUT`       | `30s`     | Timeout for initializing / listing tools.                          |
+| `MCP_CALL_TIMEOUT`       | `30s`     | Timeout for a single tool invocation.                              |
+| `MCP_MAX_RETRIES`        | `0`       | Max initial connection attempts per server (`0` = retry forever).  |
+| `MCP_RETRY_INTERVAL`     | `2s`      | Initial backoff between connection/refresh retries (doubles).      |
+| `MCP_RETRY_MAX_INTERVAL` | `30s`     | Maximum backoff between retries.                                   |
 
 **Queue and storage** - selects the `Storage` backend the server factory wires up.
 
