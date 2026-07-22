@@ -50,7 +50,7 @@ A [go-task](https://taskfile.dev) `Taskfile.yml` mirrors these scripts - every `
 
 You can use **flox** for a consistent development environment (configured in `.flox/env/manifest.toml`).
 
-> See [`AGENTS.md`](./AGENTS.md) or [`CLAUDE.md`](./CLAUDE.md) for the full list of commands and development conventions.
+> See [`AGENTS.md`](./AGENTS.md) for the full list of commands and development conventions.
 
 ## Contributing
 
