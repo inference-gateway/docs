@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.4](https://github.com/inference-gateway/docs/compare/0.9.3...0.9.4) (2026-07-22)
+
+### 📚 Documentation
+
+* add model routing guide and ROUTING_* config ([#466](https://github.com/inference-gateway/docs/issues/466)) ([aea7023](https://github.com/inference-gateway/docs/commit/aea7023dc053faa83272021e15102d65f8deb908))
+* **adk:** document contextId-based artifact storage layout and URL pattern ([#461](https://github.com/inference-gateway/docs/issues/461)) ([9971738](https://github.com/inference-gateway/docs/commit/99717382d30abe94e90a09083dfd43a422287fbd))
+* **adk:** document MCP client and MCP_* configuration ([#463](https://github.com/inference-gateway/docs/issues/463)) ([1687f99](https://github.com/inference-gateway/docs/commit/1687f99592fb6d1635692f8eee7f2b0972363bd2))
+* note offline provider-docs regen in AGENTS.md ([#465](https://github.com/inference-gateway/docs/issues/465)) ([4ee83aa](https://github.com/inference-gateway/docs/commit/4ee83aa41cb33181d191f367d69e03c3480989b7))
+
 ## [0.9.3](https://github.com/inference-gateway/docs/compare/0.9.2...0.9.3) (2026-07-22)
 
 ### 🐛 Bug Fixes
