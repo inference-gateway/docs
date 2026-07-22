@@ -533,6 +533,18 @@ Artifacts are files, structured data, or rich content an agent produces during a
 - **`filesystem`** (default) - store on local disk (`ARTIFACTS_STORAGE_BASE_PATH`), suitable for single-instance deployments.
 - **`minio`** - S3-compatible object storage for distributed deployments. Configure `ARTIFACTS_STORAGE_ENDPOINT`, `ARTIFACTS_STORAGE_ACCESS_KEY`, `ARTIFACTS_STORAGE_SECRET_KEY`, and `ARTIFACTS_STORAGE_BUCKET_NAME`.
 
+### Storage Layout
+
+Stored artifacts are grouped by the A2A context (session) id. Both backends use the same layout:
+
+```
+{contextId}/{artifactId}/{filename}
+```
+
+Download URLs mirror the storage layout. When proxied through the artifacts HTTP server, the URL is `/artifacts/{contextId}/{artifactId}/{filename}`. When using direct URLs (`ARTIFACTS_STORAGE_BASE_URL`), the path follows the same shape.
+
+Clients are unaffected - they always fetch the opaque `uri` returned on the file part.
+
 By default downloads are **proxied** through the artifacts HTTP server (`ARTIFACTS_SERVER_PORT`, default `8081`) for auth and logging; set `ARTIFACTS_STORAGE_BASE_URL` to serve **direct** download URLs from the storage backend instead.
 
 There are two ways to produce artifacts:
@@ -545,9 +557,9 @@ There are two ways to produce artifacts:
    helper.AddArtifactToTask(task, art)
    ```
 
-   The helper also creates file artifacts (`CreateFileArtifactFromBytes`, `CreateFileArtifactFromURI`), structured-data artifacts (`CreateDataArtifact`), and multi-part artifacts (`CreateMultiPartArtifact`).
+   The helper also creates file artifacts (`CreateFileArtifactFromBytes(ctx, contextID, ...)`, `CreateFileArtifactFromURI(ctx, contextID, ...)` - these now take `contextID` as their first argument), structured-data artifacts (`CreateDataArtifact`), and multi-part artifacts (`CreateMultiPartArtifact`).
 
-2. **Autonomously**, by enabling the built-in `create_artifact` tool (`AGENT_CLIENT_TOOLS_CREATE_ARTIFACT=true` plus `WithDefaultToolBox()`), letting the model save content and return a download URL on its own.
+2. **Autonomously**, by enabling the built-in `create_artifact` tool (`AGENT_CLIENT_TOOLS_CREATE_ARTIFACT=true` plus `WithDefaultToolBox()`), letting the model save content and return a download URL on its own. The default handlers automatically pass `task.ContextID`.
 
 On the client side, `a2a.GetArtifactHelper()` extracts artifacts from responses and downloads them to disk with `DownloadAllArtifacts(ctx, task, &client.DownloadConfig{OutputDir: "downloads", OrganizeByArtifactID: true})`, handling both byte-embedded and URI-referenced files.
 
