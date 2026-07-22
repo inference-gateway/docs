@@ -345,17 +345,52 @@ A minimal hand-rolled panel set you can build in Grafana:
 
 ## Distributed Tracing
 
-The gateway initializes the global OpenTelemetry tracer provider when `TELEMETRY_ENABLE=true`. Spans are emitted for inbound requests and downstream provider calls, with `service.name`, `service.version`, and `deployment.environment` populated as resource attributes.
+Tracing is a separate opt-in from metrics. Set `TELEMETRY_TRACING_ENABLE=true` **in addition to** `TELEMETRY_ENABLE=true` to have the gateway initialize the global OpenTelemetry tracer provider and emit spans. With `TELEMETRY_ENABLE=true` alone you get metrics but no traces.
 
-Use the standard OpenTelemetry environment variables to export to a collector via OTLP:
+Traces are exported over OTLP/HTTP to `TELEMETRY_TRACING_OTLP_ENDPOINT` (default `http://localhost:4318`). Resource attributes `service.name`, `service.version`, and `deployment.environment` are populated from the gateway's runtime.
 
 ```bash
 TELEMETRY_ENABLE=true
-OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
-OTEL_EXPORTER_OTLP_PROTOCOL=grpc
+TELEMETRY_TRACING_ENABLE=true
+TELEMETRY_TRACING_OTLP_ENDPOINT=http://otel-collector:4318
 OTEL_SERVICE_NAME=inference-gateway
 OTEL_RESOURCE_ATTRIBUTES=deployment.environment=production
 ```
+
+| Variable                          | Default                 | Description                                           |
+| --------------------------------- | ----------------------- | ----------------------------------------------------- |
+| `TELEMETRY_TRACING_ENABLE`        | `false`                 | Emit tracing spans. Requires `TELEMETRY_ENABLE=true`. |
+| `TELEMETRY_TRACING_OTLP_ENDPOINT` | `http://localhost:4318` | OTLP/HTTP endpoint traces are exported to.            |
+
+### Span coverage
+
+- **Root spans** are created for every inbound request **except** `/health` and `/v1/metrics`, which are excluded to keep health checks and the metrics push endpoint out of your traces.
+- **GenAI attributes** (`gen_ai` provider and model span attributes) are attached on the inference routes `/v1/chat/completions` and `/v1/messages`, so a span records which provider and model served the request.
+- **MCP tool execution** produces one child span per tool call, nested under the request's root span.
+
+### Context propagation
+
+The gateway propagates [W3C Trace Context](https://www.w3.org/TR/trace-context/) in both directions:
+
+- **Incoming.** A `traceparent` header on an inbound request is honored, so the gateway's spans join the caller's existing trace rather than starting a new one.
+- **Outgoing.** Provider calls, proxied requests, and MCP requests all carry a `traceparent` header, so downstream spans stitch into the same trace end to end.
+
+### Sampling and exporter tuning
+
+Sampling and exporter behavior use the standard OpenTelemetry environment variables - the gateway does not add its own knobs for these:
+
+```bash
+# Sample 10% of traces (head-based)
+OTEL_TRACES_SAMPLER=traceidratio
+OTEL_TRACES_SAMPLER_ARG=0.1
+
+# Exporter tuning (headers, timeout, compression, per-signal endpoint)
+OTEL_EXPORTER_OTLP_HEADERS=authorization=Bearer%20<token>
+OTEL_EXPORTER_OTLP_TIMEOUT=10000
+OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://otel-collector:4318/v1/traces
+```
+
+`OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` (per-signal) takes precedence over `TELEMETRY_TRACING_OTLP_ENDPOINT` when both are set. See the [OpenTelemetry SDK environment variable spec](https://opentelemetry.io/docs/specs/otel/configuration/sdk-environment-variables/) for the full list.
 
 ### OpenTelemetry Collector configuration
 
@@ -405,7 +440,7 @@ helm install jaeger jaegertracing/jaeger \
   --set storage.type=memory
 ```
 
-Then point the gateway's `OTEL_EXPORTER_OTLP_ENDPOINT` at the collector service exposed by your Jaeger or OTel Collector deployment (port `4317` for gRPC or `4318` for HTTP). Traces will be visible in the Jaeger UI under the `inference-gateway` service.
+Then point the gateway's `TELEMETRY_TRACING_OTLP_ENDPOINT` at the OTLP/HTTP endpoint (port `4318`) of the collector service exposed by your Jaeger or OTel Collector deployment. Traces will be visible in the Jaeger UI under the `inference-gateway` service.
 
 ## Log Aggregation
 
@@ -584,7 +619,7 @@ Both bring up the gateway with `TELEMETRY_ENABLE=true`, scrape `/metrics`, provi
 - **Metrics push returns 403** - confirm both `TELEMETRY_ENABLE=true` and `TELEMETRY_METRICS_PUSH_ENABLE=true` are set.
 - **Pushed metrics not appearing** - check that the OTLP payload uses delta temporality and allowlisted metric names. The response's `partial_success` field will list rejected data points and reasons.
 - **ServiceMonitor not picked up** - the `release:` label on the `ServiceMonitor` must match your kube-prometheus-stack Helm release name (often `kube-prometheus-stack`). Check the Prometheus Operator's `serviceMonitorSelector`.
-- **Traces missing** - verify `OTEL_EXPORTER_OTLP_ENDPOINT` resolves from inside the gateway pod and that the collector is listening on the expected protocol (`grpc` on 4317 vs `http` on 4318).
+- **Traces missing** - confirm both `TELEMETRY_ENABLE=true` and `TELEMETRY_TRACING_ENABLE=true` are set (`TELEMETRY_ENABLE` alone enables metrics only), then verify `TELEMETRY_TRACING_OTLP_ENDPOINT` (or `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`) resolves from inside the gateway pod and that the collector is listening for OTLP/HTTP on `4318`.
 - **Logs not appearing in Loki** - check that Promtail is running as a DaemonSet on the gateway's node and that its scrape config matches the gateway's namespace/labels.
 
 For broader operational issues (auth, MCP, vision, provider 4xx debugging), see [Troubleshooting](/troubleshooting/).
