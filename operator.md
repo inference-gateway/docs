@@ -1,18 +1,19 @@
 ---
 title: Kubernetes Operator
-description: Declarative Kubernetes management of Inference Gateway via Custom Resources - Gateway, Agent, MCP, and Orchestrator CRDs under core.inference-gateway.com/v1alpha1.
+description: Declarative Kubernetes management of Inference Gateway via Custom Resources - Gateway, Agent, MCP, Orchestrator, and GPU CRDs under core.inference-gateway.com/v1alpha1.
 ---
 
 # Kubernetes Operator
 
 The Inference Gateway Operator is a Kubernetes controller that manages Inference Gateway and related resources declaratively through Custom Resources (CRs). It is the recommended way to run Inference Gateway on Kubernetes - manage gateways, A2A agents, MCP servers, and chat-channel orchestrators as first-class CRs in the same cluster API your other workloads use.
 
-The operator publishes four CRDs under `core.inference-gateway.com/v1alpha1`:
+The operator publishes five CRDs under `core.inference-gateway.com/v1alpha1`:
 
 - `Gateway` - the gateway proxy itself, with providers, auth, MCP, routing (Gateway API), and HPA.
 - `Agent` - an A2A worker that an `Orchestrator` (or any A2A client) can dispatch tasks to.
 - `MCP` - a Model Context Protocol server.
 - `Orchestrator` - runs a chat bot backed by the gateway. It listens on a messaging channel (Telegram today; more channels planned), drives the conversation with an LLM, and can delegate work to `Agent`s and MCP tools.
+- `GPU` - leases an externally hosted, GPU-backed inference runtime from a cloud provider.
 
 The API is `v1alpha1` and breaking changes can land between releases.
 
@@ -39,7 +40,7 @@ kubectl get pods -n inference-gateway-system
 kubectl get crd | grep inference-gateway.com
 ```
 
-You should see four CRDs: `gateways`, `agents`, `mcps`, and `orchestrators`.
+You should see five CRDs: `gateways`, `agents`, `mcps`, `orchestrators`, and `gpus`.
 
 ## Custom Resources
 
@@ -123,6 +124,61 @@ The Deployment is forced to a singleton (`replicas: 1`, `strategy: Recreate`) be
 | `a2a.serviceDiscovery.{enabled,namespace,selector}`                            | Discover `Agent` CRs by label selector. The pod is rolled when the discovered set changes.                                                                                     |
 | `telemetry.enabled` / `telemetry.traces` / `telemetry.metrics`                 | OpenTelemetry telemetry. The `channels-manager` daemon consumes only a master switch and a single shared OTLP endpoint. See [Orchestrator Telemetry](#orchestrator-telemetry). |
 | `resources` / `env[]`                                                          | Standard pod knobs.                                                                                                                                                            |
+
+### GPU
+
+Leases an externally hosted, GPU-backed inference runtime through a pluggable provider interface (RunPod first). The cluster acts as control plane only - GPU hardware, drivers, and inference execution stay with the external provider. Source: [`api/v1alpha1/gpu_types.go`](https://github.com/inference-gateway/operator/blob/main/api/v1alpha1/gpu_types.go).
+
+| Field                           | Description                                                                                                                                                                 |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `provider`                      | Required provider name, e.g. `runpod`.                                                                                                                                      |
+| `credentialsRef`                | Required `corev1.SecretKeySelector` for the provider management API key. Never exposed in the generated connection Secret.                                                  |
+| `image` / `command`             | Required runtime container image and optional command override.                                                                                                             |
+| `gpuTypes[]`                    | Required GPU type identifiers, e.g. `NVIDIA GeForce RTX 4090`.                                                                                                              |
+| `endpoint.{port,readinessPath}` | Defaults `8080` and `/health`. The `Ready` condition stays `False` until the readiness path responds.                                                                       |
+| `maxRuntime`                    | Required hard runtime cap, e.g. `2h`. After `startedAt + maxRuntime` the resource transitions to `Expired` - no automatic reprovision; create a new `GPU` resource instead. |
+
+The phase progresses `Pending` → `Provisioning` → `Starting` → `Ready` → `Terminating` (with `Expired` and `Failed` as terminal detours). When `Ready`, the operator generates a Secret named `<gpu-name>-connection` containing `url` and `apiKey` - the `apiKey` is a per-allocation token injected into the runtime as `API_KEY`, not the provider management key. Deleting the `GPU` releases the provider allocation via finalizer, and the connection Secret is garbage-collected by owner reference.
+
+A `Gateway` consumes the connection Secret through provider `env`:
+
+```yaml
+apiVersion: core.inference-gateway.com/v1alpha1
+kind: GPU
+metadata:
+  name: my-gpu
+spec:
+  provider: runpod
+  credentialsRef:
+    name: runpod-credentials
+    key: RUNPOD_API_KEY
+  image: ghcr.io/inference-gateway/inference-gateway:latest
+  gpuTypes:
+    - 'NVIDIA GeForce RTX 4090'
+  maxRuntime: 2h
+---
+apiVersion: core.inference-gateway.com/v1alpha1
+kind: Gateway
+metadata:
+  name: my-gateway
+spec:
+  providers:
+    - name: Custom
+      enabled: true
+      env:
+        - name: CUSTOM_API_URL
+          valueFrom:
+            secretKeyRef:
+              name: my-gpu-connection
+              key: url
+        - name: CUSTOM_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: my-gpu-connection
+              key: apiKey
+```
+
+For a complete runnable example, see [`examples/gpu/`](https://github.com/inference-gateway/operator/tree/main/examples/gpu) in the operator repository.
 
 ## Authentication (OIDC)
 
