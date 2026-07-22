@@ -61,6 +61,25 @@ adl generate --file agent.yaml --output ./my-weather-agent
 
 See the [ADL CLI](/adl-cli/) reference for the complete command surface and a full field-by-field schema breakdown.
 
+## Connecting to MCP servers
+
+An agent can reach out to [Model Context Protocol (MCP)](/mcp/) servers at runtime to discover and call external tools, on top of the tools it defines locally under `spec.tools`. This is configured with a single `spec.agent.mcp` block: `servers` lists which servers to connect to, and the remaining fields tune the ADK's built-in MCP client (endpoint, refresh, timeouts, retries) globally across them.
+
+```yaml
+spec:
+  agent:
+    provider: deepseek
+    model: deepseek-v4-flash
+    mcp:
+      enabled: true
+      servers:
+        - name: filesystem
+          transport: http
+          url: http://localhost:3000
+```
+
+`enabled` is the master switch and is **required** whenever the `mcp` block is present - when it is `false` (the default) no MCP client is generated, regardless of what `servers` lists. See the [ADL CLI schema reference](/adl-cli/#mcp-servers) for every field and its default.
+
 ## How ADL fits the ecosystem
 
 - **ADL** - the declarative YAML contract that describes an agent. Canonical spec: [adl.inference-gateway.com](https://adl.inference-gateway.com).
