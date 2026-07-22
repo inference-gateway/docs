@@ -291,7 +291,61 @@ toolBox.AddTool(server.NewBasicTool(
 - **`input_required`** - always present. The agent intercepts calls to it and pauses the task in the `input-required` state, surfacing the tool's `message` argument to the caller. This is the mechanism behind interactive, multi-turn conversations.
 - **`create_artifact`** - registered only when `ToolBoxConfig.EnableCreateArtifact` is `true` (env `AGENT_CLIENT_TOOLS_CREATE_ARTIFACT=true`). It lets the model autonomously persist content as a downloadable artifact. See [Artifacts](#artifacts).
 
-To implement a richer tool, satisfy the `Tool` interface directly (`GetName`, `GetDescription`, `GetParameters`, `Execute`); `BasicTool` is just the function-callback implementation of it.
+To implement a richer tool, satisfy the `Tool` interface directly (`GetName`, `GetDescription`, `GetParameters`, `Execute`); `BasicTool` is just the function-callback implementation of it. To expose tools from an external MCP server instead of defining them inline, see the [MCP client](#mcp-client).
+
+## MCP client
+
+The ADK can connect an agent to one or more [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) servers over streamable HTTP, discover the tools they expose, and let the LLM invoke them - useful when a common MCP server (or a fleet of them) should be reused across A2A agents. It is built on [`metoro-io/mcp-golang`](https://github.com/metoro-io/mcp-golang), **disabled by default** (`MCP_ENABLE=false`), and only makes sense when an [LLM-backed agent](#agentbuilder) is configured.
+
+### The selector pattern
+
+A single MCP server can expose dozens or hundreds of tools, and loading every schema into the model context would overwhelm the window. So the ADK does **not** register MCP tools individually. Instead the `MCPClientManager` registers just **two selector tools** into the [ToolBox](#tools-and-the-toolbox), regardless of how many tools the servers offer:
+
+- **`mcp_list_tools`** - lists discovered tools (server, name, description, input schema); accepts an optional `search` filter.
+- **`mcp_call_tool`** - invokes a tool by `name` (optionally disambiguated by `server`) with an `arguments` object.
+
+A typical turn: the model calls `mcp_list_tools` to find a relevant tool, reads its input schema, then calls `mcp_call_tool` to run it. Only the metadata the model actually asks for reaches the context window. The catalog is discovered in the background and refreshed on an interval, so `mcp_list_tools` returns fast from an in-memory snapshot.
+
+### Wiring it up
+
+`MCPClientManager` is a standalone piece you construct, start, and register into the agent's ToolBox. Registration only makes sense with an LLM-backed agent - the selector tools are useless without a model to drive them:
+
+```go
+toolBox := server.NewDefaultToolBox(&cfg.AgentConfig.ToolBoxConfig)
+
+if cfg.MCPConfig.Enable {
+	mcpManager, err := server.NewMCPClientManager(cfg.MCPConfig, logger)
+	if err != nil {
+		logger.Fatal("failed to create MCP client manager", zap.Error(err))
+	}
+	mcpManager.Start(ctx)             // background connect + refresh
+	defer mcpManager.Close()
+	mcpManager.RegisterTools(toolBox) // adds mcp_list_tools + mcp_call_tool
+}
+
+agent, _ := server.NewAgentBuilder(logger).
+	WithConfig(&cfg.AgentConfig).
+	WithLLMClient(llmClient).
+	WithToolBox(toolBox).
+	Build()
+```
+
+`Start` returns immediately; it never blocks server startup when an MCP server is not yet up. See the [`mcp` example](https://github.com/inference-gateway/adk/tree/main/examples/mcp) for a full runnable server.
+
+### Resilience
+
+Built for cloud-native rollouts where an MCP server may start after, or restart independently of, the A2A server:
+
+- **Connection retries** - each server connects in a background goroutine with exponential backoff (`MCP_RETRY_INTERVAL` doubling up to `MCP_RETRY_MAX_INTERVAL`), retrying forever by default (`MCP_MAX_RETRIES=0`).
+- **Polling backoff** - once connected, the catalog refreshes every `MCP_REFRESH_INTERVAL`. A failed refresh (server restarted or briefly unreachable) backs off - doubling up to `MCP_RETRY_MAX_INTERVAL` - and resumes the normal interval as soon as the server responds. A failing server never drops the catalog of the healthy ones.
+
+Tuning knobs for both live in the [`MCP_` configuration block](#configuration-reference).
+
+### Limitations
+
+- Transport is streamable **HTTP** only; stdio/subprocess MCP servers are not wired.
+- Tool listing fetches a single page - cursor-based pagination is not yet handled.
+- MCP resources and prompts are not exposed; tools only.
 
 ## Task handlers
 
@@ -678,11 +732,25 @@ Reference them in code as `server.BuildAgentName`, etc., when constructing the `
 | `CAPABILITIES_PUSH_NOTIFICATIONS`       | `true`  | Advertise push-notification support.  |
 | `CAPABILITIES_STATE_TRANSITION_HISTORY` | `false` | Record task state-transition history. |
 
+**MCP client** (`MCP_` prefix) - connect the agent to [MCP servers](#mcp-client); disabled by default. When the ADK config is nested under `A2A_` (as in the examples), the prefix becomes `A2A_MCP_`.
+
+| Variable                 | Default   | Purpose                                                           |
+| ------------------------ | --------- | ----------------------------------------------------------------- |
+| `MCP_ENABLE`             | `false`   | Enable the MCP client.                                            |
+| `MCP_SERVERS`            | _(unset)_ | Comma-separated MCP server base URLs, e.g. `http://mcp:8080`.     |
+| `MCP_ENDPOINT`           | `/mcp`    | Path appended to each server URL for the streamable MCP endpoint. |
+| `MCP_REFRESH_INTERVAL`   | `5m`      | How often to refresh the tool catalog from each server.           |
+| `MCP_DIAL_TIMEOUT`       | `30s`     | Timeout for initializing / listing tools.                         |
+| `MCP_CALL_TIMEOUT`       | `30s`     | Timeout for a single tool invocation.                             |
+| `MCP_MAX_RETRIES`        | `0`       | Max initial connection attempts per server (`0` = retry forever). |
+| `MCP_RETRY_INTERVAL`     | `2s`      | Initial backoff between connection/refresh retries (doubles).     |
+| `MCP_RETRY_MAX_INTERVAL` | `30s`     | Maximum backoff between retries.                                  |
+
 **Queue / storage, retention, auth, telemetry, artifacts** are documented in [Storage backends](#storage-backends), [Authentication](#authentication), [Telemetry](#telemetry), and [Artifacts](#artifacts). Task retention is controlled by `TASK_RETENTION_MAX_COMPLETED_TASKS` (default `100`), `TASK_RETENTION_MAX_FAILED_TASKS` (default `50`), and `TASK_RETENTION_CLEANUP_INTERVAL` (default `5m`).
 
 ## Examples
 
-The [`examples/`](https://github.com/inference-gateway/adk/tree/main/examples) directory ships sixteen runnable scenarios, each a self-contained Go module with its own README and (where relevant) a `docker-compose.yaml`.
+The [`examples/`](https://github.com/inference-gateway/adk/tree/main/examples) directory ships seventeen runnable scenarios, each a self-contained Go module with its own README and (where relevant) a `docker-compose.yaml`.
 
 **Without an LLM** - no provider keys required:
 
@@ -696,13 +764,14 @@ The [`examples/`](https://github.com/inference-gateway/adk/tree/main/examples) d
 
 **With an LLM** - require an Inference Gateway / provider key:
 
-| Example                                                                                                  | What it shows                                                         |
-| -------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| [ai-powered](https://github.com/inference-gateway/adk/tree/main/examples/ai-powered)                     | An LLM agent with custom function tools (weather, time).              |
-| [ai-powered-streaming](https://github.com/inference-gateway/adk/tree/main/examples/ai-powered-streaming) | The same agent streamed over `message/stream`.                        |
-| [callbacks](https://github.com/inference-gateway/adk/tree/main/examples/callbacks)                       | Lifecycle hooks for guardrails, caching, and logging.                 |
-| [usage-metadata](https://github.com/inference-gateway/adk/tree/main/examples/usage-metadata)             | Token usage + execution metrics attached to terminal tasks.           |
-| [input-required](https://github.com/inference-gateway/adk/tree/main/examples/input-required)             | Interactive pausing in `input-required`, streaming and non-streaming. |
+| Example                                                                                                  | What it shows                                                                              |
+| -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| [ai-powered](https://github.com/inference-gateway/adk/tree/main/examples/ai-powered)                     | An LLM agent with custom function tools (weather, time).                                   |
+| [ai-powered-streaming](https://github.com/inference-gateway/adk/tree/main/examples/ai-powered-streaming) | The same agent streamed over `message/stream`.                                             |
+| [callbacks](https://github.com/inference-gateway/adk/tree/main/examples/callbacks)                       | Lifecycle hooks for guardrails, caching, and logging.                                      |
+| [usage-metadata](https://github.com/inference-gateway/adk/tree/main/examples/usage-metadata)             | Token usage + execution metrics attached to terminal tasks.                                |
+| [input-required](https://github.com/inference-gateway/adk/tree/main/examples/input-required)             | Interactive pausing in `input-required`, streaming and non-streaming.                      |
+| [mcp](https://github.com/inference-gateway/adk/tree/main/examples/mcp)                                   | Reach an MCP server's tools through the `mcp_list_tools` / `mcp_call_tool` selector tools. |
 
 **Storage, security, and artifacts:**
 
