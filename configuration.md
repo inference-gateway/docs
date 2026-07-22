@@ -18,6 +18,8 @@ const telemetrySettings = [
   { variable: 'TELEMETRY_ENABLE', description: 'Enable OpenTelemetry metrics and tracing', defaultValue: 'false' },
   { variable: 'TELEMETRY_METRICS_PUSH_ENABLE', description: 'Enable the OTLP metrics push endpoint (POST /v1/metrics)', defaultValue: 'false' },
   { variable: 'TELEMETRY_METRICS_PORT', description: 'Port for telemetry metrics server', defaultValue: '9464' },
+  { variable: 'TELEMETRY_TRACING_ENABLE', description: 'Emit OpenTelemetry tracing spans (requires TELEMETRY_ENABLE)', defaultValue: 'false' },
+  { variable: 'TELEMETRY_TRACING_OTLP_ENDPOINT', description: 'OTLP/HTTP endpoint for trace export', defaultValue: 'http://localhost:4318' },
   { variable: 'OTEL_METRICS_EXPORTER', description: 'Metrics exporter mode: otlp (push), prometheus (pull), or none', defaultValue: 'otlp' },
   { variable: 'OTEL_EXPORTER_PROMETHEUS_HOST', description: 'Prometheus pull endpoint bind host', defaultValue: '0.0.0.0' },
   { variable: 'OTEL_EXPORTER_PROMETHEUS_PORT', description: 'Prometheus pull endpoint port', defaultValue: '9464' },
@@ -185,7 +187,7 @@ These settings control telemetry and metrics exposure:
 
 <ConfigTable :rows="telemetrySettings" />
 
-When `TELEMETRY_ENABLE` is set to `true`, Inference Gateway exposes a `/metrics` endpoint for Prometheus scraping and generates distributed traces that can be collected by OpenTelemetry collectors.
+When `TELEMETRY_ENABLE` is set to `true`, Inference Gateway exposes a `/metrics` endpoint for Prometheus scraping. Distributed tracing is a separate opt-in: set `TELEMETRY_TRACING_ENABLE=true` (alongside `TELEMETRY_ENABLE=true`) to emit spans, and point `TELEMETRY_TRACING_OTLP_ENDPOINT` at your OTLP/HTTP collector (default `http://localhost:4318`). Sampling and exporter tuning use the standard `OTEL_TRACES_SAMPLER` / `OTEL_EXPORTER_OTLP_*` variables. See the [Distributed Tracing](/observability/#distributed-tracing) section for span coverage and context propagation.
 
 When `TELEMETRY_METRICS_PUSH_ENABLE` is also set to `true` (alongside `TELEMETRY_ENABLE=true`), the gateway exposes an OTLP/HTTP metrics push endpoint at `POST /v1/metrics`. This allows subscription clients that bypass the gateway's inference path to push their usage metrics. See the [Observability](/observability/#pushing-metrics-otlp) page for details.
 
@@ -378,6 +380,8 @@ DEBUG_MAX_MESSAGES=100
 TELEMETRY_ENABLE=false
 TELEMETRY_METRICS_PUSH_ENABLE=false
 TELEMETRY_METRICS_PORT=9464
+TELEMETRY_TRACING_ENABLE=false
+TELEMETRY_TRACING_OTLP_ENDPOINT=http://localhost:4318
 OTEL_METRICS_EXPORTER=otlp
 OTEL_EXPORTER_PROMETHEUS_HOST=0.0.0.0
 OTEL_EXPORTER_PROMETHEUS_PORT=9464
