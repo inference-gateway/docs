@@ -295,7 +295,7 @@ To implement a richer tool, satisfy the `Tool` interface directly (`GetName`, `G
 
 ## MCP client
 
-The ADK can connect an agent to one or more [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) servers over streamable HTTP, discover the tools they expose, and let the LLM invoke them - useful when a common MCP server (or a fleet of them) should be reused across A2A agents. It is built on [`metoro-io/mcp-golang`](https://github.com/metoro-io/mcp-golang), **disabled by default** (`MCP_ENABLE=false`), and only makes sense when an [LLM-backed agent](#agentbuilder) is configured.
+The ADK can connect an agent to one or more [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) servers over streamable HTTP, discover the tools they expose, and let the LLM invoke them - useful when a common MCP server (or a fleet of them) should be reused across A2A agents. It is built on [`metoro-io/mcp-golang`](https://github.com/metoro-io/mcp-golang), **disabled by default** (`MCP_ENABLE=false`), and only makes sense when an [LLM-backed agent](#agentbuilder) is configured. The [Rust ADK](/rust-adk#mcp-client) ships the same MCP client with an identical selector-tool design.
 
 ### The selector pattern
 
