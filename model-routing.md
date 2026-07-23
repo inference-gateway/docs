@@ -32,6 +32,11 @@ ROUTING_CONFIG_PATH=/etc/inference-gateway/routing.yaml
 `ROUTING_CONFIG_PATH` is required when `ROUTING_ENABLED=true` and points at the routing
 config file described below.
 
+On Kubernetes, the [operator](/operator/#model-routing) sets both variables for you from
+the Gateway CRD's `spec.routing` block - supply the routing config inline (`config`) or
+reference an existing ConfigMap (`configMapRef`), and the operator mounts it at
+`ROUTING_CONFIG_PATH`.
+
 ## Routing config file
 
 The routing file maps each logical alias to a pool of deployments:
@@ -151,7 +156,7 @@ separate concerns that remain the platform's and operator's responsibility:
 - **Gateway-replica load balancing** - spreading requests across gateway pods is a
   Kubernetes `Service` + HPA concern, not this feature.
 - **North-south ingress routing** - exposing the gateway to external traffic is handled by
-  the operator's [`spec.routing`](/operator/#routing-gateway-api) (Kubernetes Gateway
+  the operator's [`spec.gatewayAPI`](/operator/#routing-gateway-api) (Kubernetes Gateway
   API), a distinct layer from model-alias routing.
 
 ## Not in Phase 1
