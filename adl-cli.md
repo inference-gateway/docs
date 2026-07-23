@@ -673,6 +673,8 @@ Each entry in `servers[]` is one MCP server. `stdio` launches a local subprocess
 | `url`       | string   |          | Endpoint URL for an `http` or `sse` server. Ignored by `stdio`.                                        |
 | `headers`   | map      |          | Extra HTTP headers sent to an `http` or `sse` server (e.g. `Authorization`).                           |
 
+> **Generation is Go-only and streamable-HTTP-only.** When `enabled: true`, `adl generate` wires an `MCPClientManager` into a **Go** agent's `main.go` - it connects to the servers in the background and registers the `mcp_list_tools` / `mcp_call_tool` selector tools into the toolbox - and emits the `A2A_MCP_*` defaults into `.env.example`. The ADK MCP client speaks **streamable HTTP only**, so `A2A_MCP_SERVERS` is derived from the base URLs of the `http` servers; `stdio` and `sse` servers are dropped from it and the validator warns per server. The whole block is ignored for TypeScript and Rust agents (the validator warns), mirroring how `spec.telemetry` treats Rust.
+
 ### Tools
 
 `spec.tools[]` defines function-call entrypoints the agent can invoke. Each user-defined tool is generated as code in the target language, with a JSON Schema describing its inputs. The agent decides at runtime when to invoke each tool based on its `description` and the conversation context.
