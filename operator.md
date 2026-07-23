@@ -9,7 +9,7 @@ The Inference Gateway Operator is a Kubernetes controller that manages Inference
 
 The operator publishes five CRDs under `core.inference-gateway.com/v1alpha1`:
 
-- `Gateway` - the gateway proxy itself, with providers, auth, MCP, routing (Gateway API), and HPA.
+- `Gateway` - the gateway proxy itself, with providers, auth, MCP, model routing, Gateway API routing, and HPA.
 - `Agent` - an A2A worker that an `Orchestrator` (or any A2A client) can dispatch tasks to.
 - `MCP` - a Model Context Protocol server.
 - `Orchestrator` - runs a chat bot backed by the gateway. It listens on a messaging channel (Telegram today; more channels planned), drives the conversation with an LLM, and can delegate work to `Agent`s and MCP tools.
@@ -59,7 +59,8 @@ Deploys the gateway proxy. Source: [`api/v1alpha1/gateway_types.go`](https://git
 | `telemetry.enabled` / `telemetry.metrics.{enabled,port}`         | OpenTelemetry metrics. There is no `telemetry.tracing` block - tracing is configured through standard OTEL env vars on the gateway pod.                                                    |
 | `mcp.enabled` / `mcp.servers[]` / `mcp.timeouts`                 | MCP client configuration with per-server health checks.                                                                                                                                    |
 | `service.{type,port,annotations}`                                | Kubernetes Service for the gateway.                                                                                                                                                        |
-| `routing.{enabled,gateway,httpRoute}`                            | North-south traffic via the Kubernetes Gateway API (`gateway.networking.k8s.io`). Successor to the removed `ingress` field. See [Routing (Gateway API)](#routing-gateway-api).             |
+| `routing.{enabled,config,configMapRef}`                          | Gateway-native round-robin model routing (`ROUTING_ENABLED` / `ROUTING_CONFIG_PATH`). Distinct from `gatewayAPI`. See [Model Routing](#model-routing).                                     |
+| `gatewayAPI.{enabled,gateway,httpRoute}`                         | North-south traffic via the Kubernetes Gateway API (`gateway.networking.k8s.io`). Successor to the removed `ingress` field. See [Routing (Gateway API)](#routing-gateway-api).             |
 | `hpa.{enabled,config}`                                           | Wraps a `HorizontalPodAutoscalerSpec`. See the [Kubernetes HPA docs](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/) for the `metrics[]` and `behavior` shape. |
 | `serviceAccount.{create,name}`                                   | Pod service account.                                                                                                                                                                       |
 | `resources.requests` / `resources.limits`                        | CPU and memory.                                                                                                                                                                            |
@@ -333,15 +334,85 @@ spec:
 
 The `llamacpp` provider requires operator `>= v0.19.0` - earlier releases do not recognize it, so pin at least that version when installing (see [Installation](#installation)). The gateway's hybrid example ([`examples/kubernetes/hybrid`](https://github.com/inference-gateway/inference-gateway/tree/main/examples/kubernetes/hybrid)) pins `v0.19.1` and ships the `Llamacpp` block already enabled, so `task deploy-llamacpp` brings up the local llama.cpp path with no manual edit to `gateway.yaml`.
 
+## Model Routing
+
+`spec.routing` turns on the gateway's opt-in [round-robin model routing](/model-routing/): a client requests a stable logical alias (e.g. `{"model": "fast-chat"}`) and the gateway rotates round-robin through that alias's pool of upstream provider/model deployments, forwarding to the one it resolves. Operators can swap the upstreams behind an alias without touching client code.
+
+This is **distinct from [`spec.gatewayAPI`](#routing-gateway-api)**, which exposes the gateway to north-south [Kubernetes Gateway API](https://gateway-api.sigs.k8s.io/) traffic. `spec.routing` configures the gateway's internal model-alias -> provider/model selection; the two are unrelated and can be used together or independently.
+
+The operator maps this block onto the gateway's two routing environment variables:
+
+| Field          | Maps to               | Description                                                                                                                                                                                                                                           |
+| -------------- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `enabled`      | `ROUTING_ENABLED`     | Toggle model routing (default `false`). When `true`, the operator sets `ROUTING_ENABLED=true` on the gateway container.                                                                                                                               |
+| `config`       | `ROUTING_CONFIG_PATH` | Inline routing YAML (a `models:` map of alias -> ordered deployment pool). The operator renders it into a ConfigMap named `<gateway>-routing` and mounts it at `/etc/inference-gateway/routing/routing.yaml`. Mutually exclusive with `configMapRef`. |
+| `configMapRef` | `ROUTING_CONFIG_PATH` | Reference (`name`, `key`) to an existing ConfigMap holding the routing YAML, mounted at `/etc/inference-gateway/routing/<key>` instead of rendering `config`. Mutually exclusive with `config`.                                                       |
+
+See [Model Routing](/model-routing/) for the routing-file schema, selection semantics, and the `X-Selected-Provider` / `X-Selected-Model` response headers.
+
+### Example: Gateway with a routed alias
+
+The `fast-chat` alias below fans out round-robin across a two-deployment pool (Groq and OpenAI). Every provider a deployment references must also be configured under `providers` - routing selects among configured providers, it does not configure them.
+
+```yaml
+apiVersion: core.inference-gateway.com/v1alpha1
+kind: Gateway
+metadata:
+  name: my-gateway
+  namespace: inference-gateway
+spec:
+  routing:
+    enabled: true
+    config: |
+      models:
+        fast-chat:
+          strategy: round_robin # only strategy in Phase 1; omit to default to round_robin
+          deployments:
+            - provider: groq
+              model: llama-3.3-70b-versatile
+            - provider: openai
+              model: gpt-4o-mini
+  providers:
+    - name: Groq
+      enabled: true
+      env:
+        - name: GROQ_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: provider-secrets
+              key: GROQ_API_KEY
+    - name: OpenAI
+      enabled: true
+      env:
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: provider-secrets
+              key: OPENAI_API_KEY
+```
+
+To reuse an existing ConfigMap instead of inline `config`, swap the `config` block for a `configMapRef`:
+
+```yaml
+spec:
+  routing:
+    enabled: true
+    configMapRef:
+      name: my-routing-config
+      key: routing.yaml
+```
+
+For a runnable manifest, see [`gateway-with-model-routing`](https://github.com/inference-gateway/operator/tree/main/examples/gateway-with-model-routing) in the operator repository.
+
 ## Routing (Gateway API)
 
-`spec.routing` exposes the gateway to north-south traffic through the [Kubernetes Gateway API](https://gateway-api.sigs.k8s.io/) (`gateway.networking.k8s.io`). It is the `v1alpha1` successor to the removed `ingress` field: instead of an `Ingress` fronted by ingress-nginx, the operator provisions a Gateway API `Gateway` and `HTTPRoute` for the gateway Service, served by [Envoy Gateway](https://gateway.envoyproxy.io/) (the `envoy` GatewayClass).
+`spec.gatewayAPI` exposes the gateway to north-south traffic through the [Kubernetes Gateway API](https://gateway-api.sigs.k8s.io/) (`gateway.networking.k8s.io`). It is the `v1alpha1` successor to the removed `ingress` field: instead of an `Ingress` fronted by ingress-nginx, the operator provisions a Gateway API `Gateway` and `HTTPRoute` for the gateway Service, served by [Envoy Gateway](https://gateway.envoyproxy.io/) (the `envoy` GatewayClass). It is unrelated to [`spec.routing`](#model-routing) (gateway-native model routing) above - the field was renamed from `spec.routing` to `spec.gatewayAPI` to free that name for model routing.
 
 The `ingress:` field and the NGINX Ingress path are gone - Kubernetes deployments now front the gateway with the Gateway API. This mirrors the migration in the gateway's [`examples/kubernetes`](https://github.com/inference-gateway/inference-gateway/tree/main/examples/kubernetes) (tracking issue [inference-gateway/inference-gateway#370](https://github.com/inference-gateway/inference-gateway/issues/370), verification PR [inference-gateway/inference-gateway#367](https://github.com/inference-gateway/inference-gateway/pull/367)).
 
 ### Install the Gateway API and Envoy Gateway
 
-Routing needs the Gateway API CRDs plus an implementation that registers the `envoy` GatewayClass. Install them once per cluster, before applying a `Gateway` with `routing.enabled: true`:
+Routing needs the Gateway API CRDs plus an implementation that registers the `envoy` GatewayClass. Install them once per cluster, before applying a `Gateway` with `gatewayAPI.enabled: true`:
 
 ```bash
 # 1. Gateway API standard CRDs (GatewayClass, Gateway, HTTPRoute).
@@ -369,7 +440,7 @@ EOF
 
 The gateway's [`examples/kubernetes`](https://github.com/inference-gateway/inference-gateway/tree/main/examples/kubernetes) wrap these steps as `task deploy-infrastructure` (cluster + Gateway API + Envoy Gateway + operator).
 
-### `spec.routing`
+### `spec.gatewayAPI`
 
 | Field                                     | Description                                                                                                                                           |
 | ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -400,7 +471,7 @@ spec:
             secretKeyRef:
               name: openai-secret
               key: OPENAI_API_KEY
-  routing:
+  gatewayAPI:
     enabled: true
     gateway:
       gatewayClassName: envoy
@@ -505,7 +576,7 @@ The `Gateway` status surfaces:
 
 - `phase` - `Pending`, `Running`, `Failed`, or `Unknown`.
 - `readyReplicas` / `availableReplicas`.
-- `url` - the resolved access URL (the routing hostname when `routing` is enabled, otherwise the cluster service URL).
+- `url` - the resolved access URL (the routing hostname when `spec.gatewayAPI` is enabled, otherwise the cluster service URL).
 - `providerSummary` - comma-separated list of enabled providers.
 - `conditions[]` - standard `Available` / `Progressing` / `ReplicaFailure` conditions.
 
@@ -526,6 +597,7 @@ The operator repository ships runnable examples for each CRD:
 
 - [`gateway-minimal`](https://github.com/inference-gateway/operator/tree/main/examples/gateway-minimal) - single provider, no routing.
 - [`gateway-complete`](https://github.com/inference-gateway/operator/tree/main/examples/gateway-complete) - HPA, multiple providers, TLS via cert-manager.
+- [`gateway-with-model-routing`](https://github.com/inference-gateway/operator/tree/main/examples/gateway-with-model-routing) - round-robin model routing over a provider pool via `spec.routing`.
 - [`gateway-with-routing-simple`](https://github.com/inference-gateway/operator/tree/main/examples/gateway-with-routing-simple) and [`gateway-with-routing-advanced`](https://github.com/inference-gateway/operator/tree/main/examples/gateway-with-routing-advanced) - Gateway API routing patterns (operator-managed Gateway, or an `HTTPRoute` attached to a shared Gateway).
 - [`agent-server`](https://github.com/inference-gateway/operator/tree/main/examples/agent-server) - minimal A2A agent.
 - [`mcp-server`](https://github.com/inference-gateway/operator/tree/main/examples/mcp-server) - MCP server.
