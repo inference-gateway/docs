@@ -303,6 +303,7 @@ export default withMermaid(
             { text: 'Channels', link: pageLink('/cli-channels') },
             { text: 'Speech-to-Text', link: pageLink('/cli-speech-to-text') },
             { text: 'GitHub Action', link: pageLink('/github-action') },
+            { text: 'OpenTask Extension', link: pageLink('/opentask') },
           ],
         },
         {
