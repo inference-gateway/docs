@@ -2,6 +2,38 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.5](https://github.com/inference-gateway/docs/compare/0.9.4...0.9.5) (2026-07-27)
+
+### 🐛 Bug Fixes
+
+* **ci:** update maintainer app ID to client ID in workflows and documentation ([843c64e](https://github.com/inference-gateway/docs/commit/843c64e8e0b5ae022819498f1a29d62e6c958c85))
+
+### 👷 CI
+
+* **claude:** centralize claude.yml via reusable workflow ([#476](https://github.com/inference-gateway/docs/issues/476)) ([44305bf](https://github.com/inference-gateway/docs/commit/44305bf02c30ef6d1ef6c366948c85995d81957a))
+* **claude:** centralize claude.yml via reusable workflow ([#477](https://github.com/inference-gateway/docs/issues/477)) ([20f72b8](https://github.com/inference-gateway/docs/commit/20f72b8ca86315a39e0b73ff424fda06e08fbd8e))
+* **claude:** centralize claude.yml via reusable workflow ([#481](https://github.com/inference-gateway/docs/issues/481)) ([cca2148](https://github.com/inference-gateway/docs/commit/cca21487de3ac96c3d265addf00cd4b4c94316df))
+
+### 📚 Documentation
+
+* add OpenTask browser extension documentation ([#485](https://github.com/inference-gateway/docs/issues/485)) ([406b563](https://github.com/inference-gateway/docs/commit/406b5638594cad20933feae156fef34058374c2d))
+* document consolidated spec.agent.mcp block in ADL manifest ([#472](https://github.com/inference-gateway/docs/issues/472)) ([ad0f424](https://github.com/inference-gateway/docs/commit/ad0f42411a130ca62f46ce64550de95e674e80db))
+* document operator spec.routing model routing ([#474](https://github.com/inference-gateway/docs/issues/474)) ([86078ec](https://github.com/inference-gateway/docs/commit/86078ec0db3c2ce7bd2aa1af3edf14982f1924ab))
+* document POST /v1/responses endpoint ([#484](https://github.com/inference-gateway/docs/issues/484)) ([b1cdc7e](https://github.com/inference-gateway/docs/commit/b1cdc7e219449d8fe7343c3254a01556ca19db32)), closes [#483](https://github.com/inference-gateway/docs/issues/483)
+* document Rust ADK MCP client and MCP_ config ([#471](https://github.com/inference-gateway/docs/issues/471)) ([892fafd](https://github.com/inference-gateway/docs/commit/892fafdfb417b05ab76fc8537c69211d4db7a3ab)), closes [#468](https://github.com/inference-gateway/docs/issues/468)
+* note Go-only, HTTP-only limits of spec.agent.mcp ([#475](https://github.com/inference-gateway/docs/issues/475)) ([0cf8d6e](https://github.com/inference-gateway/docs/commit/0cf8d6ee0dbcf4192bb8176a5d09540b37fa2d91))
+* **rust-adk:** document telemetry OTLP trace export ([#482](https://github.com/inference-gateway/docs/issues/482)) ([1c8b64d](https://github.com/inference-gateway/docs/commit/1c8b64d40b215882bedd6cf58bbd63e2438c0e26))
+
+### 🔧 Miscellaneous
+
+* **deps-dev:** bump prettier from 3.9.5 to 3.9.6 in the bun group ([#480](https://github.com/inference-gateway/docs/issues/480)) ([f5c7502](https://github.com/inference-gateway/docs/commit/f5c7502498c497ecb6300f281a58bc5cb8983b7c))
+* **deps:** bump actions/checkout in the github-actions group ([#479](https://github.com/inference-gateway/docs/issues/479)) ([8dbfc99](https://github.com/inference-gateway/docs/commit/8dbfc997788560e5a08230673dfa428060c563b9))
+* **docs:** replace CLAUDE.md with symlink to AGENTS.md ([#467](https://github.com/inference-gateway/docs/issues/467)) ([8282e83](https://github.com/inference-gateway/docs/commit/8282e8307dd64f6d4105f494ff50b3dbc310e83d))
+
+### 📦 Miscellaneous
+
+* **flox:** update codex and infer versions in manifest files ([e3fd502](https://github.com/inference-gateway/docs/commit/e3fd502c9e8fdcd2bbbffc7b0a6566f44e6c6953))
+
 ## [0.9.4](https://github.com/inference-gateway/docs/compare/0.9.3...0.9.4) (2026-07-22)
 
 ### 📚 Documentation
