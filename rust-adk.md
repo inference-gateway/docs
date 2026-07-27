@@ -20,12 +20,13 @@ Add the crate to your `Cargo.toml`:
 inference-gateway-adk = "0.4"
 ```
 
-Two optional Cargo features extend the defaults:
+Three optional Cargo features extend the defaults:
 
-| Feature | Pulls in                                            | Enables                                                                   |
-| ------- | --------------------------------------------------- | ------------------------------------------------------------------------- |
-| `redis` | a Redis client                                      | `RedisStorage`, selected when `A2A_QUEUE_PROVIDER=redis`.                 |
-| `minio` | the [`minio`](https://crates.io/crates/minio) crate | `MinioArtifactStorage`, selected when `ARTIFACTS_STORAGE_PROVIDER=minio`. |
+| Feature     | Pulls in                                                                                       | Enables                                                                            |
+| ----------- | ---------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `redis`     | a Redis client                                                                                 | `RedisStorage`, selected when `A2A_QUEUE_PROVIDER=redis`.                          |
+| `minio`     | the [`minio`](https://crates.io/crates/minio) crate                                            | `MinioArtifactStorage`, selected when `ARTIFACTS_STORAGE_PROVIDER=minio`.          |
+| `telemetry` | the OpenTelemetry OTLP crates (`opentelemetry`, `opentelemetry-otlp`, `tracing-opentelemetry`) | OTLP span export from `telemetry::init` when enabled. See [Telemetry](#telemetry). |
 
 ```toml
 inference-gateway-adk = { version = "0.4", features = ["redis", "minio"] }
@@ -977,6 +978,71 @@ The retention and artifacts-server bind variables from the [artifacts configurat
 - **Pre-signed URLs are not yet wired in.** A future enhancement could have `MinioArtifactStorage::url(...)` mint a time-limited pre-signed GET so a private bucket needs no proxying.
 - **Retention** runs `cleanup_expired` / `cleanup_oldest` over a listing of stored objects - fine for thousands of artifacts. Past that, prefer MinIO bucket lifecycle policies for the bulk of expiry.
 
+## Telemetry
+
+The ADK bridges its `tracing` instrumentation to [OpenTelemetry](https://opentelemetry.io/), exporting spans to an OTLP collector over **HTTP/protobuf**. It is a **traces-only** signal - there is no metrics export and no gRPC/`tonic` transport - and it lands behind the optional `telemetry` Cargo feature so the default build stays lean. It mirrors the [Go ADK](/adk#telemetry): `A2A_TELEMETRY_ENABLE` is the sole switch, and `A2A_OTEL_TRACES_EXPORTER=none` opts the trace signal out while telemetry stays enabled. The wiring landed in [rust-adk#117](https://github.com/inference-gateway/rust-adk/pull/117).
+
+Enable the feature at build time:
+
+```toml
+[dependencies]
+inference-gateway-adk = { version = "0.4", features = ["telemetry"] }
+```
+
+```bash
+cargo build --features telemetry
+```
+
+`telemetry::init` installs the tracing subscriber and, when telemetry is enabled, the OTLP span exporter. It returns a `TelemetryGuard` that owns the exporter, so **bind it to a variable that lives for the whole process** (`let _guard = ...`) - dropping the guard early, or writing `let _ = telemetry::init(...)`, tears the exporter down immediately and loses buffered spans on shutdown.
+
+```rust
+use inference_gateway_adk::{A2AServerBuilder, Config, telemetry};
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let config: Config = envy::prefixed("A2A_").from_env()?;
+
+    // Always installs the fmt layer; adds the OTLP exporter when
+    // A2A_TELEMETRY_ENABLE=true AND the `telemetry` feature is compiled in.
+    // Hold the guard for the process lifetime so batched spans flush on exit.
+    let _guard = telemetry::init(
+        &config.telemetry_config,
+        env!("CARGO_PKG_NAME"),
+        env!("CARGO_PKG_VERSION"),
+    )?;
+
+    let server = A2AServerBuilder::new()
+        .with_config(config)
+        .with_agent_card_from_file(".well-known/agent.json", None)
+        .with_default_task_handlers()
+        .build()
+        .await?;
+
+    server.serve("0.0.0.0:8080".parse()?).await?;
+    Ok(())
+}
+```
+
+`init` always installs the `fmt` layer, so logging works with or without the feature. When `A2A_TELEMETRY_ENABLE=true` but the `telemetry` feature was **not** compiled in, `init` logs a `warn!` and skips export rather than failing - rebuild with `--features telemetry` to turn spans on.
+
+### Emitted spans
+
+With export active, the server emits two spans:
+
+- **`a2a.request`** - a server span around each `POST /a2a` request. It extracts the caller's W3C `tracecontext` from the request headers (so a client-initiated trace continues across the hop), records the JSON-RPC method, route, and status, and flags 5xx responses as errors.
+- **`task.process`** - a fresh root span wrapping each background task's execution.
+
+### Configuration
+
+Telemetry loads from the same `A2A_` `Config` as the rest of the server (`config.telemetry_config`). Endpoint precedence: `A2A_TELEMETRY_ENDPOINT` wins when set; otherwise the exporter falls back to the SDK's standard `OTEL_EXPORTER_OTLP_ENDPOINT` resolution, which defaults to `http://localhost:4318`. Standard `OTEL_*` variables are honored by the OpenTelemetry SDK as usual.
+
+| Variable                      | Default                 | Purpose                                                                            |
+| ----------------------------- | ----------------------- | ---------------------------------------------------------------------------------- |
+| `A2A_TELEMETRY_ENABLE`        | `false`                 | Sole telemetry switch. When `true`, traces export over OTLP.                       |
+| `A2A_OTEL_TRACES_EXPORTER`    | `otlp`                  | Trace exporter: `otlp` or `none`. `none` opts traces out while telemetry stays on. |
+| `A2A_TELEMETRY_ENDPOINT`      | _(unset)_               | OTLP collector endpoint. Takes precedence over `OTEL_EXPORTER_OTLP_ENDPOINT`.      |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://localhost:4318` | Standard OTLP endpoint, used when `A2A_TELEMETRY_ENDPOINT` is unset.               |
+
 ## Examples
 
 The [`examples/`](https://github.com/inference-gateway/rust-adk/tree/main/examples) directory ships fourteen runnable scenarios, each its own Cargo package with a `docker-compose.yaml`. The catalogue is grouped by whether the scenario needs an LLM provider.
@@ -1093,16 +1159,14 @@ The library never reads the environment itself. You pick a loader - typically [`
 | `A2A_SERVER_TLS_KEY_PATH`       | _(empty)_ | PEM file with the server private key.                          |
 | `A2A_SERVER_TLS_CLIENT_CA_PATH` | _(unset)_ | Trusted client-CA bundle; presence flips the server into mTLS. |
 
-**Telemetry** - OpenTelemetry export. `A2A_TELEMETRY_ENABLE` is the sole telemetry switch, matching the [Go ADK](/adk#telemetry); when it is `true`, traces are exported over OTLP by default. Set `A2A_OTEL_TRACES_EXPORTER=none` to opt the trace signal out while telemetry stays enabled. Metrics are exported through the standard `OTEL_METRICS_EXPORTER` variable.
+**Telemetry** - OpenTelemetry OTLP **trace** export; see [Telemetry](#telemetry) for `telemetry::init` usage and the emitted spans. Traces-only over HTTP/protobuf, behind the optional `telemetry` Cargo feature. `A2A_TELEMETRY_ENABLE` is the sole switch, matching the [Go ADK](/adk#telemetry); `A2A_OTEL_TRACES_EXPORTER=none` opts the trace signal out while telemetry stays enabled.
 
-| Variable                        | Default   | Purpose                                                                            |
-| ------------------------------- | --------- | ---------------------------------------------------------------------------------- |
-| `A2A_TELEMETRY_ENABLE`          | `false`   | Sole telemetry switch. When `true`, traces default to the OTLP exporter.           |
-| `A2A_OTEL_TRACES_EXPORTER`      | `otlp`    | Trace exporter: `otlp` or `none`. `none` opts traces out while telemetry stays on. |
-| `A2A_TELEMETRY_ENDPOINT`        | _(unset)_ | OTLP collector endpoint.                                                           |
-| `OTEL_METRICS_EXPORTER`         | `otlp`    | Metrics exporter: `otlp` (push), `prometheus` (pull), or `none`.                   |
-| `OTEL_EXPORTER_PROMETHEUS_HOST` | `0.0.0.0` | Bind host for the Prometheus pull endpoint.                                        |
-| `OTEL_EXPORTER_PROMETHEUS_PORT` | `9464`    | Port for the Prometheus pull endpoint.                                             |
+| Variable                      | Default                 | Purpose                                                                                                |
+| ----------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------ |
+| `A2A_TELEMETRY_ENABLE`        | `false`                 | Sole telemetry switch. When `true`, traces export over OTLP.                                           |
+| `A2A_OTEL_TRACES_EXPORTER`    | `otlp`                  | Trace exporter: `otlp` or `none`. `none` opts traces out while telemetry stays on.                     |
+| `A2A_TELEMETRY_ENDPOINT`      | _(unset)_               | OTLP collector endpoint. Takes precedence over the standard `OTEL_EXPORTER_OTLP_ENDPOINT`.             |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://localhost:4318` | Standard OTLP endpoint, used when `A2A_TELEMETRY_ENDPOINT` is unset. Part of the `OTEL_*` passthrough. |
 
 ## Related
 
