@@ -15,10 +15,10 @@
       "codex": {
         "pkg-path": "codex",
         "pkg-group": "codex",
-        "version": "^0.139.0"
+        "version": "^0.142.3"
       },
       "infer": {
-        "flake": "github:inference-gateway/cli/v0.147.1"
+        "flake": "github:inference-gateway/cli/v0.153.1"
       }
     },
     "hook": {
@@ -42,6 +42,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:12:55.152631Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": true,
@@ -71,6 +72,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T03:41:21.780601Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": true,
@@ -100,6 +102,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T04:09:00.518525Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": true,
@@ -129,6 +132,7 @@
       "rev_date": "2026-07-05T04:06:12Z",
       "scrape_date": "2026-07-06T04:40:24.423963Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": true,
@@ -146,27 +150,28 @@
     {
       "attr_path": "codex",
       "broken": false,
-      "derivation": "/nix/store/63vzjfrvmwix530d8sx5vxlpfzm6z20d-codex-0.139.0.drv",
+      "derivation": "/nix/store/4l51gj08lj6z3dxizkkvdikqgs78043d-codex-0.142.3.drv",
       "description": "Lightweight coding agent that runs in your terminal",
       "install_id": "codex",
       "license": "Apache-2.0",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=567a49d1913ce81ac6e9582e3553dd90a955875f",
-      "name": "codex-0.139.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "codex-0.142.3",
       "pname": "codex",
-      "rev": "567a49d1913ce81ac6e9582e3553dd90a955875f",
-      "rev_count": 1017464,
-      "rev_date": "2026-06-16T02:33:49Z",
-      "scrape_date": "2026-06-17T03:13:13.967897Z",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:12:55.196603Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
-      "version": "0.139.0",
+      "version": "0.142.3",
       "outputs_to_install": [
         "out"
       ],
       "outputs": {
-        "out": "/nix/store/kk6w91iazm0qsn6rmx2bpzrcr7z5050g-codex-0.139.0"
+        "out": "/nix/store/2nah5i36pcrklqigizwraq8d7lnac7wh-codex-0.142.3"
       },
       "system": "aarch64-darwin",
       "group": "codex",
@@ -175,27 +180,28 @@
     {
       "attr_path": "codex",
       "broken": false,
-      "derivation": "/nix/store/pjx1j4gxicpfr57rx70kb3b1cdcfb2xl-codex-0.139.0.drv",
+      "derivation": "/nix/store/1jnjfh0kn9i3zzq8917s4cg69i5fsv27-codex-0.142.3.drv",
       "description": "Lightweight coding agent that runs in your terminal",
       "install_id": "codex",
       "license": "Apache-2.0",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=567a49d1913ce81ac6e9582e3553dd90a955875f",
-      "name": "codex-0.139.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "codex-0.142.3",
       "pname": "codex",
-      "rev": "567a49d1913ce81ac6e9582e3553dd90a955875f",
-      "rev_count": 1017464,
-      "rev_date": "2026-06-16T02:33:49Z",
-      "scrape_date": "2026-06-17T03:44:08.386385Z",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:41:21.839790Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
-      "version": "0.139.0",
+      "version": "0.142.3",
       "outputs_to_install": [
         "out"
       ],
       "outputs": {
-        "out": "/nix/store/c6xw394r6jiy6hdw83ffhsvmv92mra6c-codex-0.139.0"
+        "out": "/nix/store/3wjh1x751r25ryixpiakzyf4qm7cpxnp-codex-0.142.3"
       },
       "system": "aarch64-linux",
       "group": "codex",
@@ -204,27 +210,28 @@
     {
       "attr_path": "codex",
       "broken": false,
-      "derivation": "/nix/store/sl1jk4cj928gk394igx2nrjdshlaknjy-codex-0.139.0.drv",
+      "derivation": "/nix/store/iqlrw9mda9ivkk46gbc77l5f2q6yyvjb-codex-0.142.3.drv",
       "description": "Lightweight coding agent that runs in your terminal",
       "install_id": "codex",
       "license": "Apache-2.0",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=567a49d1913ce81ac6e9582e3553dd90a955875f",
-      "name": "codex-0.139.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "codex-0.142.3",
       "pname": "codex",
-      "rev": "567a49d1913ce81ac6e9582e3553dd90a955875f",
-      "rev_count": 1017464,
-      "rev_date": "2026-06-16T02:33:49Z",
-      "scrape_date": "2026-06-17T04:13:06.227650Z",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T04:09:00.571006Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
-      "version": "0.139.0",
+      "version": "0.142.3",
       "outputs_to_install": [
         "out"
       ],
       "outputs": {
-        "out": "/nix/store/qyk42m792rd2z9qcdpnv32d0qymf6aaw-codex-0.139.0"
+        "out": "/nix/store/kwmmw872gbxnkxwapv8sax18iiq21hmi-codex-0.142.3"
       },
       "system": "x86_64-darwin",
       "group": "codex",
@@ -233,27 +240,28 @@
     {
       "attr_path": "codex",
       "broken": false,
-      "derivation": "/nix/store/drabk2w3g0lga6pxhav1h0pqk25yxsj6-codex-0.139.0.drv",
+      "derivation": "/nix/store/vx6vhqc7xmdk9hgs1v36ljb1vfcdlds3-codex-0.142.3.drv",
       "description": "Lightweight coding agent that runs in your terminal",
       "install_id": "codex",
       "license": "Apache-2.0",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=567a49d1913ce81ac6e9582e3553dd90a955875f",
-      "name": "codex-0.139.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
+      "name": "codex-0.142.3",
       "pname": "codex",
-      "rev": "567a49d1913ce81ac6e9582e3553dd90a955875f",
-      "rev_count": 1017464,
-      "rev_date": "2026-06-16T02:33:49Z",
-      "scrape_date": "2026-06-17T04:47:04.431620Z",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T04:40:24.488503Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
-      "version": "0.139.0",
+      "version": "0.142.3",
       "outputs_to_install": [
         "out"
       ],
       "outputs": {
-        "out": "/nix/store/9li75nh4fyk2m574lmim7wnjqm49hl39-codex-0.139.0"
+        "out": "/nix/store/6w721z4882dm6pdhmqx7njypbglckx9s-codex-0.142.3"
       },
       "system": "x86_64-linux",
       "group": "codex",
@@ -262,18 +270,19 @@
     {
       "attr_path": "bun",
       "broken": false,
-      "derivation": "/nix/store/jw6h2fipps5s6lszymvh54mx7i6b7a2l-bun-1.3.13.drv",
+      "derivation": "/nix/store/bk2swzj1hhnakb2xlxp01n3fvqk2x11s-bun-1.3.13.drv",
       "description": "Incredibly fast JavaScript runtime, bundler, transpiler and package manager – all in one",
       "install_id": "bun",
       "license": "[ MIT, LGPL-2.1-only ]",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=567a49d1913ce81ac6e9582e3553dd90a955875f",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
       "name": "bun-1.3.13",
       "pname": "bun",
-      "rev": "567a49d1913ce81ac6e9582e3553dd90a955875f",
-      "rev_count": 1017464,
-      "rev_date": "2026-06-16T02:33:49Z",
-      "scrape_date": "2026-06-17T03:13:13.715410Z",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:12:54.950824Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -282,7 +291,7 @@
         "out"
       ],
       "outputs": {
-        "out": "/nix/store/jgl1hjr0cf6s32jcnqmkp44av4flamap-bun-1.3.13"
+        "out": "/nix/store/4iw87ni8zbr4yar90zcy8r2aqmih9hk8-bun-1.3.13"
       },
       "system": "aarch64-darwin",
       "group": "toplevel",
@@ -291,18 +300,19 @@
     {
       "attr_path": "bun",
       "broken": false,
-      "derivation": "/nix/store/05kg2c8div5xcsnkj8pa9ppaq1g1c3yb-bun-1.3.13.drv",
+      "derivation": "/nix/store/hvk8chpx4j8wdz3mprl6ir4qv75niycp-bun-1.3.13.drv",
       "description": "Incredibly fast JavaScript runtime, bundler, transpiler and package manager – all in one",
       "install_id": "bun",
       "license": "[ MIT, LGPL-2.1-only ]",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=567a49d1913ce81ac6e9582e3553dd90a955875f",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
       "name": "bun-1.3.13",
       "pname": "bun",
-      "rev": "567a49d1913ce81ac6e9582e3553dd90a955875f",
-      "rev_count": 1017464,
-      "rev_date": "2026-06-16T02:33:49Z",
-      "scrape_date": "2026-06-17T03:44:08.062537Z",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T03:41:21.516370Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -311,7 +321,7 @@
         "out"
       ],
       "outputs": {
-        "out": "/nix/store/ywc7zrq5vr32ashfgc7dp84a2f3rzic6-bun-1.3.13"
+        "out": "/nix/store/6wnvdw8ps9fi7a1cjbq0d0s736j0rpnr-bun-1.3.13"
       },
       "system": "aarch64-linux",
       "group": "toplevel",
@@ -320,18 +330,19 @@
     {
       "attr_path": "bun",
       "broken": false,
-      "derivation": "/nix/store/5z4543rqly7khnfq2vq1kngv9hbqhl2z-bun-1.3.13.drv",
+      "derivation": "/nix/store/d2xdkj5z0am9q690z71qysvl2ghyw3s9-bun-1.3.13.drv",
       "description": "Incredibly fast JavaScript runtime, bundler, transpiler and package manager – all in one",
       "install_id": "bun",
       "license": "[ MIT, LGPL-2.1-only ]",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=567a49d1913ce81ac6e9582e3553dd90a955875f",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
       "name": "bun-1.3.13",
       "pname": "bun",
-      "rev": "567a49d1913ce81ac6e9582e3553dd90a955875f",
-      "rev_count": 1017464,
-      "rev_date": "2026-06-16T02:33:49Z",
-      "scrape_date": "2026-06-17T04:13:05.974170Z",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T04:09:00.268379Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -340,7 +351,7 @@
         "out"
       ],
       "outputs": {
-        "out": "/nix/store/1nphhxm1h3pya9j86kql2gpsvy6nizr4-bun-1.3.13"
+        "out": "/nix/store/wn9cggwqflvqryxxb9xinl9iygndm8d9-bun-1.3.13"
       },
       "system": "x86_64-darwin",
       "group": "toplevel",
@@ -349,18 +360,19 @@
     {
       "attr_path": "bun",
       "broken": false,
-      "derivation": "/nix/store/pymjz37lyh092z3r60q6h826rxqljfzz-bun-1.3.13.drv",
+      "derivation": "/nix/store/0aa9vfw76bbnla6z8vv4x6iw5hzw5bb1-bun-1.3.13.drv",
       "description": "Incredibly fast JavaScript runtime, bundler, transpiler and package manager – all in one",
       "install_id": "bun",
       "license": "[ MIT, LGPL-2.1-only ]",
-      "locked_url": "https://github.com/flox/nixpkgs?rev=567a49d1913ce81ac6e9582e3553dd90a955875f",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=d407951447dcd00442e97087bf374aad70c04cea",
       "name": "bun-1.3.13",
       "pname": "bun",
-      "rev": "567a49d1913ce81ac6e9582e3553dd90a955875f",
-      "rev_count": 1017464,
-      "rev_date": "2026-06-16T02:33:49Z",
-      "scrape_date": "2026-06-17T04:47:04.080549Z",
+      "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+      "rev_count": 1027867,
+      "rev_date": "2026-07-05T04:06:12Z",
+      "scrape_date": "2026-07-06T04:40:24.139843Z",
       "stabilities": [
+        "staging",
         "unstable"
       ],
       "unfree": false,
@@ -369,7 +381,7 @@
         "out"
       ],
       "outputs": {
-        "out": "/nix/store/z1cxjx705fswwjjns0sw2ysbd5jqxfgm-bun-1.3.13"
+        "out": "/nix/store/r3k0n7fx6qjw9k9v2yy2h55lpl4kg0sd-bun-1.3.13"
       },
       "system": "x86_64-linux",
       "group": "toplevel",
@@ -377,12 +389,12 @@
     },
     {
       "install_id": "infer",
-      "locked-url": "github:inference-gateway/cli/b7ffd794cd65e252b9683e0c22838b8118b343e1?narHash=sha256-l%2BGBpp3hAXA3X%2BQRd5uADpos8aOqLaX189A1csXBlBk%3D",
+      "locked-url": "github:inference-gateway/cli/f91fb36ce8a131f4eecd0ff797140be53b03b03f?narHash=sha256-x3vqgpHkzf5NTKfuzq1kIntNXE0VmMbKiMYzdxkuuAc%3D",
       "flake-description": "Inference Gateway CLI - infer",
       "locked-flake-attr-path": "packages.aarch64-darwin.default",
-      "derivation": "/nix/store/ad478rgbvzf0937z0gw95bpq0p8fsldq-infer-0.147.1.drv",
+      "derivation": "/nix/store/k81lvzb5bd7w8bd6q4wgy4gj2wb7hpfq-infer-0.153.1.drv",
       "outputs": {
-        "out": "/nix/store/wx8q7f3v20zz8r4aqlccfhg89prhsspj-infer-0.147.1"
+        "out": "/nix/store/jvwgvca0msfby6d3jljbgfi1wjd26fbp-infer-0.153.1"
       },
       "output-names": [
         "out"
@@ -393,9 +405,9 @@
       "requested-outputs-to-install": [],
       "package-system": "aarch64-darwin",
       "system": "aarch64-darwin",
-      "name": "infer-0.147.1",
+      "name": "infer-0.153.1",
       "pname": "infer",
-      "version": "0.147.1",
+      "version": "0.153.1",
       "description": "Command-line interface for the Inference Gateway - AI model interaction manager",
       "licenses": [
         "MIT"
@@ -406,12 +418,12 @@
     },
     {
       "install_id": "infer",
-      "locked-url": "github:inference-gateway/cli/b7ffd794cd65e252b9683e0c22838b8118b343e1?narHash=sha256-l%2BGBpp3hAXA3X%2BQRd5uADpos8aOqLaX189A1csXBlBk%3D",
+      "locked-url": "github:inference-gateway/cli/f91fb36ce8a131f4eecd0ff797140be53b03b03f?narHash=sha256-x3vqgpHkzf5NTKfuzq1kIntNXE0VmMbKiMYzdxkuuAc%3D",
       "flake-description": "Inference Gateway CLI - infer",
       "locked-flake-attr-path": "packages.aarch64-linux.default",
-      "derivation": "/nix/store/lr60wsr15g7zg71h7xx680hy1krgp87h-infer-0.147.1.drv",
+      "derivation": "/nix/store/xhg9q5w75i4dk6krjr2k7s2559c09f7v-infer-0.153.1.drv",
       "outputs": {
-        "out": "/nix/store/8skrm3c03q0by8xymzf91hbzbrk84l0i-infer-0.147.1"
+        "out": "/nix/store/q1n1n6pfjq25c36y42bmhjlvrsd1yaxk-infer-0.153.1"
       },
       "output-names": [
         "out"
@@ -422,9 +434,9 @@
       "requested-outputs-to-install": [],
       "package-system": "aarch64-linux",
       "system": "aarch64-linux",
-      "name": "infer-0.147.1",
+      "name": "infer-0.153.1",
       "pname": "infer",
-      "version": "0.147.1",
+      "version": "0.153.1",
       "description": "Command-line interface for the Inference Gateway - AI model interaction manager",
       "licenses": [
         "MIT"
@@ -435,12 +447,12 @@
     },
     {
       "install_id": "infer",
-      "locked-url": "github:inference-gateway/cli/b7ffd794cd65e252b9683e0c22838b8118b343e1?narHash=sha256-l%2BGBpp3hAXA3X%2BQRd5uADpos8aOqLaX189A1csXBlBk%3D",
+      "locked-url": "github:inference-gateway/cli/f91fb36ce8a131f4eecd0ff797140be53b03b03f?narHash=sha256-x3vqgpHkzf5NTKfuzq1kIntNXE0VmMbKiMYzdxkuuAc%3D",
       "flake-description": "Inference Gateway CLI - infer",
       "locked-flake-attr-path": "packages.x86_64-darwin.default",
-      "derivation": "/nix/store/wnip042xwdjgd0r7xldbyac7v0lxy6c9-infer-0.147.1.drv",
+      "derivation": "/nix/store/cb2k7nbzxy0h2sazpliq1pmliwb2wfc4-infer-0.153.1.drv",
       "outputs": {
-        "out": "/nix/store/llqxcnp3l54rif77gfydk5mnx027nx3f-infer-0.147.1"
+        "out": "/nix/store/77f6z0yrs0x8nv51wi1ykx32bj9nhyhs-infer-0.153.1"
       },
       "output-names": [
         "out"
@@ -451,9 +463,9 @@
       "requested-outputs-to-install": [],
       "package-system": "x86_64-darwin",
       "system": "x86_64-darwin",
-      "name": "infer-0.147.1",
+      "name": "infer-0.153.1",
       "pname": "infer",
-      "version": "0.147.1",
+      "version": "0.153.1",
       "description": "Command-line interface for the Inference Gateway - AI model interaction manager",
       "licenses": [
         "MIT"
@@ -464,12 +476,12 @@
     },
     {
       "install_id": "infer",
-      "locked-url": "github:inference-gateway/cli/b7ffd794cd65e252b9683e0c22838b8118b343e1?narHash=sha256-l%2BGBpp3hAXA3X%2BQRd5uADpos8aOqLaX189A1csXBlBk%3D",
+      "locked-url": "github:inference-gateway/cli/f91fb36ce8a131f4eecd0ff797140be53b03b03f?narHash=sha256-x3vqgpHkzf5NTKfuzq1kIntNXE0VmMbKiMYzdxkuuAc%3D",
       "flake-description": "Inference Gateway CLI - infer",
       "locked-flake-attr-path": "packages.x86_64-linux.default",
-      "derivation": "/nix/store/a49qm83kpbxf56hg6fa5f8d3mrlqr8gd-infer-0.147.1.drv",
+      "derivation": "/nix/store/lkc6pm4g2xzgbwngikvmg1dga48mrwxn-infer-0.153.1.drv",
       "outputs": {
-        "out": "/nix/store/f1a61c7asql792j3yfrl0nb5r97crq3z-infer-0.147.1"
+        "out": "/nix/store/a48whky7lyd6pds23a2bghsqw92wcfb4-infer-0.153.1"
       },
       "output-names": [
         "out"
@@ -480,9 +492,9 @@
       "requested-outputs-to-install": [],
       "package-system": "x86_64-linux",
       "system": "x86_64-linux",
-      "name": "infer-0.147.1",
+      "name": "infer-0.153.1",
       "pname": "infer",
-      "version": "0.147.1",
+      "version": "0.153.1",
       "description": "Command-line interface for the Inference Gateway - AI model interaction manager",
       "licenses": [
         "MIT"
