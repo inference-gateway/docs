@@ -365,7 +365,7 @@ OTEL_RESOURCE_ATTRIBUTES=deployment.environment=production
 ### Span coverage
 
 - **Root spans** are created for every inbound request **except** `/health` and `/v1/metrics`, which are excluded to keep health checks and the metrics push endpoint out of your traces.
-- **GenAI attributes** (`gen_ai` provider and model span attributes) are attached on the inference routes `/v1/chat/completions` and `/v1/messages`, so a span records which provider and model served the request.
+- **GenAI attributes** (`gen_ai` provider and model span attributes) are attached on the inference routes `/v1/chat/completions`, `/v1/messages`, and `/v1/responses`, so a span records which provider and model served the request.
 - **MCP tool execution** produces one child span per tool call, nested under the request's root span.
 
 ### Context propagation

@@ -409,6 +409,90 @@ Each line is an `SSEvent` whose `data` field is a `CreateChatCompletionStreamRes
 
 Note that the final message contains the `CompletionUsage` metrics of the token completion (when `stream_options.include_usage` is `true`).
 
+### Responses API
+
+The gateway exposes an OpenAI-compatible `POST /v1/responses` endpoint. The request body is forwarded to the upstream provider byte-for-byte (only the `model` prefix is stripped), so all Responses API fields like `input`, `instructions`, and `tools` pass through untouched.
+
+```http
+POST /v1/responses?provider={provider}
+```
+
+Only providers that natively implement the Responses API are supported (currently `openai`); other providers return `400 Bad Request`.
+
+**Request Body:**
+
+```bash
+curl -X POST http://localhost:8080/v1/responses \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "openai/gpt-4o",
+    "input": "Hi, how are you doing today?",
+    "instructions": "You are a helpful assistant."
+  }'
+```
+
+**Response:**
+
+```http
+Status: 200 OK
+Content-Type: application/json
+
+{
+  "id": "resp_67b5cf1e3e3481928c7a3b2f1a2b3c4d",
+  "object": "response",
+  "created_at": 1741879542,
+  "status": "completed",
+  "model": "gpt-4o-2024-08-06",
+  "output": [
+    {
+      "type": "message",
+      "id": "msg_67b5cf1e3e3481928c7a3b2f1a2b3c4d",
+      "status": "completed",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "output_text",
+          "text": "Hello! I'm doing well, thank you! How can I help you today?",
+          "annotations": []
+        }
+      ]
+    }
+  ],
+  "usage": {
+    "input_tokens": 12,
+    "output_tokens": 10,
+    "total_tokens": 22
+  }
+}
+```
+
+#### Streaming
+
+Set `"stream": true` to receive `ResponseStreamEvent` SSE frames verbatim from the upstream provider:
+
+```bash
+curl -N -X POST http://localhost:8080/v1/responses \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "openai/gpt-4o",
+    "input": "Hi",
+    "stream": true
+  }'
+```
+
+#### Unsupported providers
+
+Requests routed to a provider that does not natively implement the Responses API return `400 Bad Request`:
+
+```http
+Status: 400 Bad Request
+Content-Type: application/json
+
+{
+  "error": "The Responses API is not supported by this provider yet. Use /v1/chat/completions instead."
+}
+```
+
 ### Proxy Requests
 
 Pass requests directly through to provider APIs. The response body is a `ProviderSpecificResponse` - the exact shape depends on the upstream provider. Each provider uses a `ProviderAuthType` to authenticate: `Bearer Token`, `X-Header`, or none.
