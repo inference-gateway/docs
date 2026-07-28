@@ -22,7 +22,7 @@ This page covers:
 Telemetry is opt-in. Set the following variables to expose metrics on a dedicated port:
 
 ```bash
-TELEMETRY_ENABLE=true
+TELEMETRY_ENABLED=true
 TELEMETRY_METRICS_PORT=9464   # default
 ```
 
@@ -63,7 +63,7 @@ The default value is `otlp` in the TypeScript ADK and `prometheus` in the Go ADK
 
 ## Exported Metrics
 
-The following metrics are exported when `TELEMETRY_ENABLE=true`. Metrics follow the [OpenTelemetry GenAI semantic conventions](https://opentelemetry.io/docs/specs/semconv/gen-ai/).
+The following metrics are exported when `TELEMETRY_ENABLED=true`. Metrics follow the [OpenTelemetry GenAI semantic conventions](https://opentelemetry.io/docs/specs/semconv/gen-ai/).
 
 Every series carries a `source` label: `gateway` for gateway-observed traffic, or a client-supplied value for pushed metrics.
 
@@ -207,10 +207,10 @@ Subscription clients that bypass the gateway's inference path can push their own
 
 ### Enabling the push endpoint
 
-The push endpoint is opt-in and requires both `TELEMETRY_ENABLE=true` and `TELEMETRY_METRICS_PUSH_ENABLE=true`:
+The push endpoint is opt-in and requires both `TELEMETRY_ENABLED=true` and `TELEMETRY_METRICS_PUSH_ENABLED=true`:
 
 ```bash
-TELEMETRY_ENABLE=true
+TELEMETRY_ENABLED=true
 TELEMETRY_METRICS_PUSH_ENABLE=true
 ```
 
@@ -345,13 +345,13 @@ A minimal hand-rolled panel set you can build in Grafana:
 
 ## Distributed Tracing
 
-Tracing is a separate opt-in from metrics. Set `TELEMETRY_TRACING_ENABLE=true` **in addition to** `TELEMETRY_ENABLE=true` to have the gateway initialize the global OpenTelemetry tracer provider and emit spans. With `TELEMETRY_ENABLE=true` alone you get metrics but no traces.
+Tracing is a separate opt-in from metrics. Set `TELEMETRY_TRACING_ENABLED=true` **in addition to** `TELEMETRY_ENABLED=true` to have the gateway initialize the global OpenTelemetry tracer provider and emit spans. With `TELEMETRY_ENABLED=true` alone you get metrics but no traces.
 
 Traces are exported over OTLP/HTTP to `TELEMETRY_TRACING_OTLP_ENDPOINT` (default `http://localhost:4318`). Resource attributes `service.name`, `service.version`, and `deployment.environment` are populated from the gateway's runtime.
 
 ```bash
-TELEMETRY_ENABLE=true
-TELEMETRY_TRACING_ENABLE=true
+TELEMETRY_ENABLED=true
+TELEMETRY_TRACING_ENABLED=true
 TELEMETRY_TRACING_OTLP_ENDPOINT=http://otel-collector:4318
 OTEL_SERVICE_NAME=inference-gateway
 OTEL_RESOURCE_ATTRIBUTES=deployment.environment=production
@@ -359,7 +359,7 @@ OTEL_RESOURCE_ATTRIBUTES=deployment.environment=production
 
 | Variable                          | Default                 | Description                                           |
 | --------------------------------- | ----------------------- | ----------------------------------------------------- |
-| `TELEMETRY_TRACING_ENABLE`        | `false`                 | Emit tracing spans. Requires `TELEMETRY_ENABLE=true`. |
+| `TELEMETRY_TRACING_ENABLED`        | `false`                 | Emit tracing spans. Requires `TELEMETRY_ENABLED=true`. |
 | `TELEMETRY_TRACING_OTLP_ENDPOINT` | `http://localhost:4318` | OTLP/HTTP endpoint traces are exported to.            |
 
 ### Span coverage
@@ -611,15 +611,17 @@ For a runnable end-to-end setup (Prometheus + Grafana + Loki + dashboards alread
 - Docker Compose: [`examples/docker-compose/monitoring`](https://github.com/inference-gateway/inference-gateway/tree/main/examples/docker-compose/monitoring)
 - Kubernetes (kube-prometheus-stack): [`examples/kubernetes/monitoring`](https://github.com/inference-gateway/inference-gateway/tree/main/examples/kubernetes/monitoring)
 
-Both bring up the gateway with `TELEMETRY_ENABLE=true`, scrape `/metrics`, provision the reference Grafana dashboards, and (in the Kubernetes example) install a `ServiceMonitor` for kube-prometheus-stack.
+Both bring up the gateway with `TELEMETRY_ENABLED=true`, scrape `/metrics`, provision the reference Grafana dashboards, and (in the Kubernetes example) install a `ServiceMonitor` for kube-prometheus-stack.
 
 ## Troubleshooting Observability
 
-- **No data in `/metrics`** - confirm `TELEMETRY_ENABLE=true` and that you are scraping the telemetry port (`TELEMETRY_METRICS_PORT`, default `9464`), not the main API port.
-- **Metrics push returns 403** - confirm both `TELEMETRY_ENABLE=true` and `TELEMETRY_METRICS_PUSH_ENABLE=true` are set.
+- **No data in `/metrics`** - confirm `TELEMETRY_ENABLED=true` and that you are scraping the telemetry port (`TELEMETRY_METRICS_PORT`, default `9464`), not the main API port.
+- **Metrics push returns 403** - confirm both `TELEMETRY_ENABLED=true` and `TELEMETRY_METRICS_PUSH_ENABLED=true` are set.
 - **Pushed metrics not appearing** - check that the OTLP payload uses delta temporality and allowlisted metric names. The response's `partial_success` field will list rejected data points and reasons.
 - **ServiceMonitor not picked up** - the `release:` label on the `ServiceMonitor` must match your kube-prometheus-stack Helm release name (often `kube-prometheus-stack`). Check the Prometheus Operator's `serviceMonitorSelector`.
-- **Traces missing** - confirm both `TELEMETRY_ENABLE=true` and `TELEMETRY_TRACING_ENABLE=true` are set (`TELEMETRY_ENABLE` alone enables metrics only), then verify `TELEMETRY_TRACING_OTLP_ENDPOINT` (or `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`) resolves from inside the gateway pod and that the collector is listening for OTLP/HTTP on `4318`.
+- **Traces missing** - confirm both `TELEMETRY_ENABLED=true` and `TELEMETRY_TRACING_ENABLED=true` are set (`TELEMETRY_ENABLED` alone enables metrics only), then verify `TELEMETRY_TRACING_OTLP_ENDPOINT` (or `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`) resolves from inside the gateway pod and that the collector is listening for OTLP/HTTP on `4318`.
 - **Logs not appearing in Loki** - check that Promtail is running as a DaemonSet on the gateway's node and that its scrape config matches the gateway's namespace/labels.
 
 For broader operational issues (auth, MCP, vision, provider 4xx debugging), see [Troubleshooting](/troubleshooting/).
+.
+.

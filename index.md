@@ -100,7 +100,7 @@ Native support for the **Model Context Protocol** lets LLMs automatically access
 
 ```bash
 # Enable MCP with multiple servers
-export MCP_ENABLE=true
+export MCP_ENABLED=true
 export MCP_SERVERS="http://filesystem-server:8081/mcp,http://search-server:8082/mcp"
 
 # LLMs automatically get access to all available tools

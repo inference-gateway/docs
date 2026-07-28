@@ -189,7 +189,7 @@ For a complete runnable example, see [`examples/gpu/`](https://github.com/infere
 
 | Field      | Description                                                                                                  |
 | ---------- | ------------------------------------------------------------------------------------------------------------ |
-| `enabled`  | Toggle authentication (default `false`). Always emitted as `AUTH_ENABLE`.                                    |
+| `enabled`  | Toggle authentication (default `false`). Always emitted as `AUTH_ENABLED`.                                    |
 | `provider` | Provider type: `oidc` (default), `jwt`, or `basic`. `oidc` is the path wired end to end and documented here. |
 | `oidc`     | OIDC configuration (see below).                                                                              |
 

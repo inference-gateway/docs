@@ -17,7 +17,7 @@ If you do not find your issue here, check:
 
 ### Auth is enabled but every request returns 401
 
-**Symptom.** With `AUTH_ENABLE=true`, every request - including ones carrying what looks like a valid bearer token - fails with `401 Unauthorized`.
+**Symptom.** With `AUTH_ENABLED=true`, every request - including ones carrying what looks like a valid bearer token - fails with `401 Unauthorized`.
 
 **Likely cause.** The OIDC issuer URL, client ID, or client secret do not match the identity provider that minted the token. The gateway validates JWTs against the configured `AUTH_OIDC_ISSUER`'s JWKS endpoint; any mismatch (trailing slash, wrong realm, http vs https, internal vs external hostname) makes signature verification fail.
 
@@ -26,7 +26,7 @@ If you do not find your issue here, check:
 1. Verify the three OIDC variables are set and point at the same realm the client uses:
 
    ```bash
-   AUTH_ENABLE=true
+   AUTH_ENABLED=true
    AUTH_OIDC_ISSUER=https://keycloak.example.com/realms/inference-gateway-realm
    AUTH_OIDC_CLIENT_ID=inference-gateway-client
    AUTH_OIDC_CLIENT_SECRET=<your-secret>
@@ -59,7 +59,7 @@ See [Authentication](/authentication/) for the full Keycloak integration walkthr
 **Fix.** Tune the following variables (defaults shown):
 
 ```bash
-MCP_ENABLE=true
+MCP_ENABLED=true
 MCP_SERVERS=http://mcp-tools:8081/mcp,http://mcp-search:8082/mcp
 
 # Connection timeouts
@@ -76,7 +76,7 @@ MCP_RECONNECT_INTERVAL=30s       # default 30s
 MCP_INITIAL_BACKOFF=2s           # default 1s
 
 # Health-check polling
-MCP_POLLING_ENABLE=true          # default true
+MCP_POLLING_ENABLED=true          # default true
 MCP_POLLING_INTERVAL=30s         # default 30s
 MCP_POLLING_TIMEOUT=10s          # default 5s
 MCP_DISABLE_HEALTHCHECK_LOGS=true
@@ -167,7 +167,7 @@ ANY /proxy/{provider}/{path}
 
 ### Environment variables look correct but the gateway behaves as if defaults were used
 
-**Symptom.** You set `AUTH_ENABLE=true` (or `MCP_ENABLE=true`, `ENABLE_VISION=true`, ...) but the gateway logs `auth disabled` / `mcp disabled` / continues to reject images.
+**Symptom.** You set `AUTH_ENABLED=true` (or `MCP_ENABLED=true`, `ENABLE_VISION=true`, ...) but the gateway logs `auth disabled` / `mcp disabled` / continues to reject images.
 
 **Likely cause.** Variables are not reaching the gateway process. In Docker Compose this usually means the variable is set in the shell but not declared under `environment:` in `docker-compose.yml`; in Kubernetes, the ConfigMap is mounted into a different container or the pod was not restarted.
 

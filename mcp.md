@@ -95,7 +95,7 @@ Enable MCP integration by setting these environment variables:
 
 ```bash
 # Enable MCP middleware
-MCP_ENABLE=true
+MCP_ENABLED=true
 
 # Expose MCP endpoints for debugging
 MCP_EXPOSE=true
@@ -126,7 +126,7 @@ services:
   inference-gateway:
     image: ghcr.io/inference-gateway/inference-gateway:latest
     environment:
-      - MCP_ENABLE=true
+      - MCP_ENABLED=true
       - MCP_EXPOSE=true
       - MCP_SERVERS=http://mcp-time-server:8081/mcp,http://mcp-search-server:8082/mcp
       - GROQ_API_KEY=${GROQ_API_KEY}
@@ -153,7 +153,7 @@ On Kubernetes, run the gateway with the [Kubernetes Operator](/operator/) and co
 
 ```yaml
 env:
-  MCP_ENABLE: 'true'
+  MCP_ENABLED: 'true'
   MCP_EXPOSE: 'true'
   MCP_SERVERS: 'http://mcp-time-server:8081/mcp,http://mcp-search-server:8082/mcp'
   MCP_CLIENT_TIMEOUT: '10s'
@@ -456,7 +456,7 @@ kubectl exec -it inference-gateway-pod -- curl http://mcp-server:8081/mcp
 
 #### Tools Not Appearing
 
-1. Verify `MCP_ENABLE=true`
+1. Verify `MCP_ENABLED=true`
 2. Check `MCP_SERVERS` configuration
 3. Ensure MCP servers are accessible
 4. Check logs for connection errors
