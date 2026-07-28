@@ -11,7 +11,7 @@ const generalSettings = [
   { variable: 'ENABLE_VISION', description: 'Enable vision/multimodal support for all providers', defaultValue: 'false' },
   { variable: 'DEBUG_CONTENT_TRUNCATE_WORDS', description: 'Number of words to truncate per content section in debug logs (development mode only)', defaultValue: '10' },
   { variable: 'DEBUG_MAX_MESSAGES', description: 'Maximum number of messages to show in debug logs (development mode only)', defaultValue: '100' },
-  { variable: 'AUTH_ENABLE', description: 'Enable OIDC authentication', defaultValue: 'false' },
+  { variable: 'AUTH_ENABLED', description: 'Enable OIDC authentication', defaultValue: 'false' },
 ];
 
 const telemetrySettings = [
