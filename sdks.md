@@ -27,7 +27,7 @@ All four SDKs target the same gateway endpoints, so the choice is driven by your
 
 A2A is a gateway-side capability today and is consumed via raw HTTP / JSON-RPC against the gateway's `/a2a/*` endpoints rather than a typed SDK surface; see the [A2A page](/a2a/) for the wire format.
 
-MCP tools are managed server-side. The SDKs expose `list_tools` for discovery and surface tool-call deltas during streaming; you do not need to ship per-tool client glue. Set `MCP_ENABLE=true` and `MCP_EXPOSE=true` on the gateway to enable the listing endpoint.
+MCP tools are managed server-side. The SDKs expose `list_tools` for discovery and surface tool-call deltas during streaming; you do not need to ship per-tool client glue. Set `MCP_ENABLED=true` and `MCP_EXPOSE=true` on the gateway to enable the listing endpoint.
 
 Reasoning content is emitted by reasoning-capable models rather than toggled by a dedicated flag: every SDK surfaces `reasoning` and `reasoning_content` on the streaming delta, and the TypeScript SDK adds an `onReasoning` callback. The shared `reasoning_format` request field (`raw` or `parsed`) controls whether think-tags stay inline or are split into `reasoning_content`.
 
@@ -443,7 +443,7 @@ for chunk in client.create_response_stream(
 
 ### Models, tools, and health
 
-`list_models` returns every model across configured providers, or a single provider's catalog when you pass `provider=`. `list_tools` enumerates gateway-managed MCP tools and requires MCP to be exposed (`MCP_ENABLE=true` and `MCP_EXPOSE=true`); otherwise the call raises `InferenceGatewayAPIError`. `health_check` probes the gateway and returns a `bool` - it swallows transport errors and returns `False` rather than raising.
+`list_models` returns every model across configured providers, or a single provider's catalog when you pass `provider=`. `list_tools` enumerates gateway-managed MCP tools and requires MCP to be exposed (`MCP_ENABLED=true` and `MCP_EXPOSE=true`); otherwise the call raises `InferenceGatewayAPIError`. `health_check` probes the gateway and returns a `bool` - it swallows transport errors and returns `False` rather than raising.
 
 ```python
 from inference_gateway import InferenceGatewayClient
@@ -846,7 +846,7 @@ await client.streamChatCompletion(
 );
 ```
 
-`onMCPTool` is distinct from `onTool`. The SDK records every tool name you pass in `request.tools`; a completed tool call whose name matches one of those routes to `onTool`, and any other completed call is treated as a gateway-managed MCP tool and routed to `onMCPTool` once its JSON arguments parse cleanly. MCP tools are discovered and executed server-side, so you never register them on the request - enable them with `MCP_ENABLE=true` and `MCP_EXPOSE=true` on the gateway and they stream in alongside your own tools.
+`onMCPTool` is distinct from `onTool`. The SDK records every tool name you pass in `request.tools`; a completed tool call whose name matches one of those routes to `onTool`, and any other completed call is treated as a gateway-managed MCP tool and routed to `onMCPTool` once its JSON arguments parse cleanly. MCP tools are discovered and executed server-side, so you never register them on the request - enable them with `MCP_ENABLED=true` and `MCP_EXPOSE=true` on the gateway and they stream in alongside your own tools.
 
 ```typescript
 await client.streamChatCompletion(
@@ -1268,7 +1268,7 @@ Base64 data URLs are accepted as the image URL.
 
 ### Models, tools, and health
 
-`ListModels` returns every model across all configured providers, while `ListProviderModels` scopes the listing to a single `Provider`. `ListTools` enumerates gateway-managed MCP tools from the `/mcp/tools` endpoint and requires MCP to be exposed (`MCP_ENABLE=true` and `MCP_EXPOSE=true`); otherwise it returns an error. Unlike the other SDKs, Go's `HealthCheck` returns an `error` rather than a `bool` - it probes the gateway's root `/health` endpoint and returns `nil` when the gateway is healthy.
+`ListModels` returns every model across all configured providers, while `ListProviderModels` scopes the listing to a single `Provider`. `ListTools` enumerates gateway-managed MCP tools from the `/mcp/tools` endpoint and requires MCP to be exposed (`MCP_ENABLED=true` and `MCP_EXPOSE=true`); otherwise it returns an error. Unlike the other SDKs, Go's `HealthCheck` returns an `error` rather than a `bool` - it probes the gateway's root `/health` endpoint and returns `nil` when the gateway is healthy.
 
 ```go
 client := sdk.NewClient(&sdk.ClientOptions{

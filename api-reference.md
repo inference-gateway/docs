@@ -13,7 +13,7 @@ All API endpoints are relative to your Inference Gateway installation URL. By de
 
 ## Authentication
 
-If authentication is enabled (`AUTH_ENABLE=true`), all requests must include a bearer token:
+If authentication is enabled (`AUTH_ENABLED=true`), all requests must include a bearer token:
 
 ```http
 Authorization: Bearer YOUR_JWT_TOKEN
@@ -547,9 +547,9 @@ Push usage metrics to the gateway via the OTLP/HTTP protocol. This endpoint is i
 POST /v1/metrics
 ```
 
-**Opt-in**: This endpoint requires both `TELEMETRY_ENABLE=true` and `TELEMETRY_METRICS_PUSH_ENABLE=true`. Returns `403 Forbidden` when disabled.
+**Opt-in**: This endpoint requires both `TELEMETRY_ENABLED=true` and `TELEMETRY_METRICS_PUSH_ENABLED=true`. Returns `403 Forbidden` when disabled.
 
-**Authentication**: When OIDC auth is enabled (`AUTH_ENABLE=true`), this endpoint requires a valid bearer token.
+**Authentication**: When OIDC auth is enabled (`AUTH_ENABLED=true`), this endpoint requires a valid bearer token.
 
 **Request Body** (`ExportMetricsServiceRequest`):
 

@@ -11,14 +11,14 @@ const generalSettings = [
   { variable: 'ENABLE_VISION', description: 'Enable vision/multimodal support for all providers', defaultValue: 'false' },
   { variable: 'DEBUG_CONTENT_TRUNCATE_WORDS', description: 'Number of words to truncate per content section in debug logs (development mode only)', defaultValue: '10' },
   { variable: 'DEBUG_MAX_MESSAGES', description: 'Maximum number of messages to show in debug logs (development mode only)', defaultValue: '100' },
-  { variable: 'AUTH_ENABLE', description: 'Enable OIDC authentication', defaultValue: 'false' },
+  { variable: 'AUTH_ENABLED', description: 'Enable OIDC authentication', defaultValue: 'false' },
 ];
 
 const telemetrySettings = [
-  { variable: 'TELEMETRY_ENABLE', description: 'Enable OpenTelemetry metrics and tracing', defaultValue: 'false' },
-  { variable: 'TELEMETRY_METRICS_PUSH_ENABLE', description: 'Enable the OTLP metrics push endpoint (POST /v1/metrics)', defaultValue: 'false' },
+  { variable: 'TELEMETRY_ENABLED', description: 'Enable OpenTelemetry metrics and tracing', defaultValue: 'false' },
+  { variable: 'TELEMETRY_METRICS_PUSH_ENABLED', description: 'Enable the OTLP metrics push endpoint (POST /v1/metrics)', defaultValue: 'false' },
   { variable: 'TELEMETRY_METRICS_PORT', description: 'Port for telemetry metrics server', defaultValue: '9464' },
-  { variable: 'TELEMETRY_TRACING_ENABLE', description: 'Emit OpenTelemetry tracing spans (requires TELEMETRY_ENABLE)', defaultValue: 'false' },
+  { variable: 'TELEMETRY_TRACING_ENABLED', description: 'Emit OpenTelemetry tracing spans (requires TELEMETRY_ENABLED)', defaultValue: 'false' },
   { variable: 'TELEMETRY_TRACING_OTLP_ENDPOINT', description: 'OTLP/HTTP endpoint for trace export', defaultValue: 'http://localhost:4318' },
   { variable: 'OTEL_METRICS_EXPORTER', description: 'Metrics exporter mode: otlp (push), prometheus (pull), or none', defaultValue: 'otlp' },
   { variable: 'OTEL_EXPORTER_PROMETHEUS_HOST', description: 'Prometheus pull endpoint bind host', defaultValue: '0.0.0.0' },
@@ -137,7 +137,7 @@ const zaiSettings = [
 // GENERATED:provider-settings END (do not edit - run: task generate)
 
 const mcpSettings = [
-  { variable: 'MCP_ENABLE', description: 'Enable MCP middleware', defaultValue: 'false' },
+  { variable: 'MCP_ENABLED', description: 'Enable MCP middleware', defaultValue: 'false' },
   { variable: 'MCP_EXPOSE', description: 'Expose MCP endpoints for debugging', defaultValue: 'false' },
   { variable: 'MCP_SERVERS', description: 'Comma-separated list of MCP server URLs', defaultValue: '""' },
   { variable: 'MCP_INCLUDE_TOOLS', description: 'Comma-separated allowlist of MCP tool names to inject. If empty, all tools are injected. Takes precedence over MCP_EXCLUDE_TOOLS', defaultValue: '""' },
@@ -153,7 +153,7 @@ const mcpSettings = [
   { variable: 'MCP_INITIAL_BACKOFF', description: 'Initial backoff duration for exponential backoff retry', defaultValue: '1s' },
   { variable: 'MCP_ENABLE_RECONNECT', description: 'Enable automatic reconnection for failed servers', defaultValue: 'true' },
   { variable: 'MCP_RECONNECT_INTERVAL', description: 'Interval between reconnection attempts', defaultValue: '30s' },
-  { variable: 'MCP_POLLING_ENABLE', description: 'Enable health check polling', defaultValue: 'true' },
+  { variable: 'MCP_POLLING_ENABLED', description: 'Enable health check polling', defaultValue: 'true' },
   { variable: 'MCP_POLLING_INTERVAL', description: 'Interval between health check polling requests', defaultValue: '30s' },
   { variable: 'MCP_POLLING_TIMEOUT', description: 'Timeout for individual health check requests', defaultValue: '5s' },
   { variable: 'MCP_DISABLE_HEALTHCHECK_LOGS', description: 'Disable health check log messages to reduce noise', defaultValue: 'true' },
@@ -165,6 +165,8 @@ const loggingSettings = [
 </script>
 
 # Configuration
+
+> **Breaking change (schemas v0.15.3):** All `_ENABLE` env-var suffixes have been renamed to `_ENABLED`. Existing deployments must update their configuration: `TELEMETRY_ENABLE` -> `TELEMETRY_ENABLED`, `TELEMETRY_METRICS_PUSH_ENABLE` -> `TELEMETRY_METRICS_PUSH_ENABLED`, `TELEMETRY_TRACING_ENABLE` -> `TELEMETRY_TRACING_ENABLED`, `MCP_ENABLE` -> `MCP_ENABLED`, `MCP_POLLING_ENABLE` -> `MCP_POLLING_ENABLED`, `AUTH_ENABLE` -> `AUTH_ENABLED`. (`MCP_ENABLE_RECONNECT` is unchanged.)
 
 Inference Gateway provides flexible configuration options to adapt to your specific needs. As a proxy server designed to facilitate access to various language model APIs, proper configuration is essential for optimal performance and security.
 
@@ -192,13 +194,13 @@ These settings control telemetry and metrics exposure:
 
 <ConfigTable :rows="telemetrySettings" />
 
-When `TELEMETRY_ENABLE` is set to `true`, Inference Gateway exposes a `/metrics` endpoint for Prometheus scraping. Distributed tracing is a separate opt-in: set `TELEMETRY_TRACING_ENABLE=true` (alongside `TELEMETRY_ENABLE=true`) to emit spans, and point `TELEMETRY_TRACING_OTLP_ENDPOINT` at your OTLP/HTTP collector (default `http://localhost:4318`). Sampling and exporter tuning use the standard `OTEL_TRACES_SAMPLER` / `OTEL_EXPORTER_OTLP_*` variables. See the [Distributed Tracing](/observability/#distributed-tracing) section for span coverage and context propagation.
+When `TELEMETRY_ENABLED` is set to `true`, Inference Gateway exposes a `/metrics` endpoint for Prometheus scraping. Distributed tracing is a separate opt-in: set `TELEMETRY_TRACING_ENABLED=true` (alongside `TELEMETRY_ENABLED=true`) to emit spans, and point `TELEMETRY_TRACING_OTLP_ENDPOINT` at your OTLP/HTTP collector (default `http://localhost:4318`). Sampling and exporter tuning use the standard `OTEL_TRACES_SAMPLER` / `OTEL_EXPORTER_OTLP_*` variables. See the [Distributed Tracing](/observability/#distributed-tracing) section for span coverage and context propagation.
 
-When `TELEMETRY_METRICS_PUSH_ENABLE` is also set to `true` (alongside `TELEMETRY_ENABLE=true`), the gateway exposes an OTLP/HTTP metrics push endpoint at `POST /v1/metrics`. This allows subscription clients that bypass the gateway's inference path to push their usage metrics. See the [Observability](/observability/#pushing-metrics-otlp) page for details.
+When `TELEMETRY_METRICS_PUSH_ENABLED` is also set to `true` (alongside `TELEMETRY_ENABLED=true`), the gateway exposes an OTLP/HTTP metrics push endpoint at `POST /v1/metrics`. This allows subscription clients that bypass the gateway's inference path to push their usage metrics. See the [Observability](/observability/#pushing-metrics-otlp) page for details.
 
 ### OpenID Connect
 
-If authentication is enabled (`AUTH_ENABLE=true`), configure the following OIDC settings:
+If authentication is enabled (`AUTH_ENABLED=true`), configure the following OIDC settings:
 
 <ConfigTable :rows="oidcSettings" />
 
@@ -336,7 +338,7 @@ For local development, you can use a `.env` file. Create a file named `.env` in 
 ```bash
 # .env file example
 ENVIRONMENT=development
-TELEMETRY_ENABLE=false
+TELEMETRY_ENABLED=false
 OPENAI_API_KEY=your-openai-key
 ANTHROPIC_API_KEY=your-anthropic-key
 ```
@@ -354,7 +356,7 @@ metadata:
   name: inference-gateway-config
 data:
   ENVIRONMENT: 'production'
-  TELEMETRY_ENABLE: 'true'
+  TELEMETRY_ENABLED: 'true'
   SERVER_HOST: '0.0.0.0'
   SERVER_PORT: '8080'
   SERVER_READ_TIMEOUT: '30s'
@@ -390,16 +392,16 @@ ENABLE_VISION=false
 DEBUG_CONTENT_TRUNCATE_WORDS=10
 DEBUG_MAX_MESSAGES=100
 # Telemetry
-TELEMETRY_ENABLE=false
-TELEMETRY_METRICS_PUSH_ENABLE=false
+TELEMETRY_ENABLED=false
+TELEMETRY_METRICS_PUSH_ENABLED=false
 TELEMETRY_METRICS_PORT=9464
-TELEMETRY_TRACING_ENABLE=false
+TELEMETRY_TRACING_ENABLED=false
 TELEMETRY_TRACING_OTLP_ENDPOINT=http://localhost:4318
 OTEL_METRICS_EXPORTER=otlp
 OTEL_EXPORTER_PROMETHEUS_HOST=0.0.0.0
 OTEL_EXPORTER_PROMETHEUS_PORT=9464
 # Model Context Protocol (MCP)
-MCP_ENABLE=false
+MCP_ENABLED=false
 MCP_EXPOSE=false
 MCP_SERVERS=
 MCP_INCLUDE_TOOLS=
@@ -415,12 +417,12 @@ MCP_RETRY_INTERVAL=5s
 MCP_INITIAL_BACKOFF=1s
 MCP_ENABLE_RECONNECT=true
 MCP_RECONNECT_INTERVAL=30s
-MCP_POLLING_ENABLE=true
+MCP_POLLING_ENABLED=true
 MCP_POLLING_INTERVAL=30s
 MCP_POLLING_TIMEOUT=5s
 MCP_DISABLE_HEALTHCHECK_LOGS=true
 # Authentication
-AUTH_ENABLE=false
+AUTH_ENABLED=false
 AUTH_OIDC_ISSUER=http://keycloak:8080/realms/inference-gateway-realm
 AUTH_OIDC_CLIENT_ID=inference-gateway-client
 AUTH_OIDC_CLIENT_SECRET=
