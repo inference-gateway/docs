@@ -24,7 +24,7 @@ When authentication is enabled, all requests to the Inference Gateway API must i
 To enable authentication on the **Go gateway** ([`inference-gateway/inference-gateway`](https://github.com/inference-gateway/inference-gateway)), set:
 
 ```bash
-AUTH_ENABLE=true
+AUTH_ENABLED=true
 AUTH_OIDC_ISSUER=https://your-keycloak-instance/realms/your-realm
 AUTH_OIDC_CLIENT_ID=your-client-id
 AUTH_OIDC_CLIENT_SECRET=your-client-secret
@@ -38,7 +38,7 @@ The Go gateway and the TypeScript ADK ship separately and each pins its own cano
 
 | Setting                  | Go gateway                | TypeScript ADK ([details](/typescript-adk#authentication)) |
 | ------------------------ | ------------------------- | ---------------------------------------------------------- |
-| Enable / disable         | `AUTH_ENABLE`             | `AUTH_ENABLE`                                              |
+| Enable / disable         | `AUTH_ENABLED`            | `AUTH_ENABLE`                                              |
 | OIDC issuer URL          | `AUTH_OIDC_ISSUER`        | `AUTH_ISSUER_URL`                                          |
 | OAuth2 client id (`aud`) | `AUTH_OIDC_CLIENT_ID`     | `AUTH_CLIENT_ID`                                           |
 | OAuth2 client secret     | `AUTH_OIDC_CLIENT_SECRET` | `AUTH_CLIENT_SECRET`                                       |
@@ -143,7 +143,7 @@ Update your Inference Gateway configuration to enable authentication:
 #### Using Environment Variables
 
 ```bash
-AUTH_ENABLE=true
+AUTH_ENABLED=true
 AUTH_OIDC_ISSUER=https://your-keycloak-instance/realms/inference-gateway-realm
 AUTH_OIDC_CLIENT_ID=inference-gateway-client
 AUTH_OIDC_CLIENT_SECRET=your-client-secret

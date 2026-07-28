@@ -76,7 +76,7 @@ MCP_RECONNECT_INTERVAL=30s       # default 30s
 MCP_INITIAL_BACKOFF=2s           # default 1s
 
 # Health-check polling
-MCP_POLLING_ENABLED=true          # default true
+MCP_POLLING_ENABLED=true         # default true
 MCP_POLLING_INTERVAL=30s         # default 30s
 MCP_POLLING_TIMEOUT=10s          # default 5s
 MCP_DISABLE_HEALTHCHECK_LOGS=true

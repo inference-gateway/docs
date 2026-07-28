@@ -211,7 +211,7 @@ The push endpoint is opt-in and requires both `TELEMETRY_ENABLED=true` and `TELE
 
 ```bash
 TELEMETRY_ENABLED=true
-TELEMETRY_METRICS_PUSH_ENABLE=true
+TELEMETRY_METRICS_PUSH_ENABLED=true
 ```
 
 When disabled, the endpoint returns `403 Forbidden`. When enabled, it sits behind the same OIDC authentication middleware as the rest of the API.
@@ -623,5 +623,3 @@ Both bring up the gateway with `TELEMETRY_ENABLED=true`, scrape `/metrics`, prov
 - **Logs not appearing in Loki** - check that Promtail is running as a DaemonSet on the gateway's node and that its scrape config matches the gateway's namespace/labels.
 
 For broader operational issues (auth, MCP, vision, provider 4xx debugging), see [Troubleshooting](/troubleshooting/).
-.
-.

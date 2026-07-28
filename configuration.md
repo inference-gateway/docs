@@ -16,7 +16,7 @@ const generalSettings = [
 
 const telemetrySettings = [
   { variable: 'TELEMETRY_ENABLED', description: 'Enable OpenTelemetry metrics and tracing', defaultValue: 'false' },
-  { variable: 'TELEMETRY_METRICS_PUSH_ENABLE', description: 'Enable the OTLP metrics push endpoint (POST /v1/metrics)', defaultValue: 'false' },
+  { variable: 'TELEMETRY_METRICS_PUSH_ENABLED', description: 'Enable the OTLP metrics push endpoint (POST /v1/metrics)', defaultValue: 'false' },
   { variable: 'TELEMETRY_METRICS_PORT', description: 'Port for telemetry metrics server', defaultValue: '9464' },
   { variable: 'TELEMETRY_TRACING_ENABLED', description: 'Emit OpenTelemetry tracing spans (requires TELEMETRY_ENABLED)', defaultValue: 'false' },
   { variable: 'TELEMETRY_TRACING_OTLP_ENDPOINT', description: 'OTLP/HTTP endpoint for trace export', defaultValue: 'http://localhost:4318' },
@@ -338,7 +338,7 @@ For local development, you can use a `.env` file. Create a file named `.env` in 
 ```bash
 # .env file example
 ENVIRONMENT=development
-TELEMETRY_ENABLE=false
+TELEMETRY_ENABLED=false
 OPENAI_API_KEY=your-openai-key
 ANTHROPIC_API_KEY=your-anthropic-key
 ```
@@ -392,8 +392,8 @@ ENABLE_VISION=false
 DEBUG_CONTENT_TRUNCATE_WORDS=10
 DEBUG_MAX_MESSAGES=100
 # Telemetry
-TELEMETRY_ENABLE=false
-TELEMETRY_METRICS_PUSH_ENABLE=false
+TELEMETRY_ENABLED=false
+TELEMETRY_METRICS_PUSH_ENABLED=false
 TELEMETRY_METRICS_PORT=9464
 TELEMETRY_TRACING_ENABLED=false
 TELEMETRY_TRACING_OTLP_ENDPOINT=http://localhost:4318
@@ -422,7 +422,7 @@ MCP_POLLING_INTERVAL=30s
 MCP_POLLING_TIMEOUT=5s
 MCP_DISABLE_HEALTHCHECK_LOGS=true
 # Authentication
-AUTH_ENABLE=false
+AUTH_ENABLED=false
 AUTH_OIDC_ISSUER=http://keycloak:8080/realms/inference-gateway-realm
 AUTH_OIDC_CLIENT_ID=inference-gateway-client
 AUTH_OIDC_CLIENT_SECRET=
