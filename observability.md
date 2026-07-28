@@ -571,6 +571,12 @@ processors:
 
 See the [CLI Telemetry](/cli/#telemetry) section for the full documentation, including the span hierarchy, metric names, and local file inspection commands.
 
+### GitHub Actions (CI)
+
+In CI, [`infer-action`](/github-action#opentelemetry) handles the collector for you. By default (`otel-collector: true`) it deploys a temporary OpenTelemetry Collector for the duration of the job, and the CLI, the in-job gateway, and the A2A agent containers all export to it. The CLI propagates `traceparent` and baggage on every A2A call, so the three producers correlate into one distributed trace and the collector fans it back to the CLI so the result-comment footer and job step summary show the full span tree, agent `a2a.request` sub-spans included.
+
+To forward that telemetry to an existing backend, set `otel-exporter-otlp-endpoint` (and `otel-exporter-otlp-headers` for auth): the local collector forwards traces, metrics, and logs to the remote with the headers attached, which is the only way to authenticate the gateway and agent exports. See the action's [OpenTelemetry](/github-action#opentelemetry) section for the mode matrix, runner requirements, and examples.
+
 ### Channels Manager (Daemon)
 
 The `channels-manager` daemon pushes operational metrics over OTLP when telemetry is enabled. It reuses the same telemetry engine as the CLI agent, so the setup is identical - set `INFER_TELEMETRY_ENABLED=true` and `INFER_TELEMETRY_OTLP_ENDPOINT=<collector>` (or the corresponding YAML keys) before starting the daemon.

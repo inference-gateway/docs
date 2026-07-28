@@ -196,7 +196,7 @@ The total and failed tool-call counts are also exposed as the `total-tool-calls-
 >
 > **`zai-api-key` release status:** the ZAI provider input is available on `inference-gateway/infer-action@main` and ships in `v0.30.0` and later. Pin to `v0.30.0` or later.
 
-The action also accepts seven opt-in OpenTelemetry inputs (`otel-*`) for exporting run telemetry to an OTLP collector. They are disabled by default and change nothing for existing workflows - see [OpenTelemetry export](#opentelemetry-export).
+The action also accepts five OpenTelemetry inputs (`otel-*`). By default (`otel-collector: true`) the action runs a temporary local collector that correlates the CLI, gateway, and agent spans into one distributed trace and fans it back into the result-comment footer - see [OpenTelemetry](#opentelemetry).
 
 ## Outputs
 
@@ -593,52 +593,92 @@ GitHub Actions run logs are persisted with the workflow run, downloadable as raw
     mirror-agent-logs: false # keep the full agent transcript out of the Actions run log
 ```
 
-## OpenTelemetry export
+## OpenTelemetry
 
-`infer-action` can export OpenTelemetry telemetry about each agent run to any OTLP-compatible collector (an OpenTelemetry Collector, Grafana Alloy, Honeycomb, Tempo, Jaeger, and so on). The feature is **opt-in and disabled by default** - with `otel-exporter-otlp-endpoint` empty, nothing is exported and the action behaves exactly as it did before.
+`infer-action` correlates telemetry from every producer in the job - the `infer` CLI, the in-job gateway, and the A2A agent containers - into a single distributed trace. By default (`otel-collector: true`) the action deploys a temporary `otel/opentelemetry-collector-contrib` container (Docker, host network, OTLP HTTP on `:4318`) for the duration of the job and tears it down during cleanup. All three producers push OTLP traces, metrics, and logs to it; the CLI propagates `traceparent` and baggage on every A2A call, so the agents' `a2a.request` sub-spans nest under the CLI session.
 
-Export is **best-effort and runs after the user-visible result comment is posted**: it never blocks the result, and a slow or unreachable collector never fails the run. Resource attributes and metric / span names follow the OpenTelemetry [GenAI semantic conventions](https://opentelemetry.io/docs/specs/semconv/gen-ai/), so the data lines up with other GenAI instrumentation in your backend.
+The collector fans traces back to the CLI's local receiver (`127.0.0.1:4319`), so the **result-comment footer and the job step summary now show the full trace tree**, including the agent sub-spans. (Previously the footer showed a CLI-only session trace with no agent spans.)
 
-### Signals
+Local mode is **traces-first**: metrics and logs land in the collector's `debug` exporter and are dumped to the job log during cleanup when `debug: true`.
 
-`otel-signals` chooses what to export (comma-separated); the default is `metrics`:
+Everything is **best-effort**: a missing Docker or a failed collector start emits a warning and the run continues. The setup step is skipped entirely under `dry-run`.
 
-- `metrics` - the cheapest, highest-value signal (run-level metrics such as token usage and tool-call counts); exported by default.
-- `traces` - one root span per run.
-- `logs` - one `ERROR` record per failed tool call.
+### Mode matrix
 
-Set `otel-signals: metrics,traces,logs` to enable all three.
+| `otel-collector` | `otel-exporter-otlp-endpoint` | Behavior                                                                                                  |
+| ---------------- | ----------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `true` (default) | empty                         | Temporary local collector; traces fan back to the CLI so the result footer shows the full tree.           |
+| `true` (default) | set                           | Local collector, forwarding traces/metrics/logs to the remote with `otel-exporter-otlp-headers` attached. |
+| `false`          | empty                         | No telemetry beyond the CLI's own local trace files.                                                      |
+| `false`          | set                           | CLI, gateway, and agents export directly to the remote endpoint.                                          |
+
+With `otel-collector: true` **and** an endpoint set, the local collector forwarding the exports with `otel-exporter-otlp-headers` attached is the only way to authenticate the gateway and agent exports to a remote backend.
+
+### Requirements and caveats
+
+- Requires **Docker on a Linux runner** (the same requirement as the `agents` input).
+- Ports **`4318` and `4319` must be free**.
+- Agent containers reach the host at **`172.17.0.1`**, which assumes the default Docker bridge.
+- Best-effort: a missing Docker or a failed collector start warns and continues.
+- Skipped under `dry-run`.
 
 ### Inputs
 
-Each input maps to the standard OpenTelemetry environment variable of the same name, so the underlying exporter honours it directly.
+Each input maps to the standard OpenTelemetry environment variable of the same name.
 
-| Input                         | Default         | Env var                       | Description                                                                                                   |
-| ----------------------------- | --------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `otel-exporter-otlp-endpoint` | `''` (disabled) | `OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP HTTP endpoint, e.g. `http://localhost:4318`. Empty (the default) disables all export.                    |
-| `otel-exporter-otlp-headers`  | `''`            | `OTEL_EXPORTER_OTLP_HEADERS`  | Comma-separated `key=value` headers, e.g. `Authorization=Bearer my-token`. Treated as secret and auto-masked. |
-| `otel-exporter-otlp-protocol` | `http/json`     | `OTEL_EXPORTER_OTLP_PROTOCOL` | OTLP transport protocol. Only `http/json` is implemented; gRPC is not supported.                              |
-| `otel-service-name`           | `infer-action`  | `OTEL_SERVICE_NAME`           | Value for the `service.name` resource attribute on exported telemetry.                                        |
-| `otel-resource-attributes`    | `''`            | `OTEL_RESOURCE_ATTRIBUTES`    | Extra resource attributes in `key=val,key2=val2` form, appended to the standard set.                          |
-| `otel-signals`                | `metrics`       | `OTEL_SIGNALS`                | Comma-separated signals to export: `metrics` (default), `traces`, `logs`.                                     |
-| `otel-export-timeout-ms`      | `5000`          | `OTEL_EXPORT_TIMEOUT_MS`      | Per-request timeout in milliseconds for each OTLP HTTP POST.                                                  |
+| Input                         | Default        | Env var                       | Description                                                                                                                               |
+| ----------------------------- | -------------- | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `otel-collector`              | `true`         | -                             | Deploy a temporary local collector that correlates CLI, gateway, and agent spans. Set to `"false"` to opt out.                            |
+| `otel-exporter-otlp-endpoint` | `''`           | `OTEL_EXPORTER_OTLP_ENDPOINT` | Remote OTLP HTTP endpoint, e.g. `https://otel-collector.example.com:4318`. See the mode matrix for how it combines with `otel-collector`. |
+| `otel-exporter-otlp-headers`  | `''`           | `OTEL_EXPORTER_OTLP_HEADERS`  | Comma-separated `key=value` headers, e.g. `Authorization=Bearer my-token`. Treated as secret and auto-masked.                             |
+| `otel-service-name`           | `infer-action` | `OTEL_SERVICE_NAME`           | Value for the `service.name` resource attribute on exported telemetry.                                                                    |
+| `otel-resource-attributes`    | `''`           | `OTEL_RESOURCE_ATTRIBUTES`    | Extra resource attributes in `key=val,key2=val2` form, appended to the standard set.                                                      |
 
-The standard resource attributes attached to every export are `service.name`, `service.version`, `gen_ai.provider.name`, and CI context (`cicd.pipeline.*`, `vcs.repository.*`, `github.*`); `otel-resource-attributes` appends to that set. Because only `http/json` is supported, point the endpoint at the collector's HTTP port (`4318` on a standard collector), not the gRPC port (`4317`).
+### Examples
 
-### Example
+Default - nothing to configure, the collector runs and the footer shows the full trace tree:
 
 ```yaml
-- uses: inference-gateway/infer-action@v0.23.6
+- uses: inference-gateway/infer-action@main
   with:
     github-token: ${{ secrets.GITHUB_TOKEN }}
-    model: anthropic/claude-opus-4-8
-    anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
-    otel-exporter-otlp-endpoint: https://otel-collector.example.com:4318
-    otel-exporter-otlp-headers: ${{ secrets.OTEL_EXPORTER_OTLP_HEADERS }} # e.g. Authorization=Bearer ...
-    otel-signals: metrics,traces,logs
+    model: deepseek/deepseek-v4-flash
+    deepseek-api-key: ${{ secrets.DEEPSEEK_API_KEY }}
+    agents: mock-agent
 ```
 
-Leave `otel-exporter-otlp-endpoint` unset (the default) and the block above is inert - existing workflows need no changes.
+Forwarding to a remote backend with auth on every producer:
+
+```yaml
+- uses: inference-gateway/infer-action@main
+  with:
+    github-token: ${{ secrets.GITHUB_TOKEN }}
+    model: deepseek/deepseek-v4-flash
+    deepseek-api-key: ${{ secrets.DEEPSEEK_API_KEY }}
+    otel-exporter-otlp-endpoint: https://otel-collector.example.com:4318
+    otel-exporter-otlp-headers: ${{ secrets.OTEL_EXPORTER_OTLP_HEADERS }} # e.g. Authorization=Bearer ...
+```
+
+Opting out:
+
+```yaml
+- uses: inference-gateway/infer-action@main
+  with:
+    github-token: ${{ secrets.GITHUB_TOKEN }}
+    model: deepseek/deepseek-v4-flash
+    deepseek-api-key: ${{ secrets.DEEPSEEK_API_KEY }}
+    otel-collector: 'false'
+```
+
+Keeping the raw trace files as a build artifact:
+
+```yaml
+- uses: actions/upload-artifact@v7.0.1
+  if: always()
+  with:
+    name: infer-traces
+    path: ~/.infer/telemetry/*.jsonl
+```
 
 ## Secrets and least-privilege
 
