@@ -258,4 +258,3 @@ After setting up authentication, consider:
 - Setting up [multi-factor authentication](https://www.keycloak.org/docs/latest/server_admin/#_otp-policies) for enhanced security
 - Protecting an agent built on the [TypeScript ADK](/typescript-adk#authentication) with the same OIDC issuer (note the [different env-var names](#env-var-naming-go-gateway-vs-typescript-adk))
 - Managing the gateway and its OIDC settings declaratively with the [Kubernetes Operator](/operator/#authentication-oidc) via `spec.auth.oidc`
-

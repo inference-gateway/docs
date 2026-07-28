@@ -357,10 +357,10 @@ OTEL_SERVICE_NAME=inference-gateway
 OTEL_RESOURCE_ATTRIBUTES=deployment.environment=production
 ```
 
-| Variable                          | Default                 | Description                                           |
-| --------------------------------- | ----------------------- | ----------------------------------------------------- |
-| `TELEMETRY_TRACING_ENABLED`        | `false`                 | Emit tracing spans. Requires `TELEMETRY_ENABLED=true`. |
-| `TELEMETRY_TRACING_OTLP_ENDPOINT` | `http://localhost:4318` | OTLP/HTTP endpoint traces are exported to.            |
+| Variable                          | Default                 | Description                                            |
+| --------------------------------- | ----------------------- | ------------------------------------------------------ |
+| `TELEMETRY_TRACING_ENABLED`       | `false`                 | Emit tracing spans. Requires `TELEMETRY_ENABLED=true`. |
+| `TELEMETRY_TRACING_OTLP_ENDPOINT` | `http://localhost:4318` | OTLP/HTTP endpoint traces are exported to.             |
 
 ### Span coverage
 
