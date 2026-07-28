@@ -142,6 +142,7 @@ const mcpSettings = [
   { variable: 'MCP_SERVERS', description: 'Comma-separated list of MCP server URLs', defaultValue: '""' },
   { variable: 'MCP_INCLUDE_TOOLS', description: 'Comma-separated allowlist of MCP tool names to inject. If empty, all tools are injected. Takes precedence over MCP_EXCLUDE_TOOLS', defaultValue: '""' },
   { variable: 'MCP_EXCLUDE_TOOLS', description: 'Comma-separated denylist of MCP tool names to skip injecting. If empty, no tools are excluded. Takes lower precedence than MCP_INCLUDE_TOOLS', defaultValue: '""' },
+  { variable: 'MCP_TOOL_MODE', description: 'MCP tool exposure mode: selector (default) injects two meta-tools (mcp_tools_get, mcp_tools_execute); direct injects every tool schema into every request', defaultValue: 'selector' },
   { variable: 'MCP_CLIENT_TIMEOUT', description: 'MCP client HTTP timeout', defaultValue: '5s' },
   { variable: 'MCP_DIAL_TIMEOUT', description: 'MCP client dial timeout', defaultValue: '3s' },
   { variable: 'MCP_TLS_HANDSHAKE_TIMEOUT', description: 'MCP client TLS handshake timeout', defaultValue: '3s' },
@@ -406,6 +407,7 @@ MCP_EXPOSE=false
 MCP_SERVERS=
 MCP_INCLUDE_TOOLS=
 MCP_EXCLUDE_TOOLS=
+MCP_TOOL_MODE=selector
 MCP_CLIENT_TIMEOUT=5s
 MCP_DIAL_TIMEOUT=3s
 MCP_TLS_HANDSHAKE_TIMEOUT=3s

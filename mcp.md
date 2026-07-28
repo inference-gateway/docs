@@ -22,6 +22,7 @@ The [Model Context Protocol](https://modelcontextprotocol.io/) is an open standa
 - **Automatic Tool Discovery**: MCP servers are automatically discovered and their tools are made available to LLMs
 - **Multi-Server Support**: Connect to multiple MCP servers simultaneously
 - **Dynamic Tool Injection**: Tools are automatically injected into LLM requests based on available MCP servers
+- **Two Exposure Modes**: Choose between **selector** mode (default) with two meta-tools for discovery and dispatch, or **direct** mode for full schema injection
 - **Seamless Execution**: Tool calls are executed transparently and results returned to the LLM
 - **Zero Client Configuration**: Clients don't need to know about or manage individual tools
 - **Built-in Monitoring**: Full observability through OpenTelemetry integration
@@ -109,6 +110,11 @@ MCP_INCLUDE_TOOLS=""
 # Denylist of tool names to skip - takes lower precedence than MCP_INCLUDE_TOOLS
 MCP_EXCLUDE_TOOLS=""
 
+# Tool exposure mode (optional)
+# selector (default): injects two meta-tools (mcp_tools_get, mcp_tools_execute)
+# direct: injects every tool schema into every request
+MCP_TOOL_MODE=selector
+
 # Timeout configurations (optional)
 MCP_CLIENT_TIMEOUT=10s
 MCP_DIAL_TIMEOUT=5s
@@ -178,6 +184,19 @@ MCP_EXCLUDE_TOOLS="delete_file,write_file"
 ```
 
 Tool names match those reported by the `GET /v1/mcp/tools` endpoint (available when `MCP_EXPOSE=true`).
+
+### Tool Exposure Mode
+
+`MCP_TOOL_MODE` controls how MCP tool schemas are presented to the LLM. It accepts two values:
+
+- **`selector`** (default) - The model sees exactly two gateway-defined meta-tools instead of every individual tool schema. Discovery and dispatch happen server-side, reducing request size significantly for deployments with many tools (benchmarked ~23x smaller for 50 tools). The meta-tools are:
+
+  - **`mcp_tools_get`** - Lists available tools. With no arguments returns a compact catalog (name, description, server). Pass `names` to get full input schemas for specific tools. Honors `MCP_INCLUDE_TOOLS` / `MCP_EXCLUDE_TOOLS`.
+  - **`mcp_tools_execute`** - Calls a tool by name on the correct MCP server. The gateway unwraps the call so guardrails evaluate the underlying tool name and arguments.
+
+- **`direct`** - Restores the previous behavior: every tool schema from every connected MCP server is injected into every chat completion request. Per Anthropic guidance, this is fine for small tool sets (under ~10 tools) but grows request size linearly with each tool.
+
+In selector mode, `MCP_INCLUDE_TOOLS` and `MCP_EXCLUDE_TOOLS` control which tools the model can discover through `mcp_tools_get` and execute through `mcp_tools_execute`.
 
 ## Usage Examples
 
