@@ -1,6 +1,6 @@
 ---
 title: Authentication
-description: Secure Inference Gateway with OpenID Connect (OIDC). Step-by-step Keycloak setup, JWT validation, token flows, and Kubernetes-friendly configuration. Covers AUTH_OIDC_ISSUER / AUTH_OIDC_CLIENT_ID / AUTH_OIDC_CLIENT_SECRET on the Go gateway, plus AUTH_ENABLE / AUTH_ISSUER_URL / AUTH_CLIENT_ID / AUTH_CLIENT_SECRET on the TypeScript ADK.
+description: Secure Inference Gateway with OpenID Connect (OIDC). Step-by-step Keycloak setup, JWT validation, token flows, and Kubernetes-friendly configuration. Covers AUTH_OIDC_ISSUER / AUTH_OIDC_CLIENT_ID / AUTH_OIDC_CLIENT_SECRET on the Go gateway, plus AUTH_ENABLED / AUTH_ISSUER_URL / AUTH_CLIENT_ID / AUTH_CLIENT_SECRET on the TypeScript ADK.
 ---
 
 # Authentication
@@ -38,7 +38,7 @@ The Go gateway and the TypeScript ADK ship separately and each pins its own cano
 
 | Setting                  | Go gateway                | TypeScript ADK ([details](/typescript-adk#authentication)) |
 | ------------------------ | ------------------------- | ---------------------------------------------------------- |
-| Enable / disable         | `AUTH_ENABLED`            | `AUTH_ENABLE`                                              |
+| Enable / disable         | `AUTH_ENABLED`            | `AUTH_ENABLED`                                             |
 | OIDC issuer URL          | `AUTH_OIDC_ISSUER`        | `AUTH_ISSUER_URL`                                          |
 | OAuth2 client id (`aud`) | `AUTH_OIDC_CLIENT_ID`     | `AUTH_CLIENT_ID`                                           |
 | OAuth2 client secret     | `AUTH_OIDC_CLIENT_SECRET` | `AUTH_CLIENT_SECRET`                                       |
