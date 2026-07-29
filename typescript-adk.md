@@ -1150,7 +1150,7 @@ import {
   type AgentCard,
 } from '@inference-gateway/adk';
 
-const authConfig = loadAuthConfigFromEnv(); // AUTH_ENABLE / AUTH_ISSUER_URL / AUTH_CLIENT_ID / AUTH_CLIENT_SECRET
+const authConfig = loadAuthConfigFromEnv(); // AUTH_ENABLED / AUTH_ISSUER_URL / AUTH_CLIENT_ID / AUTH_CLIENT_SECRET
 const authenticator = await createAuthenticator({ config: authConfig });
 
 const card: AgentCard = {
@@ -2951,7 +2951,7 @@ const telemetry = createTelemetryProvider({ config: loadTelemetryConfigFromEnv()
 
 | Variable                        | Default                  | Maps to                                                                        |
 | ------------------------------- | ------------------------ | ------------------------------------------------------------------------------ |
-| `TELEMETRY_ENABLE`              | `false`                  | `config.enable`. Truthy set: `1` / `true` / `yes` / `on`.                      |
+| `TELEMETRY_ENABLED`             | `false`                  | `config.enable`. Truthy set: `1` / `true` / `yes` / `on`.                      |
 | `OTEL_SERVICE_NAME`             | `@inference-gateway/adk` | `service.name` resource attribute.                                             |
 | `OTEL_SERVICE_VERSION`          | `0.0.0`                  | `service.version` resource attribute.                                          |
 | `OTEL_EXPORTER_OTLP_ENDPOINT`   | OTel SDK default         | OTLP collector endpoint (consumed by the exporter, not pre-parsed by the ADK). |
@@ -3049,15 +3049,15 @@ There is no `A2AServerBuilder.withMetrics(...)` method and no `metrics` field on
 
 `loadMetricsConfigFromEnv()` builds the config from the environment:
 
-| Variable                   | Default    | Description                                                                                                               |
-| -------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `METRICS_ENABLE`           | `false`    | Master switch. Falls back to `TELEMETRY_ENABLE` when unset, so `TELEMETRY_ENABLE=true` turns on both tracing and metrics. |
-| `METRICS_PORT`             | `9090`     | Port for the standalone metrics server (`0` picks an ephemeral port).                                                     |
-| `METRICS_HOST`             | `0.0.0.0`  | Bind host.                                                                                                                |
-| `METRICS_PATH`             | `/metrics` | Exposition path.                                                                                                          |
-| `METRICS_READ_TIMEOUT_MS`  | `5000`     | Header-read timeout.                                                                                                      |
-| `METRICS_WRITE_TIMEOUT_MS` | `10000`    | Request timeout.                                                                                                          |
-| `METRICS_IDLE_TIMEOUT_MS`  | `60000`    | Keep-alive timeout.                                                                                                       |
+| Variable                   | Default    | Description                                                                                                                 |
+| -------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `METRICS_ENABLE`           | `false`    | Master switch. Falls back to `TELEMETRY_ENABLED` when unset, so `TELEMETRY_ENABLED=true` turns on both tracing and metrics. |
+| `METRICS_PORT`             | `9090`     | Port for the standalone metrics server (`0` picks an ephemeral port).                                                       |
+| `METRICS_HOST`             | `0.0.0.0`  | Bind host.                                                                                                                  |
+| `METRICS_PATH`             | `/metrics` | Exposition path.                                                                                                            |
+| `METRICS_READ_TIMEOUT_MS`  | `5000`     | Header-read timeout.                                                                                                        |
+| `METRICS_WRITE_TIMEOUT_MS` | `10000`    | Request timeout.                                                                                                            |
+| `METRICS_IDLE_TIMEOUT_MS`  | `60000`    | Keep-alive timeout.                                                                                                         |
 
 ### Cross-reference
 

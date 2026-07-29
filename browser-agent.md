@@ -136,7 +136,7 @@ The agent reads the standard ADK environment variables plus a set of custom `BRO
 | LLM Client | `A2A_AGENT_CLIENT_PROVIDER` | LLM provider (`openai`, `anthropic`, `deepseek`, ...)   | -                           |
 | LLM Client | `A2A_AGENT_CLIENT_MODEL`    | Model to use                                            | -                           |
 | LLM Client | `A2A_AGENT_CLIENT_BASE_URL` | OpenAI-compatible endpoint (e.g. the Inference Gateway) | -                           |
-| Artifacts  | `A2A_ARTIFACTS_ENABLE`      | Enable artifacts (required to return screenshots/data)  | `false`                     |
+| Artifacts  | `A2A_ARTIFACTS_ENABLED`     | Enable artifacts (required to return screenshots/data)  | `false`                     |
 | Tools      | `TOOLS_READ_ENABLED`        | Enable the `read` tool (loads skill bodies on demand)   | `true`                      |
 | Tools      | `TOOLS_WRITE_ENABLED`       | Enable the `write` tool (persists scraped data/reports) | `true`                      |
 | Tools      | `TOOLS_FETCH_ENABLED`       | Enable the `fetch` tool (HTTP fetch without a browser)  | `true`                      |

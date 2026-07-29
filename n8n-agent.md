@@ -139,7 +139,7 @@ The agent reads the standard ADK environment variables. The ones most relevant t
 | LLM Client | `A2A_AGENT_CLIENT_PROVIDER`       | LLM provider (`openai`, `anthropic`, `deepseek`, ...)   | -             |
 | LLM Client | `A2A_AGENT_CLIENT_MODEL`          | Model to use                                            | -             |
 | LLM Client | `A2A_AGENT_CLIENT_BASE_URL`       | OpenAI-compatible endpoint (e.g. the Inference Gateway) | -             |
-| Artifacts  | `A2A_ARTIFACTS_ENABLE`            | Enable artifacts (required to save generated workflows) | `false`       |
+| Artifacts  | `A2A_ARTIFACTS_ENABLED`           | Enable artifacts (required to save generated workflows) | `false`       |
 | Artifacts  | `A2A_ARTIFACTS_STORAGE_PROVIDER`  | Artifact storage backend (`filesystem` or `minio`)      | `filesystem`  |
 | Artifacts  | `A2A_ARTIFACTS_STORAGE_BASE_PATH` | Base path for filesystem artifact storage               | `./artifacts` |
 | Tools      | `TOOLS_READ_ENABLED`              | Enable the `read` tool (loads the skill body on demand) | `true`        |

@@ -186,7 +186,7 @@ NVIDIA serves the [build.nvidia.com](https://build.nvidia.com) NIM catalog (Nemo
 | `with_default_streaming_task_handler()`                       | Opt into the bundled `message/stream` default.                                              |
 | `with_default_task_handlers()`                                | Opt into both defaults at once.                                                             |
 | `with_workers(n)`                                             | Number of background queue workers (defaults to `A2A_QUEUE_WORKERS`).                       |
-| `with_auth_verifier(Arc<dyn AuthVerifier>)`                   | Plug in a custom verifier (overrides `A2A_AUTH_ENABLE`).                                    |
+| `with_auth_verifier(Arc<dyn AuthVerifier>)`                   | Plug in a custom verifier (overrides `A2A_AUTH_ENABLED`).                                   |
 | `with_artifact_service(Arc<dyn ArtifactService>)`             | Supply a custom artifact service / storage backend.                                         |
 
 > **Builder validation.** `build()` returns an error unless an agent card is configured and at least one task handler is present. It also cross-checks the card's `capabilities.streaming` flag: a streaming-enabled card requires a streaming handler, and a streaming-disabled card requires a background handler. `with_default_task_handlers()` satisfies both.
@@ -318,7 +318,7 @@ See [`examples/ai-powered/`](https://github.com/inference-gateway/rust-adk/tree/
 
 ## MCP client
 
-The Rust ADK ships an optional [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) client that connects an agent to one or more MCP servers over Streamable HTTP, discovers the tools they expose, and lets the LLM invoke them - the same selector-tool design as the [Go ADK](/adk#mcp-client), so an agent reaches a shared MCP server (or a fleet of them) identically across ADKs. It is **disabled by default** (`MCP_ENABLE=false`) and only makes sense with an [LLM-backed agent](#agentbuilder) - the selector tools are useless without a model to drive them.
+The Rust ADK ships an optional [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) client that connects an agent to one or more MCP servers over Streamable HTTP, discovers the tools they expose, and lets the LLM invoke them - the same selector-tool design as the [Go ADK](/adk#mcp-client), so an agent reaches a shared MCP server (or a fleet of them) identically across ADKs. It is **disabled by default** (`MCP_ENABLED=false`) and only makes sense with an [LLM-backed agent](#agentbuilder) - the selector tools are useless without a model to drive them.
 
 ### The selector pattern
 
@@ -559,7 +559,7 @@ The card's `supportsExtendedAgentCard` flag gates `agent/getAuthenticatedExtende
 
 ## Authentication
 
-When `A2A_AUTH_ENABLE=true`, the server gates `POST /a2a` behind an `Authorization: Bearer <token>` header. `GET /health` and `GET /.well-known/agent.json` stay public so probes and discovery clients keep working without a credential. Tokens that fail validation get **HTTP 401** with a `WWW-Authenticate: Bearer realm="a2a"` header.
+When `A2A_AUTH_ENABLED=true`, the server gates `POST /a2a` behind an `Authorization: Bearer <token>` header. `GET /health` and `GET /.well-known/agent.json` stay public so probes and discovery clients keep working without a credential. Tokens that fail validation get **HTTP 401** with a `WWW-Authenticate: Bearer realm="a2a"` header.
 
 The bundled `OidcJwtVerifier`:
 
@@ -569,14 +569,14 @@ The bundled `OidcJwtVerifier`:
 
 | Variable                 | Default | Purpose                                                                                             |
 | ------------------------ | ------- | --------------------------------------------------------------------------------------------------- |
-| `A2A_AUTH_ENABLE`        | `false` | When `true`, `POST /a2a` requires a valid bearer token.                                             |
+| `A2A_AUTH_ENABLED`       | `false` | When `true`, `POST /a2a` requires a valid bearer token.                                             |
 | `A2A_AUTH_ISSUER_URL`    | (empty) | OIDC issuer; the server performs discovery + JWKS lookup against it. Required when auth is enabled. |
 | `A2A_AUTH_CLIENT_ID`     | (empty) | Validated as the JWT audience (`aud`) when set.                                                     |
 | `A2A_AUTH_CLIENT_SECRET` | (empty) | Reserved for client-side OAuth2 flows; currently unused server-side.                                |
 
 On success the verifier produces an `AuthenticatedPrincipal` - `subject` (`sub`), `tenant` (first of `tenant`/`tid`/`organization`), `issuer`, and the full `claims` map - and attaches it to the request as an Axum extension so the JSON-RPC dispatcher can scope behaviour by tenant.
 
-To plug in a custom backend (a static signing key, an internal identity service, a mock for tests), implement `AuthVerifier` and pass it to `with_auth_verifier(...)`. This **overrides** whatever `A2A_AUTH_ENABLE` selects, the same way `with_storage(...)` overrides the task store:
+To plug in a custom backend (a static signing key, an internal identity service, a mock for tests), implement `AuthVerifier` and pass it to `with_auth_verifier(...)`. This **overrides** whatever `A2A_AUTH_ENABLED` selects, the same way `with_storage(...)` overrides the task store:
 
 ```rust
 use async_trait::async_trait;
@@ -613,11 +613,11 @@ When auth is disabled the middleware is not attached, and `agent/getAuthenticate
 
 ## TLS and mTLS
 
-When `A2A_SERVER_TLS_ENABLE=true`, `A2AServer::serve` swaps its plaintext listener for [`axum-server`](https://github.com/programatik29/axum-server) backed by [`rustls`](https://github.com/rustls/rustls) 0.23 (with the `ring` crypto provider) and serves the same router over HTTPS. Rustls was chosen over native-tls because it is pure Rust - avoiding the OpenSSL toolchain on container builds - and because it gives programmatic access to the negotiated connection, which is what makes the mTLS subject extraction below tractable.
+When `A2A_SERVER_TLS_ENABLED=true`, `A2AServer::serve` swaps its plaintext listener for [`axum-server`](https://github.com/programatik29/axum-server) backed by [`rustls`](https://github.com/rustls/rustls) 0.23 (with the `ring` crypto provider) and serves the same router over HTTPS. Rustls was chosen over native-tls because it is pure Rust - avoiding the OpenSSL toolchain on container builds - and because it gives programmatic access to the negotiated connection, which is what makes the mTLS subject extraction below tractable.
 
 | Variable                        | Default | Purpose                                                                                                                                                       |
 | ------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `A2A_SERVER_TLS_ENABLE`         | `false` | When `true`, `A2AServer::serve` binds an HTTPS listener.                                                                                                      |
+| `A2A_SERVER_TLS_ENABLED`        | `false` | When `true`, `A2AServer::serve` binds an HTTPS listener.                                                                                                      |
 | `A2A_SERVER_TLS_CERT_PATH`      | (empty) | PEM file with the server certificate chain.                                                                                                                   |
 | `A2A_SERVER_TLS_KEY_PATH`       | (empty) | PEM file with the server private key (PKCS#1, PKCS#8, or SEC1).                                                                                               |
 | `A2A_SERVER_TLS_CLIENT_CA_PATH` | (unset) | When set, the server requires mTLS and trusts client certificates signed by any CA in this PEM bundle - the `MutualTlsSecurityScheme` the A2A spec describes. |
@@ -647,12 +647,12 @@ The subsystem has four moving parts, each behind a trait so production deploymen
 
 | Layer         | Trait / type                                                               | Default                                         |
 | ------------- | -------------------------------------------------------------------------- | ----------------------------------------------- |
-| Configuration | `ArtifactsConfig` (in `config.rs`)                                         | disabled (`ARTIFACTS_ENABLE=false`)             |
+| Configuration | `ArtifactsConfig` (in `config.rs`)                                         | disabled (`ARTIFACTS_ENABLED=false`)            |
 | Storage       | `ArtifactStorage` (`store`, `retrieve`, `exists`, `delete`, `cleanup_*`)   | `FilesystemArtifactStorage`                     |
 | Service       | `ArtifactService` (`create_*_artifact`, `add_artifact_to_task`, retention) | `DefaultArtifactService`                        |
 | HTTP surface  | `ArtifactsServer` (`GET /health`, `GET /artifacts/:artifact_id/:filename`) | `0.0.0.0:8081` listener with byte-range support |
 
-When `ARTIFACTS_ENABLE=true`, `A2AServer::serve(...)` starts the artifacts HTTP server on its own socket alongside the main A2A JSON-RPC server and runs a background retention loop that prunes expired and over-cap blobs. The artifacts server reuses the same TLS machinery as the A2A endpoint, so it can sit behind TLS/mTLS too.
+When `ARTIFACTS_ENABLED=true`, `A2AServer::serve(...)` starts the artifacts HTTP server on its own socket alongside the main A2A JSON-RPC server and runs a background retention loop that prunes expired and over-cap blobs. The artifacts server reuses the same TLS machinery as the A2A endpoint, so it can sit behind TLS/mTLS too.
 
 ```mermaid
 flowchart LR
@@ -838,7 +838,7 @@ The artifacts subsystem is configured entirely through the `ARTIFACTS_*` environ
 
 | Variable                               | Default                 | Description                                                                                                                                            |
 | -------------------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `ARTIFACTS_ENABLE`                     | `false`                 | Master switch. When `true`, `A2AServer::serve(...)` spawns the artifacts server and retention loop.                                                    |
+| `ARTIFACTS_ENABLED`                    | `false`                 | Master switch. When `true`, `A2AServer::serve(...)` spawns the artifacts server and retention loop.                                                    |
 | `ARTIFACTS_SERVER_HOST`                | `0.0.0.0`               | Bind address of the artifacts HTTP server.                                                                                                             |
 | `ARTIFACTS_SERVER_PORT`                | `8081`                  | Port of the artifacts HTTP server.                                                                                                                     |
 | `ARTIFACTS_SERVER_READ_TIMEOUT`        | `30s`                   | Per-request read timeout.                                                                                                                              |
@@ -870,7 +870,7 @@ services:
       - '8087:8087' # A2A JSON-RPC
       - '8088:8088' # Artifacts HTTP (exposed for host-side curl/debug)
     environment:
-      ARTIFACTS_ENABLE: 'true'
+      ARTIFACTS_ENABLED: 'true'
       ARTIFACTS_SERVER_HOST: '0.0.0.0'
       ARTIFACTS_SERVER_PORT: '8088'
       ARTIFACTS_STORAGE_PROVIDER: filesystem
@@ -980,7 +980,7 @@ The retention and artifacts-server bind variables from the [artifacts configurat
 
 ## Telemetry
 
-The ADK bridges its `tracing` instrumentation to [OpenTelemetry](https://opentelemetry.io/), exporting spans to an OTLP collector over **HTTP/protobuf**. It is a **traces-only** signal - there is no metrics export and no gRPC/`tonic` transport - and it lands behind the optional `telemetry` Cargo feature so the default build stays lean. It mirrors the [Go ADK](/adk#telemetry): `A2A_TELEMETRY_ENABLE` is the sole switch, and `A2A_OTEL_TRACES_EXPORTER=none` opts the trace signal out while telemetry stays enabled. The wiring landed in [rust-adk#117](https://github.com/inference-gateway/rust-adk/pull/117).
+The ADK bridges its `tracing` instrumentation to [OpenTelemetry](https://opentelemetry.io/), exporting spans to an OTLP collector over **HTTP/protobuf**. It is a **traces-only** signal - there is no metrics export and no gRPC/`tonic` transport - and it lands behind the optional `telemetry` Cargo feature so the default build stays lean. It mirrors the [Go ADK](/adk#telemetry): `A2A_TELEMETRY_ENABLED` is the sole switch, and `A2A_OTEL_TRACES_EXPORTER=none` opts the trace signal out while telemetry stays enabled. The wiring landed in [rust-adk#117](https://github.com/inference-gateway/rust-adk/pull/117).
 
 Enable the feature at build time:
 
@@ -1003,7 +1003,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config: Config = envy::prefixed("A2A_").from_env()?;
 
     // Always installs the fmt layer; adds the OTLP exporter when
-    // A2A_TELEMETRY_ENABLE=true AND the `telemetry` feature is compiled in.
+    // A2A_TELEMETRY_ENABLED=true AND the `telemetry` feature is compiled in.
     // Hold the guard for the process lifetime so batched spans flush on exit.
     let _guard = telemetry::init(
         &config.telemetry_config,
@@ -1023,7 +1023,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-`init` always installs the `fmt` layer, so logging works with or without the feature. When `A2A_TELEMETRY_ENABLE=true` but the `telemetry` feature was **not** compiled in, `init` logs a `warn!` and skips export rather than failing - rebuild with `--features telemetry` to turn spans on.
+`init` always installs the `fmt` layer, so logging works with or without the feature. When `A2A_TELEMETRY_ENABLED=true` but the `telemetry` feature was **not** compiled in, `init` logs a `warn!` and skips export rather than failing - rebuild with `--features telemetry` to turn spans on.
 
 ### Emitted spans
 
@@ -1038,7 +1038,7 @@ Telemetry loads from the same `A2A_` `Config` as the rest of the server (`config
 
 | Variable                      | Default                 | Purpose                                                                            |
 | ----------------------------- | ----------------------- | ---------------------------------------------------------------------------------- |
-| `A2A_TELEMETRY_ENABLE`        | `false`                 | Sole telemetry switch. When `true`, traces export over OTLP.                       |
+| `A2A_TELEMETRY_ENABLED`       | `false`                 | Sole telemetry switch. When `true`, traces export over OTLP.                       |
 | `A2A_OTEL_TRACES_EXPORTER`    | `otlp`                  | Trace exporter: `otlp` or `none`. `none` opts traces out while telemetry stays on. |
 | `A2A_TELEMETRY_ENDPOINT`      | _(unset)_               | OTLP collector endpoint. Takes precedence over `OTEL_EXPORTER_OTLP_ENDPOINT`.      |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://localhost:4318` | Standard OTLP endpoint, used when `A2A_TELEMETRY_ENDPOINT` is unset.               |
@@ -1120,7 +1120,7 @@ The library never reads the environment itself. You pick a loader - typically [`
 
 | Variable                 | Default   | Purpose                                                            |
 | ------------------------ | --------- | ------------------------------------------------------------------ |
-| `MCP_ENABLE`             | `false`   | Enable the MCP client.                                             |
+| `MCP_ENABLED`            | `false`   | Enable the MCP client.                                             |
 | `MCP_SERVERS`            | _(unset)_ | Comma-separated MCP server base URLs, e.g. `http://mcp:8080`.      |
 | `MCP_ENDPOINT`           | `/mcp`    | Path appended to each server URL for the Streamable HTTP endpoint. |
 | `MCP_REFRESH_INTERVAL`   | `5m`      | How often to refresh the tool catalog from each server.            |
@@ -1145,7 +1145,7 @@ The library never reads the environment itself. You pick a loader - typically [`
 
 | Variable                 | Default   | Purpose                                       |
 | ------------------------ | --------- | --------------------------------------------- |
-| `A2A_AUTH_ENABLE`        | `false`   | Enable OIDC bearer-token auth on `POST /a2a`. |
+| `A2A_AUTH_ENABLED`       | `false`   | Enable OIDC bearer-token auth on `POST /a2a`. |
 | `A2A_AUTH_ISSUER_URL`    | _(empty)_ | OIDC issuer used for discovery + JWKS.        |
 | `A2A_AUTH_CLIENT_ID`     | _(empty)_ | Expected `aud` claim on incoming tokens.      |
 | `A2A_AUTH_CLIENT_SECRET` | _(empty)_ | Client secret, for flows that require it.     |
@@ -1154,16 +1154,16 @@ The library never reads the environment itself. You pick a loader - typically [`
 
 | Variable                        | Default   | Purpose                                                        |
 | ------------------------------- | --------- | -------------------------------------------------------------- |
-| `A2A_SERVER_TLS_ENABLE`         | `false`   | Terminate TLS on the A2A listener.                             |
+| `A2A_SERVER_TLS_ENABLED`        | `false`   | Terminate TLS on the A2A listener.                             |
 | `A2A_SERVER_TLS_CERT_PATH`      | _(empty)_ | PEM file with the server certificate chain.                    |
 | `A2A_SERVER_TLS_KEY_PATH`       | _(empty)_ | PEM file with the server private key.                          |
 | `A2A_SERVER_TLS_CLIENT_CA_PATH` | _(unset)_ | Trusted client-CA bundle; presence flips the server into mTLS. |
 
-**Telemetry** - OpenTelemetry OTLP **trace** export; see [Telemetry](#telemetry) for `telemetry::init` usage and the emitted spans. Traces-only over HTTP/protobuf, behind the optional `telemetry` Cargo feature. `A2A_TELEMETRY_ENABLE` is the sole switch, matching the [Go ADK](/adk#telemetry); `A2A_OTEL_TRACES_EXPORTER=none` opts the trace signal out while telemetry stays enabled.
+**Telemetry** - OpenTelemetry OTLP **trace** export; see [Telemetry](#telemetry) for `telemetry::init` usage and the emitted spans. Traces-only over HTTP/protobuf, behind the optional `telemetry` Cargo feature. `A2A_TELEMETRY_ENABLED` is the sole switch, matching the [Go ADK](/adk#telemetry); `A2A_OTEL_TRACES_EXPORTER=none` opts the trace signal out while telemetry stays enabled.
 
 | Variable                      | Default                 | Purpose                                                                                                |
 | ----------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------ |
-| `A2A_TELEMETRY_ENABLE`        | `false`                 | Sole telemetry switch. When `true`, traces export over OTLP.                                           |
+| `A2A_TELEMETRY_ENABLED`       | `false`                 | Sole telemetry switch. When `true`, traces export over OTLP.                                           |
 | `A2A_OTEL_TRACES_EXPORTER`    | `otlp`                  | Trace exporter: `otlp` or `none`. `none` opts traces out while telemetry stays on.                     |
 | `A2A_TELEMETRY_ENDPOINT`      | _(unset)_               | OTLP collector endpoint. Takes precedence over the standard `OTEL_EXPORTER_OTLP_ENDPOINT`.             |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://localhost:4318` | Standard OTLP endpoint, used when `A2A_TELEMETRY_ENDPOINT` is unset. Part of the `OTEL_*` passthrough. |

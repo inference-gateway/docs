@@ -651,7 +651,7 @@ spec:
 
 | Field              | Type     | Required | Default | Env var                      | Description                                                                             |
 | ------------------ | -------- | :------: | ------- | ---------------------------- | --------------------------------------------------------------------------------------- |
-| `enabled`          | boolean  |    ✓     | `false` | `A2A_MCP_ENABLE`             | Master switch. When `false`, no MCP client is generated even if `servers` is populated. |
+| `enabled`          | boolean  |    ✓     | `false` | `A2A_MCP_ENABLED`            | Master switch. When `false`, no MCP client is generated even if `servers` is populated. |
 | `servers`          | object[] |          | -       | derived (`A2A_MCP_SERVERS`)  | MCP servers to connect to. See the per-entry fields below.                              |
 | `endpoint`         | string   |          | `/mcp`  | `A2A_MCP_ENDPOINT`           | Path appended to each server base URL to reach its MCP endpoint.                        |
 | `refreshInterval`  | string   |          | `5m`    | `A2A_MCP_REFRESH_INTERVAL`   | How often the client re-discovers each server's tools (Go duration string).             |
@@ -1000,7 +1000,7 @@ Every field except `enabled` is optional. Selecting `otlp: {}` with no `endpoint
 
 | Manifest                       | Environment variable                                                                     |
 | ------------------------------ | ---------------------------------------------------------------------------------------- |
-| `enabled: true`                | `A2A_TELEMETRY_ENABLE=true` (ADK master switch)                                          |
+| `enabled: true`                | `A2A_TELEMETRY_ENABLED=true` (ADK master switch)                                         |
 | `traces.exporter.otlp`         | `OTEL_TRACES_EXPORTER=otlp`                                                              |
 | `metrics.exporter.otlp`        | `OTEL_METRICS_EXPORTER=otlp`                                                             |
 | `metrics.exporter.prometheus`  | `OTEL_METRICS_EXPORTER=prometheus`                                                       |
