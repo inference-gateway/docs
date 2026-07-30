@@ -2655,11 +2655,20 @@ infer agents add calendar-agent http://calendar.example.com
 # Add local agent with Docker
 infer agents add my-agent http://localhost:8081 --oci ghcr.io/myorg/agent:latest --run
 
+# Add a known agent on a specific image tag (browser-agent ships one tag per browser engine)
+infer agents add browser-agent --tag lightpanda
+
+# Pin a known agent to a released version
+infer agents add browser-agent --tag chromium-0.8.0
+
 # List agents
 infer agents list
 
 # View agent details
 infer agents show calendar-agent
+
+# Update an agent's image tag
+infer agents update browser-agent --tag firefox
 ```
 
 **Usage:**
