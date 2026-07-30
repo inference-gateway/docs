@@ -326,7 +326,7 @@ The selected indicator is highlighted as an **accent-colored pill**.
 
 ```bash
 infer chat
-> /model deepseek/deepseek-v4-pro                              # switch the session model
+> /model deepseek/deepseek-v4-flash                              # switch the session model
 > /model anthropic/claude-opus-4-8 Explain this stack trace    # one-off, then restore
 ```
 
@@ -1732,10 +1732,10 @@ The CLI injects W3C trace context into every outgoing A2A request, so the mock-a
 
 ```text
 session (standard, success)                 152ms
-|-- chat deepseek/deepseek-v4-pro             5ms
+|-- chat deepseek/deepseek-v4-flash             5ms
 |-- execute_tool A2A_SubmitTask              89ms
 |   `-- a2a.request [mock-agent]             52ms
-`-- chat deepseek/deepseek-v4-pro            12ms
+`-- chat deepseek/deepseek-v4-flash            12ms
 ```
 
 Ingested foreign spans are labeled `name [service]` from the producer's `service.name` resource attribute - for example `a2a.request [mock-agent]`.
@@ -1850,7 +1850,7 @@ The CLI provides built-in shortcuts and supports custom user-defined shortcuts.
 | `/init-github-action` | Setup GitHub Action integration                                                                    | `/init-github-action`                     |
 | `/git <cmd>`          | Git operations                                                                                     | `/git status`, `/git commit`, `/git push` |
 | `/scm <cmd>`          | GitHub operations                                                                                  | `/scm pr-create`, `/scm issue view 123`   |
-| `/model [name] [msg]` | Switch the active model, or run one message with another model (replaces `/switch`)                | `/model deepseek/deepseek-v4-pro`         |
+| `/model [name] [msg]` | Switch the active model, or run one message with another model (replaces `/switch`)                | `/model deepseek/deepseek-v4-flash`         |
 | `/a2a`                | View registered A2A agents and their connection state                                              | `/a2a`                                    |
 | `/tasks`              | View background work (A2A tasks, shells, subagents) with live status and captured output           | `/tasks`                                  |
 | `/tools`              | View a filterable list of tools available in the current agent mode, including MCP tools           | `/tools`                                  |
@@ -2038,7 +2038,7 @@ jobs:
         with:
           github-token: ${{ steps.generate-token.outputs.token }}
           trigger-phrase: '@infer'
-          model: 'deepseek/deepseek-v4-pro'
+          model: 'deepseek/deepseek-v4-flash'
           max-turns: 50
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
@@ -2198,7 +2198,7 @@ Pro is an axis **orthogonal to price**: an Ollama Cloud Pro model has no per-tok
 ollama_cloud/deepseek-v4-pro   (1M, pro subscription)
 ollama_cloud/deepseek-v4-flash (1M, pro subscription)
 ollama_cloud/deepseek-v3.2     (128K, free)
-deepseek/deepseek-v4-pro       (1M, $1.74/$3.48 per MTok)
+deepseek/deepseek-v4-flash       (1M, $1.74/$3.48 per MTok)
 ```
 
 `ollama_cloud/deepseek-v4-pro` and `ollama_cloud/deepseek-v4-flash` are flagged Pro by default. This default Pro set is **maintainer-curated** (Ollama publishes no stable per-model tier badge) and fully overridable through `custom_prices` - set `requires_pro: true` to gate additional models, or override a default Pro model as shown above.
