@@ -104,6 +104,42 @@ infer agents add browser-agent http://localhost:8080 \
   --run
 ```
 
+The browser engine is baked into the image at build time, so you pick it by picking the
+image tag. Use `--tag` to swap the tag on the agent's default image:
+
+```bash
+# Add browser-agent with Lightpanda engine
+infer agents add browser-agent --tag lightpanda
+
+# Pin to a specific release
+infer agents add browser-agent --tag chromium-0.8.0
+
+# Switch an existing agent's engine
+infer agents update browser-agent --tag firefox
+```
+
+| Tag                  | Engine             | Image size |
+| -------------------- | ------------------ | ---------- |
+| `latest`, `chromium` | Chromium (default) | 3.03GB     |
+| `firefox`            | Firefox            | 1.74GB     |
+| `webkit`             | WebKit             | 1.95GB     |
+| `lightpanda`         | Lightpanda         | 871MB      |
+
+Each tag is also published per release (`chromium-0.8.0`, `lightpanda-0.8.0`, ...), so `--tag` doubles
+as version pinning. Setting `BROWSER_ENGINE` at runtime does not work - the image ships exactly one
+engine and rejects any other value at startup.
+
+Lightpanda drives a bundled browser over CDP instead of launching one per session, which cuts cold-start
+time and image size. The tradeoff is coverage: it implements a subset of the web platform, and it has no
+rendering engine at all, so `take_screenshot` fails. Every skill shipped with browser-agent uses
+screenshots, so choose it only for text and DOM extraction where speed matters.
+
+**⚠️ Artifacts must be enabled.** The browser-agent returns results (screenshots, extracted
+data, generated files) as **artifacts** served by an internal HTTP server. Without the artifacts
+URL, the agent has no way to deliver them and data is silently lost. For known agents like
+`browser-agent`, the CLI auto-computes the artifacts URL from the agent's base port + 1 and sets
+`A2A_AGENT_CLIENT_TOOLS_CREATE_ARTIFACT=true` in the environment - no extra flags needed.
+
 See the [A2A Integration guide](/a2a/#using-a2a-with-the-inference-gateway-cli) for the full CLI workflow, then start chatting:
 
 ```bash

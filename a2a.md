@@ -116,6 +116,12 @@ infer agents add <agent-name> <agent-url> \
   --oci <oci-image> \
   --run
 
+# Add a known agent on a specific image tag (browser-agent ships one tag per browser engine)
+infer agents add browser-agent --tag lightpanda
+
+# Pin a known agent to a released version
+infer agents add browser-agent --tag chromium-0.8.0
+
 # Add an agent with environment variables
 infer agents add <agent-name> <agent-url> \
   --environment KEY=value
