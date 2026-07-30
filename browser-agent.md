@@ -118,12 +118,12 @@ infer agents add browser-agent --tag chromium-0.8.0
 infer agents update browser-agent --tag firefox
 ```
 
-| Tag | Engine | Image size |
-| --- | --- | --- |
-| `latest`, `chromium` | Chromium (default) | 3.03GB |
-| `firefox` | Firefox | 1.74GB |
-| `webkit` | WebKit | 1.95GB |
-| `lightpanda` | Lightpanda | 871MB |
+| Tag                  | Engine             | Image size |
+| -------------------- | ------------------ | ---------- |
+| `latest`, `chromium` | Chromium (default) | 3.03GB     |
+| `firefox`            | Firefox            | 1.74GB     |
+| `webkit`             | WebKit             | 1.95GB     |
+| `lightpanda`         | Lightpanda         | 871MB      |
 
 Each tag is also published per release (`chromium-0.8.0`, `lightpanda-0.8.0`, ...), so `--tag` doubles
 as version pinning. Setting `BROWSER_ENGINE` at runtime does not work - the image ships exactly one

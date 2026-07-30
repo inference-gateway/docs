@@ -1850,7 +1850,7 @@ The CLI provides built-in shortcuts and supports custom user-defined shortcuts.
 | `/init-github-action` | Setup GitHub Action integration                                                                    | `/init-github-action`                     |
 | `/git <cmd>`          | Git operations                                                                                     | `/git status`, `/git commit`, `/git push` |
 | `/scm <cmd>`          | GitHub operations                                                                                  | `/scm pr-create`, `/scm issue view 123`   |
-| `/model [name] [msg]` | Switch the active model, or run one message with another model (replaces `/switch`)                | `/model deepseek/deepseek-v4-flash`         |
+| `/model [name] [msg]` | Switch the active model, or run one message with another model (replaces `/switch`)                | `/model deepseek/deepseek-v4-flash`       |
 | `/a2a`                | View registered A2A agents and their connection state                                              | `/a2a`                                    |
 | `/tasks`              | View background work (A2A tasks, shells, subagents) with live status and captured output           | `/tasks`                                  |
 | `/tools`              | View a filterable list of tools available in the current agent mode, including MCP tools           | `/tools`                                  |
