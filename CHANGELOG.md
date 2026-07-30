@@ -2,6 +2,45 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.6](https://github.com/inference-gateway/docs/compare/0.9.5...0.9.6) (2026-07-30)
+
+### ⚠ BREAKING CHANGES
+
+* the gateway renamed every _ENABLE env-var suffix to _ENABLED. No backward compatibility - the old names no longer work.
+
+  Renamed: TELEMETRY_ENABLE -> TELEMETRY_ENABLED, TELEMETRY_METRICS_PUSH_ENABLE -> TELEMETRY_METRICS_PUSH_ENABLED, TELEMETRY_TRACING_ENABLE -> TELEMETRY_TRACING_ENABLED, MCP_ENABLE -> MCP_ENABLED, MCP_POLLING_ENABLE -> MCP_POLLING_ENABLED, AUTH_ENABLE -> AUTH_ENABLED. MCP_ENABLE_RECONNECT is unchanged.
+
+  Updated all occurrences in configuration.md, api-reference.md, authentication.md, observability.md, mcp.md, index.md, sdks.md, troubleshooting.md, operator.md. Added breaking-change callout to configuration.md. ADK env vars (A2A_*_ENABLE) are NOT renamed - the ADK repos have not yet adopted this change.
+
+  * style: fix prettier formatting in authentication.md, observability.md, operator.md
+
+  * fix: complete missed _ENABLE to _ENABLED renames from Claude's review
+
+  Fixes remaining old _ENABLE names missed in the initial rename pass:
+
+  - configuration.md: AUTH_ENABLE in generalSettings, TELEMETRY_METRICS_PUSH_ENABLE in telemetrySettings, .env and complete example
+
+  - observability.md: TELEMETRY_METRICS_PUSH_ENABLE in push endpoint code block, delete stray trailing dots
+
+  - authentication.md: AUTH_ENABLE in Go gateway bash examples and naming table
+
+  - troubleshooting.md: fix MCP_POLLING_ENABLED comment alignment
+
+  * fix(configuration): rename remaining AUTH_ENABLE to AUTH_ENABLED in generalSettings
+
+### 👷 CI
+
+* **claude:** centralize claude.yml via reusable workflow ([#491](https://github.com/inference-gateway/docs/issues/491)) ([33352aa](https://github.com/inference-gateway/docs/commit/33352aa29f53e36879456ba5134cb76ebd54f72d))
+
+### 📚 Documentation
+
+* document A2A card-driven auth flow in Go ADK ([#495](https://github.com/inference-gateway/docs/issues/495)) ([ba0349d](https://github.com/inference-gateway/docs/commit/ba0349de47521be8cf1774c0b9fca21d66f32b41))
+* document rust-adk card-driven auth flow ([#497](https://github.com/inference-gateway/docs/issues/497)) ([12c2d45](https://github.com/inference-gateway/docs/commit/12c2d450c767fb83905f354c226cd0e45ceb6e0d))
+* **mcp:** document MCP_TOOL_MODE selector mode ([#490](https://github.com/inference-gateway/docs/issues/490)) ([9b5f321](https://github.com/inference-gateway/docs/commit/9b5f32111fe64bc3401e5835b798b9dbb3e198b6))
+* rename _ENABLE env vars to _ENABLED (schemas v0.15.3) ([#487](https://github.com/inference-gateway/docs/issues/487)) ([5444612](https://github.com/inference-gateway/docs/commit/5444612f6ee4910bf81e5a85db8cdb093835edab))
+* rename _ENABLE env vars to _ENABLED across all pages ([#494](https://github.com/inference-gateway/docs/issues/494)) ([7a35477](https://github.com/inference-gateway/docs/commit/7a354775883405fa96ddcfc7ffdca7ba87d2281a)), closes [#493](https://github.com/inference-gateway/docs/issues/493)
+* sync with CLI --tag flag, model bump, and enable/disable removal ([#499](https://github.com/inference-gateway/docs/issues/499)) ([19e4f39](https://github.com/inference-gateway/docs/commit/19e4f396360fcebde3f4f2e990a06362b1d7837e))
+
 ## [0.9.5](https://github.com/inference-gateway/docs/compare/0.9.4...0.9.5) (2026-07-27)
 
 ### 🐛 Bug Fixes
