@@ -555,7 +555,7 @@ let server = A2AServerBuilder::new()
 
 `AgentCardOverrides` exposes `with_name`, `with_description`, `with_version`, and `with_url`. See [`examples/static-agent-card/`](https://github.com/inference-gateway/rust-adk/tree/main/examples/static-agent-card) for a runnable demo.
 
-The card's `supportsExtendedAgentCard` flag gates `agent/getAuthenticatedExtendedCard`: when `false` the method returns JSON-RPC `-32601 METHOD_NOT_FOUND`, so production agents can advertise the extended card only when their auth policy allows it.
+The card's `supportsExtendedAgentCard` flag gates `agent/getAuthenticatedExtendedCard`. See [Card-driven authentication flow](#card-driven-authentication-flow) for how the flag is set, the extended-card error contract, and how clients discover which schemes the agent accepts.
 
 ## Authentication
 
@@ -610,6 +610,68 @@ let server = A2AServerBuilder::new()
 ```
 
 When auth is disabled the middleware is not attached, and `agent/getAuthenticatedExtendedCard` returns the configured card whenever `supportsExtendedAgentCard == true`. See [`examples/auth/`](https://github.com/inference-gateway/rust-adk/tree/main/examples/auth) for an end-to-end demo that runs both a static-token verifier and a Keycloak-backed `OidcJwtVerifier`.
+
+### Card-driven authentication flow
+
+Beyond validating bearer tokens, the ADK implements the [A2A spec, section 7](https://a2a-protocol.org/latest/specification/#7-authentication-and-authorization) **card-driven** auth model: the agent card advertises _how_ to authenticate, and clients transmit credentials obtained out-of-band on every request. A2A does not run OAuth flows in-protocol.
+
+1. **Discovery** - the client fetches the public card from `/.well-known/agent.json` (always unauthenticated). The card declares `securitySchemes` (named schemes the agent accepts: `apiKey`, `http`, `oauth2`, `openIdConnect`, `mutualTLS`) and `security` (a requirement list with OR-of-ANDs semantics - satisfying any one entry is sufficient).
+2. **Credential acquisition is out-of-band** - the client obtains a token/key however the chosen scheme dictates.
+3. **Transmission** - the client sends the credential (e.g. `Authorization: Bearer <token>`) on every request.
+4. **Server enforcement** - with `A2A_AUTH_ENABLED=true` the `POST /a2a` endpoint is protected; unauthenticated requests get `401` with a `WWW-Authenticate: Bearer realm="a2a"` challenge.
+5. **Extended card** - if the card sets `supportsExtendedAgentCard: true`, an authenticated client MAY call `agent/getAuthenticatedExtendedCard` for a richer card and SHOULD replace its cached public card with the response.
+
+#### Declaring security schemes on the card
+
+With `A2A_AUTH_ENABLED=true` the served card must declare `securitySchemes` so clients can discover how to authenticate. The `oidc_security_schemes` helper derives that declaration from the auth config at startup - keyed `"openId"` with a discovery URL built from the OIDC issuer, plus a matching `security` requirement:
+
+```rust
+use inference_gateway_adk::{oidc_security_schemes, Config};
+
+let config: Config = envy::prefixed("A2A_").from_env()?;
+
+let (schemes, security) = oidc_security_schemes(&config.auth);
+card.security_schemes = Some(schemes);
+card.security = Some(security);
+```
+
+This mirrors Go's `server.OIDCSecuritySchemes`. It matters because [ADL](/adl) manifests deliberately exclude OIDC/OAuth2 from their card definitions - so an ADL-generated agent derives its `securitySchemes`/`security` from the running auth config at startup rather than hard-coding an issuer into the manifest. The resulting card fragment looks like:
+
+```json
+{
+  "securitySchemes": {
+    "openId": {
+      "openIdConnectSecurityScheme": {
+        "openIdConnectUrl": "https://issuer.example.com/realms/app/.well-known/openid-configuration"
+      }
+    }
+  },
+  "security": [{ "schemes": { "openId": { "list": [] } } }]
+}
+```
+
+If `A2A_AUTH_ENABLED=true` but the card declares no `securitySchemes` (or the inverse - a card advertises schemes while auth is disabled), `build()` logs a **startup warning**: the two declarations disagree and discovery would otherwise be broken.
+
+#### The authenticated extended card
+
+The extended card is served only to authenticated callers via `agent/getAuthenticatedExtendedCard`. Configure it with the builder; `with_extended_agent_card` also forces `supportsExtendedAgentCard: true` on the public card:
+
+```rust
+let server = A2AServerBuilder::new()
+    .with_agent_card_from_file(".well-known/agent.json", None)
+    .with_extended_agent_card(extended_card) // extra skills, capability detail, ...
+    .with_default_task_handlers()
+    .build()
+    .await?;
+```
+
+The error contract (spec 3.3.4) for `agent/getAuthenticatedExtendedCard`:
+
+| Card state                                                | Result                                              |
+| --------------------------------------------------------- | --------------------------------------------------- |
+| `supportsExtendedAgentCard` absent or `false`             | `-32004` (`UnsupportedOperation`)                   |
+| `supportsExtendedAgentCard: true`, no extended configured | `-32007` (`AuthenticatedExtendedCardNotConfigured`) |
+| `supportsExtendedAgentCard: true`, extended configured    | the extended card is returned                       |
 
 ## TLS and mTLS
 
