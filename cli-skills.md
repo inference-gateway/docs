@@ -103,6 +103,7 @@ agent:
     enabled: true # default - set to false to turn skills off
     max_chars: 4000 # cap on the rendered AVAILABLE SKILLS block (0 disables the cap)
     disabled_skills: [] # optional list of skill names to skip
+    repository: inference-gateway/skills # catalog repo the index and skill bodies resolve against
 ```
 
 ```bash
@@ -116,11 +117,12 @@ infer config set agent.skills.enabled false --userspace
 INFER_AGENT_SKILLS_ENABLED=false infer chat
 ```
 
-| Setting                        | Type     | Default | Description                                                                     |
-| ------------------------------ | -------- | ------- | ------------------------------------------------------------------------------- |
-| `agent.skills.enabled`         | bool     | `true`  | Master switch. Also enables the [sandbox carve-out](#skills-sandbox-carve-out). |
-| `agent.skills.max_chars`       | int      | `4000`  | Cap on the rendered `AVAILABLE SKILLS` block. `0` disables the cap.             |
-| `agent.skills.disabled_skills` | string[] | `[]`    | Skill names to discover but never inject or activate.                           |
+| Setting                        | Type     | Default                    | Description                                                                                                                                                            |
+| ------------------------------ | -------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `agent.skills.enabled`         | bool     | `true`                     | Master switch. Also enables the [sandbox carve-out](#skills-sandbox-carve-out).                                                                                        |
+| `agent.skills.max_chars`       | int      | `4000`                     | Cap on the rendered `AVAILABLE SKILLS` block. `0` disables the cap.                                                                                                    |
+| `agent.skills.disabled_skills` | string[] | `[]`                       | Skill names to discover but never inject or activate.                                                                                                                  |
+| `agent.skills.repository`      | string   | `inference-gateway/skills` | GitHub `owner/repo` the [catalog index and skill bodies](#the-skills-catalog-and-agentskillsrepository) resolve against. Point it at a fork to serve your own catalog. |
 
 The matching environment variable `INFER_AGENT_SKILLS_ENABLED` takes precedence over the config file. To keep skills off everywhere, set `agent.skills.enabled: false` in your user config (`~/.infer/config.yaml`).
 
@@ -165,6 +167,50 @@ A bare `<name>` resolves through the public [Skills Catalog](/skills/) index. Th
 - Unauthenticated GitHub requests are limited to **60 per hour per IP** (easily exhausted on shared CI runners). Set `GITHUB_TOKEN` (or `GH_TOKEN`, matching the `gh` CLI) to raise the limit to 5,000/hour and to install from private repositories the token can access.
 - Refs containing a literal `/` (such as `feature/foo` branches) are not supported - use a tag, the default branch, or a single-segment branch.
 - Uninstall takes the on-disk directory name, regex-validated before any filesystem operation, so it cannot traverse outside the skills directory. There is no confirmation prompt (it matches `npm uninstall` / `brew uninstall`).
+
+## The skills catalog and `agent.skills.repository`
+
+A bare `<name>` install (and the on-demand catalog download described in [Security](#security)) resolves through a catalog served straight from GitHub. The `agent.skills.repository` config (default `inference-gateway/skills`) is the `owner/repo` that catalog resolves against, so pointing it at a fork lets anyone serve their own skills.
+
+### The derived index URL
+
+The repository is the **single source** for both the index and the skill bodies. The CLI derives the index URL from it:
+
+```text
+https://raw.githubusercontent.com/<repository>/main/catalog.json
+```
+
+The default `inference-gateway/skills` therefore reads `https://raw.githubusercontent.com/inference-gateway/skills/main/catalog.json` (the same `catalog.json` the [Skills Catalog](/skills/) publishes). Skill bodies resolve against that same repository - there is no second host to configure.
+
+### The `catalog.json` schema
+
+`catalog.json` has a versioned header plus a flat `skills` array. The CLI is **tolerant**: it reads only a few fields and ignores the rest, so extra keys are harmless.
+
+Top-level:
+
+| Field     | Read by the CLI?                   | Notes                                               |
+| --------- | ---------------------------------- | --------------------------------------------------- |
+| `version` | No                                 | Schema/format version. Ignored today.               |
+| `release` | Yes - `infer skills search` header | Catalog release tag, shown in the search header.    |
+| `updated` | Yes - `infer skills search` header | Last-rebuild timestamp, shown in the search header. |
+| `skills`  | Yes                                | The array of catalog entries.                       |
+
+Per entry in `skills`:
+
+| Field         | Read by the CLI? | Notes                                                                        |
+| ------------- | ---------------- | ---------------------------------------------------------------------------- |
+| `name`        | Yes              | Kebab-case identity; what `infer skills install <name>` resolves.            |
+| `description` | Yes              | Routing signal listed to the model and in search results.                    |
+| `source`      | No               | Upstream `SKILL.md` location. Ignored - bodies resolve against `repository`. |
+| `vendor`      | No               | Provenance, shown in the registry UI. Ignored by the CLI.                    |
+| `license`     | No               | Ignored by the CLI.                                                          |
+| `tags`        | No               | Ignored by the CLI.                                                          |
+| `categories`  | No               | Ignored by the CLI.                                                          |
+| `homepage`    | No               | Ignored by the CLI.                                                          |
+
+### Versioning
+
+The catalog is versioned **as a whole** via the top-level `release` / `updated` header - there is no per-skill version field, so there is nothing to pin per skill. To pin a known-good catalog, pin the whole thing (a fork or tag) via `agent.skills.repository`.
 
 ## Activation
 
@@ -223,6 +269,16 @@ If you set `tools.sandbox.directories: []`, sandboxing is disabled entirely and 
 ## Security
 
 A skill can instruct the model to run shell commands, read files, or call external APIs. Treat a skill like any other piece of executable content - **only install skills from trusted sources**. The CLI's normal [tool-approval system](/cli/#approval-workflow) still gates each Write/Edit/Delete/Bash call, but a malicious skill could craft a plausible-looking command. The `name` validator rejecting vendor strings (`claude`, `anthropic`, `gemini`, `openai`, `infer`) makes impersonating an official skill harder, but it is not a substitute for reviewing what you install.
+
+### On-demand catalog downloads
+
+A catalog skill (one from [`agent.skills.repository`](#the-skills-catalog-and-agentskillsrepository) that is not yet on disk) can be **fetched and installed the moment a prompt names it** - so anyone writing a prompt that reaches a profile, not just whoever installed the skills, decides what gets downloaded. If you run a CI or Telegram profile, know that a prompt containing `/some-skill` can trigger a download. The trust model:
+
+- **Only an explicit name triggers it.** A catalog skill downloads when a prompt explicitly names it (`/rust`, or "use the rust skill"). The **model cannot trigger this on its own** - catalog entries are listed to it without a path, so it has no way to reach an un-downloaded body.
+- **Chat asks first.** In interactive chat the install is **confirmed by the user** before it happens.
+- **Headless downloads immediately.** `infer agent`, piped `infer chat`, [channels](/cli-channels/), and [scheduled/heartbeat](/cli/#schedule) runs download with **no prompt, by design** - there is nobody to ask.
+- **It is not a tool call, so tool approval does not gate it.** The download is not a `domain.Tool`, so [`tools.safety.require_approval`](/cli/#approval-workflow) and `approval_behaviour` do not apply. Notably, `approval_behaviour: block` does **not** prevent it.
+- **Under channels the "user" is remote.** In a [channel](/cli-channels/) the party whose prompt triggers the download is a **remote sender**, not the operator running the profile.
 
 ## Related
 
