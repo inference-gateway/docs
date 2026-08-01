@@ -495,9 +495,17 @@ Content-Type: application/json
 
 ### Images API
 
-Generate images using the OpenAI-compatible `POST /v1/images/generations` endpoint. The request returns one or more generated images as URLs or base64-encoded JSON data.
+Create and modify images using the OpenAI-compatible Images endpoints. All three return the same `ImagesResponse` shape with one or more images as URLs or base64-encoded JSON data, and all require `ENABLE_IMAGES=true`.
+
+| Endpoint                      | Body                  | Purpose                              |
+| ----------------------------- | --------------------- | ------------------------------------ |
+| `POST /v1/images/generations` | `application/json`    | Generate images from a text prompt.  |
+| `POST /v1/images/edits`       | `multipart/form-data` | Edit or extend a source image.       |
+| `POST /v1/images/variations`  | `multipart/form-data` | Create variations of a source image. |
 
 Not every provider implements the Images API. Requests routed to a provider that does not support it return `400 Bad Request`; use `/v1/chat/completions` for those providers.
+
+#### Generations
 
 ```http
 POST /v1/images/generations?provider={provider}
@@ -543,6 +551,69 @@ The `CreateImageRequest` fields:
 | `size`            | `string` |          | Image size: `256x256`, `512x512`, `1024x1024`, `1024x1792`, or `1792x1024`. |
 | `quality`         | `string` |          | Image quality: `standard` or `hd`.                                          |
 | `response_format` | `string` |          | Response format: `url` (default) or `b64_json`.                             |
+
+#### Edits
+
+Edit or extend an existing image. The body is `multipart/form-data`, not JSON.
+
+```http
+POST /v1/images/edits?provider={provider}
+```
+
+```bash
+curl -X POST http://localhost:8080/v1/images/edits \
+  -H "Authorization: Bearer $INFERENCE_GATEWAY_API_KEY" \
+  -F image=@cat.png \
+  -F mask=@cat-mask.png \
+  -F prompt="Add a red wizard hat on the cat" \
+  -F model=openai/gpt-image-2 \
+  -F n=1 \
+  -F size=1024x1024
+```
+
+The form fields:
+
+| Field             | Type     | Required | Description                                                    |
+| ----------------- | -------- | -------- | -------------------------------------------------------------- |
+| `image`           | `binary` | Yes      | The source image to edit.                                      |
+| `prompt`          | `string` | Yes      | A text description of the desired edit.                        |
+| `mask`            | `binary` |          | Image whose transparent areas mark where the edit is applied.  |
+| `model`           | `string` |          | Model ID to use.                                               |
+| `n`               | `int`    |          | Number of images to generate (1-10, default 1).                |
+| `size`            | `string` |          | Image size, for example `1024x1024`.                           |
+| `quality`         | `string` |          | Image quality: `auto`, `standard`, `low`, `medium`, or `high`. |
+| `response_format` | `string` |          | Response format: `url` (default) or `b64_json`.                |
+
+The response is the same `ImagesResponse` shown above.
+
+#### Variations
+
+Create variations of an existing image. No prompt is used; the body is `multipart/form-data`.
+
+```http
+POST /v1/images/variations?provider={provider}
+```
+
+```bash
+curl -X POST http://localhost:8080/v1/images/variations \
+  -H "Authorization: Bearer $INFERENCE_GATEWAY_API_KEY" \
+  -F image=@cat.png \
+  -F model=openai/gpt-image-2 \
+  -F n=2 \
+  -F size=1024x1024
+```
+
+The form fields:
+
+| Field             | Type     | Required | Description                                     |
+| ----------------- | -------- | -------- | ----------------------------------------------- |
+| `image`           | `binary` | Yes      | The source image to vary.                       |
+| `model`           | `string` |          | Model ID to use.                                |
+| `n`               | `int`    |          | Number of images to generate (1-10, default 1). |
+| `size`            | `string` |          | Image size, for example `1024x1024`.            |
+| `response_format` | `string` |          | Response format: `url` (default) or `b64_json`. |
+
+The response is the same `ImagesResponse` shown above.
 
 #### Unsupported providers
 
