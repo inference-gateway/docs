@@ -535,14 +535,14 @@ Content-Type: application/json
 
 The `CreateImageRequest` fields:
 
-| Field             | Type     | Required | Description                                                       |
-| ----------------- | -------- | -------- | ----------------------------------------------------------------- |
-| `prompt`          | `string` | Yes      | A text description of the desired image.                          |
-| `model`           | `string` |          | Model ID to use for image generation.                             |
-| `n`               | `int`    |          | Number of images to generate (1-10, default 1).                   |
+| Field             | Type     | Required | Description                                                                 |
+| ----------------- | -------- | -------- | --------------------------------------------------------------------------- |
+| `prompt`          | `string` | Yes      | A text description of the desired image.                                    |
+| `model`           | `string` |          | Model ID to use for image generation.                                       |
+| `n`               | `int`    |          | Number of images to generate (1-10, default 1).                             |
 | `size`            | `string` |          | Image size: `256x256`, `512x512`, `1024x1024`, `1024x1792`, or `1792x1024`. |
-| `quality`         | `string` |          | Image quality: `standard` or `hd`.                                |
-| `response_format` | `string` |          | Response format: `url` (default) or `b64_json`.                   |
+| `quality`         | `string` |          | Image quality: `standard` or `hd`.                                          |
+| `response_format` | `string` |          | Response format: `url` (default) or `b64_json`.                             |
 
 #### Unsupported providers
 

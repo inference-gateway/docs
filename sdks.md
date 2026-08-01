@@ -1292,14 +1292,14 @@ for _, img := range resp.Data {
 
 The `CreateImageRequest` fields mirror the OpenAI `POST /v1/images/generations` body:
 
-| Field            | Go type                              | Description                                                       |
-| ---------------- | ------------------------------------ | ----------------------------------------------------------------- |
-| `Prompt`         | `string`                             | A text description of the desired image (required).               |
-| `Model`          | `*string`                            | Model ID to use for image generation.                             |
-| `N`              | `*int`                               | Number of images to generate (1-10, default 1).                   |
-| `Size`           | `*string`                            | Image size: `256x256`, `512x512`, `1024x1024`, `1024x1792`, or `1792x1024`. |
-| `Quality`        | `*string`                            | Image quality: `standard` or `hd`.                                |
-| `ResponseFormat` | `*CreateImageRequestResponseFormat`  | Response format: `url` (default) or `b64_json`.                   |
+| Field            | Go type                             | Description                                                                 |
+| ---------------- | ----------------------------------- | --------------------------------------------------------------------------- |
+| `Prompt`         | `string`                            | A text description of the desired image (required).                         |
+| `Model`          | `*string`                           | Model ID to use for image generation.                                       |
+| `N`              | `*int`                              | Number of images to generate (1-10, default 1).                             |
+| `Size`           | `*string`                           | Image size: `256x256`, `512x512`, `1024x1024`, `1024x1792`, or `1792x1024`. |
+| `Quality`        | `*string`                           | Image quality: `standard` or `hd`.                                          |
+| `ResponseFormat` | `*CreateImageRequestResponseFormat` | Response format: `url` (default) or `b64_json`.                             |
 
 A runnable example lives at [sdk/examples/images](https://github.com/inference-gateway/sdk/tree/main/examples/images).
 
