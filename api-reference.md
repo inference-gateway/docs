@@ -493,6 +493,70 @@ Content-Type: application/json
 }
 ```
 
+### Images API
+
+Generate images using the OpenAI-compatible `POST /v1/images/generations` endpoint. The request returns one or more generated images as URLs or base64-encoded JSON data.
+
+Not every provider implements the Images API. Requests routed to a provider that does not support it return `400 Bad Request`; use `/v1/chat/completions` for those providers.
+
+```http
+POST /v1/images/generations?provider={provider}
+```
+
+**Request Body** (`CreateImageRequest`):
+
+```bash
+curl -X POST http://localhost:8080/v1/images/generations \
+  -H "Content-Type: application/json" \
+  -d '{
+"model": "openai/gpt-image-2",
+"prompt": "A cute cat sitting on a windowsill, digital art style",
+"n": 1,
+"size": "1024x1024"
+  }'
+```
+
+**Response** (`ImagesResponse`):
+
+```http
+Status: 200 OK
+Content-Type: application/json
+
+{
+  "created": 1730419200,
+  "data": [
+{
+  "url": "https://example.com/image.png",
+  "revised_prompt": "A cute cat in a garden"
+}
+  ]
+}
+```
+
+The `CreateImageRequest` fields:
+
+| Field             | Type     | Required | Description                                                       |
+| ----------------- | -------- | -------- | ----------------------------------------------------------------- |
+| `prompt`          | `string` | Yes      | A text description of the desired image.                          |
+| `model`           | `string` |          | Model ID to use for image generation.                             |
+| `n`               | `int`    |          | Number of images to generate (1-10, default 1).                   |
+| `size`            | `string` |          | Image size: `256x256`, `512x512`, `1024x1024`, `1024x1792`, or `1792x1024`. |
+| `quality`         | `string` |          | Image quality: `standard` or `hd`.                                |
+| `response_format` | `string` |          | Response format: `url` (default) or `b64_json`.                   |
+
+#### Unsupported providers
+
+Requests routed to a provider that does not implement the Images API return `400 Bad Request`:
+
+```http
+Status: 400 Bad Request
+Content-Type: application/json
+
+{
+  "error": "The Images API is not supported by this provider yet."
+}
+```
+
 ### Proxy Requests
 
 Pass requests directly through to provider APIs. The response body is a `ProviderSpecificResponse` - the exact shape depends on the upstream provider. Each provider uses a `ProviderAuthType` to authenticate: `Bearer Token`, `X-Header`, or none.
