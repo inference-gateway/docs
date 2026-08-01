@@ -1266,6 +1266,43 @@ resp, err := client.GenerateContent(
 
 Base64 data URLs are accepted as the image URL.
 
+### Image generation
+
+`CreateImage` generates images via the OpenAI-compatible `POST /v1/images/generations` endpoint. The method takes a provider, a `CreateImageRequest` with at least a `Prompt`, and returns an `ImagesResponse` with one or more generated images.
+
+Not every provider implements the Images API. Requests routed to a provider that does not support it return a `400` error; use chat completions for those providers.
+
+```go
+resp, err := client.CreateImage(ctx, sdk.Openai, sdk.CreateImageRequest{
+    Prompt: "A cute cat sitting on a windowsill, digital art style",
+    Model:  new("gpt-image-2"),
+    N:      new(1),
+    Size:   new("1024x1024"),
+})
+if err != nil {
+    log.Fatalf("Error: %v", err)
+}
+
+for _, img := range resp.Data {
+    if img.URL != nil {
+        fmt.Println(*img.URL)
+    }
+}
+```
+
+The `CreateImageRequest` fields mirror the OpenAI `POST /v1/images/generations` body:
+
+| Field            | Go type                              | Description                                                       |
+| ---------------- | ------------------------------------ | ----------------------------------------------------------------- |
+| `Prompt`         | `string`                             | A text description of the desired image (required).               |
+| `Model`          | `*string`                            | Model ID to use for image generation.                             |
+| `N`              | `*int`                               | Number of images to generate (1-10, default 1).                   |
+| `Size`           | `*string`                            | Image size: `256x256`, `512x512`, `1024x1024`, `1024x1792`, or `1792x1024`. |
+| `Quality`        | `*string`                            | Image quality: `standard` or `hd`.                                |
+| `ResponseFormat` | `*CreateImageRequestResponseFormat`  | Response format: `url` (default) or `b64_json`.                   |
+
+A runnable example lives at [sdk/examples/images](https://github.com/inference-gateway/sdk/tree/main/examples/images).
+
 ### Models, tools, and health
 
 `ListModels` returns every model across all configured providers, while `ListProviderModels` scopes the listing to a single `Provider`. `ListTools` enumerates gateway-managed MCP tools from the `/mcp/tools` endpoint and requires MCP to be exposed (`MCP_ENABLED=true` and `MCP_EXPOSE=true`); otherwise it returns an error. Unlike the other SDKs, Go's `HealthCheck` returns an `error` rather than a `bool` - it probes the gateway's root `/health` endpoint and returns `nil` when the gateway is healthy.
