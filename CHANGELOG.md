@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.7](https://github.com/inference-gateway/docs/compare/0.9.6...0.9.7) (2026-08-01)
+
+### 👷 CI
+
+* **claude:** centralize claude.yml via reusable workflow ([#504](https://github.com/inference-gateway/docs/issues/504)) ([18cdd9a](https://github.com/inference-gateway/docs/commit/18cdd9ae0d2a931e8bfc077cc7a7fe8ba5386d9b))
+* **claude:** centralize claude.yml via reusable workflow ([#507](https://github.com/inference-gateway/docs/issues/507)) ([85d3617](https://github.com/inference-gateway/docs/commit/85d3617058620cdc6287c5e4cfe04687cd95fe49))
+
+### 📚 Documentation
+
+* document catalog trust model and catalog.json schema ([#501](https://github.com/inference-gateway/docs/issues/501)) ([c81a3b1](https://github.com/inference-gateway/docs/commit/c81a3b15808b4d5dcee148546db4490fd599e575))
+* document Images API and Go SDK CreateImage method ([#505](https://github.com/inference-gateway/docs/issues/505)) ([21b07a0](https://github.com/inference-gateway/docs/commit/21b07a0d9ee3c54f409682c8c0fab24b4dc293a6))
+* document images edits and variations endpoints ([#508](https://github.com/inference-gateway/docs/issues/508)) ([1d19299](https://github.com/inference-gateway/docs/commit/1d192990261260d6ba48020e6870a0662ccb449a))
+
+### 🔧 Miscellaneous
+
+* **deps:** bump infer CLI v0.153.1 -> v0.155.0 ([#502](https://github.com/inference-gateway/docs/issues/502)) ([ee5af74](https://github.com/inference-gateway/docs/commit/ee5af74cbd2b10483ce3bd3f07a9de1aaee14756))
+
 ## [0.9.6](https://github.com/inference-gateway/docs/compare/0.9.5...0.9.6) (2026-07-30)
 
 ### ⚠ BREAKING CHANGES
