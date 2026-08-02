@@ -667,6 +667,7 @@ When tools are enabled, LLMs have access to a comprehensive suite across multipl
 | **A2A Integration**   | A2A_QueryAgent, A2A_SubmitTask, A2A_QueryTask                                                     | Delegate to external specialized agents - see [A2A](/a2a/)                                                           |
 | **Local Subagents**   | Agent                                                                                             | Fan out short-lived local subagents in parallel - see [Local Subagents](#local-subagents-agent-tool)                 |
 | **Computer Use**      | GetLatestScreenshot, MouseMove, MouseClick, MouseScroll, KeyboardType, GetFocusedApp, ActivateApp | GUI automation - see the Computer Use section above                                                                  |
+| **Image**             | ImageGeneration, ImageEdit, ImageVariation                                                        | Generate, edit, and vary images using the configured image model - independent of the chat session model             |
 | **MCP**               | `MCP_<server>_<tool>`                                                                             | Dynamically registered tools from MCP servers - see [MCP](/mcp/)                                                     |
 
 ### File System Tools
@@ -929,6 +930,48 @@ tools:
     cache:
       enabled: true
       ttl: 3600
+```
+
+### Image Tools
+
+#### ImageEdit Tool
+
+Edit an existing image and save the result as a PNG under `.infer/tmp/`. The chat model calls the tool when the user asks to edit an image; the tool reads the input image from a local file path and sends a plain one-off request to `/v1/images/edits` using the configured image model - no system prompt, no tools, independent of the model selected for the chat session.
+
+**Parameters:**
+
+- `image` (required): Local file path of the image to edit
+- `prompt` (required): Text description of the desired edit
+- `quality` (optional): `auto` (default), `low`, `medium`, `high`, or `standard`
+- `size` (optional): `1024x1024` (default), `1536x1024`, or `1024x1536`
+
+**Configuration:**
+
+```yaml
+tools:
+  image_edit:
+    enabled: true
+    model: openai/gpt-image-2
+    require_approval: false
+```
+
+#### ImageVariation Tool
+
+Create a variation of an existing image and save the result as a PNG under `.infer/tmp/`. The chat model calls the tool when the user asks for a variation; the tool reads the input image from a local file path and sends a plain one-off request to `/v1/images/variations` using the configured image model - no system prompt, no tools, independent of the model selected for the chat session.
+
+**Parameters:**
+
+- `image` (required): Local file path of the image to base the variation on
+- `size` (optional): `1024x1024` (default), `1536x1024`, or `1024x1536`
+
+**Configuration:**
+
+```yaml
+tools:
+  image_variation:
+    enabled: true
+    model: openai/gpt-image-2
+    require_approval: false
 ```
 
 ### GitHub Operations
