@@ -2291,6 +2291,17 @@ infer chat
 - `list`: List saved conversations with metadata (id, title, message/request counts, tokens, cost).
 - `show <session-id>`: Print a single conversation's entries in chronological order (role,
   timestamp, content, and `tool_call_id` for tool results).
+- `delete <session-id>`: Remove a conversation from the storage backend. Runs
+  non-interactively with no confirmation prompt. Unknown or missing session id exits
+  non-zero with an error from the storage layer.
+
+**`delete` notes:**
+
+- Runs non-interactively - no confirmation prompt, so scripts and the desktop app can
+  shell out to it.
+- Unknown or missing session id exits non-zero with a clear error from the storage layer
+  (e.g. `conversation not found: <id>`).
+- Session id resolution follows the same rules as `show` (see below).
 
 **`show` flags:**
 
@@ -2325,6 +2336,12 @@ infer conversations show <session-id> --include-hidden
 
 # One JSON object per line for piping into jq
 infer conversations show <session-id> --format json | jq .
+
+# Delete a conversation by literal UUID
+infer conversations delete 12345678-1234-1234-1234-123456789abc
+
+# Delete by session group key (for example a channel group key)
+infer conversations delete channel-telegram-12345
 ```
 
 #### Cloudflare D1 backend
@@ -3027,7 +3044,7 @@ If completions still do not appear, the shell rc is usually not sourcing the com
 | `infer config <subcommand>`        | Configuration management (`init`, `get`, `set`)                  |
 | `infer tools <subcommand>`         | Run agent tools directly (`execute`, `validate`)                 |
 | `infer agents <subcommand>`        | A2A agent management                                             |
-| `infer conversations <subcommand>` | Conversation history management (`list`, `show`)                 |
+| `infer conversations <subcommand>` | Conversation history management (`list`, `show`, `delete`)       |
 | `infer completion <shell>`         | Generate a shell completion script (bash, zsh, fish, powershell) |
 | `infer version`                    | Show version information (backwards-compatible subcommand)       |
 | `infer --version`                  | Show version information (styled by fang)                        |
