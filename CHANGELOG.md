@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.8](https://github.com/inference-gateway/docs/compare/0.9.7...0.9.8) (2026-08-03)
+
+### 📚 Documentation
+
+* **cli:** add conversations delete subcommand to command reference ([#513](https://github.com/inference-gateway/docs/issues/513)) ([3237ac1](https://github.com/inference-gateway/docs/commit/3237ac105049c4186780295b70fb2582c48700a2))
+* **cli:** document ImageEdit and ImageVariation tools ([#510](https://github.com/inference-gateway/docs/issues/510)) ([b8f7816](https://github.com/inference-gateway/docs/commit/b8f781646e288aa90b542ea3ed20d1e659753e01))
+
+### 🔧 Miscellaneous
+
+* **deps-dev:** bump @types/node from 26.1.1 to 26.1.2 in the bun group ([#511](https://github.com/inference-gateway/docs/issues/511)) ([aa52beb](https://github.com/inference-gateway/docs/commit/aa52bebf0427cc627f3bc58f2a6101136da522ac))
+
 ## [0.9.7](https://github.com/inference-gateway/docs/compare/0.9.6...0.9.7) (2026-08-01)
 
 ### 👷 CI
