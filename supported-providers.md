@@ -11,23 +11,23 @@ Inference Gateway provides a unified interface to interact with multiple LLM pro
 
 <!-- GENERATED:providers-table START (do not edit - run: task generate) -->
 
-| Provider     | Auth             | Default URL                                                     | Vision Support                                                          |
-| ------------ | ---------------- | --------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| OpenAI       | Bearer Token     | `https://api.openai.com/v1`                                     | Yes - GPT-5 series, GPT-4.1, GPT-4o                                     |
-| DeepSeek     | Bearer Token     | `https://api.deepseek.com`                                      | No                                                                      |
-| Anthropic    | X-Header         | `https://api.anthropic.com/v1`                                  | Yes - Claude Opus 4.8, Claude Sonnet 4.6, Claude Haiku 4.5              |
-| Cohere       | Bearer Token     | `https://api.cohere.ai`                                         | Yes - Command A Vision                                                  |
-| Groq         | Bearer Token     | `https://api.groq.com/openai/v1`                                | Yes - vision models                                                     |
-| Cloudflare   | Bearer Token     | `https://api.cloudflare.com/client/v4/accounts/{ACCOUNT_ID}/ai` | No                                                                      |
-| Ollama Cloud | Bearer Token     | `https://ollama.com/v1`                                         | Yes - cloud-hosted vision models                                        |
-| Ollama       | Optional API key | `http://ollama:8080/v1`                                         | Yes - LLaVA, Llama 4, Llama 3.2 Vision                                  |
-| llama.cpp    | Bearer Token     | `http://llamacpp:8080/v1`                                       | Yes - multimodal GGUF models (via --mmproj)                             |
-| Google       | Bearer Token     | `https://generativelanguage.googleapis.com/v1beta/openai`       | Yes - Gemini 3 Flash, Gemini 3 Pro                                      |
-| Mistral      | Bearer Token     | `https://api.mistral.ai/v1`                                     | Yes - Pixtral Large, Ministral 3, Mistral Large 3                       |
-| MiniMax      | Bearer Token     | `https://api.minimax.io/v1`                                     | Yes - MiniMax-M3                                                        |
-| Moonshot     | Bearer Token     | `https://api.moonshot.ai/v1`                                    | Yes - moonshot-v1-\*-vision-preview, kimi-latest, kimi-thinking-preview |
-| NVIDIA       | Bearer Token     | `https://integrate.api.nvidia.com/v1`                           | Yes - Nemotron, Llama, DeepSeek, Mistral, Qwen                          |
-| Z-AI         | Bearer Token     | `https://api.z.ai/api/paas/v4`                                  | Yes - GLM 5.2                                                           |
+| Provider     | Auth             | Default URL                                                     | Vision Support |
+| ------------ | ---------------- | --------------------------------------------------------------- | -------------- |
+| OpenAI       | Bearer Token     | `https://api.openai.com/v1`                                     | No             |
+| DeepSeek     | Bearer Token     | `https://api.deepseek.com`                                      | No             |
+| Anthropic    | X-Header         | `https://api.anthropic.com/v1`                                  | No             |
+| Cohere       | Bearer Token     | `https://api.cohere.ai`                                         | No             |
+| Groq         | Bearer Token     | `https://api.groq.com/openai/v1`                                | No             |
+| Cloudflare   | Bearer Token     | `https://api.cloudflare.com/client/v4/accounts/{ACCOUNT_ID}/ai` | No             |
+| Ollama Cloud | Bearer Token     | `https://ollama.com/v1`                                         | No             |
+| Ollama       | Optional API key | `http://ollama:8080/v1`                                         | No             |
+| llama.cpp    | Bearer Token     | `http://llamacpp:8080/v1`                                       | No             |
+| Google       | Bearer Token     | `https://generativelanguage.googleapis.com/v1beta/openai`       | No             |
+| Mistral      | Bearer Token     | `https://api.mistral.ai/v1`                                     | No             |
+| MiniMax      | Bearer Token     | `https://api.minimax.io/v1`                                     | No             |
+| Moonshot     | Bearer Token     | `https://api.moonshot.ai/v1`                                    | No             |
+| NVIDIA       | Bearer Token     | `https://integrate.api.nvidia.com/v1`                           | No             |
+| Z-AI         | Bearer Token     | `https://api.z.ai/api/paas/v4`                                  | No             |
 
 <!-- GENERATED:providers-table END (do not edit - run: task generate) -->
 
@@ -44,20 +44,6 @@ ENABLE_VISION=true
 ### Providers with Vision Support
 
 <!-- GENERATED:vision-list START (do not edit - run: task generate) -->
-
-- **OpenAI**: GPT-5 series, GPT-4.1, GPT-4o
-- **Anthropic**: Claude Opus 4.8, Claude Sonnet 4.6, Claude Haiku 4.5
-- **Cohere**: Command A Vision
-- **Groq**: vision models
-- **Ollama Cloud**: cloud-hosted vision models
-- **Ollama**: LLaVA, Llama 4, Llama 3.2 Vision
-- **llama.cpp**: multimodal GGUF models (via --mmproj)
-- **Google**: Gemini 3 Flash, Gemini 3 Pro
-- **Mistral**: Pixtral Large, Ministral 3, Mistral Large 3
-- **MiniMax**: MiniMax-M3
-- **Moonshot**: moonshot-v1-\*-vision-preview, kimi-latest, kimi-thinking-preview
-- **NVIDIA**: Nemotron, Llama, DeepSeek, Mistral, Qwen
-- **Z-AI**: GLM 5.2
 
 <!-- GENERATED:vision-list END (do not edit - run: task generate) -->
 

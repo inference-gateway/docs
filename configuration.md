@@ -96,7 +96,6 @@ const ollamaCloudSettings = [
 
 const ollamaSettings = [
   { variable: 'OLLAMA_API_URL', description: 'Ollama API URL', defaultValue: 'http://ollama:8080/v1' },
-  { variable: 'OLLAMA_API_KEY', description: 'Ollama API Key', defaultValue: '""' },
 ];
 
 const llamacppSettings = [
@@ -462,7 +461,6 @@ GROQ_API_KEY=
 CLOUDFLARE_API_URL=https://api.cloudflare.com/client/v4/accounts/{ACCOUNT_ID}/ai
 CLOUDFLARE_API_KEY=
 OLLAMA_API_URL=http://ollama:8080/v1
-OLLAMA_API_KEY=
 OLLAMA_CLOUD_API_URL=https://ollama.com/v1
 OLLAMA_CLOUD_API_KEY=
 GOOGLE_API_URL=https://generativelanguage.googleapis.com/v1beta/openai
