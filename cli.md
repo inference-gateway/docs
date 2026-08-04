@@ -942,6 +942,7 @@ Edit an existing image and save the result as a PNG under `.infer/tmp/`. The cha
 
 - `image` (required): Local file path of the image to edit
 - `prompt` (required): Text description of the desired edit
+- `mask` (optional): Local file path to a PNG whose fully transparent areas (alpha = 0) mark the editable region; all other pixels are preserved exactly. Must be a PNG with the same dimensions as the input image. Non-PNG paths are rejected by tool validation. Omit to let the model localize the change from the prompt alone - useful for models that repaint areas the user did not ask to change, and required for dall-e-2 edits without transparency.
 - `quality` (optional): `auto` (default), `low`, `medium`, `high`, or `standard`
 - `size` (optional): `1024x1024` (default), `1536x1024`, or `1024x1536`
 
@@ -953,6 +954,16 @@ tools:
     enabled: true
     model: openai/gpt-image-2
     require_approval: false
+```
+
+**Example with mask:**
+
+```json
+{
+  "image": "photo.png",
+  "prompt": "replace the sky with a sunset",
+  "mask": "sky-mask.png"
+}
 ```
 
 #### ImageVariation Tool
