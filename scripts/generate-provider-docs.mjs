@@ -383,12 +383,17 @@ export function renderVisionList(providers) {
 }
 
 export function renderSettingsConsts(providers) {
-  const blocks = providers.map((p) => [
-    `const ${p.constName} = [`,
-    `  { variable: '${p.envUpper}_API_URL', description: '${p.urlLabel} API URL', defaultValue: '${p.url}' },`,
-    `  { variable: '${p.envUpper}_API_KEY', description: '${p.keyLabel} API Key', defaultValue: '""' },`,
-    `];`,
-  ]);
+  const blocks = providers.map((p) => {
+    const entries = [
+      `  { variable: '${p.envUpper}_API_URL', description: '${p.urlLabel} API URL', defaultValue: '${p.url}' },`,
+    ];
+    if (p.authType !== 'none') {
+      entries.push(
+        `  { variable: '${p.envUpper}_API_KEY', description: '${p.keyLabel} API Key', defaultValue: '""' },`
+      );
+    }
+    return [`const ${p.constName} = [`, ...entries, `];`];
+  });
   return blocks.flatMap((b, i) => (i === 0 ? b : ['', ...b]));
 }
 
