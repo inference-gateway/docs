@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.9](https://github.com/inference-gateway/docs/compare/0.9.8...0.9.9) (2026-08-05)
+
+### 📚 Documentation
+
+* **cli:** document ImageEdit mask parameter ([#518](https://github.com/inference-gateway/docs/issues/518)) ([53f537a](https://github.com/inference-gateway/docs/commit/53f537afb848c0cee4961672f9b8dbe3e5089ce1))
+* **cli:** document model picker labels and vision behavior from modalities-driven support ([#520](https://github.com/inference-gateway/docs/issues/520)) ([75d566d](https://github.com/inference-gateway/docs/commit/75d566d0f8f230a0b82b789dd1239d52e62023b9))
+* **github-action:** document vision-model and image-model inputs for image understanding and generation ([#515](https://github.com/inference-gateway/docs/issues/515)) ([d3abebd](https://github.com/inference-gateway/docs/commit/d3abebd8998c748c4fc4bcbf0629d679e9dc4f30))
+* remove deprecated ollama-api-key input ([#516](https://github.com/inference-gateway/docs/issues/516)) ([cb79501](https://github.com/inference-gateway/docs/commit/cb795016f7180d3439f6329d02e4f46088ea91b3))
+
 ## [0.9.8](https://github.com/inference-gateway/docs/compare/0.9.7...0.9.8) (2026-08-03)
 
 ### 📚 Documentation
