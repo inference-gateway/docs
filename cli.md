@@ -332,6 +332,21 @@ infer chat
 
 > `/switch` is **deprecated** - use `/model <name>`. Shipped in [inference-gateway/cli#618](https://github.com/inference-gateway/cli/pull/618).
 
+##### Model picker labels
+
+When you open the model picker (`/model` with no argument), each model may show a suffix label indicating its capabilities:
+
+| Label       | Meaning                                                                                                          |
+| ----------- | ---------------------------------------------------------------------------------------------------------------- |
+| `vision`    | The model accepts image input natively - pasted or @-referenced images are seen directly, no ImageDecode needed. |
+| `image-gen` | The model generates images (e.g. DALL-E, GPT-Image). These models are filtered from the selectable chat list.    |
+
+Labels are derived from the **gateway-reported modalities** (`/v1/models?include=modalities`), not from name patterns. A model gets the `vision` label when its input modalities include both `text` and `image`; it gets the `image-gen` label when its output modalities include `image` without `text`.
+
+**Gateway version requirement:** Modalities-driven labels and filtering require gateway v0.47+. Against an older gateway, models report nil modalities and are treated permissively - no labels are shown and no filtering is applied.
+
+> Shipped in [inference-gateway/cli#1031](https://github.com/inference-gateway/cli/pull/1031).
+
 #### Diff viewer and git staging
 
 When the agent proposes file changes (or you open a diff), the diff viewer supports **patch-level** staging - select individual lines, split hunks, and stage or unstage everything at once. All keys are configurable in `.infer/keybindings.yaml` (category `diff_viewer`); the defaults:
@@ -984,6 +999,14 @@ tools:
     model: openai/gpt-image-2
     require_approval: false
 ```
+
+#### Vision-capable models and ImageDecode
+
+Vision-capable models (those with the `vision` label in the [model picker](#model-picker-labels)) see pasted or @-referenced images **natively** - the image data is sent directly to the model, which can inspect it without a separate tool call. For these models, the **ImageDecode tool is hidden from the advertised tool list** to avoid steering the model toward a text annotation when it can see the image directly.
+
+The tool **remains executable** if called - a model that invokes it from conversation history or right after a model switch gets a working tool, not an error. Text-only models keep the tool and the "use ImageDecode to inspect it" note unchanged.
+
+> Shipped in [inference-gateway/cli#1031](https://github.com/inference-gateway/cli/pull/1031).
 
 ### GitHub Operations
 
