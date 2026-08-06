@@ -506,7 +506,7 @@ jobs:
       - uses: inference-gateway/infer-action@v0.46.0
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          model: anthropic/claude-opus-4-8
+          model: deepseek/deepseek-v4-flash
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
           trigger-phrase: '@review'
           enable-git-operations: false
