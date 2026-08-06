@@ -507,7 +507,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           model: deepseek/deepseek-v4-flash
-          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          deepseek-api-key: ${{ secrets.DEEPSEEK_API_KEY }}
           trigger-phrase: '@review'
           enable-git-operations: false
           review-inline: true
