@@ -499,11 +499,11 @@ jobs:
   review:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v7.0.0
+      - uses: actions/checkout@v7.0.1
         with:
           fetch-depth: 0
 
-      - uses: inference-gateway/infer-action@v0.23.6
+      - uses: inference-gateway/infer-action@v0.46.0
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           model: anthropic/claude-opus-4-8
