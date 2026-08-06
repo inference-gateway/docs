@@ -175,6 +175,7 @@ The total and failed tool-call counts are also exposed as the `total-tool-calls-
 | `memory-sync-on-finish`   | No       | `''`       | Push memory changes at run finish: `push` or `off` (`INFER_MEMORY_BACKEND_GIT_SYNC_ON_FINISH`). Empty = CLI default (`push`).                                                                                                                                                                                                                                                                                                                                                         |
 | `memory-deploy-key`       | No       | `''`       | SSH private key (e.g. a deploy key with write access) authenticating an ssh `memory-repo`. Secret, auto-masked. See [Persistent Agent Memory](#persistent-agent-memory).                                                                                                                                                                                                                                                                                                              |
 | `memory-token`            | No       | `''`       | Token authenticating an https `memory-repo` (scoped git insteadOf rewrite). Secret, auto-masked. Empty on a same-instance https URL = falls back to `github-token`.                                                                                                                                                                                                                                                                                                                   |
+| `review-inline`           | No       | `false`    | When `true` and the run is in review mode, post findings as a real GitHub pull request review with inline, line-anchored comments (including `suggestion` blocks the PR author can apply with one click), instead of a single conversation comment. See [Inline PR review](#inline-pr-review).                                                                                                                                                                                        |
 | `reminders-config`        | No       | `''`       | Verbatim reminders YAML passed to the CLI via `INFER_REMINDERS_CONFIG`, replacing the action's composed default. Lets a power user take full control of the CLI's native reminders (hooks, triggers, cadences). A supplied config **replaces** the action's default, so built-in behaviour must be re-covered if desired. Requires Infer CLI >= v0.129.0. See [Native reminders](#native-reminders) and the [CLI reminders docs](/cli/#system-reminders).                             |
 | `dry-run`                 | No       | `false`    | Plan-only local-testing mode (e.g. with `act`): forces the bundled mock agent, simulates every GitHub mutation (`[dry-run] would ...`), and prints the resolved system/task/reminder prompts and tool allow-lists. Reads still run. See [Local testing with act](#local-testing-with-act).                                                                                                                                                                                            |
 | `mock-agent-scenario`     | No       | `happy`    | Which scenario the bundled mock agent runs under `dry-run`: `happy`, `failures`, `no-todos`, or `empty`.                                                                                                                                                                                                                                                                                                                                                                              |
@@ -473,6 +474,52 @@ jobs:
 ```
 
 Trigger by commenting `@review` on the PR.
+
+### Inline PR review
+
+By default, when the action runs in review mode, findings are posted as a
+single conversation comment on the issue or PR thread. Set
+`review-inline: true` to post findings as a **real GitHub pull request
+review** with inline, line-anchored comments on the specific lines of
+code the agent is commenting on. Each comment can include a
+`suggestion` block that the PR author can apply with one click.
+
+```yaml
+name: AI PR Review (inline)
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  review:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7.0.0
+        with:
+          fetch-depth: 0
+
+      - uses: inference-gateway/infer-action@v0.23.6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          model: anthropic/claude-opus-4-8
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          trigger-phrase: '@review'
+          enable-git-operations: false
+          review-inline: true
+```
+
+Trigger by commenting `@review` on the PR. The agent posts its findings
+as a formal PR review with inline comments anchored to the relevant lines
+and suggestion blocks the author can apply directly.
+
+#### Source reference
+
+- Action PR: [inference-gateway/infer-action#297](https://github.com/inference-gateway/infer-action/pull/297) - feat: opt-in inline PR review with suggestion comments
 
 ### Scheduled summary / drift report
 
