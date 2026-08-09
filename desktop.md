@@ -65,6 +65,7 @@ You click **Approve** to allow the action or **Deny** to reject it. This keeps t
 
 - [Getting Started](/getting-started/) - set up the Inference Gateway server
 - [CLI](/cli/) - the `infer` CLI that powers the desktop backend
+- [Voice Input](/desktop-speech-to-text/) - speech-to-text with automatic setup
 - [A2A Integration](/a2a/) - chat with A2A agents from the desktop app
 - [Configuration](/configuration/) - gateway configuration reference
 - [Repository](https://github.com/inference-gateway/desktop) - source, releases, and contributing guide

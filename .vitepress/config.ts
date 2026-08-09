@@ -300,6 +300,7 @@ export default withMermaid(
           collapsed: false,
           items: [
             { text: 'Desktop App', link: pageLink('/desktop') },
+            { text: 'Voice Input (Desktop)', link: pageLink('/desktop-speech-to-text') },
             { text: 'CLI', link: pageLink('/cli') },
             { text: 'Command Hooks', link: pageLink('/cli-hooks') },
             { text: 'Channels', link: pageLink('/cli-channels') },
