@@ -172,6 +172,7 @@ export default withMermaid(
         {
           text: 'Reference',
           items: [
+            { text: 'Desktop App', link: pageLink('/desktop') },
             { text: 'REST API', link: pageLink('/api-reference') },
             { text: 'SDKs', link: pageLink('/sdks') },
             { text: 'CLI', link: pageLink('/cli') },
@@ -298,6 +299,7 @@ export default withMermaid(
           text: 'Tools',
           collapsed: false,
           items: [
+            { text: 'Desktop App', link: pageLink('/desktop') },
             { text: 'CLI', link: pageLink('/cli') },
             { text: 'Command Hooks', link: pageLink('/cli-hooks') },
             { text: 'Channels', link: pageLink('/cli-channels') },
