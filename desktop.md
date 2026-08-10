@@ -20,7 +20,8 @@ On first run, the app downloads the `infer` CLI binary and installs it to `~/.in
 | `~/.infer/bin/infer`             | The `infer` CLI - manages the gateway, routes requests, and drives agent interactions |
 | `~/.infer/bin/inference-gateway` | The gateway server binary                                                             |
 | `~/.infer/config.yaml`           | Gateway configuration (providers, API keys, model routing)                            |
-| `~/.infer/agents.json`           | Registered A2A agent definitions                                                      |
+| `~/.infer/agents.yaml`           | Registered A2A agent definitions                                                      |
+| `~/.infer/auth.json`             | Provider API keys saved from **Settings -> API Keys**                                 |
 
 Everything is scoped to your home directory - no system-wide installs, no vendor lock-in.
 
@@ -49,6 +50,56 @@ Updates applied by the app itself are downloaded by the app rather than a browse
 ## Updates
 
 The app updates itself. When a newer release is available the top bar shows an update button (the same one is in Settings under Updates). Clicking it reinstalls the `infer` CLI and gateway binaries, then downloads the new app bundle, verifies its signature against the project's updater public key, and relaunches. Checks run at startup and every 6 hours.
+
+## Settings
+
+Open Settings with the gear icon at the right of the top bar. A left rail lists the sections, and **Back** returns to the chat. Settings opens on **API Keys**.
+
+| Section      | What it covers                                                    |
+| ------------ | ----------------------------------------------------------------- |
+| **General**  | [Max concurrent sessions](#the-concurrency-cap)                   |
+| **API Keys** | One API key per provider                                          |
+| **Agents**   | A2A agents the local agent can delegate to                        |
+| **Updates**  | Installed versions, manual check, and [Install updates](#updates) |
+
+### API Keys
+
+Each supported provider gets one masked field. Fill in the providers you use and leave the rest blank:
+
+| Provider     | Field                  |
+| ------------ | ---------------------- |
+| OpenAI       | `OPENAI_API_KEY`       |
+| Anthropic    | `ANTHROPIC_API_KEY`    |
+| DeepSeek     | `DEEPSEEK_API_KEY`     |
+| Google       | `GOOGLE_API_KEY`       |
+| Groq         | `GROQ_API_KEY`         |
+| Mistral      | `MISTRAL_API_KEY`      |
+| Cohere       | `COHERE_API_KEY`       |
+| Cloudflare   | `CLOUDFLARE_API_KEY`   |
+| NVIDIA       | `NVIDIA_API_KEY`       |
+| Moonshot     | `MOONSHOT_API_KEY`     |
+| MiniMax      | `MINIMAX_API_KEY`      |
+| Ollama Cloud | `OLLAMA_CLOUD_API_KEY` |
+
+**Save** writes the non-empty values to `~/.infer/auth.json` (mode `0600` on macOS and Linux), returns you to the chat, and restarts the gateway so the new keys take effect - which is also what refreshes the model list. Keys are passed to the agent as environment variables of the same name; nothing is sent anywhere else.
+
+### Model picker
+
+The model dropdown lives in the top bar, next to the **Restart CLI** button, rather than in Settings - but it is where the keys you saved show up as models you can pick.
+
+The list comes from the gateway's [`GET /v1/models`](/api-reference/) endpoint (each entry's `id`), read from the gateway URL in `~/.infer/config.yaml`, defaulting to `http://localhost:8080`. Until the gateway answers, the picker shows **Waiting for gateway...**; the app retries roughly every 1.5 seconds. If the list stays empty, the usual cause is a missing or wrong API key for every configured provider.
+
+Your selection is stored locally and restored on the next launch. If the saved model is no longer offered, the first model in the list is selected instead. The picker is disabled while the conversation you are viewing is streaming - switch to another chat or wait for the turn to finish.
+
+### Agents
+
+The **Agents** tab manages the [A2A](/a2a/) agents your local agent can delegate to. Selections are written to `~/.infer/agents.json` and loaded on startup, so they survive restarts.
+
+**Local A2A agents (containers)** are listed from the public [agent registry](/registry/) catalog, each card showing the agent's name, version, description, and up to four skills. Tick the checkbox to enable an agent and untick it to remove it. The desktop registers local agents by name only, so the CLI assigns each one its known port - you still have to run that agent's container yourself for the delegation to reach anything. If the registry cannot be fetched, the tab shows **Couldn't load the agent registry.** instead of the cards; the rest of Settings is unaffected.
+
+**Setting a model:** an enabled agent that has a model assigned shows a dropdown on its card, listing the same models as the top-bar picker. Pick one to change which model that agent runs on. If the agent's current model is not in the gateway's list, it is kept at the top of the dropdown rather than silently replaced.
+
+**Remote agents** are ones you host or run elsewhere. Type the agent's URL (for example `http://localhost:8085`) into the field at the bottom and click **Add** or press Enter. Remote agents appear in their own list above the field, each with a **Remove** button.
 
 ## Chat and tool approval
 
@@ -139,5 +190,6 @@ Voice input works on every supported platform except Windows arm64, where clicki
 - [CLI](/cli/) - the `infer` CLI that powers the desktop backend
 - [Speech-to-Text](/cli-speech-to-text/) - speech-to-text in the `infer` CLI
 - [A2A Integration](/a2a/) - chat with A2A agents from the desktop app
+- [Agent Registry](/registry/) - the catalog behind the Agents tab
 - [Configuration](/configuration/) - gateway configuration reference
 - [Repository](https://github.com/inference-gateway/desktop) - source, releases, and contributing guide
