@@ -48,7 +48,7 @@ Updates applied by the app itself are downloaded by the app rather than a browse
 
 ## Updates
 
-The app updates itself. When a newer release is available the top bar shows an update button (the same one is in Settings under Updates). Clicking it reinstalls the `infer` CLI and gateway binaries, then downloads the new app bundle, verifies its signature (checksum-verified), and relaunches. Checks run at startup and every 6 hours.
+The app updates itself. When a newer release is available the top bar shows an update button (the same one is in Settings under Updates). Clicking it reinstalls the `infer` CLI and gateway binaries, then downloads the new app bundle, verifies its signature against the project's updater public key, and relaunches. Checks run at startup and every 6 hours.
 
 ## Chat and tool approval
 
