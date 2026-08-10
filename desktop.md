@@ -137,6 +137,38 @@ Hover an image (or focus it with the keyboard) to reveal a **download** button i
 
 The button is disabled while saving, and the check or cross reverts to the download arrow after about two seconds.
 
+## Conversations
+
+The left sidebar lists your conversations, newest work at hand: a session that is running but has not been persisted yet is shown at the top, titled by its first prompt (or **New chat** until you send one), followed by the conversations saved on disk. A saved conversation with no title yet shows **(untitled)**; hover any entry to see its title, or its session id if it has none.
+
+Click an entry to open it. The transcript is loaded from storage, so history survives restarts - except for a conversation that is still live in this app session, whose in-memory transcript is kept rather than being replaced by the on-disk copy.
+
+### Deleting one conversation
+
+Hover a conversation and a trash icon appears at its right edge. It is a two-click delete: the first click arms the button (it turns red, tooltip **Click again to delete**), the second deletes. Moving the pointer off the entry disarms it, so a stray click costs nothing.
+
+Deleting a conversation that is currently running cancels its session first. Deleting the one you are viewing returns you to a new chat.
+
+### Multi-select and bulk delete
+
+You can select several conversations and delete them in one go:
+
+| Action                                  | Result                                                    |
+| --------------------------------------- | --------------------------------------------------------- |
+| **Click**                               | Opens the conversation - and clears any current selection |
+| **Ctrl+click** (**Cmd+click** on macOS) | Toggles that one conversation in or out of the selection  |
+| **Shift+click**                         | Selects the contiguous range from the last clicked entry  |
+
+Selected entries are tinted with an accent background and an accent bar on the left. Starting a **+ New chat** clears the selection too.
+
+With at least one entry selected, a bar pins to the bottom of the sidebar with a **Delete N selected** button. It confirms the same way as the single delete: the first click arms it (**Click again to delete N**), the second deletes; moving the pointer off cancels. The deletions run in parallel and the list refreshes when they finish.
+
+### Where conversations are stored
+
+The app does not keep its own conversation store - it shells out to the [`infer` CLI's conversation management](/cli/#conversation-management) (`infer conversations list`, `show`, and `delete`), so the desktop app and the CLI see the same history.
+
+With the default SQLite backend that means `~/.infer/conversations.db`. The CLI resolves `.infer` relative to its working directory, and the desktop app runs it from your home directory. Point [`storage`](/cli/#conversation-management) at another backend in `~/.infer/config.yaml` and the sidebar follows it. Deletes go to the storage backend and are not recoverable from the app.
+
 ## Parallel sessions
 
 You can run several agent sessions at once. Click **+ New chat** while another conversation is streaming and start typing - each session is backed by its own `infer agent` process, so they stream independently. `+ New chat` is never disabled by a running session.
