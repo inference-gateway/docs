@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.10](https://github.com/inference-gateway/docs/compare/0.9.9...0.9.10) (2026-08-10)
+
+### 📚 Documentation
+
+* add Desktop App overview and getting-started page ([#533](https://github.com/inference-gateway/docs/issues/533)) ([d41caa0](https://github.com/inference-gateway/docs/commit/d41caa07dc6b7b1bbc573acf06be196922526c6b))
+* add desktop voice input page documenting auto-download whisper setup ([#534](https://github.com/inference-gateway/docs/issues/534)) ([a5de4f3](https://github.com/inference-gateway/docs/commit/a5de4f3a37efe2fb4eb4623f111cd4d8dc32b366))
+* correct desktop update bundle verification wording ([#535](https://github.com/inference-gateway/docs/issues/535)) ([448f4c9](https://github.com/inference-gateway/docs/commit/448f4c952e3469626d6d042282f08c83200c14ea))
+* document desktop conversation management ([#540](https://github.com/inference-gateway/docs/issues/540)) ([78f47ba](https://github.com/inference-gateway/docs/commit/78f47ba941407fbf88f4c08c803b1e4ef78e8bfa))
+* document desktop settings view ([#539](https://github.com/inference-gateway/docs/issues/539)) ([d47b34a](https://github.com/inference-gateway/docs/commit/d47b34a2b7bf480710b391df35008ba98875146f))
+* document images in chat in desktop app ([#538](https://github.com/inference-gateway/docs/issues/538)) ([5bd87be](https://github.com/inference-gateway/docs/commit/5bd87bee8b03c97cf0597ae6c60df970cd98acaf))
+* document parallel desktop sessions and cap ([#536](https://github.com/inference-gateway/docs/issues/536)) ([8d70c6f](https://github.com/inference-gateway/docs/commit/8d70c6fd336f7de2ef64a7183009f049897d454c))
+* document reasoning and thinking view in desktop ([#537](https://github.com/inference-gateway/docs/issues/537)) ([9ffa645](https://github.com/inference-gateway/docs/commit/9ffa64583ecb3272830bd5bac5410f7b966a8086))
+* **github-action:** document review-inline input for inline PR review comments ([#522](https://github.com/inference-gateway/docs/issues/522)) ([9384f40](https://github.com/inference-gateway/docs/commit/9384f40b62ecac5daa5194cae3f37ff25dcf6995))
+
+### 🔧 Miscellaneous
+
+* **deps-dev:** bump the bun group with 2 updates ([#524](https://github.com/inference-gateway/docs/issues/524)) ([7b05859](https://github.com/inference-gateway/docs/commit/7b05859566ee81dc8173914c2c384f1a4c28879c))
+* **deps:** bump infer CLI v0.155.0 -> v0.164.0 ([#523](https://github.com/inference-gateway/docs/issues/523)) ([8e20ad7](https://github.com/inference-gateway/docs/commit/8e20ad7f5685b55418694d75a3476725656d5ba3))
+
 ## [0.9.9](https://github.com/inference-gateway/docs/compare/0.9.8...0.9.9) (2026-08-05)
 
 ### 📚 Documentation
