@@ -71,6 +71,21 @@ Tool calls in the same turn render as their own collapsible cards next to the re
 
 Reasoning requires a model that emits it and an `infer` CLI new enough to forward it. Against an older CLI the transcript still works - you just get no **Thought process** block.
 
+## Images in chat
+
+Images an agent produces are rendered inline in the transcript, not shown as a link or a file path. Markdown images (`![alt](url)`) render as-is, and a bare image URL or `data:image/...` URI on its own is turned into an image too. Images are sized to their natural dimensions up to the width of the chat bubble; one that fails to load is replaced with a short error line instead of a broken-image icon.
+
+Hover an image (or focus it with the keyboard) to reveal a **download** button in its corner. Clicking it copies the file from `~/.infer/tmp/` to your Downloads folder - there is no save dialog, and an existing file with the same name is overwritten. The button reports what happened by swapping its icon:
+
+| Icon           | State                                         |
+| -------------- | --------------------------------------------- |
+| Download arrow | Idle - ready to save                          |
+| Spinner        | Saving - the copy is in progress              |
+| Green check    | Saved - the file is in your Downloads folder  |
+| Red cross      | Error - the copy failed, hover again to retry |
+
+The button is disabled while saving, and the check or cross reverts to the download arrow after about two seconds.
+
 ## Parallel sessions
 
 You can run several agent sessions at once. Click **+ New chat** while another conversation is streaming and start typing - each session is backed by its own `infer agent` process, so they stream independently. `+ New chat` is never disabled by a running session.
