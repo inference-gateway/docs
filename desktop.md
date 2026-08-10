@@ -61,11 +61,26 @@ When the agent wants to perform a tool action (read a file, execute a command, f
 
 You click **Approve** to allow the action or **Deny** to reject it. This keeps the agent sandboxed to your intent - no silent file access, no unapproved side effects.
 
+## Voice input
+
+Click the microphone icon in the chat composer and speak - your speech is transcribed locally and inserted into the message box. Unlike the [CLI speech-to-text](/cli-speech-to-text/), the desktop app sets everything up for you: no Homebrew, no manual `whisper-cpp` install.
+
+On first use a one-time prompt asks to download voice support (~75 MB). On approval the app downloads a prebuilt `whisper-cli` binary and the `ggml-tiny.bin` model with a progress indicator, then starts recording. Later use skips the download.
+
+| File                  | Path                                           |
+| --------------------- | ---------------------------------------------- |
+| `whisper-cli` binary  | `~/.infer/bin/whisper-cli` (`.exe` on Windows) |
+| `ggml-tiny.bin` model | `~/.infer/models/whisper/ggml-tiny.bin`        |
+
+These are shared with the CLI - if you have already used speech-to-text there, the desktop app reuses them. You can also point at your own build: `WHISPER_BIN` wins if set, otherwise a `whisper-cli` or `whisper-cpp` on `PATH` is used as-is, and only failing both does the download run.
+
+Voice input works on every supported platform except Windows arm64, where clicking the microphone shows **"Voice input isn't available on this platform"**.
+
 ## Related
 
 - [Getting Started](/getting-started/) - set up the Inference Gateway server
 - [CLI](/cli/) - the `infer` CLI that powers the desktop backend
-- [Voice Input](/desktop-speech-to-text/) - speech-to-text with automatic setup
+- [Speech-to-Text](/cli-speech-to-text/) - speech-to-text in the `infer` CLI
 - [A2A Integration](/a2a/) - chat with A2A agents from the desktop app
 - [Configuration](/configuration/) - gateway configuration reference
 - [Repository](https://github.com/inference-gateway/desktop) - source, releases, and contributing guide
