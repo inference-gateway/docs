@@ -61,6 +61,38 @@ When the agent wants to perform a tool action (read a file, execute a command, f
 
 You click **Approve** to allow the action or **Deny** to reject it. This keeps the agent sandboxed to your intent - no silent file access, no unapproved side effects.
 
+## Parallel sessions
+
+You can run several agent sessions at once. Click **+ New chat** while another conversation is streaming and start typing - each session is backed by its own `infer agent` process, so they stream independently. `+ New chat` is never disabled by a running session.
+
+Every conversation keeps its own transcript and approval prompts. Switching the active conversation mid-stream does not interrupt the others: a session you navigate away from keeps running in the background, and its output is waiting when you switch back.
+
+### The concurrency cap
+
+The number of sessions that can run at the same time is capped. Set it in **Settings -> General -> Max concurrent sessions**; the default is **5** and the minimum is 1. The value is stored locally in the app and persists across restarts.
+
+The cap is checked when you start a **new** chat. If that many sessions are already running, the send is rejected with:
+
+```text
+Max 5 concurrent sessions reached - stop one to start another
+```
+
+Nothing is queued - the message is not sent. Stop or wait for a running session (or raise the cap in Settings), then send again. Sending another message into a conversation that is already open is not affected by the cap.
+
+### Session status in the UI
+
+Each conversation in the sidebar shows a status dot while it is active:
+
+| Dot           | Meaning                                                       |
+| ------------- | ------------------------------------------------------------- |
+| Pulsing green | The session is running - the agent is working or streaming    |
+| Amber         | The session is paused awaiting a tool approval - it needs you |
+| No dot        | The session is idle                                           |
+
+Amber is the one to look for when several sessions are in flight: it marks the conversation blocked on your **Approve** or **Deny**. A session that has started but has not been saved yet still appears in the sidebar so you can switch to it while it runs.
+
+Quitting the app stops every running session.
+
 ## Voice input
 
 Click the microphone icon in the chat composer and speak - your speech is transcribed locally and inserted into the message box. Unlike the [CLI speech-to-text](/cli-speech-to-text/), the desktop app sets everything up for you: no Homebrew, no manual `whisper-cpp` install.
