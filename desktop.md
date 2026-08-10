@@ -20,7 +20,7 @@ On first run, the app downloads the `infer` CLI binary and installs it to `~/.in
 | `~/.infer/bin/infer`             | The `infer` CLI - manages the gateway, routes requests, and drives agent interactions |
 | `~/.infer/bin/inference-gateway` | The gateway server binary                                                             |
 | `~/.infer/config.yaml`           | Gateway configuration (providers, API keys, model routing)                            |
-| `~/.infer/agents.json`           | Registered A2A agent definitions                                                      |
+| `~/.infer/agents.yaml`           | Registered A2A agent definitions                                                      |
 | `~/.infer/auth.json`             | Provider API keys saved from **Settings -> API Keys**                                 |
 
 Everything is scoped to your home directory - no system-wide installs, no vendor lock-in.
