@@ -121,7 +121,7 @@ The override is parsed by the action's trigger-detection step and exported as `I
 
 When the run finishes, the action updates its comment with a result footer. Alongside the status, model, exit code, and job link, the footer reports:
 
-- **Duration** - wall-clock time of the agent run, formatted human-readably (`0s`, `1m 0s`, `1h 1m 1s`) and shown as `—` when unavailable. The measured window is spawn-to-exit of the `infer agent` child, so it excludes CLI install and Node setup time. The raw millisecond value is also exposed as the `run-duration-ms` [output](#outputs).
+- **Duration** - wall-clock time of the agent run, formatted human-readably (`0s`, `1m 0s`, `1h 1m 1s`) and shown as `—` when unavailable. The measured window is spawn-to-exit of the `infer headless` child, so it excludes CLI install and Node setup time. The raw millisecond value is also exposed as the `run-duration-ms` [output](#outputs).
 - **Tokens** - prompt / completion / total token usage, plus the request count.
 - **Cost** - per-session input / output / total cost, when the CLI reports pricing.
 - **Tool calls** - the total number of tool calls the agent made, with the run's success rate. The rate is `succeeded / total` (where `succeeded = total - failed`), so a run with failures reads its failures in proportion. Any failed calls are listed in a collapsed section just below.
@@ -626,7 +626,7 @@ You can also append at the CLI layer with the `INFER_TOOLS_BASH_ALLOW_APPEND` en
 
 ### Controlled-autonomy CI profile
 
-A headless `infer agent` is [secure-by-default](/cli/#headless-secure-by-default): in CI there is no interactive approver, so any off-list or mutating action is **blocked** rather than auto-run. To let an unattended agent edit files and run a curated command set without prompting, combine a `block` approval behaviour with a relaxed write gate and a curated allow-list - set entirely through environment variables on the step:
+A headless `infer headless` is [secure-by-default](/cli/#headless-secure-by-default): in CI there is no interactive approver, so any off-list or mutating action is **blocked** rather than auto-run. To let an unattended agent edit files and run a curated command set without prompting, combine a `block` approval behaviour with a relaxed write gate and a curated allow-list - set entirely through environment variables on the step:
 
 ```yaml
 - uses: inference-gateway/infer-action@v0.23.6

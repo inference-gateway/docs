@@ -41,7 +41,7 @@ hooks:
     timeout: 30 # seconds; 0 -> default 30
 ```
 
-The next `infer agent "..."` (or chat session) runs `gofmt -w .` once the agent finishes generating, subject to the [authorization model](#authorization-the-allow-list) below.
+The next `infer headless "..."` (or chat session) runs `gofmt -w .` once the agent finishes generating, subject to the [authorization model](#authorization-the-allow-list) below.
 
 ## Schema
 
@@ -81,7 +81,7 @@ hooks:
 | `post_queue_drain` | After the queue has been drained.                                     | React to freshly-injected background results.                  |
 | `post_session`     | Once, after the agent has finished generating for the session.        | **Deterministic post-processing**: format, lint, test, notify. |
 
-`post_session` ("agent finished generating") is the **primary** hook point and the one most hooks should target. It is the natural place for deterministic, always-run post-processing - run a formatter, run the test suite, push a notification - because it fires exactly once, after the agent is done editing, in every run mode (interactive chat, headless [`infer agent`](/cli/#headless-agent-stream-output), [channels](/cli-channels/), and [scheduled](/cli/#schedule) runs).
+`post_session` ("agent finished generating") is the **primary** hook point and the one most hooks should target. It is the natural place for deterministic, always-run post-processing - run a formatter, run the test suite, push a notification - because it fires exactly once, after the agent is done editing, in every run mode (interactive chat, headless [`infer headless`](/cli/#headless-agent-stream-output), [channels](/cli-channels/), and [scheduled](/cli/#schedule) runs).
 
 ## Authorization: the allow-list
 
@@ -95,17 +95,17 @@ This keeps the secure-by-default model intact: hooks cannot do anything the agen
 
 ### Allowing a command to run unattended (CI)
 
-In a headless [`infer agent`](/cli/#headless-agent-stream-output) run there is no interactive approver, so a hook command must be on the allow-list to execute - otherwise it is skipped. Add the command to the allow-list in config, or use the [append-only override](/cli/#append-only-override-ci) to graft a few commands onto the `mode.all` baseline without editing config:
+In a headless [`infer headless`](/cli/#headless-agent-stream-output) run there is no interactive approver, so a hook command must be on the allow-list to execute - otherwise it is skipped. Add the command to the allow-list in config, or use the [append-only override](/cli/#append-only-override-ci) to graft a few commands onto the `mode.all` baseline without editing config:
 
 ```bash
 # Append onto the every-mode baseline (comma- or newline-separated; the env var wins over the flag)
 export INFER_TOOLS_BASH_ALLOW_APPEND="gofmt.*"
 
 # Flag form
-infer agent "Refactor the handlers package" --tools-bash-allow-append "gofmt.*"
+infer headless "Refactor the handlers package" --tools-bash-allow-append "gofmt.*"
 ```
 
-With `INFER_TOOLS_BASH_ALLOW_APPEND="gofmt.*"`, the `gofmt -w .` command in the [quick-start](#quick-start) example matches the appended pattern and runs at `post_session` in any mode - including the standard mode a headless `infer agent` uses.
+With `INFER_TOOLS_BASH_ALLOW_APPEND="gofmt.*"`, the `gofmt -w .` command in the [quick-start](#quick-start) example matches the appended pattern and runs at `post_session` in any mode - including the standard mode a headless `infer headless` uses.
 
 For a fully controlled CI profile (write files and run a vetted set, block everything else), see [Headless secure-by-default](/cli/#headless-secure-by-default) - the same `approval_behaviour: block` + curated `mode.all.allow` recipe works for hooks, since they share the allow-list.
 
@@ -118,14 +118,14 @@ The `enabled` field in `hooks.yaml` is the file-level master switch. It is overr
 export INFER_HOOKS_ENABLED=true
 
 # Or scope it to a single invocation
-INFER_HOOKS_ENABLED=true infer agent "Tidy the repo"
+INFER_HOOKS_ENABLED=true infer headless "Tidy the repo"
 ```
 
 `INFER_HOOKS_ENABLED` takes precedence over the `enabled` field in `hooks.yaml`. There is no per-hook env override - disable an individual hook by removing or commenting its entry.
 
 ## Observability: the `hook_command` stream event
 
-v1 is **fire-and-observe**. Each hook execution emits a single `hook_command` stream event on the [`infer agent` JSONL stream](/cli/#headless-agent-stream-output), so consumers (the [`infer-action` GitHub Action](/github-action/), log scrapers, channel managers) can report what ran without parsing command output. Hook output is **not** fed back into the conversation - the agent never sees it, so a hook cannot accidentally steer the model.
+v1 is **fire-and-observe**. Each hook execution emits a single `hook_command` stream event on the [`infer headless` JSONL stream](/cli/#headless-agent-stream-output), so consumers (the [`infer-action` GitHub Action](/github-action/), log scrapers, channel managers) can report what ran without parsing command output. Hook output is **not** fed back into the conversation - the agent never sees it, so a hook cannot accidentally steer the model.
 
 ```json
 {
@@ -183,11 +183,11 @@ hooks:
 
 ```yaml
 # .github/workflows/infer.yml (excerpt)
-- name: Run infer agent
+- name: Run infer headless
   env:
     INFER_TOOLS_BASH_ALLOW_APPEND: 'gofmt.*,go test.*,curl.*'
     INFER_HOOKS_ENABLED: 'true'
-  run: infer agent "Refactor the handlers package and verify the build"
+  run: infer headless "Refactor the handlers package and verify the build"
 ```
 
 When the agent finishes, the three `post_session` hooks fire in listed order - format, test, notify - each gated by the appended allow-list entries. A command that fails the allow-list (or the clean-command guard) is skipped and reported in the `hook_command` events, so the run completes but the CI log shows which post-processing steps did not execute.
@@ -203,7 +203,7 @@ When the agent finishes, the three `post_session` hooks fire in listed order - f
 
 ## See also
 
-- [CLI](/cli/) - the Bash tool, per-mode allow-lists, and headless `infer agent` stream
+- [CLI](/cli/) - the Bash tool, per-mode allow-lists, and headless `infer headless` stream
 - [Channels](/cli-channels/) - running hooks from channel-driven sessions
 - [GitHub Action](/github-action/) - consuming `hook_command` events in CI
 - [Configuration](/configuration/) - gateway-server configuration reference

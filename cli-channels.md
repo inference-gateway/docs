@@ -33,7 +33,7 @@ Channel adapter (long-polls or webhook)
 Channel manager - checks the allowlist
     │
     ▼
-Spawns: infer agent --session-id channel-<name>-<sender_id> "<message>"
+Spawns: infer headless --session-id channel-<name>-<sender_id> "<message>"
     │
     ▼
 Agent emits JSON-line output on stdout
@@ -178,7 +178,7 @@ This requires `whisper.cpp` and `ffmpeg` on the host. See [Speech-to-Text](/cli-
 | -------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
 | Bot does not respond             | Verify the token is reachable: `curl https://api.telegram.org/bot<TOKEN>/getMe`                                    |
 | Logs show "unauthorized user"    | Add the sender's chat ID to `allowed_users` (string, not number)                                                   |
-| Agent fails to spawn             | Run `infer agent "test"` standalone to confirm the agent itself works before debugging the daemon                  |
+| Agent fails to spawn             | Run `infer headless "test"` standalone to confirm the agent itself works before debugging the daemon               |
 | Approvals never appear           | Ensure `channels.require_approval: true` and the relevant tool's `require_approval` is not explicitly set to false |
 | Long replies are cut off         | Telegram limit is 4096 chars per message - confirm the adapter is splitting (check daemon logs)                    |
 | `channels are not enabled` error | Set `channels.enabled: true` (or `INFER_CHANNELS_ENABLED=true`) - the master switch is off by default              |

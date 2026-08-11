@@ -232,7 +232,7 @@ Learn more about the CLI in our [CLI Documentation](/cli/).
 
 A2A targets **external**, independently deployed agent servers discovered over the network - long-running, specialized services (calendar, documentation, and so on) that you add with `infer agents add` and reach through `A2A_SubmitTask` / `A2A_QueryTask` / `A2A_QueryAgent`.
 
-For **short-lived, local** helpers there is a lighter-weight option: the CLI's built-in **[Agent tool](/cli/#local-subagents-agent-tool)**. It spawns one or more local subagents - each just an `infer agent` subprocess with its own isolated session - that run in parallel and fold their results back into the main conversation, with no agent server to stand up.
+For **short-lived, local** helpers there is a lighter-weight option: the CLI's built-in **[Agent tool](/cli/#local-subagents-agent-tool)**. It spawns one or more local subagents - each just an `infer headless` subprocess with its own isolated session - that run in parallel and fold their results back into the main conversation, with no agent server to stand up.
 
 | Use the **Agent tool** (local subagents)                          | Use the **A2A tools** (external agents)                       |
 | ----------------------------------------------------------------- | ------------------------------------------------------------- |
