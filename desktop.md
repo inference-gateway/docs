@@ -169,6 +169,38 @@ The app does not keep its own conversation store - it shells out to the [`infer`
 
 With the default SQLite backend that means `~/.infer/conversations.db`. The CLI resolves `.infer` relative to its working directory, and the desktop app runs it from your home directory. Point [`storage`](/cli/#conversation-management) at another backend in `~/.infer/config.yaml` and the sidebar follows it. Deletes go to the storage backend and are not recoverable from the app.
 
+### Project groups
+
+Organize conversations into named project groups in the sidebar. Each group
+is a collapsible heading with a conversation count. Conversations that belong
+to no group sit in the default **ungrouped** area.
+
+- **Create** -- click the **New project** button at the bottom of the
+  sidebar, type a name, and press Enter.
+- **Rename** -- double-click the heading (or click the pencil icon on hover)
+  and edit inline.
+- **Delete** -- click the **X** on hover. Deleting a project removes the
+  group but keeps the conversations -- they move to the ungrouped area.
+- **Move conversations** -- drag a conversation from one group to another,
+  or to the ungrouped area. The cursor shows where the item lands. You can
+  also drag multiple selected conversations at once.
+- **Collapse** -- click the chevron next to a heading to hide or show its
+  conversations.
+
+A project indicator appears at the top of the chat composer when a
+conversation belongs to a project. New chats started while a project is
+selected (the heading is highlighted in the sidebar) are automatically
+assigned to that project.
+
+**Per-project context** is managed in **Settings -> Projects**. Each project
+has a text area for extra instructions that are sent with every message in
+that project, alongside any global extra instructions.
+
+Assignments are stored in `~/.infer/projects.json`, a JSON file with
+`assignments`, `names`, and `contexts` keys. The desktop owns this file
+entirely -- it is never read or written by the gateway or the CLI, and
+project groups do not sync to any backend.
+
 ## Parallel sessions
 
 You can run several agent sessions at once. Click **+ New chat** while another conversation is streaming and start typing - each session is backed by its own `infer headless` process, so they stream independently. `+ New chat` is never disabled by a running session.
