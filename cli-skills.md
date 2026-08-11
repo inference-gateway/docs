@@ -13,7 +13,7 @@ The CLI uses the **same on-disk format** as Claude Code, Gemini CLI, and OpenAI 
 
 ## How skills work
 
-When skills are enabled, three things happen across every run mode (chat, `infer agent`, [channels](/cli-channels/), and [scheduled](/cli/#schedule) runs):
+When skills are enabled, three things happen across every run mode (chat, `infer headless`, [channels](/cli-channels/), and [scheduled](/cli/#schedule) runs):
 
 1. **Discovery is always injected.** The system prompt gains an `AVAILABLE SKILLS:` block listing each discovered skill's `name`, scope, `description`, and the absolute path to its `SKILL.md`. Only this metadata is added - the bodies are not loaded at startup.
 2. **Explicit invocation activates a skill deterministically.** When you invoke a skill by name (see [Activation](#activation)), the CLI injects an `ACTIVE SKILL` pointer telling the agent to read that skill's `SKILL.md` and follow it. This removes the old guesswork where activation depended on the model opportunistically deciding to read a file.
@@ -216,12 +216,12 @@ The catalog is versioned **as a whole** via the top-level `release` / `updated` 
 
 Discovery puts every skill's metadata in the system prompt, but **activation is explicit and deterministic**. The CLI scans your messages for an invocation and, on a match, injects an `ACTIVE SKILL` pointer - the invoked skill's `description` and absolute `SKILL.md` path - instructing the agent to read that file and follow it.
 
-Two triggers activate a skill, in **any** run mode (chat, `infer agent`, channels, scheduled runs):
+Two triggers activate a skill, in **any** run mode (chat, `infer headless`, channels, scheduled runs):
 
-| Trigger                                            | Example                    | Where it works                                           |
-| -------------------------------------------------- | -------------------------- | -------------------------------------------------------- |
-| `/<name>` slash invocation                         | `/pdf-helper`              | Chat input                                               |
-| "use the `<name>` skill" phrase (case-insensitive) | `use the pdf-helper skill` | Any mode - chat, `infer agent`, channels, scheduled runs |
+| Trigger                                            | Example                    | Where it works                                              |
+| -------------------------------------------------- | -------------------------- | ----------------------------------------------------------- |
+| `/<name>` slash invocation                         | `/pdf-helper`              | Chat input                                                  |
+| "use the `<name>` skill" phrase (case-insensitive) | `use the pdf-helper skill` | Any mode - chat, `infer headless`, channels, scheduled runs |
 
 Typing `/pdf-helper` for a known installed skill is now routed to the agent and flags the skill active, rather than dead-ending as an "Unknown shortcut".
 
@@ -276,7 +276,7 @@ A catalog skill (one from [`agent.skills.repository`](#the-skills-catalog-and-ag
 
 - **Only an explicit name triggers it.** A catalog skill downloads when a prompt explicitly names it (`/rust`, or "use the rust skill"). The **model cannot trigger this on its own** - catalog entries are listed to it without a path, so it has no way to reach an un-downloaded body.
 - **Chat asks first.** In interactive chat the install is **confirmed by the user** before it happens.
-- **Headless downloads immediately.** `infer agent`, piped `infer chat`, [channels](/cli-channels/), and [scheduled/heartbeat](/cli/#schedule) runs download with **no prompt, by design** - there is nobody to ask.
+- **Headless downloads immediately.** `infer headless`, piped `infer chat`, [channels](/cli-channels/), and [scheduled/heartbeat](/cli/#schedule) runs download with **no prompt, by design** - there is nobody to ask.
 - **It is not a tool call, so tool approval does not gate it.** The download is not a `domain.Tool`, so [`tools.safety.require_approval`](/cli/#approval-workflow) and `approval_behaviour` do not apply. Notably, `approval_behaviour: block` does **not** prevent it.
 - **Under channels the "user" is remote.** In a [channel](/cli-channels/) the party whose prompt triggers the download is a **remote sender**, not the operator running the profile.
 

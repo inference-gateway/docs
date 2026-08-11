@@ -122,8 +122,8 @@ infer chat
 # Launch web terminal
 infer chat --web
 
-# Autonomous agent mode
-infer agent "Analyze this codebase and suggest improvements"
+# Headless mode
+infer headless "Analyze this codebase and suggest improvements"
 
 # Get help (styled output)
 infer --help
@@ -180,7 +180,7 @@ COMMANDS
   init           Initialize project configuration
   status         Check gateway health and resource usage
   chat           Interactive chat session (TUI)
-  agent          Autonomous task execution
+  headless       Headless task execution
   config         Configuration management
   tools          Run and inspect agent tools directly
   completion     Generate the autocompletion script for the specified shell
@@ -426,13 +426,59 @@ Because the per-action approval gate is off in this mode, the agent runs under a
 
 ### Headless Agent Stream Output
 
-`infer agent <task>` runs the agent non-interactively and writes a **newline-delimited JSON (JSONL) stream** to stdout. Each line is one JSON object with a `type` discriminator, intended for programmatic consumers such as the [`infer-action` GitHub Action](/github-action/). The stream is additive: new `type` values may be introduced over time and consumers should ignore any `type` they do not recognize.
+`infer headless <task>` runs the agent non-interactively and writes a **newline-delimited JSON (JSONL) stream** to stdout. Each line is one JSON object with a `type` discriminator, intended for programmatic consumers such as the [`infer-action` GitHub Action](/github-action/). The stream is additive: new `type` values may be introduced over time and consumers should ignore any `type` they do not recognize.
 
 ```bash
-infer agent "Refactor the authentication module"
+infer headless "Refactor the authentication module"
 ```
 
 > **Secure by default.** A headless run executes in **standard** mode, so off-list or mutating actions are not auto-run - they are blocked (when no approver is reachable) or sent for IPC approval (under a channel manager). See [Headless secure-by-default](#headless-secure-by-default) to opt into more autonomy.
+
+#### Output format (`--format`)
+
+The output format is controlled by the `--format` flag (renamed from the legacy `--output-format`). It accepts four values:
+
+- `json` (default) - newline-delimited JSON (JSONL), one compact object per line, suitable for programmatic consumption
+- `json-pretty` - same per-turn stream as `json` with each object indented across multiple lines for human reading
+- `ag-ui` - spec-compliant AG UI framed output with `TEXT_MESSAGE_START/CONTENT/END` framing and a fresh message id per turn
+- `text` - human-readable plain text output
+
+```bash
+# Default JSON output
+infer headless "Refactor the authentication module"
+
+# Human-readable pretty-printed JSON
+infer headless "Analyze the codebase" --format json-pretty
+```
+
+> Machine consumers should keep using `json` for performance; `json-pretty` is for debugging and human inspection.
+
+#### Stream event types
+
+Every line in the `json` (or `json-pretty`) stream is a JSON object with a `type` discriminator. The stream is additive - new types may be introduced and consumers should ignore any they do not recognize.
+
+| Type               | When emitted            | Description                                                                                                                                                                                                                                                                   |
+| ------------------ | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `info`             | Once at start           | Run metadata (model, session id)                                                                                                                                                                                                                                              |
+| `assistant`        | Per turn                | Assistant response with `content`, `reasoning_content`, `tool_calls`, `token_usage`                                                                                                                                                                                           |
+| `tool`             | Per tool call           | Tool execution result. `content` holds the bare marshaled result (no legacy `Result of tool call:` / `Tool execution failed:` envelope). Structured `tool_execution` metadata (`tool_name`, `success`, `error`, `rejected`, `duration`) and the `failed` flag ride alongside. |
+| `approval_request` | When approval is needed | Approval request metadata                                                                                                                                                                                                                                                     |
+| `session_stats`    | Once at end             | Token usage and cost summary (detailed below)                                                                                                                                                                                                                                 |
+| `agent_error`      | Before stream starts    | Machine-readable error when the run fails before any turn (gateway unavailable, unknown model). For `ag-ui` format this is emitted as `RUN_ERROR`.                                                                                                                            |
+
+**Exit codes:**
+
+| Code | Meaning                     |
+| ---- | --------------------------- |
+| 0    | Task completed successfully |
+| 1    | Task failed                 |
+| 2    | Max turns exhausted         |
+
+**Headless behavior:**
+
+- **Subagent mode**: Headless runs always spawn subagents in `headless` mode, never tmux/interactive, regardless of `tools.agent.mode`.
+- **Background tasks**: The run waits for in-flight background tasks (background shells, A2A tasks) before completing, bounded by `a2a.task.agent_mode_max_wait_seconds`.
+- **Session rollover**: Long conversations automatically roll over into a new session id (session compact). A non-UUID `--session-id` is treated as a session-group key that follows these rollovers - useful for channel-based workflows.
 
 #### Session stats summary line
 
@@ -490,7 +536,7 @@ When `pricing.enabled: false` (or pricing data is unavailable for the model), `i
 `infer agent` accepts a `--result-file <path>` flag that **atomically** writes the final assistant message and the run outcome as JSON to `<path>` on exit. The [Agent tool](#local-subagents-agent-tool) uses it to harvest the result of a detached (tmux pane) subagent, but it is useful on its own whenever a script needs the final answer as a file rather than by parsing the stdout stream.
 
 ```bash
-infer agent "Summarize the open PRs" --result-file /tmp/result.json
+infer headless "Summarize the open PRs" --result-file /tmp/result.json
 ```
 
 #### Resuming a session (`--session-id`)
@@ -502,7 +548,7 @@ infer agent "Summarize the open PRs" --result-file /tmp/result.json
 infer conversations list
 
 # Resume a specific session
-infer agent "Continue the refactoring" --session-id abc-123-def
+infer headless "Continue the refactoring" --session-id abc-123-def
 ```
 
 **Session ID resolution:**
@@ -804,7 +850,7 @@ The `mode.all` baseline takes an **append-only override** so CI can add a few sa
 export INFER_TOOLS_BASH_ALLOW_APPEND="git commit,git push"
 
 # Flag form
-infer agent "Release the changelog" --tools-bash-allow-append "git commit,git push"
+infer headless "Release the changelog" --tools-bash-allow-append "git commit,git push"
 ```
 
 The extra commands merge onto `mode.all.allow`, so they auto-run in every mode. There is no replace override - the old `tools.bash.whitelist.commands` key, the `INFER_TOOLS_BASH_WHITELIST_COMMANDS[_APPEND]` env vars, and the `--tools-bash-whitelist-commands*` flags were removed in [inference-gateway/cli#618](https://github.com/inference-gateway/cli/pull/618).
@@ -1469,7 +1515,7 @@ Reminders are resolved with the following precedence (highest first):
 | Priority    | Source                   | Description                                                                                          |
 | ----------- | ------------------------ | ---------------------------------------------------------------------------------------------------- |
 | 1 (Highest) | `INFER_REMINDERS_CONFIG` | Inline YAML string. When set, it **replaces** all file-loaded reminders.                             |
-| 2           | `--reminders-file PATH`  | Load reminders from an arbitrary file path. Available on `infer agent` and `infer chat`.             |
+| 2           | `--reminders-file PATH`  | Load reminders from an arbitrary file path. Available on `infer headless` and `infer chat`.          |
 | 3           | Project config           | `./.infer/reminders.yaml`                                                                            |
 | 4           | User config              | `~/.infer/reminders.yaml`                                                                            |
 | 5 (Lowest)  | Built-in defaults        | The CLI ships a built-in `memory-consult` reminder that nudges the agent to consult the Memory tool. |
@@ -1494,10 +1540,10 @@ When `INFER_REMINDERS_CONFIG` is set, it **replaces** the file-loaded config ent
 
 #### `--reminders-file`
 
-The `--reminders-file PATH` flag is available on `infer agent` and `infer chat`. It loads reminders from an arbitrary YAML file path, bypassing the default file resolution.
+The `--reminders-file PATH` flag is available on `infer headless` and `infer chat`. It loads reminders from an arbitrary YAML file path, bypassing the default file resolution.
 
 ```bash
-infer agent "Refactor the module" --reminders-file /path/to/custom-reminders.yaml
+infer headless "Refactor the module" --reminders-file /path/to/custom-reminders.yaml
 infer chat --reminders-file ./ci-reminders.yaml
 ```
 
@@ -1510,7 +1556,7 @@ reminders:
     hook: post_tool
     trigger: on_failure
     text: "A failed call means the change did not happen"
-' INFER_REMINDERS_ENABLED=true infer agent "..."
+' INFER_REMINDERS_ENABLED=true infer headless "..."
 ```
 
 ### Essential Environment Variables
@@ -2347,7 +2393,7 @@ infer chat
 
 **Session id resolution:**
 
-`<session-id>` is resolved the same way as [`infer agent --session-id`](#session-id-agent) and
+`<session-id>` is resolved the same way as [`infer headless --session-id`](#session-id-headless) and
 [`infer chat --session-id`](#resuming-a-session---session-id): a literal UUID is used
 as-is, while any other value is treated as a session group key and resolved to that group's
 current session id (registering the group if it is new). This means you can show a conversation
@@ -2380,7 +2426,7 @@ infer conversations delete channel-telegram-12345
 
 #### Cloudflare D1 backend
 
-[Cloudflare D1](https://developers.cloudflare.com/d1/) is an external, SQLite-compatible store the CLI writes to over D1's HTTP query API. It is built for **ephemeral CI runners** (for example a headless [`infer agent`](#headless-agent-stream-output) on GitHub Actions): unlike `sqlite`, `jsonl`, and `memory` - which live on the runner's disk and are wiped on recycle - D1 persists off-runner and stays readable by the gateway through its native binding. Unlike `postgres` and `redis`, it needs no wire-protocol connection, just HTTPS.
+[Cloudflare D1](https://developers.cloudflare.com/d1/) is an external, SQLite-compatible store the CLI writes to over D1's HTTP query API. It is built for **ephemeral CI runners** (for example a headless [`infer headless`](#headless-agent-stream-output) on GitHub Actions): unlike `sqlite`, `jsonl`, and `memory` - which live on the runner's disk and are wiped on recycle - D1 persists off-runner and stays readable by the gateway through its native binding. Unlike `postgres` and `redis`, it needs no wire-protocol connection, just HTTPS.
 
 Set `storage.type: d1` and configure the `storage.d1` block:
 
@@ -2971,7 +3017,7 @@ LLMs request approval before executing Write/Edit/Delete/Bash operations, with a
 
 #### Headless secure-by-default
 
-`infer agent` runs in **standard** mode, so an off-list or mutating action is **not** auto-run. With no approver reachable (CI, heartbeat) it is **blocked** with a reason; under a channel manager (`--require-approval`) it is sent for **IPC** approval (for example a Telegram confirmation). There is no `.*` default - full autonomy is an explicit opt-in (a curated allowed-list, the [append override](#append-only-override-ci), or `mode.auto` / `.*`).
+`infer headless` runs in **standard** mode, so an off-list or mutating action is **not** auto-run. With no approver reachable (CI, heartbeat) it is **blocked** with a reason; under a channel manager (`--require-approval`) it is sent for **IPC** approval (for example a Telegram confirmation). There is no `.*` default - full autonomy is an explicit opt-in (a curated allowed-list, the [append override](#append-only-override-ci), or `mode.auto` / `.*`).
 
 For a CI agent that should edit files and run a curated command set with **no** interactive approver, use the **controlled-autonomy** profile - `block` everything that would need approval, but let the agent write files and run a vetted allowed-list:
 
@@ -3092,3 +3138,4 @@ If completions still do not appear, the shell rc is usually not sourcing the com
 - **Documentation**: [Full Configuration Reference](https://github.com/inference-gateway/cli/blob/main/docs/configuration.md)
 
 The CLI is actively developed with regular updates and new features. Check the repository for the latest releases and announcements.
+s.
