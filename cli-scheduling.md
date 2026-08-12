@@ -97,14 +97,18 @@ A `run_once` job renders a final step that disables the workflow after its first
 
 ### Conversation artifact pull-back
 
-The workflow uploads the run's conversation `*.jsonl` files as an Actions artifact named `infer-conversations-<run_id>`. While `infer daemon` is running, an artifact poller downloads new artifacts into local conversation storage:
+The workflow uploads the run's conversation `*.jsonl` files plus everything the run wrote to [`.infer/artifacts`](/cli/#artifacts-directory) - generated images, downloads, A2A task artifacts - as an Actions artifact named `infer-conversations-<run_id>`. While `infer daemon` is running, an artifact poller downloads new artifacts and splits them back out locally:
 
+- Conversation `*.jsonl` files go into local conversation storage.
+- Everything else goes to `~/.infer/artifacts`, preserving the `<session-id>/` grouping from the run.
 - First poll after `initial_delay` (default `1m`), then every `poll_interval` (default `10m`).
 - Each artifact gets up to `max_attempts` download attempts (default `3`), after which it is skipped.
 - A rate-limited GitHub API call pauses polling for `rate_limit_backoff` (default `1h`).
 - **jsonl storage backend only.** Pull-back is skipped on other storage backends.
 
 Set `artifacts.enabled: false` to turn the poller off.
+
+> Non-jsonl artifact pull-back shipped in [inference-gateway/cli#1058](https://github.com/inference-gateway/cli/pull/1058).
 
 ### Out of scope in the first cut
 
@@ -113,16 +117,16 @@ Set `artifacts.enabled: false` to turn the poller off.
 
 ## Configuration reference
 
-| Config key                                      | Env var                                               | Default             | Description                                                              |
-| ----------------------------------------------- | ----------------------------------------------------- | ------------------- | ------------------------------------------------------------------------ |
-| `scheduler.backend`                             | `INFER_SCHEDULER_BACKEND`                             | `local`             | Scheduling backend: `local` or `github`                                  |
-| `scheduler.github.repository`                   | `INFER_SCHEDULER_GITHUB_REPOSITORY`                   | `<login>/.routines` | Repository holding the generated workflows                               |
-| `scheduler.github.pull_requests`                | `INFER_SCHEDULER_GITHUB_PULL_REQUESTS`                | `false`             | Deploy changes via pull request instead of pushing to the default branch |
-| `scheduler.github.artifacts.enabled`            | `INFER_SCHEDULER_GITHUB_ARTIFACTS_ENABLED`            | `true`              | Pull conversation artifacts from GitHub runs into local storage          |
-| `scheduler.github.artifacts.poll_interval`      | `INFER_SCHEDULER_GITHUB_ARTIFACTS_POLL_INTERVAL`      | `10m`               | Artifact poll interval                                                   |
-| `scheduler.github.artifacts.initial_delay`      | `INFER_SCHEDULER_GITHUB_ARTIFACTS_INITIAL_DELAY`      | `1m`                | Delay before the first poll                                              |
-| `scheduler.github.artifacts.max_attempts`       | `INFER_SCHEDULER_GITHUB_ARTIFACTS_MAX_ATTEMPTS`       | `3`                 | Download attempts per artifact before it is skipped                      |
-| `scheduler.github.artifacts.rate_limit_backoff` | `INFER_SCHEDULER_GITHUB_ARTIFACTS_RATE_LIMIT_BACKOFF` | `1h`                | Polling pause after a rate-limited GitHub API call                       |
+| Config key                                      | Env var                                               | Default             | Description                                                                      |
+| ----------------------------------------------- | ----------------------------------------------------- | ------------------- | -------------------------------------------------------------------------------- |
+| `scheduler.backend`                             | `INFER_SCHEDULER_BACKEND`                             | `local`             | Scheduling backend: `local` or `github`                                          |
+| `scheduler.github.repository`                   | `INFER_SCHEDULER_GITHUB_REPOSITORY`                   | `<login>/.routines` | Repository holding the generated workflows                                       |
+| `scheduler.github.pull_requests`                | `INFER_SCHEDULER_GITHUB_PULL_REQUESTS`                | `false`             | Deploy changes via pull request instead of pushing to the default branch         |
+| `scheduler.github.artifacts.enabled`            | `INFER_SCHEDULER_GITHUB_ARTIFACTS_ENABLED`            | `true`              | Pull run artifacts (conversations and files) from GitHub runs into local storage |
+| `scheduler.github.artifacts.poll_interval`      | `INFER_SCHEDULER_GITHUB_ARTIFACTS_POLL_INTERVAL`      | `10m`               | Artifact poll interval                                                           |
+| `scheduler.github.artifacts.initial_delay`      | `INFER_SCHEDULER_GITHUB_ARTIFACTS_INITIAL_DELAY`      | `1m`                | Delay before the first poll                                                      |
+| `scheduler.github.artifacts.max_attempts`       | `INFER_SCHEDULER_GITHUB_ARTIFACTS_MAX_ATTEMPTS`       | `3`                 | Download attempts per artifact before it is skipped                              |
+| `scheduler.github.artifacts.rate_limit_backoff` | `INFER_SCHEDULER_GITHUB_ARTIFACTS_RATE_LIMIT_BACKOFF` | `1h`                | Polling pause after a rate-limited GitHub API call                               |
 
 The `Schedule` tool itself is gated separately under `tools.schedule.*` - see [Tool Configuration](/cli/#tool-configuration).
 

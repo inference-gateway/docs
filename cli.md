@@ -975,7 +975,7 @@ tools:
 
 Fetch content from an allowed URL. Optionally save the response to disk.
 
-- **Parameters**: `url` (required), `format` (`text` or `json`), `download` (default `false` - when `true`, saves under `~/.infer/tmp`)
+- **Parameters**: `url` (required), `format` (`text` or `json`), `download` (default `false` - when `true`, saves under [`.infer/artifacts/<session-id>/`](#artifacts-directory))
 - **Notes**: only allowed domains can be fetched; responses are cached (default 15-minute TTL)
 
 ```yaml
@@ -995,9 +995,11 @@ tools:
 
 ### Image Tools
 
+ImageGeneration, ImageEdit, and ImageVariation all write their PNG to the session artifacts directory - `.infer/artifacts/<session-id>/image-<timestamp>.png` - so the images produced by a conversation stay grouped together. See [Artifacts directory](#artifacts-directory).
+
 #### ImageEdit Tool
 
-Edit an existing image and save the result as a PNG under `.infer/tmp/`. The chat model calls the tool when the user asks to edit an image; the tool reads the input image from a local file path and sends a plain one-off request to `/v1/images/edits` using the configured image model - no system prompt, no tools, independent of the model selected for the chat session.
+Edit an existing image and save the result as a PNG under `.infer/artifacts/<session-id>/`. The chat model calls the tool when the user asks to edit an image; the tool reads the input image from a local file path and sends a plain one-off request to `/v1/images/edits` using the configured image model - no system prompt, no tools, independent of the model selected for the chat session.
 
 **Parameters:**
 
@@ -1029,7 +1031,7 @@ tools:
 
 #### ImageVariation Tool
 
-Create a variation of an existing image and save the result as a PNG under `.infer/tmp/`. The chat model calls the tool when the user asks for a variation; the tool reads the input image from a local file path and sends a plain one-off request to `/v1/images/variations` using the configured image model - no system prompt, no tools, independent of the model selected for the chat session.
+Create a variation of an existing image and save the result as a PNG under `.infer/artifacts/<session-id>/`. The chat model calls the tool when the user asks for a variation; the tool reads the input image from a local file path and sends a plain one-off request to `/v1/images/variations` using the configured image model - no system prompt, no tools, independent of the model selected for the chat session.
 
 **Parameters:**
 
@@ -1380,6 +1382,28 @@ Two-layer configuration system with precedence from highest to lowest:
 | `shortcuts/*.yaml` | Project      | Custom slash shortcuts - simple commands, subcommands, and AI-powered snippets.             | [Custom Shortcuts](#custom-shortcuts)                       |
 | `skills/`          | Project/user | Agent Skills folders (`name/SKILL.md`) discovered and injected on demand.                   | [Agent Skills](#agent-skills)                               |
 | `schedules/`       | User         | Persisted cron jobs created by the Schedule tool, run by the daemon.                        | [Schedule](#schedule)                                       |
+| `artifacts/`       | Project/user | Agent deliverables, grouped per session.                                                    | [Artifacts directory](#artifacts-directory)                 |
+
+### Artifacts directory
+
+Files the agent produces for you land in `.infer/artifacts/<session-id>/`, under the project config dir when there is one and the userspace config dir (`~/.infer/artifacts/`) otherwise. Each conversation gets its own subdirectory, so a session's output stays grouped and is easy to find, keep, or delete as a unit.
+
+What lands there:
+
+- Images from the [ImageGeneration, ImageEdit, and ImageVariation tools](#image-tools) - `image-<timestamp>.png`.
+- [WebFetch](#webfetch) downloads and binary fetches.
+- Auto-downloaded [A2A task artifacts](#a2a-integration).
+
+`.infer/artifacts` is **not** the same as `.infer/tmp`:
+
+| Directory          | Contents                                                                    | Lifetime                                  |
+| ------------------ | --------------------------------------------------------------------------- | ----------------------------------------- |
+| `.infer/artifacts` | Intended agent deliverables, grouped by session                             | Yours to keep - nothing prunes it for you |
+| `.infer/tmp`       | Internal scratch only - chunk staging, skill downloads, screenshots, pastes | Disposable working data                   |
+
+Session IDs are sanitized before use, so a directory can never escape the artifacts root. The tool [sandbox](#tool-configuration) carves the artifacts directory out as writable, so tools can save there even when it sits outside the sandbox directory list.
+
+> Shipped in [inference-gateway/cli#1058](https://github.com/inference-gateway/cli/pull/1058).
 
 ### Key Configuration Areas
 
