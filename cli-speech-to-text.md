@@ -119,7 +119,7 @@ Under the hood, `/voice` shells out to `ffmpeg` (or `arecord`/`sox` on Linux) to
 
 ## Telegram voice messages
 
-When `speech_to_text.enabled` is set and you run `infer channels-manager`, voice notes sent to your Telegram bot are downloaded, decoded with `ffmpeg` (OGG/Opus to WAV), transcribed, and forwarded to the agent as text - so you can talk to the agent from your phone.
+When `speech_to_text.enabled` is set and you run `infer daemon`, voice notes sent to your Telegram bot are downloaded, decoded with `ffmpeg` (OGG/Opus to WAV), transcribed, and forwarded to the agent as text - so you can talk to the agent from your phone.
 
 When speech-to-text is **disabled**, inbound voice messages are ignored (the previous behavior). Text and image messages are unaffected either way. See [Channels](/cli-channels/) for Telegram setup and access control.
 

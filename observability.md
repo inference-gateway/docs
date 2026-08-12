@@ -571,9 +571,9 @@ processors:
 
 See the [CLI Telemetry](/cli/#telemetry) section for the full documentation, including the span hierarchy, metric names, and local file inspection commands.
 
-### Channels Manager (Daemon)
+### Daemon
 
-The `channels-manager` daemon pushes operational metrics over OTLP when telemetry is enabled. It reuses the same telemetry engine as the CLI agent, so the setup is identical - set `INFER_TELEMETRY_ENABLED=true` and `INFER_TELEMETRY_OTLP_ENDPOINT=<collector>` (or the corresponding YAML keys) before starting the daemon.
+The daemon pushes operational metrics over OTLP when telemetry is enabled. It reuses the same telemetry engine as the CLI agent, so the setup is identical - set `INFER_TELEMETRY_ENABLED=true` and `INFER_TELEMETRY_OTLP_ENDPOINT=<collector>` (or the corresponding YAML keys) before starting the daemon.
 
 #### Daemon-specific metrics
 
@@ -602,7 +602,7 @@ infer_daemon_active_channels
 
 ### Orchestrator (Kubernetes)
 
-When the CLI runs as an [Orchestrator](/operator/#orchestrator) under the Kubernetes operator, telemetry is configured declaratively through the CRD's `spec.telemetry` block rather than raw env vars. The operator maps it onto the same `INFER_TELEMETRY_ENABLED` and `INFER_TELEMETRY_OTLP_ENDPOINT` variables the `channels-manager` daemon reads, using a single shared OTLP endpoint for all signals. See [Orchestrator Telemetry](/operator/#orchestrator-telemetry) for the field reference, the traces-over-metrics endpoint precedence, and an example.
+When the CLI runs as an [Orchestrator](/operator/#orchestrator) under the Kubernetes operator, telemetry is configured declaratively through the CRD's `spec.telemetry` block rather than raw env vars. The operator maps it onto the same `INFER_TELEMETRY_ENABLED` and `INFER_TELEMETRY_OTLP_ENDPOINT` variables the daemon reads, using a single shared OTLP endpoint for all signals. See [Orchestrator Telemetry](/operator/#orchestrator-telemetry) for the field reference, the traces-over-metrics endpoint precedence, and an example.
 
 ## Reference Monitoring Stack
 

@@ -1122,11 +1122,11 @@ Create and update a structured task list for the current session. Use for comple
 
 #### Schedule
 
-Create, list, get, update, or delete cron jobs that fire through the same messaging channel that started the session (e.g. Telegram). Jobs are persisted as YAML under `~/.infer/schedules/` and executed by the `infer channels-manager` daemon (which hot-reloads via fsnotify).
+Create, list, get, update, or delete cron jobs that fire on a schedule. Jobs are persisted as YAML under `~/.infer/schedules/` and executed by the `infer daemon` (which reconciles its cron entries against storage every 2 seconds, so new or hand-edited jobs are picked up without a restart). When created from a channel session (e.g. Telegram), output is delivered back to that channel; otherwise the job is record-only - run history is persisted and viewable through the configured storage backend.
 
 - **Parameters**: `operation` (required: `create` | `list` | `get` | `update` | `delete`), `job_id` (required for get/update/delete), `cron_expression` (5-field crontab or `@every <duration>`), `prompt`, `run_once` (default `false` - when `true`, the job is deleted after firing once), `name`, `description`, `model` (optional model override)
 - **Approval**: required by default
-- **Notes**: each fire creates a brand-new agent session - no context is carried between runs; only usable from a channel-driven session
+- **Notes**: each fire creates a brand-new agent session - no context is carried between runs. Every fire persists a `RunRecord` (`session_id`, `job_id`, `status`, `error`, `started_at`, `finished_at`) through the configured storage backend; the newest 200 records are retained. `channel` and `recipient_id` on a job are optional delivery targets derived from the session, never passed by the LLM.
 
 ```text
 "0 8 * * *"      every day at 08:00
@@ -1377,7 +1377,7 @@ Two-layer configuration system with precedence from highest to lowest:
 | `memory.yaml`      | Project/user | Persistent, cross-session agent memory - fact-files plus the `MEMORY.md` index.             | [Persistent Memory](#persistent-memory)                     |
 | `shortcuts/*.yaml` | Project      | Custom slash shortcuts - simple commands, subcommands, and AI-powered snippets.             | [Custom Shortcuts](#custom-shortcuts)                       |
 | `skills/`          | Project/user | Agent Skills folders (`name/SKILL.md`) discovered and injected on demand.                   | [Agent Skills](#agent-skills)                               |
-| `schedules/`       | User         | Persisted cron jobs created by the Schedule tool, run by the channels-manager daemon.       | [Schedule](#schedule)                                       |
+| `schedules/`       | User         | Persisted cron jobs created by the Schedule tool, run by the daemon.                        | [Schedule](#schedule)                                       |
 
 ### Key Configuration Areas
 
@@ -3112,23 +3112,23 @@ If completions still do not appear, the shell rc is usually not sourcing the com
 
 ## Command Reference
 
-| Command                            | Description                                                      |
-| ---------------------------------- | ---------------------------------------------------------------- |
-| `infer init`                       | Initialize project configuration                                 |
-| `infer status`                     | Check gateway health and resource usage                          |
-| `infer chat`                       | Interactive chat session (TUI)                                   |
-| `infer chat --web`                 | Web-based terminal interface                                     |
-| `infer agent <task>`               | Autonomous task execution                                        |
-| `infer skills <subcommand>`        | Manage Agent Skills (list, install, uninstall)                   |
-| `infer channels-manager`           | Start the remote messaging daemon ([Channels](/cli-channels/))   |
-| `infer config <subcommand>`        | Configuration management (`init`, `get`, `set`)                  |
-| `infer tools <subcommand>`         | Run agent tools directly (`execute`, `validate`)                 |
-| `infer agents <subcommand>`        | A2A agent management                                             |
-| `infer conversations <subcommand>` | Conversation history management (`list`, `show`, `delete`)       |
-| `infer completion <shell>`         | Generate a shell completion script (bash, zsh, fish, powershell) |
-| `infer version`                    | Show version information (backwards-compatible subcommand)       |
-| `infer --version`                  | Show version information (styled by fang)                        |
-| `infer --help`                     | Display styled help information                                  |
+| Command                            | Description                                                                                |
+| ---------------------------------- | ------------------------------------------------------------------------------------------ |
+| `infer init`                       | Initialize project configuration                                                           |
+| `infer status`                     | Check gateway health and resource usage                                                    |
+| `infer chat`                       | Interactive chat session (TUI)                                                             |
+| `infer chat --web`                 | Web-based terminal interface                                                               |
+| `infer agent <task>`               | Autonomous task execution                                                                  |
+| `infer skills <subcommand>`        | Manage Agent Skills (list, install, uninstall)                                             |
+| `infer daemon`                     | Start the daemon - scheduler, channel listener, and heartbeat ([Channels](/cli-channels/)) |
+| `infer config <subcommand>`        | Configuration management (`init`, `get`, `set`)                                            |
+| `infer tools <subcommand>`         | Run agent tools directly (`execute`, `validate`)                                           |
+| `infer agents <subcommand>`        | A2A agent management                                                                       |
+| `infer conversations <subcommand>` | Conversation history management (`list`, `show`, `delete`)                                 |
+| `infer completion <shell>`         | Generate a shell completion script (bash, zsh, fish, powershell)                           |
+| `infer version`                    | Show version information (backwards-compatible subcommand)                                 |
+| `infer --version`                  | Show version information (styled by fang)                                                  |
+| `infer --help`                     | Display styled help information                                                            |
 
 ## Support and Resources
 
