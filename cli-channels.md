@@ -7,7 +7,7 @@ description: Turn the Inference Gateway CLI agent into a remote-controllable bot
 
 Channels turn the [Inference Gateway CLI](/cli/) agent into a remote-controllable bot accessible from messaging platforms like Telegram. Send a message to your bot and the agent runs as if you launched it locally - with persistent per-sender conversation memory, allowlist-based access control, and optional approval prompts for sensitive tools.
 
-> **Note:** Channels run as a long-lived daemon started with `infer channels-manager`. Telegram is fully supported today; WhatsApp is planned and Discord/Slack are open for contributions.
+> **Note:** Channels run as a long-lived daemon started with `infer daemon`. Telegram is fully supported today; WhatsApp is planned and Discord/Slack are open for contributions.
 
 ## Key Features
 
@@ -86,12 +86,12 @@ export INFER_CHANNELS_TELEGRAM_ALLOWED_USERS="123456789"
 **4. Start the daemon:**
 
 ```bash
-infer channels-manager
+infer daemon
 ```
 
 **5. Message your bot** in Telegram - the agent will respond.
 
-> **Try it end-to-end:** The CLI repo ships a Docker Compose example - gateway, channels-manager daemon, and an A2A browser agent so you can ask the bot to surf the web from your phone. See [`examples/telegram-channel`](https://github.com/inference-gateway/cli/tree/main/examples/telegram-channel).
+> **Try it end-to-end:** The CLI repo ships a Docker Compose example - gateway, daemon, and an A2A browser agent so you can ask the bot to surf the web from your phone. See [`examples/telegram-channel`](https://github.com/inference-gateway/cli/tree/main/examples/telegram-channel).
 
 ### Configuration Options
 
@@ -252,7 +252,7 @@ Every YAML key has an `INFER_`-prefixed environment variable. Lists are comma-se
 
 ## Telemetry
 
-The channels-manager daemon pushes operational metrics over OTLP when telemetry is enabled. It reuses the same telemetry engine as the CLI agent, so the setup is identical.
+The daemon pushes operational metrics over OTLP when telemetry is enabled. It reuses the same telemetry engine as the CLI agent, so the setup is identical.
 
 ### Enabling telemetry
 
@@ -306,5 +306,5 @@ For the full telemetry reference, including the standard `infer.*` and `gen_ai.*
 - [CLI](/cli/) - overview of the `infer` command-line tool and agent mode
 - [Configuration](/configuration/) - full configuration system across the gateway and CLI
 - [Observability](/observability/) - metrics, tracing, and logging reference
-- [Telegram Channel Example](https://github.com/inference-gateway/cli/tree/main/examples/telegram-channel) - Docker Compose stack (gateway + channels-manager + A2A browser agent + optional VNC)
+- [Telegram Channel Example](https://github.com/inference-gateway/cli/tree/main/examples/telegram-channel) - Docker Compose stack (gateway + daemon + A2A browser agent + optional VNC)
 - [Examples](/examples/) - more end-to-end recipes

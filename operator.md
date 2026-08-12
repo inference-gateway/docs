@@ -103,7 +103,7 @@ Deploys a Model Context Protocol server. Source: [`api/v1alpha1/mcp_types.go`](h
 
 ### Orchestrator
 
-Deploys the Inference Gateway CLI's `channels-manager` daemon - a chat bot that bridges a messaging channel and the gateway. It receives incoming messages, runs them through an LLM, optionally delegates work to `Agent`s and MCP tools, and posts the reply back to the channel. Source: [`api/v1alpha1/orchestrator_types.go`](https://github.com/inference-gateway/operator/blob/main/api/v1alpha1/orchestrator_types.go).
+Deploys the Inference Gateway CLI daemon - a chat bot that bridges a messaging channel and the gateway. It receives incoming messages, runs them through an LLM, optionally delegates work to `Agent`s and MCP tools, and posts the reply back to the channel. Source: [`api/v1alpha1/orchestrator_types.go`](https://github.com/inference-gateway/operator/blob/main/api/v1alpha1/orchestrator_types.go).
 
 The Deployment is forced to a singleton (`replicas: 1`, `strategy: Recreate`) because Telegram allows only one active `getUpdates` consumer per bot token - running two replicas would 409. For HA today, run multiple `Orchestrator` resources with different tokens and disjoint allowed-user lists.
 
@@ -123,7 +123,7 @@ The Deployment is forced to a singleton (`replicas: 1`, `strategy: Recreate`) be
 | `a2a.enabled`                                                                  | Toggle A2A fan-out. **A2A lives on `Orchestrator`, not on `Gateway`.**                                                                                                         |
 | `a2a.agents[]`                                                                 | Static agent URLs.                                                                                                                                                             |
 | `a2a.serviceDiscovery.{enabled,namespace,selector}`                            | Discover `Agent` CRs by label selector. The pod is rolled when the discovered set changes.                                                                                     |
-| `telemetry.enabled` / `telemetry.traces` / `telemetry.metrics`                 | OpenTelemetry telemetry. The `channels-manager` daemon consumes only a master switch and a single shared OTLP endpoint. See [Orchestrator Telemetry](#orchestrator-telemetry). |
+| `telemetry.enabled` / `telemetry.traces` / `telemetry.metrics`                 | OpenTelemetry telemetry. The daemon consumes only a master switch and a single shared OTLP endpoint. See [Orchestrator Telemetry](#orchestrator-telemetry). |
 | `resources` / `env[]`                                                          | Standard pod knobs.                                                                                                                                                            |
 
 ### GPU
@@ -500,7 +500,7 @@ For runnable manifests, see [`gateway-with-routing-simple`](https://github.com/i
 
 ## Orchestrator Telemetry
 
-`spec.telemetry` on an `Orchestrator` configures OpenTelemetry traces and metrics. It reuses the shared `TelemetrySpec` that `Gateway` and `Agent` use, so the block accepts the same `enabled`, `traces`, `metrics`, and exporter fields. The orchestrator runs the CLI's `channels-manager` daemon, which consumes a narrower slice of that type: the controller maps the whole block onto just two environment variables on the orchestrator pod. When telemetry is enabled, the daemon pushes operational metrics (messages processed, message duration, active channels) over OTLP alongside traces and logs.
+`spec.telemetry` on an `Orchestrator` configures OpenTelemetry traces and metrics. It reuses the shared `TelemetrySpec` that `Gateway` and `Agent` use, so the block accepts the same `enabled`, `traces`, `metrics`, and exporter fields. The orchestrator runs the CLI daemon, which consumes a narrower slice of that type: the controller maps the whole block onto just two environment variables on the orchestrator pod. When telemetry is enabled, the daemon pushes operational metrics (messages processed, message duration, active channels) over OTLP alongside traces and logs.
 
 | Emitted env var                 | Sourced from                                                                                          | Description                                                                                                                    |
 | ------------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
@@ -509,9 +509,9 @@ For runnable manifests, see [`gateway-with-routing-simple`](https://github.com/i
 
 ### Single shared OTLP endpoint
 
-Unlike `Gateway` and `Agent`, the `channels-manager` CLI exposes **one** OTLP endpoint for both traces and metrics - there is no per-signal OTLP field. When both `telemetry.traces.exporter.otlp.endpoint` and `telemetry.metrics.exporter.otlp.endpoint` are set, the **traces endpoint wins** and the metrics endpoint is ignored. Point both signals at one collector that ingests them together, or export metrics over Prometheus pull (which needs no OTLP endpoint) to sidestep the conflict.
+Unlike `Gateway` and `Agent`, the daemon CLI exposes **one** OTLP endpoint for both traces and metrics - there is no per-signal OTLP field. When both `telemetry.traces.exporter.otlp.endpoint` and `telemetry.metrics.exporter.otlp.endpoint` are set, the **traces endpoint wins** and the metrics endpoint is ignored. Point both signals at one collector that ingests them together, or export metrics over Prometheus pull (which needs no OTLP endpoint) to sidestep the conflict.
 
-The remaining `TelemetrySpec` fields - the `telemetry.metrics.*` Prometheus settings and the per-signal `protocol` - are accepted for schema parity with `Gateway`/`Agent` but are **inert for the orchestrator**: it is a forced singleton daemon with no scrape Service, so only the master switch and the shared OTLP endpoint reach the CLI. Configure Prometheus scraping and per-signal protocols on a `Gateway` or `Agent` instead. See [CLI Telemetry](/observability/#cli-telemetry) for how the daemon exports to the OTLP endpoint, and [Channels Manager (Daemon)](/observability/#channels-manager-daemon) for the daemon-specific metrics reference.
+The remaining `TelemetrySpec` fields - the `telemetry.metrics.*` Prometheus settings and the per-signal `protocol` - are accepted for schema parity with `Gateway`/`Agent` but are **inert for the orchestrator**: it is a forced singleton daemon with no scrape Service, so only the master switch and the shared OTLP endpoint reach the CLI. Configure Prometheus scraping and per-signal protocols on a `Gateway` or `Agent` instead. See [CLI Telemetry](/observability/#cli-telemetry) for how the daemon exports to the OTLP endpoint, and [Daemon](/observability/#daemon) for the daemon-specific metrics reference.
 
 ### Example: Orchestrator with OTLP traces and Prometheus metrics
 
@@ -563,7 +563,7 @@ The daemon emits the following metrics when telemetry is enabled:
 | `infer.daemon.message.duration`   | Histogram      | Per-message processing duration |
 | `infer.daemon.active_channels`    | UpDown Counter | Number of active channels       |
 
-All daemon metrics carry the resource attribute `infer.execution.mode=daemon`. See [Channels Manager (Daemon)](/observability/#channels-manager-daemon) for example PromQL queries.
+All daemon metrics carry the resource attribute `infer.execution.mode=daemon`. See [Daemon](/observability/#daemon) for example PromQL queries.
 
 ## Status and Monitoring
 
