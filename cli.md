@@ -1135,6 +1135,8 @@ Create, list, get, update, or delete cron jobs that fire on a schedule. Jobs are
 "@every 1h"      every hour
 ```
 
+> Jobs can also run in the cloud instead of the local daemon: set `scheduler.backend: github` to materialize each job as a GitHub Actions scheduled workflow. See [Scheduling](/cli-scheduling/).
+
 #### AskUserQuestion
 
 Pause the plan and ask the user 1-4 multiple-choice clarifying questions as an interactive, keyboard-driven form. The agent reaches for this in Plan Mode to resolve ambiguity **before** it calls [`RequestPlanApproval`](#requestplanapproval) - your answers feed straight back into the plan it then proposes. It is read-only with **no approval gate**.
