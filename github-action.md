@@ -226,7 +226,7 @@ The `languages` input installs language toolchains before the agent runs, replac
 
 | Language              | Action                          | Default version | Version-file fallback |
 | --------------------- | ------------------------------- | --------------- | --------------------- |
-| `go`                  | `actions/setup-go@v5`           | `stable`        | `go.mod`              |
+| `go`                  | `actions/setup-go@v7.0.0`           | `stable`        | `go.mod`              |
 | `rust`                | `dtolnay/rust-toolchain@stable` | `stable`        | -                     |
 | `node` / `typescript` | `actions/setup-node@v4`         | `lts/*`         | `.nvmrc`              |
 | `python`              | `actions/setup-python@v5`       | `3.x`           | `.python-version`     |
