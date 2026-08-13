@@ -21,7 +21,7 @@ Download the `browser-extension.zip` from the [latest release](https://github.co
 
 - **Skills**: type `!` at the start of a word in a comment box to open the skill dropdown. Arrow keys navigate, `Tab`/`Enter` inserts, `Esc` closes.
 - **Quick prompts**: press `Ctrl/Cmd+Shift+P` (or click the toolbar button) to open the palette, filter, and insert a template at the caret.
-- **Install the agent**: navigate to any GitHub repo and click the **Tasks** tab in the repo navigation bar to install the OpenTask Agent workflow via a pull request.
+- **Install the agent**: navigate to any GitHub repo and click the **Tasks** tab in the repo navigation bar to install the OpenTask Agent workflow via a pull request. The language toggle there (Go, Rust, Node/TypeScript, Python) maps to the `languages` input on the action.
 - **Manage skills**: the **Skills** tab shows a searchable, multi-select list of the [skills registry](https://github.com/inference-gateway/skills). Check skills to install and uncheck to remove, then click **Apply** to open a PR.
 - **Select agents**: the **Agents** tab lists available A2A agents from the [agents registry](https://github.com/inference-gateway/agents). Check the ones to include in the workflow, then re-install to bake them in.
 - **Init a project**: the **Init** tab dispatches the workflow to scaffold an `AGENTS.md` for the repo and open a PR.

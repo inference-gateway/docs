@@ -157,6 +157,7 @@ The total and failed tool-call counts are also exposed as the `total-tool-calls-
 | `direct-prompt`           | No       | `''`       | Free-text task to run directly, bypassing issue/comment triggers. When set, the agent runs against this text under `workflow_dispatch` (or any event), commits to a new branch, and opens a PR; the result and PR link go to the job summary. See [Direct prompt](#direct-prompt-manual-runs).                                                                                                                                                                                        |
 | `version`                 | No       | `v0.131.0` | `infer` CLI version to install inside the runner.                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | `apt`                     | No       | `''`       | Newline- or space-separated list of apt packages to install before the agent runs. Installed via `DEBIAN_FRONTEND=noninteractive sudo apt-get install -y`. Debian/Ubuntu runners only - on other OS families the step prints an error and fails. No caching or version pinning. A plain `run:` step before the action is the portable alternative.                                                                                                                                    |
+| `languages`               | No       | `''`       | Newline- or space-separated list of languages whose toolchains to install before the agent runs. Supported: `go`, `rust`, `node` (alias `typescript`), `python`. Empty = no language setup steps. See [Language toolchains](#language-toolchains).                                                                                                                                                                                                                                    |
 | `max-turns`               | No       | `50`       | Maximum agent iterations - acts as a runaway-cost guard.                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | `custom-instructions`     | No       | `''`       | Extra instructions appended to the default system prompt (does **not** replace the defaults).                                                                                                                                                                                                                                                                                                                                                                                         |
 | `system-prompt-issue`     | No       | `''`       | Overrides the action's bundled system prompt for issue-driven runs. Substitutes `{{issueNumber}}`. See [System prompt override](#system-prompt-override).                                                                                                                                                                                                                                                                                                                             |
@@ -218,6 +219,32 @@ Install system apt packages before the agent runs:
 ```
 
 The `apt` input is Debian/Ubuntu-only - on other OS families the step prints an error and fails. No caching or version pinning. A plain `run: sudo apt-get install -y ...` step before the action remains the portable alternative for non-Debian runners.
+
+### Language toolchains
+
+The `languages` input installs language toolchains before the agent runs, replacing the need for separate `actions/setup-go` / `setup-node` / `setup-python` / `rust-toolchain` steps. Each language resolves to a well-known action:
+
+| Language              | Action                          | Default version | Version-file fallback |
+| --------------------- | ------------------------------- | --------------- | --------------------- |
+| `go`                  | `actions/setup-go@v5`           | `stable`        | `go.mod`              |
+| `rust`                | `dtolnay/rust-toolchain@stable` | `stable`        | -                     |
+| `node` / `typescript` | `actions/setup-node@v4`         | `lts/*`         | `.nvmrc`              |
+| `python`              | `actions/setup-python@v5`       | `3.x`           | `.python-version`     |
+
+An unsupported value fails the action with an error listing the supported values.
+
+```yaml
+- uses: inference-gateway/infer-action@main
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        model: anthropic/claude-opus-5
+        anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+        languages: |
+          go
+          typescript
+```
+
+The version-file resolution (`go.mod`, `.nvmrc`, `.python-version`) works just like the upstream action: it detects the file at the repository root and reads the version from it. If the file is absent, the default version listed above is used. Per-language version pinning is not supported - use your own setup-* step if you need a specific minor or patch version.
 
 ## Outputs
 
