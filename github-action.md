@@ -207,7 +207,7 @@ The action also accepts seven opt-in OpenTelemetry inputs (`otel-*`) for exporti
 Install system apt packages before the agent runs:
 
 ```yaml
-- uses: inference-gateway/infer-action@v0.23.6
+- uses: inference-gateway/infer-action@main
   with:
     model: ollama_cloud/deepseek-v4-flash:preview
     ollama-cloud-api-key: ${{ secrets.OLLAMA_CLOUD_API_KEY }}
