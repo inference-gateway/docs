@@ -156,6 +156,7 @@ The total and failed tool-call counts are also exposed as the `total-tool-calls-
 | `trigger-phrase`          | No       | `@infer`   | Phrase that activates the agent. Case-sensitive.                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | `direct-prompt`           | No       | `''`       | Free-text task to run directly, bypassing issue/comment triggers. When set, the agent runs against this text under `workflow_dispatch` (or any event), commits to a new branch, and opens a PR; the result and PR link go to the job summary. See [Direct prompt](#direct-prompt-manual-runs).                                                                                                                                                                                        |
 | `version`                 | No       | `v0.131.0` | `infer` CLI version to install inside the runner.                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| `apt`                     | No       | `''`       | Newline- or space-separated list of apt packages to install before the agent runs. Installed via `DEBIAN_FRONTEND=noninteractive sudo apt-get install -y`. Debian/Ubuntu runners only - on other OS families the step prints an error and fails. No caching or version pinning. A plain `run:` step before the action is the portable alternative.                                                                                                                                    |
 | `max-turns`               | No       | `50`       | Maximum agent iterations - acts as a runaway-cost guard.                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | `custom-instructions`     | No       | `''`       | Extra instructions appended to the default system prompt (does **not** replace the defaults).                                                                                                                                                                                                                                                                                                                                                                                         |
 | `system-prompt-issue`     | No       | `''`       | Overrides the action's bundled system prompt for issue-driven runs. Substitutes `{{issueNumber}}`. See [System prompt override](#system-prompt-override).                                                                                                                                                                                                                                                                                                                             |
@@ -200,6 +201,23 @@ The total and failed tool-call counts are also exposed as the `total-tool-calls-
 > **`zai-api-key` release status:** the ZAI provider input is available on `inference-gateway/infer-action@main` and ships in `v0.30.0` and later. Pin to `v0.30.0` or later.
 
 The action also accepts seven opt-in OpenTelemetry inputs (`otel-*`) for exporting run telemetry to an OTLP collector. They are disabled by default and change nothing for existing workflows - see [OpenTelemetry export](#opentelemetry-export).
+
+### Runner setup
+
+Install system apt packages before the agent runs:
+
+```yaml
+- uses: inference-gateway/infer-action@main
+  with:
+    model: ollama_cloud/deepseek-v4-flash:preview
+    ollama-cloud-api-key: ${{ secrets.OLLAMA_CLOUD_API_KEY }}
+    github-token: ${{ secrets.GITHUB_TOKEN }}
+    apt: |
+      libxml2-dev
+      libpq-dev
+```
+
+The `apt` input is Debian/Ubuntu-only - on other OS families the step prints an error and fails. No caching or version pinning. A plain `run: sudo apt-get install -y ...` step before the action remains the portable alternative for non-Debian runners.
 
 ## Outputs
 
