@@ -209,10 +209,10 @@ Install system apt packages before the agent runs:
 ```yaml
 - uses: inference-gateway/infer-action@v0.23.6
   with:
-model: anthropic/claude-opus-4-8
-anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
-github-token: ${{ secrets.GITHUB_TOKEN }}
-apt: |
+    model: ollama_cloud/deepseek-v4-flash:preview
+    ollama-cloud-api-key: ${{ secrets.OLLAMA_CLOUD_API_KEY }}
+    github-token: ${{ secrets.GITHUB_TOKEN }}
+    apt: |
       libxml2-dev
       libpq-dev
 ```
