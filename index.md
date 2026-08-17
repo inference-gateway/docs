@@ -132,7 +132,7 @@ Learn more about [A2A Integration](/a2a/) and see how to build your own agents.
 
 Write an agent's description once, and let a tool write the code for it.
 
-The **Agent Definition Language (ADL)** describes an entire A2A agent - provider, model, tools, skills, server, and deployment - in a single declarative `agent.yaml` file. The [ADL CLI](/adl-cli/) turns that manifest into an enterprise-ready Go or Rust project, so the agent stays version-controlled and reproducible.
+The **Agent Definition Language (ADL)** describes an entire A2A agent - provider, model, tools, skills, server, and deployment - in a single declarative `agent.yaml` file. The [ADL CLI](/adl-cli/) turns that manifest into an enterprise-ready Go, Rust, or TypeScript project, so the agent stays version-controlled and reproducible.
 
 ```bash
 # Scaffold, validate, and generate an A2A agent from a declarative manifest
