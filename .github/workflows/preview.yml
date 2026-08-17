@@ -12,6 +12,7 @@ on:
 permissions:
   contents: read
   pull-requests: write
+  deployments: write
 
 concurrency:
   group: preview-${{ github.event.number }}
@@ -104,11 +105,14 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
-      - name: Delete preview environment
+      - name: Remove preview deployments
         run: |
-          gh api -X DELETE "repos/$GITHUB_REPOSITORY/environments/preview-pr-$PR"
+          for id in $(gh api "repos/$GITHUB_REPOSITORY/deployments?environment=preview-pr-$PR&per_page=100" --jq '.[].id'); do
+            gh api -X POST "repos/$GITHUB_REPOSITORY/deployments/$id/statuses" -f state=inactive > /dev/null
+            gh api -X DELETE "repos/$GITHUB_REPOSITORY/deployments/$id"
+          done
         env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR: ${{ github.event.number }}
 
       - name: Comment removal
