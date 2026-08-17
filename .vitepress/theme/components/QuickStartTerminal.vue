@@ -11,10 +11,7 @@ const terminals = [
   },
   {
     title: 'infer - bash',
-    commands: [
-      'npx @inference-gateway/cli@latest init',
-      'npx @inference-gateway/cli@latest chat',
-    ],
+    commands: ['npx @inference-gateway/cli@latest init', 'npx @inference-gateway/cli@latest chat'],
     comment: '# Interactive chat, agents, and tools from your terminal',
   },
 ];
