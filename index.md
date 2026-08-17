@@ -130,7 +130,9 @@ Learn more about [A2A Integration](/a2a/) and see how to build your own agents.
 
 ## Agent Definition Language (ADL)
 
-Prefer to **define an agent as code**? The **Agent Definition Language (ADL)** describes an entire A2A agent - provider, model, tools, skills, server, and deployment - in a single declarative `agent.yaml` file. The [ADL CLI](/adl-cli/) turns that manifest into an enterprise-ready Go or Rust project, so the agent stays version-controlled and reproducible.
+Write an agent's description once, and let a tool write the code for it.
+
+The **Agent Definition Language (ADL)** describes an entire A2A agent - provider, model, tools, skills, server, and deployment - in a single declarative `agent.yaml` file. The [ADL CLI](/adl-cli/) turns that manifest into an enterprise-ready Go or Rust project, so the agent stays version-controlled and reproducible.
 
 ```bash
 # Scaffold, validate, and generate an A2A agent from a declarative manifest
@@ -139,7 +141,7 @@ adl validate agent.yaml
 adl generate --file agent.yaml --output ./my-weather-agent
 ```
 
-Read the [Agent Definition Language overview](/adl/) to see how ADL, the ADL CLI, and the ADK fit together, or jump straight to the canonical spec at [adl.inference-gateway.com](https://adl.inference-gateway.com).
+Read the [Agent Definition Language overview](/adl/) to see how the language, the CLI that generates projects from it, and the Agent Development Kit (ADK) libraries those projects build on fit together. The full language specification lives on a separate site: [ADL specification (external site: adl.inference-gateway.com)](https://adl.inference-gateway.com).
 
 ## Community
 
