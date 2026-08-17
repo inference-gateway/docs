@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.11](https://github.com/inference-gateway/docs/compare/0.9.10...0.9.11) (2026-08-17)
+
+### 📚 Documentation
+
+* add browser extension bridge protocol page ([#557](https://github.com/inference-gateway/docs/issues/557)) ([23dab3c](https://github.com/inference-gateway/docs/commit/23dab3c16e576855d6d20ea3c84f8f709a59efe5))
+* add cli scheduling page with github backend ([#549](https://github.com/inference-gateway/docs/issues/549)) ([f3ed7b4](https://github.com/inference-gateway/docs/commit/f3ed7b44ea4550e27bbdaf40b7680edd5be3286e))
+* document project grouping with drag-and-drop sidebar groups ([#544](https://github.com/inference-gateway/docs/issues/544)) ([8951736](https://github.com/inference-gateway/docs/commit/8951736a51f7d5c50f7bd2b07189d17c5d5bfa37))
+* document the .infer/artifacts directory ([#550](https://github.com/inference-gateway/docs/issues/550)) ([fd7b1eb](https://github.com/inference-gateway/docs/commit/fd7b1eb9143408f5a2ab25209aa45fbd09419a77))
+* **github-action:** document the apt input for pre-agent package installation ([#553](https://github.com/inference-gateway/docs/issues/553)) ([7f3865e](https://github.com/inference-gateway/docs/commit/7f3865e6f6fcf6df17e562df460470f111cd3d43))
+* **github-action:** document the languages input for toolchain setup ([#554](https://github.com/inference-gateway/docs/issues/554)) ([f81f667](https://github.com/inference-gateway/docs/commit/f81f667214369a47c3fa27c87dcad6556ddab2b0))
+* rename infer agent to infer headless with --format, json-pretty, exit codes, and headless behavior docs ([#542](https://github.com/inference-gateway/docs/issues/542)) ([f324666](https://github.com/inference-gateway/docs/commit/f324666ce4434e339ba13a2831fbabdb27e33cb5))
+* rename infer channels-manager to infer daemon, update scheduling for run records ([#548](https://github.com/inference-gateway/docs/issues/548)) ([6767ae8](https://github.com/inference-gateway/docs/commit/6767ae8b4e7a642e6a4c101cd8df4247e503ac25))
+
+### 🔧 Miscellaneous
+
+* **deps-dev:** bump @types/node from 26.1.2 to 26.2.0 in the bun group ([#556](https://github.com/inference-gateway/docs/issues/556)) ([5629f4d](https://github.com/inference-gateway/docs/commit/5629f4d2c125bea41316fdf4ad8a84ed08cbecfc))
+
 ## [0.9.10](https://github.com/inference-gateway/docs/compare/0.9.9...0.9.10) (2026-08-10)
 
 ### 📚 Documentation
