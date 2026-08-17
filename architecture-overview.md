@@ -9,7 +9,7 @@ This document provides a high-level overview of the architecture of the Inferenc
 
 ## General Overview
 
-A unified OpenAI-compatible request enters the gateway and passes through a middleware pipeline - optional [OIDC authentication](/authentication/), optional [guardrails](/configuration/), and the [MCP](/mcp/) tool-call loop - before [model routing](/model-routing/) resolves the target model and the provider proxy dispatches it to whichever upstream provider serves it. [A2A agents](/a2a/) sit outside this path: the [CLI](/cli/) delegates to them directly, the gateway does not proxy them.
+A unified OpenAI-compatible request enters the gateway and passes through a middleware pipeline - optional [OIDC authentication](/authentication/), optional [guardrails](/configuration/), and the [MCP](/mcp/) tool-call loop - before [model routing](/model-routing/) resolves the target model and the provider proxy dispatches it to whichever upstream provider serves it. [A2A agents](/a2a/) are clients too: the [CLI](/cli/) delegates tasks to them, and they call the same OpenAI-compatible API themselves - the gateway does not proxy the A2A protocol.
 
 <FlowDiagram flow="request" />
 

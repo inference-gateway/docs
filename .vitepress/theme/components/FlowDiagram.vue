@@ -8,19 +8,21 @@ type Node = {
   wire?: string;
   link?: string;
   dashed?: boolean;
+  aside?: boolean;
   step?: number;
 };
 
-type Column = {
+type Band = {
   frame?: string;
   chain?: boolean;
   rail?: string;
   nodes: Node[];
 };
 
-const flows: Record<string, Column[]> = {
+const flows: Record<string, Band[]> = {
   request: [
     {
+      frame: 'Clients',
       rail: 'POST /v1/chat/completions',
       nodes: [
         {
@@ -32,10 +34,11 @@ const flows: Record<string, Column[]> = {
         {
           icon: '🤖',
           title: 'A2A agents',
-          sub: 'Delegated by the CLI, not proxied by the gateway',
+          sub: 'Delegated by the CLI, and they call the gateway themselves',
           wire: 'A2A_SubmitTask -> calendar-agent',
           link: '/a2a/',
           dashed: true,
+          step: 0,
         },
       ],
     },
@@ -84,14 +87,21 @@ const flows: Record<string, Column[]> = {
   ],
   kubernetes: [
     {
+      frame: 'Clients',
       rail: 'HTTPS',
       nodes: [
-        { icon: '💻', title: 'External clients', sub: 'Reach the cluster through the data plane' },
+        {
+          icon: '💻',
+          title: 'External clients',
+          sub: 'Reach the cluster through the data plane',
+          step: 0,
+        },
         {
           icon: '💻',
           title: 'In-cluster clients',
           sub: 'Reach the Service directly, skipping the data plane',
           dashed: true,
+          step: 0,
         },
       ],
     },
@@ -100,17 +110,17 @@ const flows: Record<string, Column[]> = {
       chain: true,
       rail: 'load balanced',
       nodes: [
-        { title: 'Gateway API', sub: 'Envoy Gateway data plane', link: '/operator/', step: 0 },
-        { title: 'Gateway Service', sub: 'ClusterIP fronting every pod', step: 1 },
+        { title: 'Gateway API', sub: 'Envoy Gateway data plane', link: '/operator/', step: 1 },
+        { title: 'Gateway Service', sub: 'ClusterIP fronting every pod', step: 2 },
       ],
     },
     {
       frame: '🛡️ Gateway pods',
       rail: 'provider API',
       nodes: [
-        { title: 'Gateway Pod', sub: 'stateless, HPA-scaled', step: 2 },
-        { title: 'Gateway Pod', sub: 'stateless, HPA-scaled', step: 2 },
-        { title: 'Gateway Pod', sub: 'stateless, HPA-scaled', step: 2 },
+        { title: 'Gateway Pod', sub: 'stateless, HPA-scaled', step: 3 },
+        { title: 'Gateway Pod', sub: 'stateless, HPA-scaled', step: 3 },
+        { title: 'Gateway Pod', sub: 'stateless, HPA-scaled', step: 3 },
         {
           icon: '📊',
           title: 'Monitoring stack',
@@ -118,6 +128,7 @@ const flows: Record<string, Column[]> = {
           wire: 'scrape :9464 /metrics',
           link: '/observability/',
           dashed: true,
+          aside: true,
         },
       ],
     },
@@ -128,7 +139,7 @@ const flows: Record<string, Column[]> = {
           title: 'External LLM providers',
           sub: 'Outside the cluster, reached over the network',
           link: '/supported-providers/',
-          step: 3,
+          step: 4,
         },
       ],
     },
@@ -137,9 +148,9 @@ const flows: Record<string, Column[]> = {
 
 const props = defineProps<{ flow: keyof typeof flows }>();
 
-const columns = computed(() => flows[props.flow]);
+const bands = computed(() => flows[props.flow]);
 const steps = computed(
-  () => Math.max(...columns.value.flatMap((c) => c.nodes.map((n) => n.step ?? 0))) + 1
+  () => Math.max(...bands.value.flatMap((b) => b.nodes.map((n) => n.step ?? 0))) + 1
 );
 
 const active = ref(0);
@@ -153,39 +164,57 @@ onUnmounted(() => clearInterval(timer));
 
 <template>
   <div class="flow">
-    <div class="flow-cols">
-      <template v-for="(column, ci) in columns" :key="ci">
-        <div class="flow-col" :class="{ 'is-framed': column.frame }">
-          <span v-if="column.frame" class="flow-frame">{{ column.frame }}</span>
-          <template v-for="(node, ni) in column.nodes" :key="node.title + ni">
-            <div
-              v-if="column.chain && ni > 0"
-              class="flow-rail flow-rail-step"
-              aria-hidden="true"
-            />
-            <component
-              :is="node.link ? 'a' : 'div'"
-              class="flow-node"
-              :class="{ 'is-dashed': node.dashed, 'is-active': node.step === active }"
-              :href="node.link"
-            >
-              <span v-if="node.icon" class="flow-icon">{{ node.icon }}</span>
-              <strong>{{ node.title }}</strong>
-              <span v-if="node.sub" class="flow-sub">{{ node.sub }}</span>
-              <code v-if="node.wire" class="flow-wire">{{ node.wire }}</code>
-            </component>
-          </template>
+    <template v-for="(band, bi) in bands" :key="bi">
+      <div class="flow-band" :class="{ 'is-framed': band.frame }">
+        <span v-if="band.frame" class="flow-band-label">{{ band.frame }}</span>
+
+        <div v-if="band.chain" class="flow-chain">
+          <component
+            :is="node.link ? 'a' : 'div'"
+            v-for="(node, ni) in band.nodes"
+            :key="node.title + ni"
+            class="flow-stage"
+            :class="{ 'is-dashed': node.dashed, 'is-active': node.step === active }"
+            :href="node.link"
+          >
+            <span class="flow-stage-num">{{ ni + 1 }}</span>
+            <strong>{{ node.title }}</strong>
+            <span v-if="node.sub" class="flow-sub">{{ node.sub }}</span>
+          </component>
         </div>
-        <div v-if="column.rail" class="flow-rail">
-          <span class="flow-rail-label">{{ column.rail }}</span>
+
+        <div v-else class="flow-grid">
+          <component
+            :is="node.link ? 'a' : 'div'"
+            v-for="(node, ni) in band.nodes"
+            :key="node.title + ni"
+            class="flow-node"
+            :class="{
+              'is-dashed': node.dashed,
+              'is-aside': node.aside,
+              'is-active': node.step === active,
+            }"
+            :href="node.link"
+          >
+            <span v-if="node.icon" class="flow-icon">{{ node.icon }}</span>
+            <strong>{{ node.title }}</strong>
+            <span v-if="node.sub" class="flow-sub">{{ node.sub }}</span>
+            <code v-if="node.wire" class="flow-wire">{{ node.wire }}</code>
+          </component>
         </div>
-      </template>
-    </div>
+      </div>
+
+      <div v-if="band.rail" class="flow-rail">
+        <span class="flow-rail-label">{{ band.rail }}</span>
+      </div>
+    </template>
   </div>
 </template>
 
 <style scoped>
 .flow {
+  display: flex;
+  flex-direction: column;
   margin: 1.75rem 0;
   padding: 20px;
   border: 1px solid var(--vp-c-divider);
@@ -193,70 +222,118 @@ onUnmounted(() => clearInterval(timer));
   background-color: var(--vp-c-bg-soft);
 }
 
-.flow-cols {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.flow-col {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  flex: 1 1 0;
-}
-
-.flow-col.is-framed {
+.flow-band.is-framed {
   padding: 12px;
   border: 1px dashed var(--vp-c-divider);
-  border-radius: 12px;
+  border-radius: 14px;
 }
 
-.flow-frame {
-  font-size: 12.5px;
+.flow-band-label {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 11.5px;
   font-weight: 600;
+  letter-spacing: 0.05em;
   text-align: center;
-  color: var(--vp-c-text-2);
+  color: var(--vp-c-text-3);
+}
+
+/* Nodes share the full width of the band, so they never get squeezed into a column. */
+.flow-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 10px;
 }
 
 .flow-node {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  padding: 12px 14px;
+  gap: 4px;
+  padding: 14px 16px;
   border: 1px solid var(--vp-c-divider);
-  border-radius: 10px;
+  border-radius: 12px;
   background-color: var(--vp-c-bg);
   color: var(--vp-c-text-1);
   text-align: center;
+  text-decoration: none;
   transition:
     border-color 0.3s,
     box-shadow 0.3s,
     transform 0.3s;
 }
 
-.flow-node.is-dashed {
+.flow-node.is-aside {
+  grid-column: 1 / -1;
+}
+
+.flow-chain {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.flow-stage {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  padding: 10px 14px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 10px;
+  background-color: var(--vp-c-bg);
+  color: var(--vp-c-text-1);
+  text-decoration: none;
+  transition:
+    border-color 0.3s,
+    box-shadow 0.3s,
+    transform 0.3s;
+}
+
+.flow-stage .flow-sub {
+  margin-left: auto;
+  text-align: right;
+}
+
+.flow-stage-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  align-self: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--vp-c-brand-1);
+  background-color: var(--vp-c-brand-soft);
+}
+
+.flow-node.is-dashed,
+.flow-stage.is-dashed {
   border-style: dashed;
 }
 
-.flow-node.is-active {
+.flow-node.is-active,
+.flow-stage.is-active {
   border-color: var(--vp-c-brand-1);
   box-shadow: 0 0 0 3px var(--vp-c-brand-soft);
   transform: translateY(-2px);
 }
 
-.flow-node strong {
+.flow-node strong,
+.flow-stage strong {
   font-size: 14px;
   font-weight: 600;
 }
 
 .flow-icon {
-  font-size: 20px;
+  font-size: 22px;
   line-height: 1.2;
 }
 
 .flow-sub {
-  font-size: 12px;
+  font-size: 12.5px;
   line-height: 1.5;
   color: var(--vp-c-text-2);
 }
@@ -272,9 +349,17 @@ onUnmounted(() => clearInterval(timer));
   background-color: var(--vp-c-brand-soft);
 }
 
+/* The rail is always vertical: the label sits beside the line, never on top of a node. */
 .flow-rail {
-  position: relative;
-  align-self: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 6px 0;
+}
+
+.flow-rail::before {
+  content: '';
   width: 2px;
   height: 34px;
   background-image: repeating-linear-gradient(
@@ -286,89 +371,10 @@ onUnmounted(() => clearInterval(timer));
   animation: flow-y 0.9s linear infinite;
 }
 
-.flow-rail-step {
-  height: 16px;
-}
-
 .flow-rail-label {
-  position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  white-space: nowrap;
   font-family: var(--vp-font-family-mono);
-  font-size: 11px;
+  font-size: 11.5px;
   color: var(--vp-c-text-2);
-}
-
-@media (min-width: 960px) {
-  .flow-cols {
-    flex-direction: row;
-    align-items: center;
-    gap: 0;
-  }
-
-  .flow-col.is-framed {
-    align-self: stretch;
-    justify-content: center;
-  }
-
-  .flow-rail {
-    flex: 0 1 auto;
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 4px;
-    min-width: 72px;
-    padding: 0 12px 20px; /* bottom pad = label + gap, keeps the line on the node centerline */
-    width: auto;
-    height: auto;
-    background: none;
-    animation: none;
-  }
-
-  .flow-rail::after {
-    content: '';
-    height: 2px;
-    background-image: repeating-linear-gradient(
-      90deg,
-      var(--vp-c-brand-1) 0 6px,
-      transparent 6px 18px
-    );
-    background-size: 18px 100%;
-    animation: flow-x 0.9s linear infinite;
-  }
-
-  .flow-rail-step::after {
-    content: none;
-  }
-
-  .flow-rail-step {
-    flex: none;
-    min-width: 0;
-    padding: 0;
-    width: 2px;
-    height: 16px;
-    background-image: repeating-linear-gradient(
-      180deg,
-      var(--vp-c-brand-1) 0 6px,
-      transparent 6px 18px
-    );
-    background-size: 100% 18px;
-    animation: flow-y 0.9s linear infinite;
-  }
-
-  .flow-rail-label {
-    position: static;
-    transform: none;
-    text-align: center;
-  }
-}
-
-@keyframes flow-x {
-  to {
-    background-position: 18px 0;
-  }
 }
 
 @keyframes flow-y {
@@ -378,13 +384,12 @@ onUnmounted(() => clearInterval(timer));
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .flow-rail,
-  .flow-rail::after,
-  .flow-rail-step {
+  .flow-rail::before {
     animation: none;
   }
 
-  .flow-node {
+  .flow-node,
+  .flow-stage {
     transition: none;
   }
 }
