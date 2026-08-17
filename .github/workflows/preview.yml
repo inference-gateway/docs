@@ -55,3 +55,4 @@ jobs:
         with:
           token: ${{ steps.app-token.outputs.token }}
           source-dir: .vitepress/dist
+          custom-url: docs.inference-gateway.com
