@@ -77,17 +77,9 @@ Building against multiple LLM providers means juggling SDKs, API quirks, auth sc
 
 - Switch providers with one config change, no application redeploys.
 - Centralise API keys, rate limiting, and audit logging at the gateway.
+- Point a stable model alias at a pool of upstream deployments with [model routing](/model-routing/).
 - Add MCP tools or A2A agents once, get them for every model that supports tool calls.
 - Run the same binary in Docker or Kubernetes - and let the [Kubernetes Operator](/operator/) manage gateways, agents, MCP servers, and orchestrators as Custom Resources.
-
-## How it works
-
-Inference Gateway acts as an intermediary between your applications and various LLM providers. By standardising the API interactions, it lets you:
-
-- Access multiple LLM providers through a single integration.
-- Switch between providers without changing application code.
-- Implement sophisticated routing and fallback mechanisms.
-- Centralise API key management and security policies.
 
 ## Model Context Protocol (MCP)
 
