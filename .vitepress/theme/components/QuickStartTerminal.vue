@@ -131,6 +131,12 @@ async function copy() {
   color: #e5e7eb;
 }
 
+.quickstart-link {
+  margin: 16px 0 0;
+  font-size: 14px;
+  color: var(--vp-c-text-2);
+}
+
 .prompt {
   color: #28c840;
 }
