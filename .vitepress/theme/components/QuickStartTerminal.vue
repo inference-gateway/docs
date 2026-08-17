@@ -12,9 +12,8 @@ const terminals = [
   {
     title: 'infer - bash',
     commands: [
-      'curl -fsSL https://raw.githubusercontent.com/inference-gateway/cli/main/install.sh | bash',
-      'infer init',
-      'infer chat',
+      'npx @inference-gateway/cli@latest init',
+      'npx @inference-gateway/cli@latest chat',
     ],
     comment: '# Interactive chat, agents, and tools from your terminal',
   },
