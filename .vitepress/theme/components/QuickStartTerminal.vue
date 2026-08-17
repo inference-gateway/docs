@@ -11,10 +11,7 @@ async function copy() {
     await navigator.clipboard.writeText(command);
     copied.value = true;
     setTimeout(() => (copied.value = false), 2000);
-  } catch {
-    // Clipboard unavailable (insecure context, permission denied) - the
-    // command stays selectable in the terminal body.
-  }
+  } catch {}
 }
 </script>
 
