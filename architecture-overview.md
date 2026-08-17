@@ -9,46 +9,45 @@ This document provides a high-level overview of the architecture of the Inferenc
 
 ## General Overview
 
-A unified OpenAI-compatible request enters the gateway, optionally clears OIDC authentication, fans out to a horizontally-scalable gateway tier, and is normalised through a single proxy layer before being dispatched to whichever upstream provider serves the requested model.
+A unified OpenAI-compatible request enters the gateway and passes through a middleware pipeline - optional [OIDC authentication](/authentication/), optional [guardrails](/configuration/), and the [MCP](/mcp/) tool-call loop - before [model routing](/model-routing/) resolves the target model and the provider proxy dispatches it to whichever upstream provider serves it. [A2A agents](/a2a/) sit outside this path: the [CLI](/cli/) delegates to them directly, the gateway does not proxy them.
 
 ```mermaid
 flowchart LR
-    Client["Clients / Agents"]
-    Auth{{"Optional OIDC"}}
-    Proxy["Provider Proxy"]
-    Providers["LLM Providers"]
+    Client["💻 Your app<br/>OpenAI SDK, curl, or the infer CLI"]
+    Agents["🤖 A2A agents<br/>delegated by the CLI"]
 
-    Client -- "POST /v1/chat/completions" --> Auth
-
-    subgraph GatewayTier["Inference Gateway Tier"]
-        direction TB
-        GW1["Gateway"]
-        GW2["Gateway"]
-        GW3["Gateway"]
+    subgraph Gateway["🛡️ Inference Gateway"]
+        direction LR
+        Auth{{"OIDC auth<br/>optional"}}
+        Guard{{"Guardrails<br/>optional"}}
+        MCPLoop["MCP tool loop"]
+        Routing["Model routing"]
+        Proxy["Provider proxy"]
+        Auth --> Guard --> MCPLoop --> Routing --> Proxy
     end
 
-    Auth --> GW1
-    Auth --> GW2
-    Auth --> GW3
-    GW1 --> Proxy
-    GW2 --> Proxy
-    GW3 --> Proxy
+    MCP["🔌 MCP servers<br/>tools executed server-side"]
+    Providers["🧠 LLM providers<br/>OpenAI, Anthropic, Groq, Ollama, and more"]
+
+    Client -- "POST /v1/chat/completions" --> Auth
+    Client -. "A2A_SubmitTask" .-> Agents
+    MCPLoop -. "tools/call" .-> MCP
     Proxy --> Providers
 
     classDef client fill:#ede9fe,stroke:#7c3aed,stroke-width:2px,color:#1f2937
-    classDef auth fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#78350f
-    classDef gateway fill:#7c3aed,stroke:#6d28d9,stroke-width:2px,color:#ffffff
+    classDef optional fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#78350f
+    classDef stage fill:#7c3aed,stroke:#6d28d9,stroke-width:2px,color:#ffffff
     classDef proxy fill:#a78bfa,stroke:#7c3aed,stroke-width:2px,color:#ffffff
     classDef provider fill:#ecfdf5,stroke:#10b981,stroke-width:2px,color:#065f46
 
-    class Client client
-    class Auth auth
-    class GW1,GW2,GW3 gateway
+    class Client,Agents client
+    class Auth,Guard optional
+    class MCPLoop,Routing stage
     class Proxy proxy
-    class Providers provider
+    class MCP,Providers provider
 ```
 
-The gateway tier is stateless - replicas scale horizontally behind any load balancer. Per-request state (tool-call iteration, MCP context, A2A delegation) lives in the request lifecycle, not the pod. See [Supported Providers](/supported-providers/) for the full provider matrix: OpenAI, DeepSeek, Anthropic, Cohere, Groq, Cloudflare, Ollama, Ollama Cloud, Google, Mistral, MiniMax, Moonshot, and Nvidia.
+The pipeline order matches the binary: `cmd/gateway/main.go` registers the auth, guardrails, and MCP middlewares in exactly this sequence before the `/v1/*` handlers. The gateway is stateless - replicas scale horizontally behind any load balancer, and per-request state (tool-call iteration, MCP context) lives in the request lifecycle, not the process. See [Supported Providers](/supported-providers/) for the full provider matrix: OpenAI, DeepSeek, Anthropic, Cohere, Groq, Cloudflare, Ollama, Ollama Cloud, Google, Mistral, MiniMax, Moonshot, and Nvidia.
 
 ## Kubernetes Setup
 
@@ -56,28 +55,29 @@ The Inference Gateway is built to run on Kubernetes. Traffic enters through the 
 
 ```mermaid
 flowchart LR
-    ExtClient["External Clients"]
-    IntClient["Internal Clients"]
-    Providers["External LLM Providers"]
-    Monitoring["Monitoring Stack"]
+    ExtClient["💻 External clients"]
+    IntClient["💻 In-cluster clients"]
+    Providers["🧠 External LLM providers"]
 
     subgraph Cluster["Kubernetes Cluster"]
         direction TB
         GwAPI["Gateway API (Envoy)"]
         Svc["Gateway Service"]
 
-        subgraph Pods["Gateway Pods"]
+        subgraph Pods["🛡️ Gateway Pods"]
             direction TB
             Pod1["Gateway Pod"]
             Pod2["Gateway Pod"]
             Pod3["Gateway Pod"]
         end
 
+        Monitoring["📊 Monitoring Stack<br/>Prometheus + Grafana"]
+
         GwAPI --> Svc
         Svc --> Pod1
         Svc --> Pod2
         Svc --> Pod3
-        Svc -. ":9464 /metrics" .-> Monitoring
+        Monitoring -. "scrape :9464 /metrics" .-> Pods
     end
 
     ExtClient --> GwAPI
