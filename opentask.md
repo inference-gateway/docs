@@ -40,6 +40,7 @@ Right-click the extension icon and select **Options** (or navigate to the extens
 
 ## Related
 
+- [Browser Extension Bridge](/browser-extension-bridge/) - the wire protocol between the CLI and the extension sidepanel
 - [Skills Catalog](/skills/) - the skills registry OpenTask discovers
 - [CLI Skills](/cli-skills/) - using skills from the Inference Gateway CLI
 - [Repository](https://github.com/inference-gateway/opentask) - source, issues, and releases

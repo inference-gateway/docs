@@ -308,6 +308,7 @@ export default withMermaid(
             { text: 'Speech-to-Text', link: pageLink('/cli-speech-to-text') },
             { text: 'GitHub Action', link: pageLink('/github-action') },
             { text: 'OpenTask Extension', link: pageLink('/opentask') },
+            { text: 'Browser Extension Bridge', link: pageLink('/browser-extension-bridge') },
           ],
         },
         {
