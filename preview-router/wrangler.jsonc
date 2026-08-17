@@ -11,4 +11,11 @@
       "zone_name": "inference-gateway.com",
     },
   ],
+  "observability": {
+    "enabled": true,
+    "logs": {
+      "enabled": true,
+      "invocation_logs": true,
+    },
+  },
 }
