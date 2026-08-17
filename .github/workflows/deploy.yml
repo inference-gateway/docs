@@ -25,9 +25,6 @@ jobs:
   deploy:
     name: Deploy
     runs-on: ubuntu-24.04
-    environment:
-      name: github-pages
-      url: https://docs.inference-gateway.com
     steps:
       - uses: actions/create-github-app-token@v3.2.0
         id: app-token
