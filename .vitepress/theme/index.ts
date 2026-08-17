@@ -3,6 +3,7 @@ import { h } from 'vue';
 import type { Theme } from 'vitepress';
 import ArchitectureDiagram from './components/ArchitectureDiagram.vue';
 import ConfigTable from './components/ConfigTable.vue';
+import FlowDiagram from './components/FlowDiagram.vue';
 import QuickStartTerminal from './components/QuickStartTerminal.vue';
 import './style.css';
 
@@ -14,5 +15,6 @@ export default {
     }),
   enhanceApp({ app }) {
     app.component('ConfigTable', ConfigTable);
+    app.component('FlowDiagram', FlowDiagram);
   },
 } satisfies Theme;
