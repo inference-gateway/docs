@@ -25,7 +25,7 @@ hero:
 features:
   - icon: 🚀
     title: Unified API access
-    details: Talk to OpenAI, Anthropic, Groq, Cohere, Ollama, Ollama Cloud, DeepSeek, Cloudflare, Google, Mistral, MiniMax, Moonshot, Nvidia and llama.cpp through one OpenAI-compatible endpoint.
+    details: Talk to every supported provider - hosted or local - through one OpenAI-compatible endpoint.
     link: /supported-providers/
     linkText: Supported providers
   - icon: 🔌
