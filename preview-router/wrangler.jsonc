@@ -3,11 +3,11 @@
   "main": "index.js",
   "compatibility_date": "2026-08-10",
   "vars": {
-    "WORKERS_SUBDOMAIN": "FILL_AFTER_WRANGLER_LOGIN",
+    "WORKERS_SUBDOMAIN": "eden-reich",
   },
   "routes": [
     {
-      "pattern": "preview-*.inference-gateway.com/*",
+      "pattern": "*.inference-gateway.com/*",
       "zone_name": "inference-gateway.com",
     },
   ],
