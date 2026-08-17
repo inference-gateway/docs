@@ -40,7 +40,7 @@ features:
     linkText: A2A guide
   - icon: 📝
     title: Define agents as code
-    details: Describe an A2A agent once in an Agent Definition Language (ADL) YAML file, then generate an enterprise-ready Go or Rust server with the ADL CLI.
+    details: Describe an A2A agent once in an Agent Definition Language (ADL) YAML file, then generate an enterprise-ready Go, Rust, or TypeScript server with the ADL CLI.
     link: /adl/
     linkText: Agent Definition Language
   - icon: 🌊

@@ -13,7 +13,7 @@ The ADL CLI is a command-line tool for generating enterprise-ready [A2A (Agent-t
 
 ## Key Features
 
-- **Multi-Language Code Generation** - Generate complete projects in Go or Rust (TypeScript planned)
+- **Multi-Language Code Generation** - Generate complete projects in Go, Rust, or TypeScript
 - **Interactive Wizard** - Guided project initialization with `adl init`
 - **Service Injection** - Type-safe dependency injection with interfaces and factory functions
 - **Configuration Management** - Automatic environment variable mapping with structured config sections
@@ -251,15 +251,15 @@ adl init my-agent \
 
 **Language Options:**
 
-| Flag                  | Description                                             |
-| --------------------- | ------------------------------------------------------- |
-| `--language`          | Programming language: `go`, `rust` (TypeScript planned) |
-| `--go-module`         | Go module path (e.g., `github.com/user/project`)        |
-| `--go-version`        | Go version (e.g., `1.26.2`)                             |
-| `--rust-package-name` | Rust package name                                       |
-| `--rust-version`      | Rust version (e.g., `1.94`)                             |
-| `--rust-edition`      | Rust edition (e.g., `2024`)                             |
-| `--typescript-name`   | TypeScript package name                                 |
+| Flag                  | Description                                      |
+| --------------------- | ------------------------------------------------ |
+| `--language`          | Programming language: `go`, `rust`, `typescript` |
+| `--go-module`         | Go module path (e.g., `github.com/user/project`) |
+| `--go-version`        | Go version (e.g., `1.26.2`)                      |
+| `--rust-package-name` | Rust package name                                |
+| `--rust-version`      | Rust version (e.g., `1.94`)                      |
+| `--rust-edition`      | Rust edition (e.g., `2024`)                      |
+| `--typescript-name`   | TypeScript package name                          |
 
 **Environment:**
 
@@ -1052,7 +1052,7 @@ language:
 | `version`     | string | Rust version                  |
 | `edition`     | string | Rust edition (`2024`, `2021`) |
 
-**TypeScript** (planned):
+**TypeScript:**
 
 ```yaml
 language:

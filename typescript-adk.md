@@ -3206,6 +3206,6 @@ Where the TypeScript ADK has not yet shipped a handler that the Go ADK has, cros
 - [A2A Integration](/a2a/) - protocol overview, CLI usage, custom-agent requirements.
 - [A2A Debugger](/a2a-debugger/) - inspect, stream, and replay tasks against any A2A server.
 - [A2A Registry](/registry/) - publish your built agent so others can discover and consume it.
-- [ADL CLI](/adl-cli/) - scaffold A2A agents from YAML manifests (Go / Rust today; TypeScript planned).
+- [ADL CLI](/adl-cli/) - scaffold A2A agents from YAML manifests (Go, Rust, or TypeScript).
 - Source: [github.com/inference-gateway/typescript-adk](https://github.com/inference-gateway/typescript-adk).
 - Releases: [github.com/inference-gateway/typescript-adk/releases](https://github.com/inference-gateway/typescript-adk/releases).
