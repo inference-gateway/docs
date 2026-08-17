@@ -23,6 +23,15 @@ jobs:
     if: github.event.action != 'closed'
     runs-on: ubuntu-24.04
     steps:
+      - uses: actions/create-github-app-token@v3.2.0
+        id: app-token
+        with:
+          client-id: ${{ secrets.RELEASER_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASER_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: |
+            ${{ github.event.repository.name }}
+
       - name: Checkout
         uses: actions/checkout@v7.0.1
 
@@ -50,6 +59,7 @@ jobs:
       - name: Comment preview URL
         uses: marocchino/sticky-pull-request-comment@v3.0.5
         with:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
           header: preview
           message: |
             :rocket: Preview deployed: https://preview-${{ steps.alias.outputs.alias }}.inference-gateway.com
@@ -59,6 +69,15 @@ jobs:
     if: github.event.action == 'closed'
     runs-on: ubuntu-24.04
     steps:
+      - uses: actions/create-github-app-token@v3.2.0
+        id: app-token
+        with:
+          client-id: ${{ secrets.RELEASER_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASER_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: |
+            ${{ github.event.repository.name }}
+
       - name: Checkout
         uses: actions/checkout@v7.0.1
 
@@ -83,6 +102,7 @@ jobs:
       - name: Comment removal
         uses: marocchino/sticky-pull-request-comment@v3.0.5
         with:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
           header: preview
           message: |
             :wastebasket: Preview environment destroyed.
