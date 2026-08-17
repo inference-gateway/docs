@@ -314,8 +314,21 @@ onUnmounted(() => clearInterval(timer));
   }
 
   .flow-rail {
-    flex: 0 1 72px;
+    flex: 0 1 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    min-width: 72px;
+    padding: 0 12px 20px; /* bottom pad = label + gap, keeps the line on the node centerline */
     width: auto;
+    height: auto;
+    background: none;
+    animation: none;
+  }
+
+  .flow-rail::after {
+    content: '';
     height: 2px;
     background-image: repeating-linear-gradient(
       90deg,
@@ -326,8 +339,14 @@ onUnmounted(() => clearInterval(timer));
     animation: flow-x 0.9s linear infinite;
   }
 
+  .flow-rail-step::after {
+    content: none;
+  }
+
   .flow-rail-step {
     flex: none;
+    min-width: 0;
+    padding: 0;
     width: 2px;
     height: 16px;
     background-image: repeating-linear-gradient(
@@ -340,9 +359,9 @@ onUnmounted(() => clearInterval(timer));
   }
 
   .flow-rail-label {
-    left: 50%;
-    top: -18px;
-    transform: translateX(-50%);
+    position: static;
+    transform: none;
+    text-align: center;
   }
 }
 
@@ -360,6 +379,7 @@ onUnmounted(() => clearInterval(timer));
 
 @media (prefers-reduced-motion: reduce) {
   .flow-rail,
+  .flow-rail::after,
   .flow-rail-step {
     animation: none;
   }
