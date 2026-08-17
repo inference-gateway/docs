@@ -22,6 +22,9 @@ jobs:
     name: Deploy preview
     if: github.event.action != 'closed'
     runs-on: ubuntu-24.04
+    environment:
+      name: preview-pr-${{ github.event.number }}
+      url: ${{ steps.alias.outputs.url }}
     steps:
       - uses: actions/create-github-app-token@v3.2.0
         id: app-token
@@ -48,7 +51,10 @@ jobs:
 
       - name: Resolve branch alias
         id: alias
-        run: echo "alias=$(echo "$GITHUB_HEAD_REF" | tr '/_.' '---' | tr '[:upper:]' '[:lower:]' | cut -c1-28 | sed 's/-*$//')" >> "$GITHUB_OUTPUT"
+        run: |
+          alias=$(echo "$GITHUB_HEAD_REF" | tr '/_.' '---' | tr '[:upper:]' '[:lower:]' | cut -c1-28 | sed 's/-*$//')
+          echo "alias=$alias" >> "$GITHUB_OUTPUT"
+          echo "url=https://preview-$alias.inference-gateway.com" >> "$GITHUB_OUTPUT"
 
       - name: Upload preview version
         run: bunx wrangler@4.123.0 versions upload --preview-alias "${{ steps.alias.outputs.alias }}"
@@ -97,6 +103,13 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Delete preview environment
+        run: |
+          gh api -X DELETE "repos/$GITHUB_REPOSITORY/environments/preview-pr-$PR"
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          PR: ${{ github.event.number }}
 
       - name: Comment removal
         run: |
