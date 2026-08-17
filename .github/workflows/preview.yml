@@ -17,9 +17,6 @@ concurrency:
   group: preview-${{ github.event.number }}
   cancel-in-progress: true
 
-env:
-  PAGES_PROJECT: inference-gateway-docs
-
 jobs:
   preview:
     name: Deploy preview
@@ -44,8 +41,8 @@ jobs:
         id: alias
         run: echo "alias=$(echo "$GITHUB_HEAD_REF" | tr '/_.' '---' | tr '[:upper:]' '[:lower:]' | cut -c1-28 | sed 's/-*$//')" >> "$GITHUB_OUTPUT"
 
-      - name: Deploy to Cloudflare Pages
-        run: bunx wrangler@4.123.0 pages deploy .vitepress/dist --project-name "$PAGES_PROJECT" --branch "$GITHUB_HEAD_REF" --commit-dirty=true
+      - name: Upload preview version
+        run: bunx wrangler@4.123.0 versions upload --preview-alias "${{ steps.alias.outputs.alias }}"
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -62,18 +59,21 @@ jobs:
     if: github.event.action == 'closed'
     runs-on: ubuntu-24.04
     steps:
-      - name: Delete branch deployments
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+
+      - name: Resolve branch alias
+        id: alias
+        run: echo "alias=$(echo "$GITHUB_HEAD_REF" | tr '/_.' '---' | tr '[:upper:]' '[:lower:]' | cut -c1-28 | sed 's/-*$//')" >> "$GITHUB_OUTPUT"
+
+      - name: Point alias at a tombstone version
         run: |
-          base="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$PAGES_PROJECT"
-          for id in $(curl -sf -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$base/deployments?env=preview&per_page=25" \
-            | jq -r --arg b "$GITHUB_HEAD_REF" '.result[] | select(.deployment_trigger.metadata.branch == $b) | .id'); do
-            echo "Deleting deployment $id"
-            curl -sf -X DELETE -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$base/deployments/$id?force=true" > /dev/null
-          done
+          mkdir -p .tombstone
+          printf '<!doctype html><title>Preview destroyed</title><h1>410</h1><p>This preview environment was destroyed when its pull request closed.</p>' > .tombstone/index.html
+          bunx wrangler@4.123.0 versions upload --assets .tombstone --preview-alias "${{ steps.alias.outputs.alias }}"
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          GITHUB_HEAD_REF: ${{ github.head_ref }}
 
       - name: Comment removal
         uses: marocchino/sticky-pull-request-comment@v3.0.5
