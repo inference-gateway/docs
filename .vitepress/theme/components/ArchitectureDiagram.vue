@@ -31,20 +31,20 @@ onUnmounted(() => clearInterval(timer));
   <div class="arch">
     <div class="arch-flow">
       <div class="arch-source">
+        <a class="arch-node arch-node-branch" href="/a2a/">
+          <span class="arch-icon">🤖</span>
+          <strong>A2A agents</strong>
+          <span class="arch-sub">Optional - delegated by the CLI, not proxied by the gateway</span>
+          <code class="arch-wire arch-wire-static">A2A_SubmitTask -&gt; calendar-agent</code>
+        </a>
+
+        <div class="arch-rail arch-rail-branch" aria-hidden="true"></div>
+
         <div class="arch-node arch-node-app">
           <span class="arch-icon">💻</span>
           <strong>Your app</strong>
           <span class="arch-sub">OpenAI SDK, curl, or the infer CLI</span>
         </div>
-
-        <div class="arch-rail arch-rail-branch" aria-hidden="true"></div>
-
-        <a class="arch-node arch-node-branch" href="/a2a/">
-          <span class="arch-icon">🤖</span>
-          <strong>A2A agents</strong>
-          <span class="arch-sub">Delegated by the CLI, not proxied by the gateway</span>
-          <code class="arch-wire arch-wire-static">A2A_SubmitTask -&gt; calendar-agent</code>
-        </a>
       </div>
 
       <div class="arch-rail" aria-hidden="true"></div>
