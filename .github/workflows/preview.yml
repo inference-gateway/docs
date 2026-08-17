@@ -21,6 +21,8 @@ jobs:
   preview:
     name: Deploy preview
     runs-on: ubuntu-24.04
+    env:
+      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
     steps:
       - uses: actions/create-github-app-token@v3.2.0
         id: app-token
