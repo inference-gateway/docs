@@ -15,18 +15,19 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
   group: pages
   cancel-in-progress: false
 
 jobs:
-  build:
-    name: Build
+  deploy:
+    name: Deploy
     runs-on: ubuntu-24.04
+    environment:
+      name: github-pages
+      url: https://docs.inference-gateway.com
     steps:
       - name: Checkout
         uses: actions/checkout@v7.0.1
@@ -42,22 +43,9 @@ jobs:
       - name: Build static site
         run: bun run build
 
-      - name: Configure Pages
-        uses: actions/configure-pages@v6.0.0
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v5.0.0
+      - name: Deploy to gh-pages
+        uses: JamesIves/github-pages-deploy-action@v4
         with:
-          path: .vitepress/dist
-
-  deploy:
-    name: Deploy
-    needs: build
-    runs-on: ubuntu-24.04
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v5.0.0
+          folder: .vitepress/dist
+          branch: gh-pages
+          clean-exclude: pr-preview/
