@@ -12,16 +12,9 @@ const targets = [
   {
     icon: '🔌',
     title: 'MCP servers',
-    details: 'Tools auto-discovered and executed server-side',
+    details: 'Tools discovered and executed server-side, in selector or direct mode',
     call: 'tools/call filesystem.read',
     link: '/mcp/',
-  },
-  {
-    icon: '🤖',
-    title: 'A2A agents',
-    details: 'Specialised agents discovered and delegated to',
-    call: 'delegate -> calendar-agent',
-    link: '/a2a/',
   },
 ];
 
@@ -37,10 +30,21 @@ onUnmounted(() => clearInterval(timer));
 <template>
   <div class="arch">
     <div class="arch-flow">
-      <div class="arch-node arch-node-app">
-        <span class="arch-icon">💻</span>
-        <strong>Your app</strong>
-        <span class="arch-sub">OpenAI SDK, curl, or the infer CLI</span>
+      <div class="arch-source">
+        <div class="arch-node arch-node-app">
+          <span class="arch-icon">💻</span>
+          <strong>Your app</strong>
+          <span class="arch-sub">OpenAI SDK, curl, or the infer CLI</span>
+        </div>
+
+        <div class="arch-rail arch-rail-branch" aria-hidden="true"></div>
+
+        <a class="arch-node arch-node-branch" href="/a2a/">
+          <span class="arch-icon">🤖</span>
+          <strong>A2A agents</strong>
+          <span class="arch-sub">Delegated by the CLI, not proxied by the gateway</span>
+          <code class="arch-wire arch-wire-static">A2A_SubmitTask -&gt; calendar-agent</code>
+        </a>
       </div>
 
       <div class="arch-rail" aria-hidden="true"></div>
@@ -69,7 +73,8 @@ onUnmounted(() => clearInterval(timer));
       </div>
     </div>
     <p class="arch-caption">
-      One stable, OpenAI-compatible surface in front of every provider, tool, and agent.
+      One stable, OpenAI-compatible surface in front of every provider and MCP tool, with A2A
+      delegation handled by the CLI.
       <a href="/architecture-overview/">Read the architecture overview</a>.
     </p>
   </div>
@@ -162,6 +167,20 @@ onUnmounted(() => clearInterval(timer));
   gap: 12px;
 }
 
+.arch-source {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.arch-node-branch {
+  border-style: dashed;
+}
+
+.arch-wire-static {
+  animation: none;
+}
+
 .arch-rail {
   height: 28px;
   align-self: center;
@@ -196,7 +215,7 @@ onUnmounted(() => clearInterval(timer));
     gap: 0;
   }
 
-  .arch-node-app,
+  .arch-source,
   .arch-node-gateway {
     flex: 0 1 240px;
   }
@@ -216,6 +235,19 @@ onUnmounted(() => clearInterval(timer));
     );
     background-size: 18px 100%;
     animation: arch-flow-x 0.9s linear infinite;
+  }
+
+  .arch-rail-branch {
+    flex: none;
+    width: 2px;
+    height: 28px;
+    background-image: repeating-linear-gradient(
+      180deg,
+      var(--vp-c-brand-1) 0 6px,
+      transparent 6px 18px
+    );
+    background-size: 100% 18px;
+    animation: arch-flow-y 0.9s linear infinite;
   }
 }
 
