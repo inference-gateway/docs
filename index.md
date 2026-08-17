@@ -145,7 +145,7 @@ Read the [Agent Definition Language overview](/adl/) to see how the language, th
 
 ## Community
 
-Inference Gateway is Apache-2.0 licensed and developed entirely in the open: the gateway, the CLI, the SDKs, the ADK libraries, the Kubernetes Operator, the example agents, and these docs all live under the [inference-gateway organisation](https://github.com/inference-gateway).
+Inference Gateway is Apache-2.0 licensed and developed entirely in the open: the gateway, the CLI, the SDKs, the ADK libraries, the Kubernetes Operator, the example agents, and these docs all live under the [inference-gateway](https://github.com/inference-gateway).
 
 Ways to get involved:
 
