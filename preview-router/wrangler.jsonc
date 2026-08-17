@@ -1,0 +1,21 @@
+{
+  "name": "docs-preview-router",
+  "main": "index.js",
+  "compatibility_date": "2026-08-10",
+  "vars": {
+    "WORKERS_SUBDOMAIN": "eden-reich",
+  },
+  "routes": [
+    {
+      "pattern": "*.inference-gateway.com/*",
+      "zone_name": "inference-gateway.com",
+    },
+  ],
+  "observability": {
+    "enabled": true,
+    "logs": {
+      "enabled": true,
+      "invocation_logs": true,
+    },
+  },
+}

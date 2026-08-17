@@ -16,17 +16,18 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: pages
   cancel-in-progress: false
 
 jobs:
-  build:
-    name: Build
+  deploy:
+    name: Deploy
     runs-on: ubuntu-24.04
+    environment:
+      name: production
+      url: https://docs.inference-gateway.com
     steps:
       - name: Checkout
         uses: actions/checkout@v7.0.1
@@ -42,22 +43,8 @@ jobs:
       - name: Build static site
         run: bun run build
 
-      - name: Configure Pages
-        uses: actions/configure-pages@v6.0.0
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v5.0.0
-        with:
-          path: .vitepress/dist
-
-  deploy:
-    name: Deploy
-    needs: build
-    runs-on: ubuntu-24.04
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v5.0.0
+      - name: Deploy to Cloudflare Workers
+        run: bunx wrangler@4.123.0 deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
