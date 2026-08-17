@@ -15,7 +15,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: pages
@@ -25,22 +25,10 @@ jobs:
   deploy:
     name: Deploy
     runs-on: ubuntu-24.04
+    environment:
+      name: production
+      url: https://docs.inference-gateway.com
     steps:
-      - uses: actions/create-github-app-token@v3.2.0
-        id: app-token
-        with:
-          client-id: ${{ secrets.RELEASER_APP_CLIENT_ID }}
-          private-key: ${{ secrets.RELEASER_APP_PRIVATE_KEY }}
-          owner: ${{ github.repository_owner }}
-          repositories: |
-            ${{ github.event.repository.name }}
-
-      - name: Get bot user id
-        id: get-user-id
-        run: echo "user-id=$(gh api "/users/${{ steps.app-token.outputs.app-slug }}[bot]" --jq .id)" >> "$GITHUB_OUTPUT"
-        env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
-
       - name: Checkout
         uses: actions/checkout@v7.0.1
 
@@ -55,12 +43,8 @@ jobs:
       - name: Build static site
         run: bun run build
 
-      - name: Deploy to gh-pages
-        uses: JamesIves/github-pages-deploy-action@v4.9.0
-        with:
-          token: ${{ steps.app-token.outputs.token }}
-          git-config-name: ${{ steps.app-token.outputs.app-slug }}[bot]
-          git-config-email: ${{ steps.get-user-id.outputs.user-id }}+${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com
-          folder: .vitepress/dist
-          branch: gh-pages
-          clean-exclude: pr-preview/
+      - name: Deploy to Cloudflare Pages
+        run: bunx wrangler@4.123.0 pages deploy .vitepress/dist --project-name inference-gateway-docs --branch main
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

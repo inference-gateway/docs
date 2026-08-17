@@ -53,7 +53,7 @@ const structuredData = {
 
 export default withMermaid(
   defineConfig({
-    base: process.env.DOCS_BASE ?? '/',
+    base: '/',
     lang: 'en-US',
     title: SITE_NAME,
     titleTemplate: ':title | Inference Gateway',
