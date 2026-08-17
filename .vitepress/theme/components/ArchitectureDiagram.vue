@@ -30,21 +30,20 @@ onUnmounted(() => clearInterval(timer));
 <template>
   <div class="arch">
     <div class="arch-flow">
-      <div class="arch-source">
-        <a class="arch-node arch-node-branch" href="/a2a/">
-          <span class="arch-icon">🤖</span>
-          <strong>A2A agents</strong>
-          <span class="arch-sub">Optional - delegated by the CLI, not proxied by the gateway</span>
-          <code class="arch-wire arch-wire-static">A2A_SubmitTask -&gt; calendar-agent</code>
-        </a>
-
-        <div class="arch-rail arch-rail-branch" aria-hidden="true"></div>
+      <div class="arch-clients">
+        <span class="arch-group-label">Clients</span>
 
         <div class="arch-node arch-node-app">
           <span class="arch-icon">💻</span>
           <strong>Your app</strong>
           <span class="arch-sub">OpenAI SDK, curl, or the infer CLI</span>
         </div>
+
+        <a class="arch-node" href="/a2a/">
+          <span class="arch-icon">🤖</span>
+          <strong>A2A agents</strong>
+          <span class="arch-sub">Delegated by the CLI, and they call the gateway themselves</span>
+        </a>
       </div>
 
       <div class="arch-rail" aria-hidden="true"></div>
@@ -73,8 +72,8 @@ onUnmounted(() => clearInterval(timer));
       </div>
     </div>
     <p class="arch-caption">
-      One stable, OpenAI-compatible surface in front of every provider and MCP tool, with A2A
-      delegation handled by the CLI.
+      Apps and A2A agents alike get one stable, OpenAI-compatible surface in front of every provider
+      and MCP tool.
       <a href="/architecture-overview/">Read the architecture overview</a>.
     </p>
   </div>
@@ -167,18 +166,22 @@ onUnmounted(() => clearInterval(timer));
   gap: 12px;
 }
 
-.arch-source {
+.arch-clients {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
+  padding: 10px;
+  border: 1px dashed var(--vp-c-divider);
+  border-radius: 14px;
 }
 
-.arch-node-branch {
-  border-style: dashed;
-}
-
-.arch-wire-static {
-  animation: none;
+.arch-group-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--vp-c-text-3);
 }
 
 .arch-rail {
@@ -215,7 +218,7 @@ onUnmounted(() => clearInterval(timer));
     gap: 0;
   }
 
-  .arch-source,
+  .arch-clients,
   .arch-node-gateway {
     flex: 0 1 240px;
   }
@@ -235,19 +238,6 @@ onUnmounted(() => clearInterval(timer));
     );
     background-size: 18px 100%;
     animation: arch-flow-x 0.9s linear infinite;
-  }
-
-  .arch-rail-branch {
-    flex: none;
-    width: 2px;
-    height: 28px;
-    background-image: repeating-linear-gradient(
-      180deg,
-      var(--vp-c-brand-1) 0 6px,
-      transparent 6px 18px
-    );
-    background-size: 100% 18px;
-    animation: arch-flow-y 0.9s linear infinite;
   }
 }
 
