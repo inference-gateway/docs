@@ -43,6 +43,34 @@
 }
 
 /**
+ * Nav collapse breakpoint.
+ *
+ * The default theme swaps the hamburger for the horizontal menu at 768px, but
+ * that assumes a short nav. Ours has six groups (~590px) plus the title column
+ * (272px), the search box and the extra menu - it only fits from ~1200px up.
+ * Below that the nav links shrink until their labels wrap onto two lines and
+ * collide with the search box. Keep the mobile menu - which already lists the
+ * same links - until there is room for the horizontal one.
+ *
+ * !important is needed to beat the theme's scoped component styles.
+ * ponytail: hard-coded width, re-measure if nav items are added or renamed.
+ */
+@media (max-width: 1199px) {
+  .VPNavBarMenu,
+  .VPNavBarExtra {
+    display: none !important;
+  }
+
+  .VPNavBarHamburger {
+    display: flex !important;
+  }
+
+  .VPNavScreen {
+    display: block !important;
+  }
+}
+
+/**
  * Mermaid diagrams: card-style container with a light background that reads
  * the same in light and dark mode (the SVG is baked once at build time, so it
  * stays light - we make that intentional rather than letting it clash with
