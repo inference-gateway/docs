@@ -145,4 +145,13 @@ Read the [Agent Definition Language overview](/adl/) to see how the language, th
 
 ## Community
 
-Inference Gateway is an open-source project maintained by a growing community. Contributions are welcome on [GitHub](https://github.com/inference-gateway/inference-gateway).
+Inference Gateway is Apache-2.0 licensed and developed entirely in the open: the gateway, the CLI, the SDKs, the ADK libraries, the Kubernetes Operator, the example agents, and these docs all live under the [inference-gateway organisation](https://github.com/inference-gateway).
+
+Ways to get involved:
+
+- **Ask a question or share what you built** in [GitHub Discussions](https://github.com/inference-gateway/inference-gateway/discussions).
+- **Report a bug or request a feature** in the [issue tracker](https://github.com/inference-gateway/inference-gateway/issues).
+- **Send a pull request** - [CONTRIBUTING.md](https://github.com/inference-gateway/inference-gateway/blob/main/CONTRIBUTING.md) covers the local dev setup and commit conventions.
+- **Fix these docs** - every page has an "Edit this page on GitHub" link at the bottom.
+
+If the gateway is useful to you, a [star on GitHub](https://github.com/inference-gateway/inference-gateway) helps others find it.
