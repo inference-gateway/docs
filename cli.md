@@ -631,15 +631,17 @@ Display server type is automatically detected at runtime. No manual configuratio
 
 ### Computer Use Tools
 
-| Tool                    | Description             | Key Capabilities                                                                      |
-| ----------------------- | ----------------------- | ------------------------------------------------------------------------------------- |
-| **GetLatestScreenshot** | Capture screen regions  | Streaming mode, region selection, circular buffer, JPEG format (configurable quality) |
-| **MouseMove**           | Control cursor position | Absolute coordinates, relative movement                                               |
-| **MouseClick**          | Perform click actions   | Left/right/middle clicks, double-click support                                        |
-| **MouseScroll**         | Scroll content          | Vertical and horizontal scrolling                                                     |
-| **KeyboardType**        | Type text and keys      | Plain text, key combinations (Ctrl+C, Cmd+V), configurable typing delay               |
-| **GetFocusedApp**       | Identify active app     | Returns focused application name                                                      |
-| **ActivateApp**         | Switch applications     | Focus and activate specific apps                                                      |
+| Tool                    | Description             | Key Capabilities                                                                          |
+| ----------------------- | ----------------------- | ----------------------------------------------------------------------------------------- |
+| **GetLatestScreenshot** | Capture screen regions  | Streaming mode, region selection, circular buffer, JPEG format (configurable quality)     |
+| **MouseMove**           | Control cursor position | Absolute coordinates, relative movement                                                   |
+| **MouseClick**          | Perform click actions   | Left/right/middle clicks, double-click support                                            |
+| **MouseScroll**         | Scroll content          | Vertical and horizontal scrolling                                                         |
+| **KeyboardType**        | Type text and keys      | Plain text, key combinations (Ctrl+C, Cmd+V), configurable typing delay                   |
+| **GetFocusedApp**       | Identify active app     | Returns focused application name                                                          |
+| **ActivateApp**         | Switch applications     | Focus an app by `app_id` (platform identifier) or `name` (human-readable), cross-platform |
+
+**ActivateApp parameters:** pass either `app_id` - the platform's application identifier (a bundle ID on macOS, a window class or desktop-entry ID on Linux) - or `name`, the human-readable application name. At least one of the two is required. This replaces the macOS-only `bundle_id` parameter ([inference-gateway/cli#1078](https://github.com/inference-gateway/cli/pull/1078)).
 
 ### Screenshot Tool Features
 
@@ -664,27 +666,11 @@ Display server type is automatically detected at runtime. No manual configuratio
 - Custom region coordinates (x, y, width, height)
 - Multiple monitor support
 
-### Floating Window
+### Visualizing Agent Activity
 
-Real-time visualization of agent activity:
+The [desktop app](/desktop/) is the visualization layer for computer use: it shows the live screen monitor, the on-screen action overlay, and the approval prompts driven by [`computer_use.approval`](#computer-use-approval). Run the CLI from the desktop app to watch a computer-use run as it happens.
 
-```yaml
-computer_use:
-  floating_window:
-    enabled: true
-    respawn_on_close: true # Auto-restart if closed
-    position: top-right # top-left, top-right, bottom-left, bottom-right
-    always_on_top: true # Keep window above other apps
-```
-
-**Features:**
-
-- Always-on-top overlay
-- Shows agent actions in real-time
-- Configurable position
-- Auto-respawn option if accidentally closed
-- Non-intrusive design
-- Available on all platforms with GUI support
+The CLI's own macOS floating window was removed in [inference-gateway/cli#1079](https://github.com/inference-gateway/cli/pull/1079). The `computer_use.floating_window` config section and the `INFER_COMPUTER_USE_FLOATING_WINDOW_*` environment variables no longer exist - existing config files that still carry those keys keep loading, the keys are simply ignored.
 
 ### Computer Use Configuration
 
@@ -692,11 +678,6 @@ computer_use:
 computer_use:
   enabled: true
   approval: never # never | destructive | always
-  floating_window:
-    enabled: true
-    respawn_on_close: true
-    position: top-right
-    always_on_top: true
   screenshot:
     enabled: true
     max_width: 1920
