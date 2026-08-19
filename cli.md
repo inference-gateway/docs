@@ -457,14 +457,16 @@ infer headless "Analyze the codebase" --format json-pretty
 
 Every line in the `json` (or `json-pretty`) stream is a JSON object with a `type` discriminator. The stream is additive - new types may be introduced and consumers should ignore any they do not recognize.
 
-| Type               | When emitted            | Description                                                                                                                                                                                                                                                                   |
-| ------------------ | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `info`             | Once at start           | Run metadata (model, session id)                                                                                                                                                                                                                                              |
-| `assistant`        | Per turn                | Assistant response with `content`, `reasoning_content`, `tool_calls`, `token_usage`                                                                                                                                                                                           |
-| `tool`             | Per tool call           | Tool execution result. `content` holds the bare marshaled result (no legacy `Result of tool call:` / `Tool execution failed:` envelope). Structured `tool_execution` metadata (`tool_name`, `success`, `error`, `rejected`, `duration`) and the `failed` flag ride alongside. |
-| `approval_request` | When approval is needed | Approval request metadata                                                                                                                                                                                                                                                     |
-| `session_stats`    | Once at end             | Token usage and cost summary (detailed below)                                                                                                                                                                                                                                 |
-| `agent_error`      | Before stream starts    | Machine-readable error when the run fails before any turn (gateway unavailable, unknown model). For `ag-ui` format this is emitted as `RUN_ERROR`.                                                                                                                            |
+| Type                   | When emitted                  | Description                                                                                                                                                                                                                                                                   |
+| ---------------------- | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `info`                 | Once at start                 | Run metadata (model, session id)                                                                                                                                                                                                                                              |
+| `assistant`            | Per turn                      | Assistant response with `content`, `reasoning_content`, `tool_calls`, `token_usage`                                                                                                                                                                                           |
+| `tool`                 | Per tool call                 | Tool execution result. `content` holds the bare marshaled result (no legacy `Result of tool call:` / `Tool execution failed:` envelope). Structured `tool_execution` metadata (`tool_name`, `success`, `error`, `rejected`, `duration`) and the `failed` flag ride alongside. |
+| `approval_request`     | When approval is needed       | Approval request metadata                                                                                                                                                                                                                                                     |
+| `computer_use_paused`  | On a `pause` control message  | Computer use was paused; carries the session `request_id` - see [pause and resume control](#pause-and-resume-control-ipc)                                                                                                                                                     |
+| `computer_use_resumed` | On a `resume` control message | Computer use was resumed; carries the session `request_id`                                                                                                                                                                                                                    |
+| `session_stats`        | Once at end                   | Token usage and cost summary (detailed below)                                                                                                                                                                                                                                 |
+| `agent_error`          | Before stream starts          | Machine-readable error when the run fails before any turn (gateway unavailable, unknown model). For `ag-ui` format this is emitted as `RUN_ERROR`.                                                                                                                            |
 
 **Exit codes:**
 
@@ -479,6 +481,56 @@ Every line in the `json` (or `json-pretty`) stream is a JSON object with a `type
 - **Subagent mode**: Headless runs always spawn subagents in `headless` mode, never tmux/interactive, regardless of `tools.agent.mode`.
 - **Background tasks**: The run waits for in-flight background tasks (background shells, A2A tasks) before completing, bounded by `a2a.task.agent_mode_max_wait_seconds`.
 - **Session rollover**: Long conversations automatically roll over into a new session id (session compact). A non-UUID `--session-id` is treated as a session-group key that follows these rollovers - useful for channel-based workflows.
+
+#### Pause and resume control (IPC)
+
+A host UI (the desktop app, or any process that owns the `infer headless` subprocess) can pause and resume an in-flight computer-use run by writing a control line to the agent's **stdin**, the same IPC pattern as `approval_response`:
+
+```json
+{ "type": "computer_use_control", "action": "pause" }
+{ "type": "computer_use_control", "action": "resume" }
+```
+
+- Works with the `json`, `json-pretty`, and `ag-ui` formats, **with or without** `--require-approval`, and regardless of the [`computer_use.approval`](#computer-use-approval) level.
+- **Pause** cancels the in-flight request and emits `computer_use_paused`.
+- **Resume** restarts the run over the same conversation with a hidden `Please continue from where you left off.` message, and emits `computer_use_resumed`. The resume also clears the error the cancelled run carried, so a paused run that is resumed still finishes cleanly.
+- A malformed line, an unknown `type`, or an unrecognized `action` is ignored (logged as a warning), so the stdin stream can carry `approval_response` and `computer_use_control` messages interleaved.
+
+**Events out.** In the `json` / `json-pretty` stream both events are plain JSON lines carrying the session `request_id`:
+
+```json
+{ "type": "computer_use_paused", "request_id": "b7a1c3d2-..." }
+{ "type": "computer_use_resumed", "request_id": "b7a1c3d2-..." }
+```
+
+In the `ag-ui` stream they arrive as `CUSTOM` events with the same names:
+
+```json
+{ "type": "CUSTOM", "name": "computer_use_paused", "value": { "request_id": "b7a1c3d2-..." } }
+{ "type": "CUSTOM", "name": "computer_use_resumed", "value": { "request_id": "b7a1c3d2-..." } }
+```
+
+**Example.** Pause the run, then resume it a few seconds later:
+
+```bash
+{
+  sleep 5
+  echo '{"type":"computer_use_control","action":"pause"}'
+  sleep 5
+  echo '{"type":"computer_use_control","action":"resume"}'
+} | infer headless --format json "Open the settings window and enable dark mode"
+```
+
+```json
+{"type":"info","model":"...","session_id":"b7a1c3d2-..."}
+{"type":"assistant","content":"Taking a screenshot to find the settings window..."}
+{"type":"computer_use_paused","request_id":"b7a1c3d2-..."}
+{"type":"computer_use_resumed","request_id":"b7a1c3d2-..."}
+{"type":"assistant","content":"Continuing - clicking the appearance tab..."}
+{"type":"session_stats","message":"Session complete","...":"..."}
+```
+
+> Shipped in [inference-gateway/cli#1075](https://github.com/inference-gateway/cli/pull/1075).
 
 #### Session stats summary line
 
@@ -639,6 +691,7 @@ computer_use:
 ```yaml
 computer_use:
   enabled: true
+  approval: never # never | destructive | always
   floating_window:
     enabled: true
     respawn_on_close: true
@@ -678,6 +731,31 @@ computer_use:
     activate_app:
       enabled: true
 ```
+
+### Computer Use Approval
+
+`computer_use.approval` decides which computer-use tools go through the approval gate before they run. It applies to both interactive chat and [`infer headless`](#headless-agent-stream-output).
+
+| Value         | Behavior                                                                     |
+| ------------- | ---------------------------------------------------------------------------- |
+| `never`       | Default. Computer-use tools bypass the approval gate and run immediately.    |
+| `destructive` | `MouseClick` and `ActivateApp` require approval; the other tools run freely. |
+| `always`      | Every computer-use tool requires approval.                                   |
+
+```yaml
+computer_use:
+  approval: destructive
+```
+
+```bash
+export INFER_COMPUTER_USE_APPROVAL=always
+```
+
+- **Env override:** `INFER_COMPUTER_USE_APPROVAL` takes precedence over the YAML value.
+- **Fail closed:** an unknown value is rejected at config load with a validation error, and if one ever reaches the approval policy it is treated as `always` rather than silently bypassing the gate.
+- Under `destructive` or `always`, a headless run needs an approver reachable over IPC - otherwise the gated calls are blocked, same as any other approval-requiring tool. See [Headless secure-by-default](#headless-secure-by-default).
+
+> Shipped in [inference-gateway/cli#1075](https://github.com/inference-gateway/cli/pull/1075).
 
 ### Safety and Rate Limiting
 
