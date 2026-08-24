@@ -70,8 +70,10 @@ Download binaries from the [GitHub releases page](https://github.com/inference-g
 ```bash
 git clone https://github.com/inference-gateway/cli.git
 cd cli
-go build -o infer
+CGO_ENABLED=0 go build -tags purego -o infer ./cmd/infer
 ```
+
+The build is fully cgo-free on macOS, Linux, and Windows - no C toolchain and no macOS SDK are required, and the same host cross-compiles every target. The `purego` build tag selects the pure-Go display and input backend and is used on all three platforms ([inference-gateway/cli#1086](https://github.com/inference-gateway/cli/pull/1086)).
 
 ### Shell Completions
 
@@ -622,43 +624,56 @@ GUI automation and visual understanding capabilities for interacting with applic
 
 Automatic display server detection - no configuration needed:
 
-| Platform  | Supported Servers              | Notes                                  |
-| --------- | ------------------------------ | -------------------------------------- |
-| **macOS** | Quartz (native), X11 (XQuartz) | Quartz automatically detected and used |
-| **Linux** | X11, Wayland                   | Auto-detection handles both protocols  |
+| Platform    | Supported Servers              | Notes                                  |
+| ----------- | ------------------------------ | -------------------------------------- |
+| **macOS**   | Quartz (native), X11 (XQuartz) | Quartz automatically detected and used |
+| **Linux**   | X11, Wayland                   | Auto-detection handles both protocols  |
+| **Windows** | Native                         | No configuration required              |
 
 Display server type is automatically detected at runtime. No manual configuration required.
 
 ### Computer Use Tools
 
-| Tool                    | Description             | Key Capabilities                                                                          |
-| ----------------------- | ----------------------- | ----------------------------------------------------------------------------------------- |
-| **GetLatestScreenshot** | Capture screen regions  | Streaming mode, region selection, circular buffer, JPEG format (configurable quality)     |
-| **MouseMove**           | Control cursor position | Absolute coordinates, relative movement                                                   |
-| **MouseClick**          | Perform click actions   | Left/right/middle clicks, double-click support                                            |
-| **MouseScroll**         | Scroll content          | Vertical and horizontal scrolling                                                         |
-| **KeyboardType**        | Type text and keys      | Plain text, key combinations (Ctrl+C, Cmd+V), configurable typing delay                   |
-| **GetFocusedApp**       | Identify active app     | Returns focused application name                                                          |
-| **ActivateApp**         | Switch applications     | Focus an app by `app_id` (platform identifier) or `name` (human-readable), cross-platform |
+Computer use exposes two tools: **`Computer`**, an action-based desktop tool, and **`GetLatestFrame`**, registered whenever a frame source exists (screenshot streaming, or a directory source under `vision.sources`).
 
-**ActivateApp parameters:** pass either `app_id` - the platform's application identifier (a bundle ID on macOS, a window class or desktop-entry ID on Linux) - or `name`, the human-readable application name. At least one of the two is required. This replaces the macOS-only `bundle_id` parameter ([inference-gateway/cli#1078](https://github.com/inference-gateway/cli/pull/1078)).
+`Computer` takes an `action`:
+
+| Action                                                    | Description                                                                                                             |
+| --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `accessibility`                                           | Preferred first observation. Returns compact `{role,label,state,bbox}` elements from the accessibility tree. Read-only. |
+| `press`                                                   | Presses the first element whose `label` matches exactly, via its accessibility action - the cursor never moves.         |
+| `screenshot`                                              | Captures the screen, or a native-resolution `region`. Use when the accessibility tree is empty or insufficient.         |
+| `cursor`                                                  | Reports the current pointer position.                                                                                   |
+| `move`, `click`, `double_click`, `triple_click`, `scroll` | Pointer control.                                                                                                        |
+| `type`, `key`                                             | Type text or send key combinations (Ctrl+C, Cmd+V).                                                                     |
+
+**Targets.** `accessibility` and `press` accept an optional `target`: `frontmost` (default), `dock`, `menubar`, `pid:<N>`, `app:<name>`, or a bare application name. Application identifiers are `pid:<N>` on every platform - the macOS bundle ID form is gone, as are the older `GetFocusedApp` and `ActivateApp` tools ([inference-gateway/cli#1086](https://github.com/inference-gateway/cli/pull/1086)).
+
+**Coordinate space.** Accessibility bounding boxes use the same frame coordinate space as screenshots and pointer actions, so an element's center can be passed straight to a `click`.
+
+**Pressing beats clicking.** `press` is the reliable way to activate dock items, buttons, and menu titles: it drives the element's own accessibility action instead of aiming the pointer at a coordinate, and it takes no screenshot.
+
+**macOS Accessibility permission.** The AX tools return elements only after `infer` is granted permission in **System Settings > Privacy & Security > Accessibility**. Without it - or on a helper crash, timeout, or unavailable tree - the tool returns screenshot fallback guidance to the agent rather than failing the run. The macOS bridge is pure Go (PureGo calling CoreFoundation, CoreGraphics, and AXUIElement) running in a short-lived helper process; there is no cgo, Swift, or Objective-C.
+
+**Linux and Windows.** AT-SPI and UIA providers are not implemented yet: `accessibility` and `press` report `unsupported; use screenshot` there, while every other `Computer` action works normally.
+
+**Clipboard.** Clipboard support is text-only; image clipboard was removed with the cgo-free rewrite.
 
 ### Screenshot Tool Features
 
 **Streaming Mode:**
 
 - Maintains circular buffer of recent screenshots
-- Configurable buffer size (default: 5)
+- Configurable buffer size (default: 60)
 - Configurable capture interval (default: 3 seconds)
 - Efficient memory management
 - Fast access to recent captures
 
 **Image Optimization:**
 
-- Automatic resolution scaling (max: 1920x1080, target: 1024x768)
+- Automatic resolution scaling to fit the target box (default: 1024x768), preserving the aspect ratio so coordinates map back to the screen
 - JPEG compression with configurable quality (default: 85%)
 - Reduces bandwidth and storage requirements
-- Optional capture overlay for debugging
 
 **Region Selection:**
 
@@ -674,58 +689,42 @@ The CLI's own macOS floating window was removed in [inference-gateway/cli#1079](
 
 ### Computer Use Configuration
 
+Computer use has its own file, `.infer/computer_use.yaml`, seeded by `infer init`. It is off by default; missing keys fall back to the in-code defaults shown here.
+
 ```yaml
-computer_use:
+# .infer/computer_use.yaml
+---
+enabled: true
+approval: never # never | destructive | always
+screenshot:
   enabled: true
-  approval: never # never | destructive | always
-  screenshot:
-    enabled: true
-    max_width: 1920
-    max_height: 1080
-    target_width: 1024
-    target_height: 768
-    format: jpeg
-    quality: 85
-    streaming_enabled: true
-    capture_interval: 3
-    buffer_size: 5
-    temp_dir: ''
-    log_captures: false
-    show_overlay: true
-  rate_limit:
-    enabled: true
-    max_actions_per_minute: 60
-    window_seconds: 60
-  tools:
-    mouse_move:
-      enabled: true
-    mouse_click:
-      enabled: true
-    mouse_scroll:
-      enabled: true
-    keyboard_type:
-      enabled: true
-      max_text_length: 1000
-      typing_delay_ms: 100
-    get_focused_app:
-      enabled: true
-    activate_app:
-      enabled: true
+  target_width: 1024
+  target_height: 768
+  format: jpeg
+  quality: 85
+  streaming_enabled: true # also registers the GetLatestFrame tool
+  capture_interval: 3
+  buffer_size: 60
+  temp_dir: ''
+rate_limit:
+  enabled: true
+  max_actions_per_minute: 60
+  window_seconds: 60
 ```
 
 ### Computer Use Approval
 
-`computer_use.approval` decides which computer-use tools go through the approval gate before they run. It applies to both interactive chat and [`infer headless`](#headless-agent-stream-output).
+`computer_use.approval` decides which computer-use actions go through the approval gate before they run. It applies to both interactive chat and [`infer headless`](#headless-agent-stream-output).
 
-| Value         | Behavior                                                                     |
-| ------------- | ---------------------------------------------------------------------------- |
-| `never`       | Default. Computer-use tools bypass the approval gate and run immediately.    |
-| `destructive` | `MouseClick` and `ActivateApp` require approval; the other tools run freely. |
-| `always`      | Every computer-use tool requires approval.                                   |
+| Value         | Behavior                                                                                                                |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `never`       | Default. Computer-use actions bypass the approval gate and run immediately.                                             |
+| `destructive` | The observations `accessibility`, `screenshot`, and `cursor` bypass approval; `press` and the input actions require it. |
+| `always`      | Every computer-use action requires approval.                                                                            |
 
 ```yaml
-computer_use:
-  approval: destructive
+# .infer/computer_use.yaml
+approval: destructive
 ```
 
 ```bash
@@ -778,17 +777,17 @@ When tools are enabled, LLMs have access to a comprehensive suite across multipl
 
 ### Tool Categories
 
-| Category              | Tools                                                                                             | Description                                                                                                          |
-| --------------------- | ------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| **File System**       | Read, Write, Edit, MultiEdit, Delete, Tree, Grep                                                  | File operations and search with safety controls                                                                      |
-| **Command Execution** | Bash, BashOutput, KillShell, ListShells, Wait                                                     | Allow-listed shell execution (including `gh` for GitHub), background shell control, and blocking wait for conditions |
-| **Web**               | WebSearch, WebFetch                                                                               | Internet research and content fetching                                                                               |
-| **Workflow**          | TodoWrite, Schedule, RequestPlanApproval, AskUserQuestion, Memory                                 | Task tracking, cron jobs, plan-mode approval, clarifying questions, and persistent cross-session memory              |
-| **A2A Integration**   | A2A_QueryAgent, A2A_SubmitTask, A2A_QueryTask                                                     | Delegate to external specialized agents - see [A2A](/a2a/)                                                           |
-| **Local Subagents**   | Agent                                                                                             | Fan out short-lived local subagents in parallel - see [Local Subagents](#local-subagents-agent-tool)                 |
-| **Computer Use**      | GetLatestScreenshot, MouseMove, MouseClick, MouseScroll, KeyboardType, GetFocusedApp, ActivateApp | GUI automation - see the Computer Use section above                                                                  |
-| **Image**             | ImageGeneration, ImageEdit, ImageVariation                                                        | Generate, edit, and vary images using the configured image model - independent of the chat session model             |
-| **MCP**               | `MCP_<server>_<tool>`                                                                             | Dynamically registered tools from MCP servers - see [MCP](/mcp/)                                                     |
+| Category              | Tools                                                             | Description                                                                                                          |
+| --------------------- | ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| **File System**       | Read, Write, Edit, MultiEdit, Delete, Tree, Grep                  | File operations and search with safety controls                                                                      |
+| **Command Execution** | Bash, BashOutput, KillShell, ListShells, Wait                     | Allow-listed shell execution (including `gh` for GitHub), background shell control, and blocking wait for conditions |
+| **Web**               | WebSearch, WebFetch                                               | Internet research and content fetching                                                                               |
+| **Workflow**          | TodoWrite, Schedule, RequestPlanApproval, AskUserQuestion, Memory | Task tracking, cron jobs, plan-mode approval, clarifying questions, and persistent cross-session memory              |
+| **A2A Integration**   | A2A_QueryAgent, A2A_SubmitTask, A2A_QueryTask                     | Delegate to external specialized agents - see [A2A](/a2a/)                                                           |
+| **Local Subagents**   | Agent                                                             | Fan out short-lived local subagents in parallel - see [Local Subagents](#local-subagents-agent-tool)                 |
+| **Computer Use**      | Computer, GetLatestFrame                                          | Accessibility-tree reads, presses, screenshots, and pointer/keyboard control - see the Computer Use section above    |
+| **Image**             | ImageGeneration, ImageEdit, ImageVariation                        | Generate, edit, and vary images using the configured image model - independent of the chat session model             |
+| **MCP**               | `MCP_<server>_<tool>`                                             | Dynamically registered tools from MCP servers - see [MCP](/mcp/)                                                     |
 
 ### File System Tools
 
@@ -3171,13 +3170,15 @@ infer agent "your task"
 # Verify display server
 echo $DISPLAY  # Linux/X11
 
-# Check permissions (macOS)
-# System Preferences > Security & Privacy > Accessibility
+# Check permissions (macOS) - required before the accessibility tree returns elements
+# System Settings > Privacy & Security > Accessibility
 
 # Test screenshot
 infer chat
 > "Take a screenshot and describe what you see"
 ```
+
+If `Computer` with `action: accessibility` returns an empty tree or screenshot fallback guidance on macOS, the Accessibility permission for `infer` is the first thing to check. On Linux and Windows that fallback is expected - the accessibility providers are not implemented there yet.
 
 ### Shell Completions Not Working
 
