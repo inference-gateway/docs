@@ -21,7 +21,7 @@ concurrency:
 jobs:
   preview:
     name: Deploy preview
-    if: github.event.action != 'closed'
+    if: github.event.action != 'closed' && github.actor != 'dependabot[bot]'
     runs-on: ubuntu-24.04
     environment:
       name: preview-pr-${{ github.event.number }}
@@ -72,7 +72,7 @@ jobs:
 
   teardown:
     name: Destroy preview
-    if: github.event.action == 'closed'
+    if: github.event.action == 'closed' && github.actor != 'dependabot[bot]'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/create-github-app-token@v3.2.0
