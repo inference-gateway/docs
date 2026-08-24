@@ -2,6 +2,37 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.12](https://github.com/inference-gateway/docs/compare/0.9.11...0.9.12) (2026-08-24)
+
+### 🐛 Bug Fixes
+
+* auto-generate footer copyright year ([#570](https://github.com/inference-gateway/docs/issues/570)) ([bd7a0ad](https://github.com/inference-gateway/docs/commit/bd7a0ade430e3a565720983c4ee0390d3814a553))
+* **ci:** install Bun in the preview teardown job ([#567](https://github.com/inference-gateway/docs/issues/567)) ([68aed64](https://github.com/inference-gateway/docs/commit/68aed648053e6c962a28af9d8ed64effe2aef9c2))
+* **ci:** remove preview deployments with the workflow token on close ([527200a](https://github.com/inference-gateway/docs/commit/527200af01be121f5b84ecb5b0e466516762b22b))
+* connect app directly to gateway in homepage diagram ([#576](https://github.com/inference-gateway/docs/issues/576)) ([f74823b](https://github.com/inference-gateway/docs/commit/f74823b63416f5608285f69c219b4bbb66de142a))
+
+### 👷 CI
+
+* move docs deployment and PR previews to Cloudflare Pages ([#566](https://github.com/inference-gateway/docs/issues/566)) ([c369b52](https://github.com/inference-gateway/docs/commit/c369b52e81e91d716ac42f9595d86f6d5d3335b4))
+* skip preview environment creation for dependabot PRs ([#583](https://github.com/inference-gateway/docs/issues/583)) ([bd22f31](https://github.com/inference-gateway/docs/commit/bd22f31c6312a9aecd41f0cfe0655c300cede345))
+
+### 📚 Documentation
+
+* add animated architecture diagram to homepage hero ([#568](https://github.com/inference-gateway/docs/issues/568)) ([aa85ad4](https://github.com/inference-gateway/docs/commit/aa85ad48fdc9cd1332576a4b962f4cba95bd4875))
+* add computer-use approval and pause/resume IPC ([#579](https://github.com/inference-gateway/docs/issues/579)) ([c4a7d9a](https://github.com/inference-gateway/docs/commit/c4a7d9a9d755d8bc65bdce2203d0c906957bfbb2))
+* add quick-start terminal to homepage hero ([#565](https://github.com/inference-gateway/docs/issues/565)) ([d5c55aa](https://github.com/inference-gateway/docs/commit/d5c55aa7ac526d863005d9a692c1931566f9ce16))
+* align architecture diagrams with homepage and codebase ([#575](https://github.com/inference-gateway/docs/issues/575)) ([c2d9ffc](https://github.com/inference-gateway/docs/commit/c2d9ffcde20f600f73fbf56794fdfd6ce4a9ace1))
+* **cli:** update computer use to Computer tool and cgo-free build ([#584](https://github.com/inference-gateway/docs/issues/584)) ([cd670aa](https://github.com/inference-gateway/docs/commit/cd670aa2ab98836cda6e4faa77aa603244dc16df))
+* de-duplicate provider list on homepage ([#569](https://github.com/inference-gateway/docs/issues/569)) ([a4726ae](https://github.com/inference-gateway/docs/commit/a4726ae3b8bc0ef5ab35a2de87f8efdbe29fb486))
+* drop floating window, desktop app for computer use ([#580](https://github.com/inference-gateway/docs/issues/580)) ([85e0a73](https://github.com/inference-gateway/docs/commit/85e0a73e59795bcd00a7a9d9714bffed6cd4c1fa))
+* drop redundant 'How it works' from homepage ([#571](https://github.com/inference-gateway/docs/issues/571)) ([79d203c](https://github.com/inference-gateway/docs/commit/79d203c67cf2ea463449728dda5dbdffed2e4b38))
+* give the homepage a real contribution path ([#573](https://github.com/inference-gateway/docs/issues/573)) ([5ddfc8a](https://github.com/inference-gateway/docs/commit/5ddfc8a5fc4fdef7a50780aab81d4a4109c637da))
+* simplify the homepage ADL section for newcomers ([#572](https://github.com/inference-gateway/docs/issues/572)) ([684a1e2](https://github.com/inference-gateway/docs/commit/684a1e272189c8cab94b1aa39ad215953ee4ca9e))
+
+### 🔧 Miscellaneous
+
+* **deps-dev:** bump mermaid from 11.16.1 to 11.17.0 in the bun group ([#582](https://github.com/inference-gateway/docs/issues/582)) ([bb85ea9](https://github.com/inference-gateway/docs/commit/bb85ea9b8e79b8a1575f88a917336d91f93b683c))
+
 ## [0.9.11](https://github.com/inference-gateway/docs/compare/0.9.10...0.9.11) (2026-08-17)
 
 ### 📚 Documentation
