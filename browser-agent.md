@@ -85,6 +85,66 @@ The eight Playwright tools are backed by the agent's internal [Playwright servic
 
 The agent is told to prefer `fetch` over `navigate_to_url` whenever the target does not need JavaScript or a stateful session: `fetch` is much faster, opens no browser session, and returns raw bytes directly (with an optional `save_path` for downloads). It reaches for `fetch` for static content (raw files, sitemaps, JSON/XML APIs, RSS feeds) and one-shot downloads, and for the full Playwright toolset when the page is a client-rendered SPA, sits behind authentication or cookies, or needs DOM interaction. When in doubt it tries `fetch` first and falls back to `navigate_to_url` if the response is an empty shell hydrated by JavaScript.
 
+## Tool sandbox
+
+The built-in `read`, `write`, `edit`, and `fetch` tools are sandboxed by default, so a prompt-injected page cannot talk the agent into reading `/etc/passwd` or overwriting files outside its scratch space:
+
+| Tool    | Default limit                                                     | Widen or tighten with                                                                 |
+| ------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `read`  | Paths under `/tmp/playwright/artifacts` and `.agents/skills` only | `TOOLS_READ_ALLOWED_ROOTS`                                                            |
+| `write` | Paths under `/tmp/playwright/artifacts` only                      | `TOOLS_WRITE_ALLOWED_ROOTS`                                                           |
+| `edit`  | Paths under `/tmp/playwright/artifacts` only                      | `TOOLS_EDIT_ALLOWED_ROOTS`                                                            |
+| `fetch` | Any domain, capped at 10 MiB per response and a 30 s timeout      | `TOOLS_FETCH_ALLOWED_DOMAINS`, `TOOLS_FETCH_MAX_BYTES`, `TOOLS_FETCH_TIMEOUT_SECONDS` |
+
+The `*_ALLOWED_ROOTS` variables take a comma-separated list of directories and **replace** the defaults, so include the artifacts directory if you still want it writable. For a deployment that persists artifacts on a shared volume:
+
+```bash
+TOOLS_WRITE_ALLOWED_ROOTS=/tmp/playwright/artifacts,/data/artifacts
+TOOLS_EDIT_ALLOWED_ROOTS=/tmp/playwright/artifacts,/data/artifacts
+TOOLS_READ_ALLOWED_ROOTS=/tmp/playwright/artifacts,/data/artifacts,.agents/skills
+```
+
+Restricting `fetch` to a domain allowlist is the counterpart for locking down egress:
+
+```bash
+TOOLS_FETCH_ALLOWED_DOMAINS=docs.example.com,api.example.com
+TOOLS_FETCH_MAX_BYTES=2097152
+TOOLS_FETCH_TIMEOUT_SECONDS=10
+```
+
+### Internal network targets
+
+`navigate_to_url` refuses loopback, private, and link-local addresses by default - including cloud metadata endpoints like `169.254.169.254`. To test an internal webapp (a service on the same Docker network, or `localhost`), opt back in:
+
+```bash
+BROWSER_ALLOW_INTERNAL_URLS=true
+```
+
+Only enable this where the agent's prompts and the pages it visits are trusted: with it on, a page that injects instructions can point the browser at anything reachable from the container.
+
+## Deployment and authentication
+
+The agent images and the shipped `docker-compose.yml` publish **no port** - the agent is reachable only from the container network it joins. That is deliberate: an exposed `POST /a2a` with no auth is a browser someone else can drive.
+
+If you publish the port, enable OIDC bearer-token auth at the same time:
+
+```yaml
+services:
+  browser-agent:
+    image: ghcr.io/inference-gateway/browser-agent:latest
+    ports:
+      - '8080:8080'
+    environment:
+      A2A_AUTH_ENABLED: 'true'
+      A2A_AUTH_ISSUER_URL: https://keycloak.example.com/realms/inference-gateway
+      A2A_AUTH_CLIENT_ID: browser-agent
+      A2A_AUTH_CLIENT_SECRET: ${BROWSER_AGENT_CLIENT_SECRET}
+      A2A_ARTIFACTS_ENABLED: 'true'
+      A2A_AGENT_CLIENT_BASE_URL: http://inference-gateway:8080/v1
+```
+
+With auth enabled, `POST /a2a` requires a valid `Authorization: Bearer <token>`; `GET /health` and `GET /.well-known/agent-card.json` stay public for probes and discovery. See [Authentication](/authentication/) for setting up the identity provider.
+
 ## Services and runtime
 
 - **Server**: a single Go binary (`browser-agent`). `browser-agent start` boots the A2A server on port `8080`; `--help` and `--version` behave as expected. A multi-stage `Dockerfile` and the `ghcr.io/inference-gateway/browser-agent` image are provided. It exposes the standard A2A endpoints: `GET /.well-known/agent-card.json`, `GET /health`, and `POST /a2a`.
@@ -165,18 +225,29 @@ docker run --rm -it --network host \
 
 The agent reads the standard ADK environment variables plus a set of custom `BROWSER_*` and `TOOLS_*` ones. The most relevant are below; the defaults come from `spec.config` in `agent.yaml` and the env vars override them at runtime.
 
-| Category   | Variable                    | Description                                             | Default                     |
-| ---------- | --------------------------- | ------------------------------------------------------- | --------------------------- |
-| Server     | `A2A_PORT`                  | Server port                                             | `8080`                      |
-| Server     | `A2A_DEBUG`                 | Enable debug logging                                    | `false`                     |
-| LLM Client | `A2A_AGENT_CLIENT_PROVIDER` | LLM provider (`openai`, `anthropic`, `deepseek`, ...)   | -                           |
-| LLM Client | `A2A_AGENT_CLIENT_MODEL`    | Model to use                                            | -                           |
-| LLM Client | `A2A_AGENT_CLIENT_BASE_URL` | OpenAI-compatible endpoint (e.g. the Inference Gateway) | -                           |
-| Artifacts  | `A2A_ARTIFACTS_ENABLED`     | Enable artifacts (required to return screenshots/data)  | `false`                     |
-| Tools      | `TOOLS_READ_ENABLED`        | Enable the `read` tool (loads skill bodies on demand)   | `true`                      |
-| Tools      | `TOOLS_WRITE_ENABLED`       | Enable the `write` tool (persists scraped data/reports) | `true`                      |
-| Tools      | `TOOLS_FETCH_ENABLED`       | Enable the `fetch` tool (HTTP fetch without a browser)  | `true`                      |
-| Tools      | `TOOLS_FETCH_DOWNLOAD_DIR`  | Directory for `fetch` downloads                         | `/tmp/playwright/artifacts` |
+| Category   | Variable                      | Description                                                            | Default                                       |
+| ---------- | ----------------------------- | ---------------------------------------------------------------------- | --------------------------------------------- |
+| Server     | `A2A_PORT`                    | Server port                                                            | `8080`                                        |
+| Server     | `A2A_DEBUG`                   | Enable debug logging                                                   | `false`                                       |
+| LLM Client | `A2A_AGENT_CLIENT_PROVIDER`   | LLM provider (`openai`, `anthropic`, `deepseek`, ...)                  | -                                             |
+| LLM Client | `A2A_AGENT_CLIENT_MODEL`      | Model to use                                                           | -                                             |
+| LLM Client | `A2A_AGENT_CLIENT_BASE_URL`   | OpenAI-compatible endpoint (e.g. the Inference Gateway)                | -                                             |
+| Artifacts  | `A2A_ARTIFACTS_ENABLED`       | Enable artifacts (required to return screenshots/data)                 | `false`                                       |
+| Tools      | `TOOLS_READ_ENABLED`          | Enable the `read` tool (loads skill bodies on demand)                  | `true`                                        |
+| Tools      | `TOOLS_WRITE_ENABLED`         | Enable the `write` tool (persists scraped data/reports)                | `true`                                        |
+| Tools      | `TOOLS_FETCH_ENABLED`         | Enable the `fetch` tool (HTTP fetch without a browser)                 | `true`                                        |
+| Tools      | `TOOLS_FETCH_DOWNLOAD_DIR`    | Directory for `fetch` downloads                                        | `/tmp/playwright/artifacts`                   |
+| Sandbox    | `TOOLS_READ_ALLOWED_ROOTS`    | Comma-separated roots the `read` tool may read from                    | `/tmp/playwright/artifacts`, `.agents/skills` |
+| Sandbox    | `TOOLS_WRITE_ALLOWED_ROOTS`   | Comma-separated roots the `write` tool may write to                    | `/tmp/playwright/artifacts`                   |
+| Sandbox    | `TOOLS_EDIT_ALLOWED_ROOTS`    | Comma-separated roots the `edit` tool may modify                       | `/tmp/playwright/artifacts`                   |
+| Sandbox    | `TOOLS_FETCH_ALLOWED_DOMAINS` | Comma-separated domain allowlist for `fetch`                           | unset (any domain)                            |
+| Sandbox    | `TOOLS_FETCH_MAX_BYTES`       | Maximum `fetch` response size in bytes                                 | `10485760` (10 MiB)                           |
+| Sandbox    | `TOOLS_FETCH_TIMEOUT_SECONDS` | `fetch` request timeout in seconds                                     | `30`                                          |
+| Sandbox    | `BROWSER_ALLOW_INTERNAL_URLS` | Allow `navigate_to_url` to reach loopback/private/link-local addresses | `false`                                       |
+| Auth       | `A2A_AUTH_ENABLED`            | Require an OIDC bearer token on `POST /a2a`                            | `false`                                       |
+| Auth       | `A2A_AUTH_ISSUER_URL`         | OIDC issuer used for discovery and JWKS lookup                         | -                                             |
+| Auth       | `A2A_AUTH_CLIENT_ID`          | Expected `aud` claim on incoming tokens                                | -                                             |
+| Auth       | `A2A_AUTH_CLIENT_SECRET`      | Client secret for flows that require it                                | -                                             |
 
 ### Browser configuration
 
