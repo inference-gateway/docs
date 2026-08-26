@@ -3051,7 +3051,7 @@ There is no `A2AServerBuilder.withMetrics(...)` method and no `metrics` field on
 
 | Variable                   | Default    | Description                                                                                                                 |
 | -------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `METRICS_ENABLE`           | `false`    | Master switch. Falls back to `TELEMETRY_ENABLED` when unset, so `TELEMETRY_ENABLED=true` turns on both tracing and metrics. |
+| `METRICS_ENABLED`          | `false`    | Master switch. Falls back to `TELEMETRY_ENABLED` when unset, so `TELEMETRY_ENABLED=true` turns on both tracing and metrics. |
 | `METRICS_PORT`             | `9090`     | Port for the standalone metrics server (`0` picks an ephemeral port).                                                       |
 | `METRICS_HOST`             | `0.0.0.0`  | Bind host.                                                                                                                  |
 | `METRICS_PATH`             | `/metrics` | Exposition path.                                                                                                            |
@@ -3102,7 +3102,7 @@ await server.listen(8443, '127.0.0.1'); // now serving https://127.0.0.1:8443
 
 | Variable          | Required when on | Description                                                                               |
 | ----------------- | ---------------- | ----------------------------------------------------------------------------------------- |
-| `TLS_ENABLE`      | Master switch    | Truthy (`true` / `1` / `yes` / `on`) to enable. Otherwise the loader returns `undefined`. |
+| `TLS_ENABLED`     | Master switch    | Truthy (`true` / `1` / `yes` / `on`) to enable. Otherwise the loader returns `undefined`. |
 | `TLS_CERT_PATH`   | Yes              | PEM certificate path. Missing while enabled throws `TLSConfigError`.                      |
 | `TLS_KEY_PATH`    | Yes              | PEM private-key path.                                                                     |
 | `TLS_CA_PATH`     | No               | CA bundle for verifying client certs.                                                     |
@@ -3116,7 +3116,7 @@ The [`examples/tls-server`](https://github.com/inference-gateway/typescript-adk/
 ```bash
 cd examples/tls-server
 ./generate-certs.sh
-TLS_ENABLE=true TLS_CERT_PATH=./certs/cert.pem TLS_KEY_PATH=./certs/key.pem npm start
+TLS_ENABLED=true TLS_CERT_PATH=./certs/cert.pem TLS_KEY_PATH=./certs/key.pem npm start
 ```
 
 Because the cert is self-signed it acts as its own CA - which is why the client below trusts it via `caPath`.
