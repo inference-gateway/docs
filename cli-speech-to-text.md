@@ -156,5 +156,6 @@ Grant microphone permission to your terminal (System Settings - Privacy & Securi
 
 - [CLI](/cli/) - overview of the `infer` command-line tool, chat mode, and shortcuts
 - [Channels](/cli-channels/) - Telegram setup, access control, and how inbound messages reach the agent
+- [Text-to-Speech](/cli-text-to-speech/) - the reverse direction, local speech synthesis and voice cloning
 - [Configuration](/configuration/) - full configuration system across the gateway and CLI
 - [whisper.cpp](https://github.com/ggml-org/whisper.cpp) - the local transcription engine
