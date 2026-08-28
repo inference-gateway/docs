@@ -777,17 +777,18 @@ When tools are enabled, LLMs have access to a comprehensive suite across multipl
 
 ### Tool Categories
 
-| Category              | Tools                                                             | Description                                                                                                          |
-| --------------------- | ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| **File System**       | Read, Write, Edit, MultiEdit, Delete, Tree, Grep                  | File operations and search with safety controls                                                                      |
-| **Command Execution** | Bash, BashOutput, KillShell, ListShells, Wait                     | Allow-listed shell execution (including `gh` for GitHub), background shell control, and blocking wait for conditions |
-| **Web**               | WebSearch, WebFetch                                               | Internet research and content fetching                                                                               |
-| **Workflow**          | TodoWrite, Schedule, RequestPlanApproval, AskUserQuestion, Memory | Task tracking, cron jobs, plan-mode approval, clarifying questions, and persistent cross-session memory              |
-| **A2A Integration**   | A2A_QueryAgent, A2A_SubmitTask, A2A_QueryTask                     | Delegate to external specialized agents - see [A2A](/a2a/)                                                           |
-| **Local Subagents**   | Agent                                                             | Fan out short-lived local subagents in parallel - see [Local Subagents](#local-subagents-agent-tool)                 |
-| **Computer Use**      | Computer, GetLatestFrame                                          | Accessibility-tree reads, presses, screenshots, and pointer/keyboard control - see the Computer Use section above    |
-| **Image**             | ImageGeneration, ImageEdit, ImageVariation                        | Generate, edit, and vary images using the configured image model - independent of the chat session model             |
-| **MCP**               | `MCP_<server>_<tool>`                                             | Dynamically registered tools from MCP servers - see [MCP](/mcp/)                                                     |
+| Category              | Tools                                                             | Description                                                                                                                |
+| --------------------- | ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| **File System**       | Read, Write, Edit, MultiEdit, Delete, Tree, Grep                  | File operations and search with safety controls                                                                            |
+| **Command Execution** | Bash, BashOutput, KillShell, ListShells, Wait                     | Allow-listed shell execution (including `gh` for GitHub), background shell control, and blocking wait for conditions       |
+| **Web**               | WebSearch, WebFetch                                               | Internet research and content fetching                                                                                     |
+| **Workflow**          | TodoWrite, Schedule, RequestPlanApproval, AskUserQuestion, Memory | Task tracking, cron jobs, plan-mode approval, clarifying questions, and persistent cross-session memory                    |
+| **A2A Integration**   | A2A_QueryAgent, A2A_SubmitTask, A2A_QueryTask                     | Delegate to external specialized agents - see [A2A](/a2a/)                                                                 |
+| **Local Subagents**   | Agent                                                             | Fan out short-lived local subagents in parallel - see [Local Subagents](#local-subagents-agent-tool)                       |
+| **Computer Use**      | Computer, GetLatestFrame                                          | Accessibility-tree reads, presses, screenshots, and pointer/keyboard control - see the Computer Use section above          |
+| **Image**             | ImageGeneration, ImageEdit, ImageVariation                        | Generate, edit, and vary images using the configured image model - independent of the chat session model                   |
+| **Audio**             | TextToSpeech                                                      | Local speech synthesis and voice cloning - opt-in via `text_to_speech.enabled`, see [Text-to-Speech](/cli-text-to-speech/) |
+| **MCP**               | `MCP_<server>_<tool>`                                             | Dynamically registered tools from MCP servers - see [MCP](/mcp/)                                                           |
 
 ### File System Tools
 
@@ -1113,6 +1114,27 @@ Vision-capable models (those with the `vision` label in the [model picker](#mode
 The tool **remains executable** if called - a model that invokes it from conversation history or right after a model switch gets a working tool, not an error. Text-only models keep the tool and the "use ImageDecode to inspect it" note unchanged.
 
 > Shipped in [inference-gateway/cli#1031](https://github.com/inference-gateway/cli/pull/1031).
+
+### Audio Tools
+
+#### TextToSpeech Tool
+
+Synthesize speech from text with a local TTS engine and save it as a WAV file. The chat model calls the tool when the user asks to say something aloud or to clone a voice; synthesis shells out to llama.cpp's `llama-tts` binary running Qwen3-TTS GGUF models, fully offline. **Disabled by default** - while `text_to_speech.enabled` is `false`, the tool definition is not sent to the LLM at all.
+
+**Parameters:**
+
+- `text` (required): The text to speak
+- `voice_sample` (optional): Path to a WAV of the target speaker (~10-30s of clean speech) to clone
+- `output_path` (optional): Destination WAV; defaults to a timestamped file under `text_to_speech.output_dir` (`~/.infer/tts/`)
+
+**Configuration:**
+
+```yaml
+text_to_speech:
+  enabled: true
+```
+
+See [Text-to-Speech](/cli-text-to-speech/) for prerequisites, the full configuration reference, model presets, and voice-cloning guidance.
 
 ### GitHub Operations
 
