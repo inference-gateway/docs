@@ -1044,6 +1044,7 @@ tools:
     allowed_domains:
       - golang.org
       - github.com
+      - agents.md
     safety:
       max_size: 8192
       timeout: 30
