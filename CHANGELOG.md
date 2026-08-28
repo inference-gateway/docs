@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.13](https://github.com/inference-gateway/docs/compare/0.9.12...0.9.13) (2026-08-28)
+
+### 👷 CI
+
+* **claude:** centralize claude.yml via reusable workflow ([#589](https://github.com/inference-gateway/docs/issues/589)) ([aa006d4](https://github.com/inference-gateway/docs/commit/aa006d401a2af2b04a8f7bbb06ed1efc3f2120ba))
+
+### 📚 Documentation
+
+* add interrupt and interrupted frames to the bridge protocol ([#591](https://github.com/inference-gateway/docs/issues/591)) ([75fdaa5](https://github.com/inference-gateway/docs/commit/75fdaa5112c7515306b42d6468fb5d5242ee305f))
+* add text-to-speech and voice cloning page ([#593](https://github.com/inference-gateway/docs/issues/593)) ([2b16f6b](https://github.com/inference-gateway/docs/commit/2b16f6bcea1e1c3e7e70360d9f1fa6573965d869))
+* **cli:** add agents.md to WebFetch allowed_domains example ([#595](https://github.com/inference-gateway/docs/issues/595)) ([5b515dc](https://github.com/inference-gateway/docs/commit/5b515dc08f56f24cc57f6d52f16c1446ae4f4206))
+* document browser-agent sandbox and auth defaults ([#586](https://github.com/inference-gateway/docs/issues/586)) ([548eda0](https://github.com/inference-gateway/docs/commit/548eda0ab8f4c18271ca8925e231698876d564bd))
+* **typescript-adk:** rename METRICS_ENABLE and TLS_ENABLE to *_ENABLED ([#587](https://github.com/inference-gateway/docs/issues/587)) ([b40ab2c](https://github.com/inference-gateway/docs/commit/b40ab2cd74a72471cbc987b61db94a2343f9436f)), references [inference-gateway/typescript-adk#206](https://github.com/inference-gateway/typescript-adk/issues/206)
+
+### 🔧 Miscellaneous
+
+* **deps:** bump claude-code 2.1.201 -> 2.1.238 ([#588](https://github.com/inference-gateway/docs/issues/588)) ([85b2d9e](https://github.com/inference-gateway/docs/commit/85b2d9e2a039a2dd13b9802f3e679f885d911105))
+* **deps:** bump infer CLI v0.164.0 -> v0.183.0 ([#590](https://github.com/inference-gateway/docs/issues/590)) ([029240a](https://github.com/inference-gateway/docs/commit/029240a034f92eff5612d351a7b5740b9464a09c))
+
 ## [0.9.12](https://github.com/inference-gateway/docs/compare/0.9.11...0.9.12) (2026-08-24)
 
 ### 🐛 Bug Fixes
