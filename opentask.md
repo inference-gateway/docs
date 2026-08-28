@@ -171,6 +171,18 @@ Extension -> CLI, to send a user message into the conversation (queued if the ag
 { "type": "user_message", "content": "please also check the docs page" }
 ```
 
+Extension -> CLI, to stop the turn currently streaming (same as `esc` in the TUI; a no-op when nothing is running):
+
+```json
+{ "type": "interrupt" }
+```
+
+CLI -> extension, whenever a turn ends cancelled - whether stopped from the panel or from the terminal (`esc`/Ctrl+C) - so the panel can clear its working state even when the cancel happened mid tool call and no `TEXT_MESSAGE_END` chat event follows:
+
+```json
+{ "type": "interrupted" }
+```
+
 ### Skills
 
 The panel offers a `/` autocomplete of the agent's [skills](/cli-skills/). It asks the CLI for the merged, scope-tagged list the CLI already resolves (project, `.agents`, user, plugin, catalog), so the menu mirrors what the TUI offers.
@@ -251,6 +263,8 @@ CLI -> extension, when the request is no longer pending (answered in the panel *
 | `conversation_snapshot` | CLI -> ext | History of the resumed conversation            |
 | `chat_event`            | CLI -> ext | Live AG-UI event for the active conversation   |
 | `user_message`          | ext -> CLI | Send a user message into the conversation      |
+| `interrupt`             | ext -> CLI | Stop the turn currently streaming              |
+| `interrupted`           | CLI -> ext | The current turn ended cancelled               |
 | `list_skills`           | ext -> CLI | Ask for the available skills                   |
 | `skills`                | CLI -> ext | Skill list with `name`, `description`, `scope` |
 | `approval_request`      | CLI -> ext | A tool call is waiting for approval            |
