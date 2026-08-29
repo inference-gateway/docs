@@ -1,51 +1,40 @@
-# Repository Guidelines
+# AGENTS.md
 
-## Project Structure & Module Organization
+VitePress documentation site for [Inference Gateway](https://github.com/inference-gateway/inference-gateway). Content is plain Markdown; TypeScript/Vue only for site config and components.
 
-This repository is the VitePress documentation site for Inference Gateway. Source pages are root-level `*.md` files such as `getting-started.md`, `configuration.md`, and `api-reference.md`; each page maps to a clean URL. Site configuration, navigation, SEO metadata, and build hooks live in `.vitepress/config.ts`. Theme customizations are in `.vitepress/theme/`, including `style.css` and `components/ConfigTable.vue`. Static assets belong in `public/`, for example `public/logo.png`, `public/robots.txt`, and `public/images/`. Build output is generated under `.vitepress/dist/` and should not be edited by hand.
+## Commands
 
-## Build, Test, and Development Commands
+Use Bun (>= 1.3, pinned in `.bun-version`). Every `bun run <name>` has a `task <name>` equivalent.
 
-- `bun install` installs dependencies from `bun.lock`.
-- `bun run dev` starts the VitePress dev server, usually at `http://localhost:5173`.
-- `bun run build` generates the static site in `.vitepress/dist/`.
-- `bun run preview` serves the built output locally.
-- `bun run format` applies Prettier to the repository.
-- `bun run format:check` verifies formatting without changing files.
-- `bun run lint:md` checks Markdown style.
-- `bun run lint:md:fix` applies safe Markdown lint fixes.
-- `bun test` runs the provider-docs generator regression tests (`scripts/*.test.mjs`).
+- `bun install` — install from `bun.lock`
+- `bun run dev` — VitePress dev server (<http://localhost:5173>)
+- `bun run build` — static site into `.vitepress/dist/`
+- `bun run preview` — serve the built output
+- `bun run format` / `format:check` — Prettier
+- `bun run lint:md` / `lint:md:fix` — markdownlint
+- `bun test` — provider-docs generator regression tests
 
-A [go-task](https://taskfile.dev) `Taskfile.yml` mirrors these: every bun script has a matching task that delegates to it (`task dev`, `task build`, `task test`, and so on), so `task <name>` equals `bun run <name>`. `task` with no args lists all targets. Two tasks are generator-only:
+## Conventions
 
-- `task generate` regenerates the provider-derived doc sections from the canonical `inference-gateway/schemas` OpenAPI schema.
-- `task generate:check` fails if the committed provider docs have drifted from the schema.
+- Pages are root-level `*.md` files; each maps to a clean URL. Add `title` and `description` frontmatter, then register the page in `themeConfig.sidebar` in `.vitepress/config.ts`.
+- Markdown: ATX headings, dash bullets, 2-space nested indent. Prettier: 2-space indent, single quotes, semicolons, trailing commas, 100-col width. Lowercase route-oriented filenames (`browser-agent.md`).
+- For Vue-sensitive placeholders or GitHub Actions expressions, use `<code v-pre>...</code>` instead of backticks.
 
-Use Bun `>= 1.2`, as pinned in `.bun-version` and `package.json` `engines.bun`.
+## Generated content — do not hand-edit
 
-## Coding Style & Naming Conventions
+Sections between `GENERATED:*` markers in `configuration.md`, `supported-providers.md`, `rust-adk.md`, and `typescript-adk.md` are generated from the canonical `inference-gateway/schemas` OpenAPI schema. Edit `scripts/generate-provider-docs.mjs` or `scripts/provider-overrides.json` instead, then run `task generate`.
 
-Use Markdown for documentation pages and TypeScript/Vue only for site configuration or reusable components. Markdown headings use ATX syntax (`#`), bullets use dashes, and nested list indentation is two spaces. Prettier uses 2-space indentation, single quotes, semicolons, trailing commas where valid in ES5, LF line endings, and a 100-column print width. Keep filenames lowercase and route-oriented, for example `browser-agent.md` or `cli-speech-to-text.md`.
+`task generate` / `generate:check` fetch the schema over the network. To regen offline:
 
-When adding a page, include `title` and `description` frontmatter, then add it to `themeConfig.sidebar` in `.vitepress/config.ts`. For inline GitHub Actions expressions or Vue-sensitive placeholders, prefer `<code v-pre>...</code>` over backticks.
+1. `gh api "repos/inference-gateway/schemas/contents/openapi.yaml?ref=main" -H "Accept: application/vnd.github.raw" > .schema.yaml`
+2. `bun scripts/generate-provider-docs.mjs --schema-file=.schema.yaml` (use the `--schema-file=` form; the `SCHEMA_FILE=` env form can be blocked)
+3. `bunx prettier --write` the regenerated files, then `bun test`
+4. Delete `.schema.yaml` (untracked, trips `format:check`)
 
-## Testing Guidelines
+When a provider's hard facts change (auth type, base URL, vision flag), update `scripts/__fixtures__/openapi.sample.yaml` too or `bun test` fails its byte-for-byte comparison. `adkKeyNote` in `provider-overrides.json` only applies to `auth_type: none` providers.
 
-Treat `bun run lint:md`, `bun run format:check`, and `bun run build` as the required validation set for content changes. For navigation, SEO, or theme changes, also run `bun run preview` and inspect the affected pages locally.
+## Validation & commits
 
-The `scripts/` provider-docs generator has a fixture-based regression suite: `bun test` (or `task test`) renders every generated region from `scripts/__fixtures__/openapi.sample.yaml` and asserts a byte-for-byte match against the committed `configuration.md`, `supported-providers.md`, `rust-adk.md`, and `typescript-adk.md`. It runs offline. Run it after editing `scripts/generate-provider-docs.mjs` or `scripts/provider-overrides.json`, and never hand-edit inside the `GENERATED:*` markers - run `task generate` instead.
+Required for content changes: `bun run lint:md`, `bun run format:check`, `bun run build`. For nav/SEO/theme changes, also `bun run preview` and inspect locally.
 
-## Regenerating provider docs offline
-
-`task generate` and `task generate:check` fetch the canonical schema over the network, so they fail where outbound network is blocked. The generator itself runs offline, so do a real regen rather than hand-editing inside the `GENERATED:*` markers:
-
-1. Fetch the schema with an authenticated API call and save it locally, for example `gh api "repos/inference-gateway/schemas/contents/openapi.yaml?ref=main" -H "Accept: application/vnd.github.raw"` into `.schema.yaml`.
-2. Run `bun scripts/generate-provider-docs.mjs --schema-file=.schema.yaml`. Use the `--schema-file=` argument form; the `SCHEMA_FILE=` env-variable form can be blocked by a restricted shell.
-3. Run `bunx prettier --write` on the regenerated files, then `bun test`.
-4. Delete `.schema.yaml` when done - it is untracked but trips `format:check`.
-
-When a provider's hard facts change (auth type, base URL, vision flag), also update the fixture `scripts/__fixtures__/openapi.sample.yaml` to match, or `bun test` fails its byte-for-byte comparison. `adkKeyNote` in `scripts/provider-overrides.json` is only consumed for `auth_type: none` providers (the ADK API-key note), so drop it when a provider switches to bearer auth.
-
-## Commit & Pull Request Guidelines
-
-Git history follows Conventional Commits, for example `docs: add model picker tiers`, `chore(deps): bump infer CLI`, and `ci(infer): centralize infer.yml`. Keep commits scoped and descriptive. Pull requests should explain the documentation change, link related issues when available, and include screenshots or preview notes for visible UI/theme changes. CI must pass before merge.
+Conventional Commits (`docs: ...`, `chore(deps): ...`). CI must pass before merge.
