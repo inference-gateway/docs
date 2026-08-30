@@ -2458,10 +2458,10 @@ infer chat
 
 **Storage Backends:**
 
-- **SQLite** (default): `.infer/conversations.db`
+- **JSONL** (default): append-only files under `~/.infer/projects/<project-slug>/conversations/`
+- **SQLite**: one shared database at `~/.infer/conversations.db`
 - **PostgreSQL**: Shared team database
 - **Redis**: High-performance caching
-- **JSONL**: Append-only files under `.infer/conversations/`
 - **Cloudflare D1**: External SQLite over Cloudflare's HTTP query API
 - **In-memory**: Temporary sessions
 
@@ -2473,9 +2473,36 @@ infer chat
 - Backend-agnostic inspection via the storage layer (works the same across `jsonl`, `sqlite`,
   `postgres`, `redis`, `d1`, and `memory`)
 
+**Where conversations live:**
+
+Conversations are stored in your home directory, grouped per project - nothing
+conversation-related is written to the project directory:
+
+- **jsonl**: `~/.infer/projects/<project-slug>/conversations/<id>.jsonl`, where
+  `<project-slug>` is the absolute project path with the separators replaced
+  (`/home/alice/repo` becomes `-home-alice-repo`).
+- **sqlite**: one shared database at `~/.infer/conversations.db`, with each row carrying a
+  `project` column.
+- **postgres**, **redis**, **d1**: one shared store, grouped by the same `project` field in the
+  conversation metadata.
+
+Every session records the project it ran in (its absolute working directory), and listings scope
+to the current project by default: the `/conversations` TUI picker shows only this project's
+conversations, and so does `infer conversations list` - pass `--all-projects` to list every
+project's conversations.
+
+An explicit `storage.jsonl.path` or `storage.sqlite.path` always overrides these defaults, and
+such a store only ever lists itself.
+
+> **No migration.** Stores written by older versions under the project's `.infer/conversations`
+> or `.infer/conversations.db` are orphaned by design - the CLI no longer reads or writes them.
+> Delete them manually when you no longer need them. The generated `.infer/.gitignore` no longer
+> ignores `conversations` / `conversations.db*`.
+
 **Subcommands:**
 
-- `list`: List saved conversations with metadata (id, title, message/request counts, tokens, cost).
+- `list`: List saved conversations with metadata (id, title, message/request counts, tokens,
+  cost). Scoped to the current project; `--all-projects` lists every project's conversations.
 - `show <session-id>`: Print a single conversation's entries in chronological order (role,
   timestamp, content, and `tool_call_id` for tool results).
 - `delete <session-id>`: Remove a conversation from the storage backend. Runs
@@ -2509,8 +2536,11 @@ by group name such as `channel-telegram-12345`.
 **Commands:**
 
 ```bash
-# List conversations to find a session id
+# List this project's conversations to find a session id
 infer conversations list
+
+# List conversations from every project
+infer conversations list --all-projects
 
 # Show a conversation's entries (hidden entries omitted by default)
 infer conversations show 12345678-1234-1234-1234-123456789abc
