@@ -1464,6 +1464,13 @@ Two-layer configuration system with precedence from highest to lowest:
 | `skills/`          | Project/user | Agent Skills folders (`name/SKILL.md`) discovered and injected on demand.                   | [Agent Skills](#agent-skills)                               |
 | `schedules/`       | User         | Persisted cron jobs created by the Schedule tool, run by the daemon.                        | [Schedule](#schedule)                                       |
 | `artifacts/`       | Project/user | Agent deliverables, grouped per session.                                                    | [Artifacts directory](#artifacts-directory)                 |
+| `logs/`            | User         | CLI and gateway log files (`~/.infer/logs`, overridable via `logging.dir`).                 | [Key Configuration Areas](#key-configuration-areas)         |
+| `bin/`             | User         | Downloaded binaries - the gateway server, plus optional helpers like `ffmpeg`.              | [Key Configuration Areas](#key-configuration-areas)         |
+
+> **No migration.** `logs/` and `bin/` are userspace-only: they live under `~/.infer/` and are
+> shared by every project. Older versions wrote them into the project's `.infer/` directory; those
+> directories are orphaned by design and safe to delete. The `.infer/.gitignore` seeded by
+> `infer init` no longer lists `bin/` or `logs/*.log`.
 
 ### Artifacts directory
 
@@ -1495,6 +1502,8 @@ Session IDs are sanitized before use, so a directory can never escape the artifa
 - OCI image for auto-running gateway
 - Model filtering (include/exclude lists)
 
+The downloaded gateway binary lands at `~/.infer/bin/inference-gateway` - one shared copy per machine, reused by every project (the staleness check still re-downloads when the pinned version changes).
+
 **Logging Configuration:**
 
 Logging settings control log output, file location, and automatic log archiving:
@@ -1502,7 +1511,7 @@ Logging settings control log output, file location, and automatic log archiving:
 ```yaml
 logging:
   debug: false
-  dir: '' # Override log directory (defaults to <config-dir>/logs)
+  dir: '' # Override log directory (defaults to ~/.infer/logs)
   stdout: false # Also write logs to stdout/stderr in addition to the log file
   archive:
     enabled: true # Automatically archive oversized log files (default: true)
@@ -1510,7 +1519,7 @@ logging:
 ```
 
 - **logging.debug**: Enable debug logging for verbose output
-- **logging.dir**: Override the log directory (defaults to `<config-dir>/logs`)
+- **logging.dir**: Override the log directory. Defaults to `~/.infer/logs` (`INFER_LOGGING_DIR`) - CLI and gateway logs are machine-scoped and never written to the project directory.
 - **logging.stdout**: Also write logs to stdout/stderr in addition to the log file (default: `false`)
 - **logging.archive.enabled**: Enable automatic log archiving (default: `true`). When enabled, log files exceeding the size threshold are gzip-compressed to a timestamped `.gz` archive and the original file is truncated so logging continues at the same path. The check runs at process startup. Set via `INFER_LOGGING_ARCHIVE_ENABLED`.
 - **logging.archive.max_size_mb**: Maximum log file size in MB before archiving is triggered (default: `1024`, i.e. 1 GB). A value of `0` or less disables archiving. Set via `INFER_LOGGING_ARCHIVE_MAX_SIZE_MB`.
