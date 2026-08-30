@@ -114,7 +114,7 @@ Extension -> CLI, exactly one result per command id:
 
 The panel drives which conversation it shows. The CLI does **not** auto-send a snapshot on connect - the panel lists and resumes conversations explicitly.
 
-Extension -> CLI, list the stored conversations (the same ones `infer` resumes from, under `.infer/conversations`):
+Extension -> CLI, list the stored conversations (the same ones `infer` resumes from, under `~/.infer/projects/<project-slug>/conversations/` with the default JSONL backend):
 
 ```json
 { "type": "list_conversations" }
