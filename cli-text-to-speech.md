@@ -12,6 +12,20 @@ The [Inference Gateway CLI](/cli/) can turn text into spoken audio through the `
 
 Everything runs locally: the tool shells out to llama.cpp's `llama-tts` binary running [Qwen3-TTS](https://huggingface.co/ggml-org/Qwen3-TTS-12Hz-1.7B-Base-GGUF) GGUF models, the same GGUF ecosystem as the [whisper.cpp speech-to-text](/cli-speech-to-text/) feature. It is **disabled by default**: while `text_to_speech.enabled` is `false`, the `TextToSpeech` tool definition is not sent to the LLM at all, so it costs zero prompt tokens.
 
+## Synthesizing through the gateway instead
+
+The gateway also exposes an OpenAI-compatible [`POST /v1/audio/speech`](/api-reference/#audio-api) endpoint (`ENABLE_AUDIO=true`), which takes `model`, `input`, `voice` and `response_format` and returns raw audio bytes. Routing TTS through it means speech requests appear in gateway logs, tracing and pricing, and no local `llama-tts` build is required:
+
+```bash
+curl -X POST http://localhost:8080/v1/audio/speech \
+  -H "Authorization: Bearer $INFERENCE_GATEWAY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -o speech.mp3 \
+  -d '{"model":"openai/tts-1","input":"Hello","voice":"alloy","response_format":"mp3"}'
+```
+
+The CLI's own `TextToSpeech` tool still synthesizes locally as described below; a gateway-backed engine is tracked in [cli#1126](https://github.com/inference-gateway/cli/issues/1126).
+
 > **Note:** Text-to-speech shells out to `llama-tts` and `ffmpeg` - no CGO is added to the `infer` binary. When a required tool is missing, the CLI reports an actionable error naming what to install; it never fails silently.
 
 ## Prerequisites

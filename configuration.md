@@ -9,6 +9,8 @@ const generalSettings = [
   { variable: 'ALLOWED_MODELS', description: 'Comma-separated list of models to allow. If empty, all models will be available', defaultValue: '""' },
   { variable: 'DISALLOWED_MODELS', description: 'Comma-separated list of models to disallow. If empty, no models will be blocked. Takes lower precedence than ALLOWED_MODELS', defaultValue: '""' },
   { variable: 'ENABLE_VISION', description: 'Enable vision/multimodal support for all providers', defaultValue: 'false' },
+  { variable: 'ENABLE_IMAGES', description: 'Enable the Images API (POST /v1/images/generations, /v1/images/edits, /v1/images/variations). When disabled, the endpoints return a 404', defaultValue: 'false' },
+  { variable: 'ENABLE_AUDIO', description: 'Enable the Audio API (POST /v1/audio/speech). When disabled, the endpoint returns a 404', defaultValue: 'false' },
   { variable: 'DEBUG_CONTENT_TRUNCATE_WORDS', description: 'Number of words to truncate per content section in debug logs (development mode only)', defaultValue: '10' },
   { variable: 'DEBUG_MAX_MESSAGES', description: 'Maximum number of messages to show in debug logs (development mode only)', defaultValue: '100' },
   { variable: 'AUTH_ENABLED', description: 'Enable OIDC authentication', defaultValue: 'false' },
@@ -187,6 +189,8 @@ Environment variables are the primary method for configuring Inference Gateway. 
 <ConfigTable :rows="generalSettings" />
 
 When `ENABLE_VISION` is set to `true`, Inference Gateway enables vision/multimodal capabilities, allowing you to send images alongside text in chat completion requests. When disabled (default), requests with image content will be rejected even if the provider and model support vision. This is disabled by default for performance and security reasons.
+
+`ENABLE_IMAGES` and `ENABLE_AUDIO` are separate opt-ins for the [Images API](/api-reference/#images-api) and the [Audio API](/api-reference/#audio-api). While they are `false`, those endpoints return `404`. Only providers that implement the corresponding API can serve them (currently `openai`, plus `llamacpp` for speech); other providers return `400`.
 
 ### Telemetry
 
