@@ -401,22 +401,6 @@ infer chat
 
 While planning, the agent can pause to ask you up to four multiple-choice clarifying questions with the [`AskUserQuestion`](#askuserquestion) tool, then fold your answers into the plan it submits for approval.
 
-#### How mode instructions are delivered
-
-Plan-mode instructions are **not** a system prompt. The system prompt at `message[0]` is byte-stable for the whole session - including across Shift+Tab mode switches - so the provider/local prompt (KV) cache keeps its prefix hits. The per-mode instructions ride along in the built-in `mode-change-reminder` ([`on_mode_change` trigger](#trigger-catalog)) that fires when the mode changes, substituted into its `{guidance}` placeholder.
-
-`prompts.agent.mode_adjustment_plan` and `prompts.agent.mode_adjustment_auto` (env: `INFER_PROMPTS_AGENT_MODE_ADJUSTMENT_PLAN` / `_AUTO`) let you override that guidance. They ship empty - the built-in texts live in the mode-change reminder's guidance map. Precedence per mode, highest first:
-
-| Priority    | Source                                                   |
-| ----------- | -------------------------------------------------------- |
-| 1 (Highest) | `guidance.<mode>` in your `reminders.yaml`               |
-| 2           | `prompts.agent.mode_adjustment_<mode>` in `prompts.yaml` |
-| 3 (Lowest)  | Built-in default guidance                                |
-
-> **Deprecated names.** `prompts.agent.system_prompt_plan` / `system_prompt_auto` (env `INFER_PROMPTS_AGENT_SYSTEM_PROMPT_PLAN` / `_AUTO`) still load into the new fields with a deprecation warning; when both are set the new names win.
->
-> **Trade-off:** since the mode-change reminder is the sole carrier of mode-specific instructions, setting `enabled: false` in `reminders.yaml` (or `INFER_REMINDERS_ENABLED=false`) means those instructions are never delivered. Tool restrictions still apply - only the guidance text is lost.
-
 #### Approving a plan
 
 When the plan is ready, the agent calls [`RequestPlanApproval`](#requestplanapproval); the chat TUI renders the saved plan in a dedicated panel and shows a status line - use the arrow keys to select an option and **Enter** to confirm. Three options are offered:
@@ -442,7 +426,7 @@ infer chat
 
 **Important for Auto-Accept:** Ensure clean git working tree and backups.
 
-Because the per-action approval gate is off in this mode, the agent runs under a dedicated **destructive-action policy** delivered by the mode-change reminder (see [How mode instructions are delivered](#how-mode-instructions-are-delivered); override with `prompts.agent.mode_adjustment_auto`). It is told to stop and confirm before irreversible operations - deletes, `git push --force`, `git reset --hard`, dropping databases, `rm -rf`, publishing or releasing - to prefer the reversible path when no user is reachable, and never to print or publish a secret value. With reminders disabled this policy text is not delivered.
+Because the per-action approval gate is off in this mode, the agent runs under a dedicated **destructive-action safety prompt** (`prompts.agent.system_prompt_auto`). It is told to stop and confirm before irreversible operations - deletes, `git push --force`, `git reset --hard`, dropping databases, `rm -rf`, publishing or releasing - to prefer the reversible path when no user is reachable, and never to print or publish a secret value. It falls back to the standard `system_prompt` when left blank.
 
 ### Headless Agent Stream Output
 
@@ -1469,21 +1453,21 @@ Two-layer configuration system with precedence from highest to lowest:
 
 `infer init` scaffolds the project configuration directory (`.infer/`) and `~/.infer/` holds user-global defaults. Configuration is split across purpose-specific YAML files rather than one giant file:
 
-| File               | Scope        | Purpose                                                                                      | Where it is documented                                      |
-| ------------------ | ------------ | -------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| `config.yaml`      | Project/user | Main config - agent, tools, storage, pricing, and everything `config get`/`set` touches.     | [Configuration](#configuration-commands)                    |
-| `prompts.yaml`     | Project/user | System prompts (`prompts.agent.system_prompt`) and per-mode adjustments - edited, not `set`. | [Configuration Commands](#configuration-commands)           |
-| `mcp.yaml`         | Project      | MCP server definitions and connection settings.                                              | [MCP Integration](#mcp-integration)                         |
-| `keybindings.yaml` | Project/user | Keybindings for the TUI and diff viewer (category `diff_viewer`).                            | [Diff viewer and git staging](#diff-viewer-and-git-staging) |
-| `hooks.yaml`       | Project/user | User-defined shell commands run at agent-loop hook points (feature-flagged off by default).  | [Command Hooks](/cli-hooks/)                                |
-| `reminders.yaml`   | Project/user | System reminders injected into the conversation on a schedule.                               | [System Reminders](#system-reminders)                       |
-| `memory.yaml`      | Project/user | Persistent, cross-session agent memory - fact-files plus the `MEMORY.md` index.              | [Persistent Memory](#persistent-memory)                     |
-| `shortcuts/*.yaml` | Project      | Custom slash shortcuts - simple commands, subcommands, and AI-powered snippets.              | [Custom Shortcuts](#custom-shortcuts)                       |
-| `skills/`          | Project/user | Agent Skills folders (`name/SKILL.md`) discovered and injected on demand.                    | [Agent Skills](#agent-skills)                               |
-| `schedules/`       | User         | Persisted cron jobs created by the Schedule tool, run by the daemon.                         | [Schedule](#schedule)                                       |
-| `artifacts/`       | Project/user | Agent deliverables, grouped per session.                                                     | [Artifacts directory](#artifacts-directory)                 |
-| `logs/`            | User         | CLI and gateway log files (`~/.infer/logs`, overridable via `logging.dir`).                  | [Key Configuration Areas](#key-configuration-areas)         |
-| `bin/`             | User         | Downloaded binaries - the gateway server, plus optional helpers like `ffmpeg`.               | [Key Configuration Areas](#key-configuration-areas)         |
+| File               | Scope        | Purpose                                                                                     | Where it is documented                                      |
+| ------------------ | ------------ | ------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| `config.yaml`      | Project/user | Main config - agent, tools, storage, pricing, and everything `config get`/`set` touches.    | [Configuration](#configuration-commands)                    |
+| `prompts.yaml`     | Project/user | System prompts (`prompts.agent.system_prompt`, plan/auto variants) - edited, not `set`.     | [Configuration Commands](#configuration-commands)           |
+| `mcp.yaml`         | Project      | MCP server definitions and connection settings.                                             | [MCP Integration](#mcp-integration)                         |
+| `keybindings.yaml` | Project/user | Keybindings for the TUI and diff viewer (category `diff_viewer`).                           | [Diff viewer and git staging](#diff-viewer-and-git-staging) |
+| `hooks.yaml`       | Project/user | User-defined shell commands run at agent-loop hook points (feature-flagged off by default). | [Command Hooks](/cli-hooks/)                                |
+| `reminders.yaml`   | Project/user | System reminders injected into the conversation on a schedule.                              | [System Reminders](#system-reminders)                       |
+| `memory.yaml`      | Project/user | Persistent, cross-session agent memory - fact-files plus the `MEMORY.md` index.             | [Persistent Memory](#persistent-memory)                     |
+| `shortcuts/*.yaml` | Project      | Custom slash shortcuts - simple commands, subcommands, and AI-powered snippets.             | [Custom Shortcuts](#custom-shortcuts)                       |
+| `skills/`          | Project/user | Agent Skills folders (`name/SKILL.md`) discovered and injected on demand.                   | [Agent Skills](#agent-skills)                               |
+| `schedules/`       | User         | Persisted cron jobs created by the Schedule tool, run by the daemon.                        | [Schedule](#schedule)                                       |
+| `artifacts/`       | Project/user | Agent deliverables, grouped per session.                                                    | [Artifacts directory](#artifacts-directory)                 |
+| `logs/`            | User         | CLI and gateway log files (`~/.infer/logs`, overridable via `logging.dir`).                 | [Key Configuration Areas](#key-configuration-areas)         |
+| `bin/`             | User         | Downloaded binaries - the gateway server, plus optional helpers like `ffmpeg`.              | [Key Configuration Areas](#key-configuration-areas)         |
 
 > **No migration.** `logs/` and `bin/` are userspace-only: they live under `~/.infer/` and are
 > shared by every project. Older versions wrote them into the project's `.infer/` directory; those
@@ -1545,7 +1529,7 @@ logging:
 **Agent Configuration:**
 
 - Default model for operations
-- System prompt (`prompts.agent.system_prompt`) and per-mode adjustments (`mode_adjustment_plan` / `mode_adjustment_auto`, delivered by the [mode-change reminder](#how-mode-instructions-are-delivered))
+- System prompts (main and plan mode)
 - System reminders interval
 - Max turns and tokens
 - Parallel tool execution (default: 5 concurrent)
@@ -1627,22 +1611,20 @@ reminders:
     text: 'A failed call means the change did not happen. Re-try or ask the user.'
 ```
 
-| Field      | Type    | Description                                                                                                                                                                        |
-| ---------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `enabled`  | boolean | Master switch. Default `true`. Can also be toggled via `INFER_REMINDERS_ENABLED`.                                                                                                  |
-| `name`     | string  | Unique identifier for the reminder. Used for deduplication and logging.                                                                                                            |
-| `hook`     | string  | When the reminder fires. One of `pre_tool` (before each tool call) or `post_tool` (after each tool call completes).                                                                |
-| `trigger`  | string  | Condition under which the reminder fires. See [Trigger catalog](#trigger-catalog) below.                                                                                           |
-| `text`     | string  | The reminder text injected into the conversation. Supports `os.ExpandEnv` environment variable interpolation (`$VAR` or `${VAR}`).                                                 |
-| `guidance` | map     | `on_mode_change` only. Maps a mode key (`standard`, `plan`, `auto`) to the text substituted for the `{guidance}` placeholder in `text`. Omitted keys keep their built-in defaults. |
+| Field     | Type    | Description                                                                                                                        |
+| --------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `enabled` | boolean | Master switch. Default `true`. Can also be toggled via `INFER_REMINDERS_ENABLED`.                                                  |
+| `name`    | string  | Unique identifier for the reminder. Used for deduplication and logging.                                                            |
+| `hook`    | string  | When the reminder fires. One of `pre_tool` (before each tool call) or `post_tool` (after each tool call completes).                |
+| `trigger` | string  | Condition under which the reminder fires. See [Trigger catalog](#trigger-catalog) below.                                           |
+| `text`    | string  | The reminder text injected into the conversation. Supports `os.ExpandEnv` environment variable interpolation (`$VAR` or `${VAR}`). |
 
 #### Trigger catalog
 
-| Trigger          | Hook requirement | Description                                                                                                                                                                                                                                               |
-| ---------------- | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `always`         | Any              | Fire on every hook invocation.                                                                                                                                                                                                                            |
-| `on_failure`     | `post_tool`      | Fire only when the tool call that just ran failed (returned an error). Requires `hook: post_tool`; validation rejects other hooks.                                                                                                                        |
-| `on_mode_change` | Any              | Fire when the [agent mode](#agent-modes) changes (Shift+Tab). Used by the built-in `mode-change-reminder`, which is the **sole carrier** of mode-specific instructions - see [How mode instructions are delivered](#how-mode-instructions-are-delivered). |
+| Trigger      | Hook requirement | Description                                                                                                                        |
+| ------------ | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `always`     | Any              | Fire on every hook invocation.                                                                                                     |
+| `on_failure` | `post_tool`      | Fire only when the tool call that just ran failed (returned an error). Requires `hook: post_tool`; validation rejects other hooks. |
 
 #### Configuration sources and precedence
 
@@ -1657,8 +1639,6 @@ Reminders are resolved with the following precedence (highest first):
 | 5 (Lowest)  | Built-in defaults        | The CLI ships a built-in `memory-consult` reminder that nudges the agent to consult the Memory tool. |
 
 `INFER_REMINDERS_ENABLED` toggles the master switch on top of all sources — set it to `false` to disable all reminders regardless of the resolved config.
-
-> **Disabling reminders drops mode instructions.** The mode-change reminder is the only carrier of per-mode instructions, so with `enabled: false` (or `INFER_REMINDERS_ENABLED=false`) the Plan and Auto-Accept guidance - including the destructive-action policy - is never delivered. Mode tool restrictions are unaffected.
 
 #### `INFER_REMINDERS_CONFIG`
 
@@ -1726,11 +1706,6 @@ reminders:
 
 # Master switch for reminders (default: true)
 export INFER_REMINDERS_ENABLED=true
-
-# Per-mode adjustment instructions, delivered by the mode-change reminder
-# (supersede the deprecated INFER_PROMPTS_AGENT_SYSTEM_PROMPT_PLAN / _AUTO)
-export INFER_PROMPTS_AGENT_MODE_ADJUSTMENT_PLAN="Investigate first; do not propose edits."
-export INFER_PROMPTS_AGENT_MODE_ADJUSTMENT_AUTO="Confirm before any irreversible operation."
 ```
 
 ### Configuration Commands
@@ -1769,7 +1744,7 @@ infer config set agent.model deepseek/deepseek-v4-flash --project
 infer config init --overwrite
 ```
 
-> System prompts are **not** set via `config set` - they live in `prompts.yaml` (for example `prompts.agent.system_prompt`, and the per-mode `prompts.agent.mode_adjustment_plan` / `mode_adjustment_auto`) and are edited there.
+> System prompts are **not** set via `config set` - they live in `prompts.yaml` (for example `prompts.agent.system_prompt`) and are edited there.
 
 #### Command Mapping
 
