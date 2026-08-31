@@ -628,6 +628,79 @@ Content-Type: application/json
 }
 ```
 
+### Audio API
+
+Synthesize speech from text using the OpenAI-compatible Audio endpoint. It requires `ENABLE_AUDIO=true`; while disabled the endpoint returns `404 Not Found` with `The Audio API is not enabled. Set ENABLE_AUDIO=true to enable it.`
+
+```http
+POST /v1/audio/speech?provider={provider}
+```
+
+Unlike every other gateway endpoint, a successful response is **not JSON**: the body is the raw audio bytes, and the `Content-Type` header reflects the requested `response_format`.
+
+| `response_format` | Response `Content-Type` |
+| ----------------- | ----------------------- |
+| `mp3` (default)   | `audio/mpeg`            |
+| `opus`            | `audio/opus`            |
+| `aac`             | `audio/aac`             |
+| `flac`            | `audio/flac`            |
+| `wav`             | `audio/wav`             |
+| `pcm`             | `audio/pcm`             |
+
+**Request Body** (`CreateSpeechRequest`):
+
+```bash
+curl -X POST http://localhost:8080/v1/audio/speech \
+  -H "Authorization: Bearer $INFERENCE_GATEWAY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -o speech.mp3 \
+  -d '{
+"model": "openai/tts-1",
+"input": "Hello from the Inference Gateway.",
+"voice": "alloy",
+"response_format": "mp3",
+"speed": 1.0
+  }'
+```
+
+Write the response to a file (`-o speech.mp3` above) or pipe it to a player - do not print it to a terminal.
+
+**Response**:
+
+```http
+Status: 200 OK
+Content-Type: audio/mpeg
+
+<binary audio bytes>
+```
+
+The `CreateSpeechRequest` fields:
+
+| Field             | Type     | Required | Description                                                                                                                                                                                                     |
+| ----------------- | -------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `model`           | `string` | Yes      | Model ID to use for speech synthesis, for example `openai/tts-1` or `openai/gpt-4o-mini-tts`.                                                                                                                   |
+| `input`           | `string` | Yes      | The text to synthesize (4096 characters maximum).                                                                                                                                                               |
+| `voice`           | `string` | Yes      | Voice to speak with. OpenAI built-ins are `alloy`, `ash`, `ballad`, `coral`, `echo`, `fable`, `onyx`, `nova`, `sage`, `shimmer`, `verse`, `marin`, `cedar`. Other providers accept their own voice identifiers. |
+| `response_format` | `string` |          | Audio format: `mp3` (default), `opus`, `aac`, `flac`, `wav`, or `pcm`.                                                                                                                                          |
+| `speed`           | `number` |          | Playback speed between `0.25` and `4.0` (default `1.0`).                                                                                                                                                        |
+| `instructions`    | `string` |          | Extra guidance on how the voice should sound (4096 characters maximum). Ignored by `tts-1` and `tts-1-hd`.                                                                                                      |
+| `reference_audio` | `string` |          | Base64-encoded audio sample for zero-shot voice cloning, forwarded to the provider as-is. Only providers with cloning support honor it (for example Qwen3-TTS behind llama.cpp); OpenAI does not.               |
+
+#### Unsupported providers
+
+Not every provider implements the Audio API. Requests routed to a provider without speech synthesis support return `400 Bad Request`:
+
+```http
+Status: 400 Bad Request
+Content-Type: application/json
+
+{
+  "error": "The Audio API is not supported by this provider yet."
+}
+```
+
+Because the gateway proxies the request, speech traffic shows up in gateway logs, tracing and pricing like any other endpoint. See [Text-to-Speech](/cli-text-to-speech/) for the CLI-side tooling.
+
 ### Proxy Requests
 
 Pass requests directly through to provider APIs. The response body is a `ProviderSpecificResponse` - the exact shape depends on the upstream provider. Each provider uses a `ProviderAuthType` to authenticate: `Bearer Token`, `X-Header`, or none.
