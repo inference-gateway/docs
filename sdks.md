@@ -865,6 +865,68 @@ await client.streamChatCompletion(
 );
 ```
 
+### Speech synthesis
+
+`createSpeech(request, provider?)` synthesizes speech via the OpenAI-compatible [`POST /v1/audio/speech`](/api-reference/#audio-api) endpoint. Unlike the other methods it parses no JSON - it resolves to a `Blob` holding the raw audio, whose `type` reflects the requested `response_format` (`audio/mpeg` for the default `mp3`). The optional second argument pins the request to one `Provider`; omit it to let the gateway route from the model prefix.
+
+The endpoint is gated twice: the gateway must run with `ENABLE_AUDIO=true` (otherwise every call fails with `404`), and only providers that implement speech synthesis - OpenAI, plus self-hosted llama.cpp backends - accept it. Anything else rejects the request with `400` and the SDK throws an `Error` carrying `The Audio API is not supported by this provider yet.`
+
+```typescript
+import { InferenceGatewayClient, Provider } from '@inference-gateway/sdk';
+import { writeFile } from 'node:fs/promises';
+
+const client = new InferenceGatewayClient({
+  baseURL: 'http://localhost:8080/v1',
+});
+
+const speech = await client.createSpeech(
+  {
+    model: 'gpt-4o-mini-tts',
+    input: 'What is TypeScript?',
+    voice: 'alloy',
+  },
+  Provider.openai
+);
+
+await writeFile('speech.mp3', Buffer.from(await speech.arrayBuffer()));
+```
+
+The `SchemaCreateSpeechRequest` fields mirror the OpenAI `POST /v1/audio/speech` body:
+
+| Field             | TypeScript type                      | Description                                                                                                                                                            |
+| ----------------- | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `model`           | `string`                             | Model ID to use for speech synthesis, for example `gpt-4o-mini-tts` or `tts-1` (required).                                                                             |
+| `input`           | `string`                             | The text to synthesize, 4096 characters maximum (required). Longer text is rejected by the gateway.                                                                    |
+| `voice`           | `string`                             | Voice to speak with (required). OpenAI built-ins are `alloy`, `ash`, `ballad`, `coral`, `echo`, `fable`, `onyx`, `nova`, `sage`, `shimmer`, `verse`, `marin`, `cedar`. |
+| `instructions`    | `string`                             | Extra guidance on how the voice should sound. Ignored by `tts-1` and `tts-1-hd`.                                                                                       |
+| `response_format` | `CreateSpeechRequestResponse_format` | Audio format: `mp3` (default), `opus`, `aac`, `flac`, `wav`, or `pcm`.                                                                                                 |
+| `speed`           | `number`                             | Playback speed between `0.25` and `4.0` (default `1.0`).                                                                                                               |
+| `reference_audio` | `string`                             | Base64-encoded audio sample for zero-shot voice cloning. Only providers with cloning support honor it (for example Qwen3-TTS behind llama.cpp); OpenAI does not.       |
+
+`reference_audio` is already-encoded base64 rather than raw bytes - encode the sample yourself:
+
+```typescript
+import { readFile } from 'node:fs/promises';
+import { CreateSpeechRequestResponse_format, Provider } from '@inference-gateway/sdk';
+
+const sample = await readFile('my-voice-sample.wav');
+
+const speech = await client.createSpeech(
+  {
+    model: 'qwen3-tts',
+    input: 'This is my cloned voice speaking.',
+    voice: 'custom',
+    response_format: CreateSpeechRequestResponse_format.wav,
+    reference_audio: sample.toString('base64'),
+  },
+  Provider.llamacpp
+);
+```
+
+In the browser, hand the `Blob` straight to an `<audio>` element with `URL.createObjectURL(speech)` instead of writing a file.
+
+See the [Audio API reference](/api-reference/#audio-api) for the endpoint-level details.
+
 ### Models, tools, and health
 
 `listModels(provider?, include?)` returns every model across configured providers, or a single provider's catalog when you pass a `Provider`. The optional `include` array requests additional per-model metadata - pass `'context_window'` to populate `model.context_window`, `'pricing'` for pricing data, or both. `listTools` enumerates MCP tools and only resolves when MCP is exposed on the gateway - an un-exposed gateway answers `403 Forbidden`. `healthCheck` probes the gateway's root `/health` endpoint and resolves to a boolean rather than throwing.
