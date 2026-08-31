@@ -343,11 +343,13 @@ When you open the model picker (`/model` with no argument), each model may show 
 | `vision`    | The model accepts image input natively - pasted or @-referenced images are seen directly, no ImageDecode needed. |
 | `image-gen` | The model generates images (e.g. DALL-E, GPT-Image). These models are filtered from the selectable chat list.    |
 
+The picker lists only **chat-capable models**: a model appears only when the gateway reports modalities for it and those modalities are text in, text out. Speech-to-text (e.g. `groq/whisper-*`), text-to-speech (e.g. `openai/tts-*`, `groq/playai-tts*`), image-generation and embedding models are hidden without any configuration. A model the gateway reports no modalities for (`"modalities": null`) is treated as not chat-capable and hidden too, since that is how most speech and embedding models arrive.
+
 Labels are derived from the **gateway-reported modalities** (`/v1/models?include=modalities`), not from name patterns. A model gets the `vision` label when its input modalities include both `text` and `image`; it gets the `image-gen` label when its output modalities include `image` without `text`.
 
-**Gateway version requirement:** Modalities-driven labels and filtering require gateway v0.47+. Against an older gateway, models report nil modalities and are treated permissively - no labels are shown and no filtering is applied.
+**Gateway version requirement:** Modalities-driven labels and the chat-capability filter require gateway v0.47+. Against an older gateway, models report no modalities, so no labels are shown and no model passes the filter - the picker comes up empty. Upgrade the running gateway to v0.47+ to see your catalog.
 
-> Shipped in [inference-gateway/cli#1031](https://github.com/inference-gateway/cli/pull/1031).
+> Shipped in [inference-gateway/cli#1031](https://github.com/inference-gateway/cli/pull/1031) and [inference-gateway/cli#1132](https://github.com/inference-gateway/cli/pull/1132).
 
 #### Diff viewer and git staging
 
@@ -1500,7 +1502,7 @@ Session IDs are sanitized before use, so a directory can never escape the artifa
 - Gateway URL and API key
 - Timeout and retry configuration (see [Client retry and stream reconnection](#client-retry-and-stream-reconnection) below)
 - OCI image for auto-running gateway
-- Model filtering (include/exclude lists)
+- Model filtering: `gateway.include_models` (allowlist) and `gateway.exclude_models` (blocklist). Both default to `[]`. `gateway.exclude_models` is opt-in - the [model picker](#model-picker-labels) already hides non-chat-capable models via the gateway-reported modalities, so use it only to hide specific models the gateway reports (large or costly chat models, for example); there is no shipped default blocklist. Set exclusions are passed to the gateway as the `DISALLOWED_MODELS` environment variable.
 
 The downloaded gateway binary lands at `~/.infer/bin/inference-gateway` - one shared copy per machine, reused by every project (the staleness check still re-downloads when the pinned version changes).
 
