@@ -441,6 +441,63 @@ for chunk in client.create_response_stream(
         print(event.delta, end='', flush=True)
 ```
 
+### Speech synthesis
+
+`create_speech(model, input, voice, provider=None, ...)` synthesizes speech via the OpenAI-compatible [`POST /v1/audio/speech`](/api-reference/#audio-api) endpoint. Unlike the other methods it parses no JSON - it returns the raw audio as `bytes` in the requested `response_format` (`mp3` by default), ready to write to a file or hand to a player. Pass `provider=` to pin the request to one provider, or omit it to let the gateway route from the model prefix.
+
+The endpoint is gated twice: the gateway must run with `ENABLE_AUDIO=true` (otherwise every call fails with `404`), and only providers that implement speech synthesis - OpenAI, plus self-hosted llama.cpp backends - accept it. Anything else answers `400` with the `SpeechNotSupported` body, which the SDK raises as `InferenceGatewayAPIError` carrying `The Audio API is not supported by this provider yet.`
+
+```python
+from inference_gateway import InferenceGatewayClient
+
+client = InferenceGatewayClient('http://localhost:8080/v1')
+
+audio = client.create_speech(
+    model='gpt-4o-mini-tts',
+    input='What is Python?',
+    voice='alloy',
+    provider='openai',
+)
+
+with open('speech.mp3', 'wb') as f:
+    f.write(audio)
+```
+
+The keyword arguments mirror the OpenAI `POST /v1/audio/speech` body:
+
+| Argument          | Python type               | Description                                                                                                                                                            |
+| ----------------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `model`           | `str`                     | Model ID to use for speech synthesis, for example `gpt-4o-mini-tts` or `tts-1` (required).                                                                             |
+| `input`           | `str`                     | The text to synthesize, 4096 characters maximum (required). Longer text raises `InferenceGatewayValidationError` before any request is sent.                           |
+| `voice`           | `str`                     | Voice to speak with (required). OpenAI built-ins are `alloy`, `ash`, `ballad`, `coral`, `echo`, `fable`, `onyx`, `nova`, `sage`, `shimmer`, `verse`, `marin`, `cedar`. |
+| `provider`        | `Provider \| str \| None` | Pins the request to one provider; omit it to route from the model prefix.                                                                                              |
+| `instructions`    | `str \| None`             | Extra guidance on how the voice should sound. Ignored by `tts-1` and `tts-1-hd`.                                                                                       |
+| `response_format` | `str \| None`             | Audio format: `mp3` (gateway default), `opus`, `aac`, `flac`, `wav`, or `pcm`.                                                                                         |
+| `speed`           | `float \| None`           | Playback speed between `0.25` and `4.0` (gateway default `1.0`).                                                                                                       |
+| `reference_audio` | `str \| None`             | Base64-encoded audio sample for zero-shot voice cloning. Only providers with cloning support honor it (for example Qwen3-TTS behind llama.cpp); OpenAI does not.       |
+
+Every optional argument left at `None` is omitted from the request body rather than sent as a null, so `response_format` and `speed` fall back to the gateway defaults unless you set them. The request is validated as a `CreateSpeechRequest` before it goes out, so bad values raise `InferenceGatewayValidationError` locally.
+
+`reference_audio` is already-encoded base64 rather than raw bytes - encode the sample yourself:
+
+```python
+import base64
+
+with open('my-voice-sample.wav', 'rb') as f:
+    sample = base64.b64encode(f.read()).decode()
+
+audio = client.create_speech(
+    model='qwen3-tts',
+    input='This is my cloned voice speaking.',
+    voice='custom',
+    provider='llamacpp',
+    response_format='wav',
+    reference_audio=sample,
+)
+```
+
+`create_speech` landed in [python-sdk#112](https://github.com/inference-gateway/python-sdk/pull/112). See the [Audio API reference](/api-reference/#audio-api) for the endpoint-level details.
+
 ### Models, tools, and health
 
 `list_models` returns every model across configured providers, or a single provider's catalog when you pass `provider=`. `list_tools` enumerates gateway-managed MCP tools and requires MCP to be exposed (`MCP_ENABLED=true` and `MCP_EXPOSE=true`); otherwise the call raises `InferenceGatewayAPIError`. `health_check` probes the gateway and returns a `bool` - it swallows transport errors and returns `False` rather than raising.
