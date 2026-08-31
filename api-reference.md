@@ -686,6 +686,28 @@ The `CreateSpeechRequest` fields:
 | `instructions`    | `string` |          | Extra guidance on how the voice should sound (4096 characters maximum). Ignored by `tts-1` and `tts-1-hd`.                                                                                                      |
 | `reference_audio` | `string` |          | Base64-encoded audio sample for zero-shot voice cloning, forwarded to the provider as-is. Only providers with cloning support honor it (for example Qwen3-TTS behind llama.cpp); OpenAI does not.               |
 
+#### Voice cloning
+
+`reference_audio` carries a base64-encoded voice sample for zero-shot cloning, so the generated speech mimics the voice in the sample. Use a clean mono recording between 1 and 30 seconds - WAV is the safest container.
+
+The gateway forwards the field to the provider as-is, so cloning works with any speech backend that supports audio conditioning: typically a self-hosted Qwen3-TTS-compatible server pointed at by `LLAMACPP_API_URL` and addressed with the `llamacpp/` model prefix. OpenAI's Speech API does not support cloning and accepts only its built-in voices.
+
+```bash
+curl -X POST http://localhost:8080/v1/audio/speech \
+  -H "Authorization: Bearer $INFERENCE_GATEWAY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -o cloned.wav \
+  -d "{
+  \"model\": \"llamacpp/qwen3-tts\",
+  \"input\": \"This is my cloned voice speaking.\",
+  \"voice\": \"custom\",
+  \"response_format\": \"wav\",
+  \"reference_audio\": \"$(base64 < my-voice-sample.wav)\"
+}"
+```
+
+For a fully local alternative that never leaves your machine, the CLI synthesizes with `llama-tts` directly - see [Text-to-Speech](/cli-text-to-speech/).
+
 #### Unsupported providers
 
 Not every provider implements the Audio API. Requests routed to a provider without speech synthesis support return `400 Bad Request`:
@@ -700,6 +722,8 @@ Content-Type: application/json
 ```
 
 Because the gateway proxies the request, speech traffic shows up in gateway logs, tracing and pricing like any other endpoint. See [Text-to-Speech](/cli-text-to-speech/) for the CLI-side tooling.
+
+The endpoint and its `ENABLE_AUDIO` gate landed in [inference-gateway#569](https://github.com/inference-gateway/inference-gateway/pull/569), the schema in [schemas#186](https://github.com/inference-gateway/schemas/pull/186), and `reference_audio` cloning in [schemas#187](https://github.com/inference-gateway/schemas/pull/187).
 
 ### Proxy Requests
 
