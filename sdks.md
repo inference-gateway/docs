@@ -1303,6 +1303,53 @@ The `CreateImageRequest` fields mirror the OpenAI `POST /v1/images/generations` 
 
 A runnable example lives at [sdk/examples/images](https://github.com/inference-gateway/sdk/tree/main/examples/images).
 
+### Speech synthesis
+
+`CreateSpeech(ctx, provider, CreateSpeechRequest) ([]byte, error)` synthesizes speech via the OpenAI-compatible `POST /v1/audio/speech` endpoint. Unlike the other methods it returns no struct - the `[]byte` is the raw audio in the requested `ResponseFormat` (`mp3` by default), ready to write to a file or stream to a player.
+
+The endpoint is provider-gated: the gateway must run with `ENABLE_AUDIO=true` (otherwise every call fails with `404`), and only providers that implement speech synthesis - OpenAI, plus self-hosted llama.cpp backends - accept it. Anything else returns a `400` error carrying `The Audio API is not supported by this provider yet.`
+
+```go
+audio, err := client.CreateSpeech(ctx, sdk.Openai, sdk.CreateSpeechRequest{
+    Model: "gpt-4o-mini-tts",
+    Input: "What is Go?",
+    Voice: "alloy",
+})
+if err != nil {
+    log.Fatalf("Error: %v", err)
+}
+
+_ = os.WriteFile("speech.mp3", audio, 0o644)
+```
+
+The `CreateSpeechRequest` fields mirror the OpenAI `POST /v1/audio/speech` body:
+
+| Field            | Go type                              | Description                                                                                                                                                                                      |
+| ---------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `Model`          | `string`                             | Model ID to use for speech synthesis, for example `gpt-4o-mini-tts` or `tts-1` (required).                                                                                                       |
+| `Input`          | `string`                             | The text to synthesize, 4096 characters maximum (required).                                                                                                                                      |
+| `Voice`          | `string`                             | Voice to speak with (required). OpenAI built-ins are `alloy`, `ash`, `ballad`, `coral`, `echo`, `fable`, `onyx`, `nova`, `sage`, `shimmer`, `verse`, `marin`, `cedar`.                           |
+| `Instructions`   | `*string`                            | Extra guidance on how the voice should sound. Ignored by `tts-1` and `tts-1-hd`.                                                                                                                 |
+| `ResponseFormat` | `*CreateSpeechRequestResponseFormat` | Audio format: `sdk.Mp3` (default), `sdk.Opus`, `sdk.Aac`, `sdk.Flac`, `sdk.Wav`, or `sdk.Pcm`.                                                                                                   |
+| `Speed`          | `*float32`                           | Playback speed between `0.25` and `4.0` (default `1.0`).                                                                                                                                         |
+| `ReferenceAudio` | `*[]byte`                            | Audio sample for zero-shot voice cloning, base64-encoded on the wire by `encoding/json`. Only providers with cloning support honor it (for example Qwen3-TTS behind llama.cpp); OpenAI does not. |
+
+Pass `ReferenceAudio` the raw sample bytes - Go marshals `[]byte` to base64 automatically, so do not encode it yourself:
+
+```go
+sample, _ := os.ReadFile("my-voice-sample.wav")
+
+audio, err := client.CreateSpeech(ctx, sdk.Llamacpp, sdk.CreateSpeechRequest{
+    Model:          "qwen3-tts",
+    Input:          "This is my cloned voice speaking.",
+    Voice:          "custom",
+    ResponseFormat: ptr(sdk.Wav),
+    ReferenceAudio: &sample,
+})
+```
+
+See the [Audio API reference](/api-reference/#audio-api) for the endpoint-level details.
+
 ### Models, tools, and health
 
 `ListModels` returns every model across all configured providers, while `ListProviderModels` scopes the listing to a single `Provider`. `ListTools` enumerates gateway-managed MCP tools from the `/mcp/tools` endpoint and requires MCP to be exposed (`MCP_ENABLED=true` and `MCP_EXPOSE=true`); otherwise it returns an error. Unlike the other SDKs, Go's `HealthCheck` returns an `error` rather than a `bool` - it probes the gateway's root `/health` endpoint and returns `nil` when the gateway is healthy.
