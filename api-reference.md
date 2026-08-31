@@ -723,6 +723,8 @@ Content-Type: application/json
 
 Because the gateway proxies the request, speech traffic shows up in gateway logs, tracing and pricing like any other endpoint. See [Text-to-Speech](/cli-text-to-speech/) for the CLI-side tooling.
 
+The SDKs wrap this endpoint as a single call that returns the raw audio bytes: [`CreateSpeech`](/sdks/#speech-synthesis) in Go and [`create_speech`](/sdks/#speech-synthesis-1) in Rust.
+
 The endpoint and its `ENABLE_AUDIO` gate landed in [inference-gateway#569](https://github.com/inference-gateway/inference-gateway/pull/569), the schema in [schemas#186](https://github.com/inference-gateway/schemas/pull/186), and `reference_audio` cloning in [schemas#187](https://github.com/inference-gateway/schemas/pull/187).
 
 ### Proxy Requests

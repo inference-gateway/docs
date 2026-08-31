@@ -1572,7 +1572,7 @@ if err != nil {
 
 The Rust SDK is async-only (Tokio) and exposes the gateway over a typed `InferenceGatewayAPI` trait for easy mocking in tests.
 
-- Crate: [`inference-gateway-sdk`](https://crates.io/crates/inference-gateway-sdk) (latest: `0.13.4`)
+- Crate: [`inference-gateway-sdk`](https://crates.io/crates/inference-gateway-sdk) (latest: `0.23.0`)
 - Repository: [inference-gateway/rust-sdk](https://github.com/inference-gateway/rust-sdk)
 - Examples: [rust-sdk/examples](https://github.com/inference-gateway/rust-sdk/tree/main/examples)
 
@@ -1929,6 +1929,75 @@ let response = client
     .generate_content(Provider::Anthropic, "claude-opus-4-8", vec![vision_message])
     .await?;
 ```
+
+### Speech synthesis
+
+`create_speech(provider, request) -> Result<Vec<u8>, GatewayError>` synthesizes speech via the OpenAI-compatible [`POST /v1/audio/speech`](/api-reference/#audio-api) endpoint. Unlike the other methods it deserializes nothing - the `Vec<u8>` is the raw audio in the requested `response_format` (`mp3` by default), ready to write to a file or stream to a player. The `provider` argument is an `Option<Provider>`: pass `Some(...)` to pin the request to one provider, or `None` to let the gateway route it from the model prefix.
+
+The endpoint is gated twice: the gateway must run with `ENABLE_AUDIO=true` (otherwise every call fails with `404`), and only providers that implement speech synthesis - OpenAI, plus self-hosted llama.cpp backends - accept it. Anything else resolves to `GatewayError::BadRequest("The Audio API is not supported by this provider yet.")`.
+
+```rust
+use inference_gateway_sdk::{
+    CreateSpeechRequest, GatewayError, InferenceGatewayAPI, InferenceGatewayClient, Provider,
+};
+
+#[tokio::main]
+async fn main() -> Result<(), GatewayError> {
+    let client = InferenceGatewayClient::new_default();
+
+    let audio = client
+        .create_speech(
+            Some(Provider::Openai),
+            CreateSpeechRequest {
+                model: "gpt-4o-mini-tts".to_string(),
+                input: "What is Rust?".parse().expect("within 4096 characters"),
+                voice: "alloy".to_string(),
+                ..Default::default()
+            },
+        )
+        .await?;
+
+    std::fs::write("speech.mp3", audio).expect("write speech.mp3");
+    Ok(())
+}
+```
+
+The `CreateSpeechRequest` fields mirror the OpenAI `POST /v1/audio/speech` body:
+
+| Field             | Rust type                                 | Description                                                                                                                                                            |
+| ----------------- | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `model`           | `String`                                  | Model ID to use for speech synthesis, for example `gpt-4o-mini-tts` or `tts-1` (required).                                                                             |
+| `input`           | `CreateSpeechRequestInput`                | The text to synthesize, 4096 characters maximum (required). A validating newtype - build it with `.parse()`, which rejects longer strings.                             |
+| `voice`           | `String`                                  | Voice to speak with (required). OpenAI built-ins are `alloy`, `ash`, `ballad`, `coral`, `echo`, `fable`, `onyx`, `nova`, `sage`, `shimmer`, `verse`, `marin`, `cedar`. |
+| `instructions`    | `Option<CreateSpeechRequestInstructions>` | Extra guidance on how the voice should sound. Ignored by `tts-1` and `tts-1-hd`. Also a 4096-character newtype.                                                        |
+| `response_format` | `CreateSpeechRequestResponseFormat`       | Audio format: `Mp3` (default), `Opus`, `Aac`, `Flac`, `Wav`, or `Pcm`.                                                                                                 |
+| `speed`           | `f64`                                     | Playback speed between `0.25` and `4.0` (default `1.0`).                                                                                                               |
+| `reference_audio` | `Option<String>`                          | Base64-encoded audio sample for zero-shot voice cloning. Only providers with cloning support honor it (for example Qwen3-TTS behind llama.cpp); OpenAI does not.       |
+
+`CreateSpeechRequest` implements `Default`, so `..Default::default()` fills in `response_format: Mp3` and `speed: 1.0` and leaves the optional fields unset. Unlike the Go SDK, `reference_audio` is already-encoded base64 rather than raw bytes - encode the sample yourself before assigning it:
+
+```rust
+use base64::{Engine, engine::general_purpose::STANDARD};
+use inference_gateway_sdk::{CreateSpeechRequest, CreateSpeechRequestResponseFormat, Provider};
+
+let sample = std::fs::read("my-voice-sample.wav").expect("read sample");
+
+let audio = client
+    .create_speech(
+        Some(Provider::Llamacpp),
+        CreateSpeechRequest {
+            model: "qwen3-tts".to_string(),
+            input: "This is my cloned voice speaking.".parse().expect("valid text"),
+            voice: "custom".to_string(),
+            response_format: CreateSpeechRequestResponseFormat::Wav,
+            reference_audio: Some(STANDARD.encode(&sample)),
+            ..Default::default()
+        },
+    )
+    .await?;
+```
+
+`create_speech` landed in [rust-sdk#133](https://github.com/inference-gateway/rust-sdk/pull/133). See the [Audio API reference](/api-reference/#audio-api) for the endpoint-level details.
 
 ### Models, tools, and health
 
