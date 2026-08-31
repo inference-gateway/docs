@@ -7,7 +7,7 @@ description: The Inference Gateway CLI (infer) - interactive chat, autonomous ag
 
 The Inference Gateway CLI (`infer`) is a powerful Go-based command-line tool providing comprehensive access to the Inference Gateway with interactive chat, autonomous agents, Computer Use tools, and development workflows.
 
-**Current Version:** v0.131.0 (Breaking changes expected until stable)
+> **Versioning:** the CLI is pre-1.0 and breaking changes are expected until it stabilises. The commands on this page install `@latest`, so there is no version number to keep in sync here - see the [releases page](https://github.com/inference-gateway/cli/releases) for what `latest` currently resolves to.
 
 ## Key Features
 
@@ -211,7 +211,7 @@ $ echo $?
 
 ```text
 $ infer --version
-infer version v0.131.0
+infer version vX.Y.Z
 ```
 
 The standalone `version` subcommand is **kept for backwards compatibility** and prints the same information:
