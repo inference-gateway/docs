@@ -67,17 +67,22 @@ text_to_speech:
 
 All options live under `text_to_speech` in `.infer/config.yaml`. Every key also has an `INFER_TEXT_TO_SPEECH_`-prefixed environment variable that takes precedence over the config file.
 
-| Key                            | Environment variable                 | Type   | Default     | Description                                                                           |
-| ------------------------------ | ------------------------------------ | ------ | ----------- | ------------------------------------------------------------------------------------- |
-| `text_to_speech.enabled`       | `INFER_TEXT_TO_SPEECH_ENABLED`       | bool   | `false`     | Feature flag - must be `true` for the `TextToSpeech` tool to reach the LLM            |
-| `text_to_speech.engine`        | `INFER_TEXT_TO_SPEECH_ENGINE`        | string | `qwen3-tts` | Synthesis engine; only `qwen3-tts` for now                                            |
-| `text_to_speech.binary_path`   | `INFER_TEXT_TO_SPEECH_BINARY_PATH`   | string | `""`        | Explicit `llama-tts` path; empty resolves the binary on `PATH`                        |
-| `text_to_speech.model`         | `INFER_TEXT_TO_SPEECH_MODEL`         | string | `""`        | Preset (`""`/`base`, `q8`, `bf16`) or explicit `<backbone>[,<mmproj>].gguf` filenames |
-| `text_to_speech.models_dir`    | `INFER_TEXT_TO_SPEECH_MODELS_DIR`    | string | `""`        | Where models are cached; empty defaults to `~/.infer/models/tts`                      |
-| `text_to_speech.output_dir`    | `INFER_TEXT_TO_SPEECH_OUTPUT_DIR`    | string | `""`        | Where generated WAVs are written; empty defaults to `~/.infer/tts`                    |
-| `text_to_speech.auto_download` | `INFER_TEXT_TO_SPEECH_AUTO_DOWNLOAD` | bool   | `true`      | Download models (and `ffmpeg`) on first use if missing                                |
-| `text_to_speech.timeout`       | `INFER_TEXT_TO_SPEECH_TIMEOUT`       | int    | `300`       | Synthesis timeout in seconds                                                          |
-| `text_to_speech.ffmpeg_path`   | `INFER_TEXT_TO_SPEECH_FFMPEG_PATH`   | string | `""`        | Explicit `ffmpeg` path; empty resolves `ffmpeg` on `PATH`                             |
+| Key                            | Environment variable                 | Type   | Default     | Description                                                                                                                     |
+| ------------------------------ | ------------------------------------ | ------ | ----------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `text_to_speech.enabled`       | `INFER_TEXT_TO_SPEECH_ENABLED`       | bool   | `false`     | Feature flag - must be `true` for the `TextToSpeech` tool to reach the LLM                                                      |
+| `text_to_speech.engine`        | `INFER_TEXT_TO_SPEECH_ENGINE`        | string | `qwen3-tts` | Synthesis engine; only `qwen3-tts` for now - validated only when `enabled` is `true`                                            |
+| `text_to_speech.binary_path`   | `INFER_TEXT_TO_SPEECH_BINARY_PATH`   | string | `""`        | Explicit `llama-tts` path; empty resolves the binary on `PATH`                                                                  |
+| `text_to_speech.model`         | `INFER_TEXT_TO_SPEECH_MODEL`         | string | `""`        | Preset (`""`/`base`, `q8`, `bf16`) or explicit `<backbone>[,<mmproj>].gguf` filenames - validated only when `enabled` is `true` |
+| `text_to_speech.models_dir`    | `INFER_TEXT_TO_SPEECH_MODELS_DIR`    | string | `""`        | Where models are cached; empty defaults to `~/.infer/models/tts`                                                                |
+| `text_to_speech.output_dir`    | `INFER_TEXT_TO_SPEECH_OUTPUT_DIR`    | string | `""`        | Where generated WAVs are written; empty defaults to `~/.infer/tts`                                                              |
+| `text_to_speech.auto_download` | `INFER_TEXT_TO_SPEECH_AUTO_DOWNLOAD` | bool   | `true`      | Download models (and `ffmpeg`) on first use if missing                                                                          |
+| `text_to_speech.timeout`       | `INFER_TEXT_TO_SPEECH_TIMEOUT`       | int    | `300`       | Synthesis timeout in seconds                                                                                                    |
+| `text_to_speech.ffmpeg_path`   | `INFER_TEXT_TO_SPEECH_FFMPEG_PATH`   | string | `""`        | Explicit `ffmpeg` path; empty resolves `ffmpeg` on `PATH`                                                                       |
+
+`engine` and `model` are only validated while `enabled` is `true`. With text-to-speech disabled the CLI never reads those sub-fields, so an unknown engine or
+model value - for example one written by a newer `infer` binary sharing the same `~/.infer/config.yaml`, such as the older CLI bundled with the desktop app - is
+ignored instead of failing config loading. Flip `enabled: true` and the same value is rejected at load time with a fast, explicit error
+([cli#1142](https://github.com/inference-gateway/cli/pull/1142)).
 
 For example:
 
