@@ -630,7 +630,9 @@ Content-Type: application/json
 
 ### Audio API
 
-Synthesize speech from text using the OpenAI-compatible Audio endpoint. It requires `ENABLE_AUDIO=true`; while disabled the endpoint returns `404 Not Found` with `The Audio API is not enabled. Set ENABLE_AUDIO=true to enable it.`
+Synthesize speech from text using the OpenAI-compatible Audio endpoint. It requires `AUDIO_ENABLED=true`; while disabled the endpoint returns `404 Not Found` with `The Audio API is not enabled. Set AUDIO_ENABLED=true to enable it.`
+
+Requests are served either by a provider (`openai/tts-1`, `llamacpp/...`) or by the gateway's [built-in local engine](#local-speech-engine-local-qwen3-tts) under the reserved model id `local/qwen3-tts`.
 
 ```http
 POST /v1/audio/speech?provider={provider}
@@ -678,7 +680,7 @@ The `CreateSpeechRequest` fields:
 
 | Field             | Type     | Required | Description                                                                                                                                                                                                     |
 | ----------------- | -------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `model`           | `string` | Yes      | Model ID to use for speech synthesis, for example `openai/tts-1` or `openai/gpt-4o-mini-tts`.                                                                                                                   |
+| `model`           | `string` | Yes      | Model ID to use for speech synthesis, for example `openai/tts-1`, `openai/gpt-4o-mini-tts` or the reserved local id `local/qwen3-tts`.                                                                          |
 | `input`           | `string` | Yes      | The text to synthesize (4096 characters maximum).                                                                                                                                                               |
 | `voice`           | `string` | Yes      | Voice to speak with. OpenAI built-ins are `alloy`, `ash`, `ballad`, `coral`, `echo`, `fable`, `onyx`, `nova`, `sage`, `shimmer`, `verse`, `marin`, `cedar`. Other providers accept their own voice identifiers. |
 | `response_format` | `string` |          | Audio format: `mp3` (default), `opus`, `aac`, `flac`, `wav`, or `pcm`.                                                                                                                                          |
@@ -690,7 +692,7 @@ The `CreateSpeechRequest` fields:
 
 `reference_audio` carries a base64-encoded voice sample for zero-shot cloning, so the generated speech mimics the voice in the sample. Use a clean mono recording between 1 and 30 seconds - WAV is the safest container.
 
-The gateway forwards the field to the provider as-is, so cloning works with any speech backend that supports audio conditioning: typically a self-hosted Qwen3-TTS-compatible server pointed at by `LLAMACPP_API_URL` and addressed with the `llamacpp/` model prefix. OpenAI's Speech API does not support cloning and accepts only its built-in voices.
+The simplest way to clone is `local/qwen3-tts`, which handles the sample in-process. For provider routing the gateway forwards the field as-is, so cloning also works with any speech backend that supports audio conditioning: typically a self-hosted Qwen3-TTS-compatible server pointed at by `LLAMACPP_API_URL` and addressed with the `llamacpp/` model prefix. OpenAI's Speech API does not support cloning and accepts only its built-in voices.
 
 ```bash
 curl -X POST http://localhost:8080/v1/audio/speech \
@@ -698,7 +700,7 @@ curl -X POST http://localhost:8080/v1/audio/speech \
   -H "Content-Type: application/json" \
   -o cloned.wav \
   -d "{
-  \"model\": \"llamacpp/qwen3-tts\",
+  \"model\": \"local/qwen3-tts\",
   \"input\": \"This is my cloned voice speaking.\",
   \"voice\": \"custom\",
   \"response_format\": \"wav\",
@@ -707,6 +709,39 @@ curl -X POST http://localhost:8080/v1/audio/speech \
 ```
 
 For a fully local alternative that never leaves your machine, the CLI synthesizes with `llama-tts` directly - see [Text-to-Speech](/cli-text-to-speech/).
+
+#### Local speech engine (`local/qwen3-tts`)
+
+`local/qwen3-tts` is a reserved model id served by the gateway itself: no provider, no API key, no outbound request. The gateway shells out to llama.cpp's one-shot `llama-tts` binary with [Qwen3-TTS](https://huggingface.co/ggml-org/Qwen3-TTS-12Hz-1.7B-Base-GGUF) GGUF weights and returns the raw WAV. `reference_audio` cloning works the same as above, handled locally.
+
+```bash
+curl -X POST http://localhost:8080/v1/audio/speech \
+  -H "Authorization: Bearer $INFERENCE_GATEWAY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -o speech.wav \
+  -d '{"model":"local/qwen3-tts","input":"Hello from the Inference Gateway.","voice":"default","response_format":"wav"}'
+```
+
+**Assets and cache.** The binary and weights are fetched in the background on first use and cached in fixed, non-configurable locations shared with the [CLI](/cli-text-to-speech/): GGUF models in `~/.infer/models/tts`, binaries in `~/.infer/bin`. A `llama-tts` already on `PATH` wins; otherwise the binary comes from the [inference-gateway/binaries](https://github.com/inference-gateway/binaries) release assets and is sha256-verified against the published `checksums.txt`. Downloads write to a temp file and atomically rename, so a CLI and a gateway downloading at the same time never corrupt the cache.
+
+**While assets are downloading**, the endpoint answers `503 Service Unavailable` with a `Retry-After` header and download progress in the body rather than holding the request open. Boot and chat routes are never blocked; a failed download is retried in the background on the next request.
+
+```http
+Status: 503 Service Unavailable
+Retry-After: 30
+```
+
+With `AUDIO_LOCAL_AUTO_DOWNLOAD=false` the gateway never downloads anything and consumes only pre-existing `PATH`/cache assets; when they are missing the request fails with an actionable error naming what to install or place in the cache.
+
+**Tuning** (see [Configuration](/configuration/#general-settings)):
+
+| Variable                      | Default | Effect                                                                 |
+| ----------------------------- | ------- | ---------------------------------------------------------------------- |
+| `AUDIO_LOCAL_AUTO_DOWNLOAD`   | `true`  | Allow on-demand download of the binary and weights                     |
+| `AUDIO_LOCAL_MAX_CONCURRENCY` | `2`     | Concurrent syntheses; requests beyond the limit queue rather than fail |
+| `AUDIO_LOCAL_TIMEOUT`         | `300`   | Per-request synthesis timeout in seconds, surfaced as `504`            |
+
+**Known ceiling.** Each request pays model and graph initialization (roughly 1s warm, slower cold or on GPU) and there is no cross-request batching - fine for agent speech, not for bulk synthesis. The local path is a stopgap until llama.cpp ships server-side TTS ([ggml-org/llama.cpp#21956](https://github.com/ggml-org/llama.cpp/issues/21956)), after which the gateway can proxy to `llama-server` instead.
 
 #### Unsupported providers
 
@@ -725,7 +760,7 @@ Because the gateway proxies the request, speech traffic shows up in gateway logs
 
 The SDKs wrap this endpoint as a single call that returns the raw audio: [`createSpeech`](/sdks/#speech-synthesis) in TypeScript (a `Blob`), [`CreateSpeech`](/sdks/#speech-synthesis-1) in Go and [`create_speech`](/sdks/#speech-synthesis-2) in Rust (raw bytes).
 
-The endpoint and its `ENABLE_AUDIO` gate landed in [inference-gateway#569](https://github.com/inference-gateway/inference-gateway/pull/569), the schema in [schemas#186](https://github.com/inference-gateway/schemas/pull/186), and `reference_audio` cloning in [schemas#187](https://github.com/inference-gateway/schemas/pull/187).
+The endpoint and its audio gate landed in [inference-gateway#569](https://github.com/inference-gateway/inference-gateway/pull/569), the schema in [schemas#186](https://github.com/inference-gateway/schemas/pull/186), and `reference_audio` cloning in [schemas#187](https://github.com/inference-gateway/schemas/pull/187). The local engine, the `ENABLE_AUDIO` to `AUDIO_ENABLED` rename (no legacy alias) and the `AUDIO_LOCAL_*` settings landed in [inference-gateway#575](https://github.com/inference-gateway/inference-gateway/pull/575) and [schemas#191](https://github.com/inference-gateway/schemas/pull/191).
 
 ### Proxy Requests
 

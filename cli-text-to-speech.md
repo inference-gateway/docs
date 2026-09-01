@@ -14,7 +14,7 @@ Everything runs locally: the tool shells out to llama.cpp's `llama-tts` binary r
 
 ## Synthesizing through the gateway instead
 
-The gateway also exposes an OpenAI-compatible [`POST /v1/audio/speech`](/api-reference/#audio-api) endpoint (`ENABLE_AUDIO=true`), which takes `model`, `input`, `voice` and `response_format` and returns raw audio bytes. Routing TTS through it means speech requests appear in gateway logs, tracing and pricing, and no local `llama-tts` build is required:
+The gateway also exposes an OpenAI-compatible [`POST /v1/audio/speech`](/api-reference/#audio-api) endpoint (`AUDIO_ENABLED=true`), which takes `model`, `input`, `voice` and `response_format` and returns raw audio bytes. Routing TTS through it means speech requests appear in gateway logs, tracing and pricing, and no local `llama-tts` build is required:
 
 ```bash
 curl -X POST http://localhost:8080/v1/audio/speech \
@@ -23,6 +23,8 @@ curl -X POST http://localhost:8080/v1/audio/speech \
   -o speech.mp3 \
   -d '{"model":"openai/tts-1","input":"Hello","voice":"alloy","response_format":"mp3"}'
 ```
+
+The gateway can also synthesize without any provider: the reserved model id `local/qwen3-tts` runs the same `llama-tts` binary and Qwen3-TTS GGUFs inside the gateway, sharing the `~/.infer/models/tts` and `~/.infer/bin` caches with the CLI - see [Local speech engine](/api-reference/#local-speech-engine-local-qwen3-tts).
 
 The CLI's own `TextToSpeech` tool still synthesizes locally as described below; a gateway-backed engine is tracked in [cli#1126](https://github.com/inference-gateway/cli/issues/1126).
 
