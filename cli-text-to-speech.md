@@ -1,9 +1,9 @@
 ---
-title: Text-to-Speech (Qwen3-TTS)
+title: Text-to-Speech
 description: Synthesize speech from text in the Inference Gateway CLI - through the gateway's Audio API by default, or fully offline with a local llama.cpp llama-tts binary and Qwen3-TTS GGUF models, including zero-shot voice cloning from a reference WAV.
 ---
 
-# Text-to-Speech (Qwen3-TTS)
+# Text-to-Speech
 
 The [Inference Gateway CLI](/cli/) can turn text into spoken audio through the `TextToSpeech` agent tool, in two modes:
 
