@@ -445,7 +445,7 @@ for chunk in client.create_response_stream(
 
 `create_speech(model, input, voice, provider=None, ...)` synthesizes speech via the OpenAI-compatible [`POST /v1/audio/speech`](/api-reference/#audio-api) endpoint. Unlike the other methods it parses no JSON - it returns the raw audio as `bytes` in the requested `response_format` (`mp3` by default), ready to write to a file or hand to a player. Pass `provider=` to pin the request to one provider, or omit it to let the gateway route from the model prefix.
 
-The endpoint is gated twice: the gateway must run with `ENABLE_AUDIO=true` (otherwise every call fails with `404`), and only providers that implement speech synthesis - OpenAI, plus self-hosted llama.cpp backends - accept it. Anything else answers `400` with the `SpeechNotSupported` body, which the SDK raises as `InferenceGatewayAPIError` carrying `The Audio API is not supported by this provider yet.`
+The endpoint is gated twice: the gateway must run with `AUDIO_ENABLED=true` (otherwise every call fails with `404`), and only providers that implement speech synthesis - OpenAI, plus self-hosted llama.cpp backends - accept it. Anything else answers `400` with the `SpeechNotSupported` body, which the SDK raises as `InferenceGatewayAPIError` carrying `The Audio API is not supported by this provider yet.`
 
 ```python
 from inference_gateway import InferenceGatewayClient
@@ -926,7 +926,7 @@ await client.streamChatCompletion(
 
 `createSpeech(request, provider?)` synthesizes speech via the OpenAI-compatible [`POST /v1/audio/speech`](/api-reference/#audio-api) endpoint. Unlike the other methods it parses no JSON - it resolves to a `Blob` holding the raw audio, whose `type` reflects the requested `response_format` (`audio/mpeg` for the default `mp3`). The optional second argument pins the request to one `Provider`; omit it to let the gateway route from the model prefix.
 
-The endpoint is gated twice: the gateway must run with `ENABLE_AUDIO=true` (otherwise every call fails with `404`), and only providers that implement speech synthesis - OpenAI, plus self-hosted llama.cpp backends - accept it. Anything else rejects the request with `400` and the SDK throws an `Error` carrying `The Audio API is not supported by this provider yet.`
+The endpoint is gated twice: the gateway must run with `AUDIO_ENABLED=true` (otherwise every call fails with `404`), and only providers that implement speech synthesis - OpenAI, plus self-hosted llama.cpp backends - accept it. Anything else rejects the request with `400` and the SDK throws an `Error` carrying `The Audio API is not supported by this provider yet.`
 
 ```typescript
 import { InferenceGatewayClient, Provider } from '@inference-gateway/sdk';
@@ -1426,7 +1426,7 @@ A runnable example lives at [sdk/examples/images](https://github.com/inference-g
 
 `CreateSpeech(ctx, provider, CreateSpeechRequest) ([]byte, error)` synthesizes speech via the OpenAI-compatible `POST /v1/audio/speech` endpoint. Unlike the other methods it returns no struct - the `[]byte` is the raw audio in the requested `ResponseFormat` (`mp3` by default), ready to write to a file or stream to a player.
 
-The endpoint is provider-gated: the gateway must run with `ENABLE_AUDIO=true` (otherwise every call fails with `404`), and only providers that implement speech synthesis - OpenAI, plus self-hosted llama.cpp backends - accept it. Anything else returns a `400` error carrying `The Audio API is not supported by this provider yet.`
+The endpoint is provider-gated: the gateway must run with `AUDIO_ENABLED=true` (otherwise every call fails with `404`), and only providers that implement speech synthesis - OpenAI, plus self-hosted llama.cpp backends - accept it. Anything else returns a `400` error carrying `The Audio API is not supported by this provider yet.`
 
 ```go
 audio, err := client.CreateSpeech(ctx, sdk.Openai, sdk.CreateSpeechRequest{
@@ -2053,7 +2053,7 @@ let response = client
 
 `create_speech(provider, request) -> Result<Vec<u8>, GatewayError>` synthesizes speech via the OpenAI-compatible [`POST /v1/audio/speech`](/api-reference/#audio-api) endpoint. Unlike the other methods it deserializes nothing - the `Vec<u8>` is the raw audio in the requested `response_format` (`mp3` by default), ready to write to a file or stream to a player. The `provider` argument is an `Option<Provider>`: pass `Some(...)` to pin the request to one provider, or `None` to let the gateway route it from the model prefix.
 
-The endpoint is gated twice: the gateway must run with `ENABLE_AUDIO=true` (otherwise every call fails with `404`), and only providers that implement speech synthesis - OpenAI, plus self-hosted llama.cpp backends - accept it. Anything else resolves to `GatewayError::BadRequest("The Audio API is not supported by this provider yet.")`.
+The endpoint is gated twice: the gateway must run with `AUDIO_ENABLED=true` (otherwise every call fails with `404`), and only providers that implement speech synthesis - OpenAI, plus self-hosted llama.cpp backends - accept it. Anything else resolves to `GatewayError::BadRequest("The Audio API is not supported by this provider yet.")`.
 
 ```rust
 use inference_gateway_sdk::{
