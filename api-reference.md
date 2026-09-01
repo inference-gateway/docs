@@ -687,6 +687,7 @@ The `CreateSpeechRequest` fields:
 | `speed`           | `number` |          | Playback speed between `0.25` and `4.0` (default `1.0`).                                                                                                                                                        |
 | `instructions`    | `string` |          | Extra guidance on how the voice should sound (4096 characters maximum). Ignored by `tts-1` and `tts-1-hd`.                                                                                                      |
 | `reference_audio` | `string` |          | Base64-encoded audio sample for zero-shot voice cloning, forwarded to the provider as-is. Only providers with cloning support honor it (for example Qwen3-TTS behind llama.cpp); OpenAI does not.               |
+| `language`        | `string` |          | ISO 639-1 language code hint for synthesis (default `en`). Non-standard: forwarded to providers as-is; `local/qwen3-tts` validates it (see below).                                                              |
 
 #### Voice cloning
 
@@ -714,12 +715,14 @@ For a fully local alternative that never leaves your machine, the CLI synthesize
 
 `local/qwen3-tts` is a reserved model id served by the gateway itself: no provider, no API key, no outbound request. The gateway shells out to llama.cpp's one-shot `llama-tts` binary with [Qwen3-TTS](https://huggingface.co/ggml-org/Qwen3-TTS-12Hz-1.7B-Base-GGUF) GGUF weights and returns the raw WAV. `reference_audio` cloning works the same as above, handled locally.
 
+The optional `language` field (ISO 639-1, default `en`) must be one of the ten codes Qwen3-TTS supports - `zh`, `en`, `de`, `it`, `pt`, `es`, `ja`, `ko`, `fr`, `ru` - and is passed to `llama-tts --tts-lang`. Any other code returns `400 Bad Request` with a message naming the supported set.
+
 ```bash
 curl -X POST http://localhost:8080/v1/audio/speech \
   -H "Authorization: Bearer $INFERENCE_GATEWAY_API_KEY" \
   -H "Content-Type: application/json" \
   -o speech.wav \
-  -d '{"model":"local/qwen3-tts","input":"Hello from the Inference Gateway.","voice":"default","response_format":"wav"}'
+  -d '{"model":"local/qwen3-tts","input":"Hallo vom Inference Gateway.","voice":"default","language":"de","response_format":"wav"}'
 ```
 
 **Assets and cache.** The binary and weights are fetched in the background on first use and cached in fixed, non-configurable locations shared with the [CLI](/cli-text-to-speech/): GGUF models in `~/.infer/models/tts`, binaries in `~/.infer/bin`. A `llama-tts` already on `PATH` wins; otherwise the binary comes from the [inference-gateway/binaries](https://github.com/inference-gateway/binaries) release assets and is sha256-verified against the published `checksums.txt`. Downloads write to a temp file and atomically rename, so a CLI and a gateway downloading at the same time never corrupt the cache.

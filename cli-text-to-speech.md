@@ -14,7 +14,7 @@ Everything runs locally: the tool shells out to llama.cpp's `llama-tts` binary r
 
 ## Synthesizing through the gateway instead
 
-The gateway also exposes an OpenAI-compatible [`POST /v1/audio/speech`](/api-reference/#audio-api) endpoint (`AUDIO_ENABLED=true`), which takes `model`, `input`, `voice` and `response_format` and returns raw audio bytes. Routing TTS through it means speech requests appear in gateway logs, tracing and pricing, and no local `llama-tts` build is required:
+The gateway also exposes an OpenAI-compatible [`POST /v1/audio/speech`](/api-reference/#audio-api) endpoint (`AUDIO_ENABLED=true`), which takes `model`, `input`, `voice`, `language` and `response_format` and returns raw audio bytes. Routing TTS through it means speech requests appear in gateway logs, tracing and pricing, and no local `llama-tts` build is required:
 
 ```bash
 curl -X POST http://localhost:8080/v1/audio/speech \
