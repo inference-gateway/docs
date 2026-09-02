@@ -1,6 +1,6 @@
 ---
 title: Judge Mode
-description: Let an LLM judge answer tool-approval gates in the Inference Gateway CLI - the auto-with-judge agent mode, tools.safety.approval_behaviour judge, the .infer/judge.yaml schema (model, gateway_url, timeout, max_tokens, on_error, system_prompt, prompt) with INFER_JUDGE_* overrides, the JSON verdict contract, on_error semantics, judge_verdict observability, and headless usage.
+description: Let an LLM judge answer tool-approval gates in the Inference Gateway CLI - the auto-with-judge agent mode, tools.safety.approval_behaviour judge, the .infer/judge.yaml schema (model, gateway_url, timeout, max_tokens, on_error, system_prompt, prompt) with INFER_JUDGE_* overrides, the JSON verdict contract, on_error semantics, the RequestApproval escalation for overriding a rejection, judge_verdict observability, and headless usage.
 ---
 
 # Judge Mode
@@ -46,6 +46,21 @@ The standard approval policy still decides _which_ calls are gated - judge mode 
 - Anything else that would prompt a human - off-list commands, Write/Edit/Delete, per-tool `require_approval` - gets exactly one judge call.
 - The judge prompt carries the first non-hidden user message of the session (the root intent), the latest non-hidden user message (the current intent), and the pending tool call (name plus arguments).
 - An approved call executes. A **rejection does not end the turn**: it becomes a failed tool result whose content reads `rejected by judge: <model>: <reason>`, and the agent continues with that reason in context, so the model can adjust its approach rather than retry the same call. Only a **human** rejection ends the turn.
+- The rejection result also **hints at the escalation path** - the judge is advisory, not a hard block, so the agent can ask you to override it with [`RequestApproval`](#escalating-a-rejection-requestapproval).
+
+## Escalating a rejection (RequestApproval)
+
+When the judge rejects a call you actually asked for, the agent can escalate that one call to you with the [`RequestApproval`](/cli/#requestapproval) tool instead of giving up or working around it.
+
+- **When it applies**: only for a call the judge already rejected in this session. Escalating anything else fails with "no judge rejection is pending" - the agent must make the call and let the judge decide first.
+- **What you see**: the regular approval box for the rejected call, with a context block above it - the judge's rejection reason, what the agent needs permission for, and why.
+- **Approve** runs that exact call **once** with the judge bypassed; the bypass is consumed by that single invocation, and a later judge rejection of the same call can be escalated again.
+- **Reject**, or dismissing the box, denies. The denial is a normal tool result, so the turn **continues** with the decision in context - and you can explain yourself in your next message.
+- **One attempt per rejected call**: the escalation is consumed as soon as it is asked, including on dismissal, so a stubborn model cannot re-prompt you in a loop. A second attempt returns "already escalated once".
+
+### No approver reachable
+
+Headless runs, CI, [scheduled](/cli-scheduling/) jobs and any channel without an interactive approval form (the browser extension bridge and Telegram included) degrade the same way [`AskUserQuestion`](/cli/#askuserquestion) does: the tool returns a distinguishable **"no approver reachable"** result rather than blocking. Nothing hangs, the turn continues, and the agent is told not to retry - it either proceeds without the rejected call or ends the turn for a human to pick up.
 
 ## The verdict contract
 
