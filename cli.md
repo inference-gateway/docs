@@ -242,7 +242,7 @@ infer version
 
 - **Shift + Arrow Down/Up**: Scroll chat history
 - **Ctrl+R**: Toggle tool result expansion
-- **Shift+Tab**: Cycle agent modes (Standard -> Plan -> Auto-Accept)
+- **Shift+Tab**: Cycle agent modes (Standard -> Plan -> Auto-Accept -> Auto+Judge)
 - **Ctrl+K**: Toggle model thinking blocks
 
 **Capabilities:**
@@ -311,7 +311,7 @@ The selected indicator is highlighted as an **accent-colored pill**.
 
 | Indicator | Label format                             | Description                                                                                                                                                                                                                                                                                                     |
 | --------- | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Tools     | `Tools: N (mode)`                        | `N` is the number of tools available in the current [agent mode](#agent-modes). `mode` is the active mode name (Standard, Plan, or Auto-Accept). Opens the [`/tools` view](#tools-view).                                                                                                                        |
+| Tools     | `Tools: N (mode)`                        | `N` is the number of tools available in the current [agent mode](#agent-modes). `mode` is the active mode name (Standard, Plan, Auto-Accept, or Auto+Judge - the latter shown as `AUTO+JUDGE - <model>`). Opens the [`/tools` view](#tools-view).                                                               |
 | A2A       | `A2A: X/Y`                               | `X` is the number of connected A2A agents, `Y` is the total number of configured agents. Opens the [`/a2a` view](#a2a-view). When [liveness probes](#a2a-liveness-probes) are enabled, `X` counts down as agents fail and counts back up when they recover - the indicator stays live for the session lifetime. |
 | Theme     | `Theme`                                  | Opens the theme selector to change the TUI color scheme.                                                                                                                                                                                                                                                        |
 | Reconnect | `Reconnecting...` / `Reconnecting (N/M)` | Shown in red when the stream has stalled and the CLI is reconnecting. `N` is the current attempt, `M` is `client.retry.max_attempts`. Input is blocked until the stream recovers or all attempts are exhausted.                                                                                                 |
@@ -377,6 +377,7 @@ Toggle between modes anytime during chat using **Shift+Tab**.
 | **Standard** (Default) | All configured        | Required for Write/Edit/Delete/Bash | General development, collaborative coding           |
 | **Plan** (Read-Only)   | Read, Grep, Tree only | None                                | Code reviews, architecture analysis, planning       |
 | **Auto-Accept** (YOLO) | All configured        | None - immediate execution          | Trusted environments, rapid prototyping, automation |
+| **Auto+Judge**         | All configured        | An LLM judge answers every gate     | Unattended CI/headless runs that still want a gate  |
 
 ### Standard Mode
 
@@ -444,6 +445,16 @@ infer chat
 
 Because the per-action approval gate is off in this mode, the agent runs under a dedicated **destructive-action policy** delivered by the mode-change reminder (see [How mode instructions are delivered](#how-mode-instructions-are-delivered); override with `prompts.agent.mode_adjustment_auto`). It is told to stop and confirm before irreversible operations - deletes, `git push --force`, `git reset --hard`, dropping databases, `rm -rf`, publishing or releasing - to prefer the reversible path when no user is reachable, and never to print or publish a secret value. With reminders disabled this policy text is not delivered.
 
+### Auto+Judge Mode
+
+Autonomous like Auto-Accept, but the calls that would prompt a human are decided by an **LLM judge** instead of being waved through. Press **Shift+Tab** once more from Auto-Accept, or select the mode explicitly in headless runs:
+
+```bash
+infer headless --mode auto-with-judge "fix issue #42"
+```
+
+The judge is configured in its own [`judge.yaml`](/cli-judge-mode/#configuring-the-judge-judgeyaml) file, and the same gate is available in any mode via [`tools.safety.approval_behaviour: judge`](#approval-workflow). Both are off by default. See [Judge Mode](/cli-judge-mode/) for the verdict contract, `on_error` semantics, and observability.
+
 ### Headless Agent Stream Output
 
 `infer headless <task>` runs the agent non-interactively and writes a **newline-delimited JSON (JSONL) stream** to stdout. Each line is one JSON object with a `type` discriminator, intended for programmatic consumers such as the [`infer-action` GitHub Action](/github-action/). The stream is additive: new `type` values may be introduced over time and consumers should ignore any `type` they do not recognize.
@@ -483,6 +494,7 @@ Every line in the `json` (or `json-pretty`) stream is a JSON object with a `type
 | `assistant`            | Per turn                      | Assistant response with `content`, `reasoning_content`, `tool_calls`, `token_usage`                                                                                                                                                                                           |
 | `tool`                 | Per tool call                 | Tool execution result. `content` holds the bare marshaled result (no legacy `Result of tool call:` / `Tool execution failed:` envelope). Structured `tool_execution` metadata (`tool_name`, `success`, `error`, `rejected`, `duration`) and the `failed` flag ride alongside. |
 | `approval_request`     | When approval is needed       | Approval request metadata                                                                                                                                                                                                                                                     |
+| `judge_verdict`        | Per judge decision            | Emitted under [judge mode](/cli-judge-mode/) or `approval_behaviour: judge` - tool, `decision`, `reason`, `model`, turn. Mirrored as a custom event in `ag-ui`.                                                                                                               |
 | `computer_use_paused`  | On a `pause` control message  | Computer use was paused; carries the session `request_id` - see [pause and resume control](#pause-and-resume-control-ipc)                                                                                                                                                     |
 | `computer_use_resumed` | On a `resume` control message | Computer use was resumed; carries the session `request_id`                                                                                                                                                                                                                    |
 | `session_stats`        | Once at end                   | Token usage and cost summary (detailed below)                                                                                                                                                                                                                                 |
@@ -1477,6 +1489,7 @@ Two-layer configuration system with precedence from highest to lowest:
 | `keybindings.yaml` | Project/user | Keybindings for the TUI and diff viewer (category `diff_viewer`).                            | [Diff viewer and git staging](#diff-viewer-and-git-staging) |
 | `hooks.yaml`       | Project/user | User-defined shell commands run at agent-loop hook points (feature-flagged off by default).  | [Command Hooks](/cli-hooks/)                                |
 | `reminders.yaml`   | Project/user | System reminders injected into the conversation on a schedule.                               | [System Reminders](#system-reminders)                       |
+| `judge.yaml`       | Project/user | LLM judge that decides approval-requiring tool calls (model, timeout, prompts, `on_error`).  | [Judge Mode](/cli-judge-mode/)                              |
 | `memory.yaml`      | Project/user | Persistent, cross-session agent memory - fact-files plus the `MEMORY.md` index.              | [Persistent Memory](#persistent-memory)                     |
 | `shortcuts/*.yaml` | Project      | Custom slash shortcuts - simple commands, subcommands, and AI-powered snippets.              | [Custom Shortcuts](#custom-shortcuts)                       |
 | `skills/`          | Project/user | Agent Skills folders (`name/SKILL.md`) discovered and injected on demand.                    | [Agent Skills](#agent-skills)                               |
@@ -3175,22 +3188,25 @@ Tool approval has **two independent layers** - _whether_ an action needs approva
 - **Whether** - `tools.safety.require_approval` (with per-tool overrides like `tools.bash.require_approval` / `tools.write.require_approval`, and for Bash the per-mode [allowed-list](#command-allow-listing)).
 - **How** - `tools.safety.approval_behaviour`, one of:
 
-| `approval_behaviour` | How a needed approval is delivered                                                      |
-| -------------------- | --------------------------------------------------------------------------------------- |
-| `prompt` (default)   | Prompt in the chat TUI; under a channel manager, deliver over IPC; otherwise block.     |
-| `ipc`                | Deliver over IPC when a broker is attached (e.g. the channel manager); otherwise block. |
-| `block`              | Always reject an approval-requiring action with a reason - never prompt.                |
+| `approval_behaviour` | How a needed approval is delivered                                                            |
+| -------------------- | --------------------------------------------------------------------------------------------- |
+| `prompt` (default)   | Prompt in the chat TUI; under a channel manager, deliver over IPC; otherwise block.           |
+| `ipc`                | Deliver over IPC when a broker is attached (e.g. the channel manager); otherwise block.       |
+| `judge`              | One [LLM judge](/cli-judge-mode/) call decides. Always reachable - never downgraded to block. |
+| `block`              | Always reject an approval-requiring action with a reason - never prompt.                      |
 
 ```bash
 infer config set tools.safety.require_approval true
 infer config set tools.safety.approval_behaviour prompt
 ```
 
+> `judge` is the only behavior that requires a resolvable judge model - config validation fails at startup when neither `judge.model` (in [`judge.yaml`](/cli-judge-mode/#configuring-the-judge-judgeyaml)) nor `agent.model` is set. The [`auto-with-judge` mode](#auto-judge-mode) is validated separately by the headless runner at start (`--mode` / `INFER_AGENT_MODE`).
+
 LLMs request approval before executing Write/Edit/Delete/Bash operations, with a colored, syntax-aware diff preview for file edits.
 
 #### Headless secure-by-default
 
-`infer headless` runs in **standard** mode, so an off-list or mutating action is **not** auto-run. With no approver reachable (CI, heartbeat) it is **blocked** with a reason; under a channel manager (`--require-approval`) it is sent for **IPC** approval (for example a Telegram confirmation). There is no `.*` default - full autonomy is an explicit opt-in (a curated allowed-list, the [append override](#append-only-override-ci), or `mode.auto` / `.*`).
+`infer headless` runs in **standard** mode, so an off-list or mutating action is **not** auto-run. With no approver reachable (CI, heartbeat) it is **blocked** with a reason; under a channel manager (`--require-approval`) it is sent for **IPC** approval (for example a Telegram confirmation). There is no `.*` default - full autonomy is an explicit opt-in (a curated allowed-list, the [append override](#append-only-override-ci), or `mode.auto` / `.*`). To keep a gate without a human, run `--mode auto-with-judge` (or set `approval_behaviour: judge`) and let an [LLM judge](/cli-judge-mode/) answer instead of blocking.
 
 For a CI agent that should edit files and run a curated command set with **no** interactive approver, use the **controlled-autonomy** profile - `block` everything that would need approval, but let the agent write files and run a vetted allowed-list:
 
