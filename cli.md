@@ -807,18 +807,18 @@ When tools are enabled, LLMs have access to a comprehensive suite across multipl
 
 ### Tool Categories
 
-| Category              | Tools                                                             | Description                                                                                                                |
-| --------------------- | ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| **File System**       | Read, Write, Edit, MultiEdit, Delete, Tree, Grep                  | File operations and search with safety controls                                                                            |
-| **Command Execution** | Bash, BashOutput, KillShell, ListShells, Wait                     | Allow-listed shell execution (including `gh` for GitHub), background shell control, and blocking wait for conditions       |
-| **Web**               | WebSearch, WebFetch                                               | Internet research and content fetching                                                                                     |
-| **Workflow**          | TodoWrite, Schedule, RequestPlanApproval, AskUserQuestion, Memory | Task tracking, cron jobs, plan-mode approval, clarifying questions, and persistent cross-session memory                    |
-| **A2A Integration**   | A2A_QueryAgent, A2A_SubmitTask, A2A_QueryTask                     | Delegate to external specialized agents - see [A2A](/a2a/)                                                                 |
-| **Local Subagents**   | Agent                                                             | Fan out short-lived local subagents in parallel - see [Local Subagents](#local-subagents-agent-tool)                       |
-| **Computer Use**      | Computer, GetLatestFrame                                          | Accessibility-tree reads, presses, screenshots, and pointer/keyboard control - see the Computer Use section above          |
-| **Image**             | ImageGeneration, ImageEdit, ImageVariation                        | Generate, edit, and vary images using the configured image model - independent of the chat session model                   |
-| **Audio**             | TextToSpeech                                                      | Local speech synthesis and voice cloning - opt-in via `text_to_speech.enabled`, see [Text-to-Speech](/cli-text-to-speech/) |
-| **MCP**               | `MCP_<server>_<tool>`                                             | Dynamically registered tools from MCP servers - see [MCP](/mcp/)                                                           |
+| Category              | Tools                                                                              | Description                                                                                                                         |
+| --------------------- | ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| **File System**       | Read, Write, Edit, MultiEdit, Delete, Tree, Grep                                   | File operations and search with safety controls                                                                                     |
+| **Command Execution** | Bash, BashOutput, KillShell, ListShells, Wait                                      | Allow-listed shell execution (including `gh` for GitHub), background shell control, and blocking wait for conditions                |
+| **Web**               | WebSearch, WebFetch                                                                | Internet research and content fetching                                                                                              |
+| **Workflow**          | TodoWrite, Schedule, RequestPlanApproval, AskUserQuestion, RequestApproval, Memory | Task tracking, cron jobs, plan-mode approval, clarifying questions, judge-rejection escalation, and persistent cross-session memory |
+| **A2A Integration**   | A2A_QueryAgent, A2A_SubmitTask, A2A_QueryTask                                      | Delegate to external specialized agents - see [A2A](/a2a/)                                                                          |
+| **Local Subagents**   | Agent                                                                              | Fan out short-lived local subagents in parallel - see [Local Subagents](#local-subagents-agent-tool)                                |
+| **Computer Use**      | Computer, GetLatestFrame                                                           | Accessibility-tree reads, presses, screenshots, and pointer/keyboard control - see the Computer Use section above                   |
+| **Image**             | ImageGeneration, ImageEdit, ImageVariation                                         | Generate, edit, and vary images using the configured image model - independent of the chat session model                            |
+| **Audio**             | TextToSpeech                                                                       | Local speech synthesis and voice cloning - opt-in via `text_to_speech.enabled`, see [Text-to-Speech](/cli-text-to-speech/)          |
+| **MCP**               | `MCP_<server>_<tool>`                                                              | Dynamically registered tools from MCP servers - see [MCP](/mcp/)                                                                    |
 
 ### File System Tools
 
@@ -1302,6 +1302,17 @@ Submit a completed plan for user approval. Available only in Plan Mode.
 - **Parameters**: `plan` (required - the complete, detailed plan text)
 - **Behavior**: pauses execution and offers three choices (see [Approving a plan](#approving-a-plan)) - **Accept** (`Enter`/`y`) switches to [Auto-Accept mode](#auto-accept-mode) and executes with no per-action approval, **Approve Each Step** (`s`) executes in [Standard mode](#standard-mode) with approval on each action, and **Reject** (`n`) ends the session so you can reply with feedback.
 
+#### RequestApproval
+
+Ask the user to override an [LLM judge](/cli-judge-mode/) rejection so the rejected tool call can run once. The agent reaches for it after a judge rejection (in `auto-with-judge` mode or under `tools.safety.approval_behaviour: judge`) - the rejection result itself hints that the path exists.
+
+- **Parameters**: `tool` (required - name of the rejected tool), `arguments` (required object - the exact arguments of the rejected call; `{}` for a call without arguments), `what` (required - what permission is needed, one sentence), `why` (required - why the action serves the user's request)
+- **Behavior**: shows the rejected call in the regular approval box with the judge's reason and the agent's justification. **Approve** runs that exact call once with the judge bypassed; **Reject** or dismissal denies and the turn continues with the decision in context.
+- **Eligibility**: only calls the judge actually rejected can be escalated, and each one only **once** - anything else returns `not_rejected` or `already_escalated`. The tool is advertised in every mode (a mode switch never invalidates the prompt cache), but outside judge mode nothing is ever rejected, so it has nothing to escalate.
+- **Headless graceful-degrade**: with no interactive approver (CI, headless, channels without an approval form) it returns a distinguishable "no approver reachable" result instead of blocking.
+
+See [Escalating a rejection](/cli-judge-mode/#escalating-a-rejection-requestapproval) for the full flow.
+
 ### Local Subagents (Agent tool)
 
 The **Agent** tool lets the main agent - in chat or headless [`infer agent`](#headless-agent-stream-output) - spawn one or more **local subagents** that run work in parallel and fold their results back into the main conversation. A subagent is just an `infer agent` subprocess with its own isolated session, so it is cheap, isolated, and session-persisted. The tool is **enabled by default** and gated by the [`tools.agent.*` config block](#agent-tool-configuration).
@@ -1481,22 +1492,22 @@ Two-layer configuration system with precedence from highest to lowest:
 
 `infer init` scaffolds the project configuration directory (`.infer/`) and `~/.infer/` holds user-global defaults. Configuration is split across purpose-specific YAML files rather than one giant file:
 
-| File               | Scope        | Purpose                                                                                      | Where it is documented                                      |
-| ------------------ | ------------ | -------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| `config.yaml`      | Project/user | Main config - agent, tools, storage, pricing, and everything `config get`/`set` touches.     | [Configuration](#configuration-commands)                    |
-| `prompts.yaml`     | Project/user | System prompts (`prompts.agent.system_prompt`) and per-mode adjustments - edited, not `set`. | [Configuration Commands](#configuration-commands)           |
-| `mcp.yaml`         | Project      | MCP server definitions and connection settings.                                              | [MCP Integration](#mcp-integration)                         |
-| `keybindings.yaml` | Project/user | Keybindings for the TUI and diff viewer (category `diff_viewer`).                            | [Diff viewer and git staging](#diff-viewer-and-git-staging) |
-| `hooks.yaml`       | Project/user | User-defined shell commands run at agent-loop hook points (feature-flagged off by default).  | [Command Hooks](/cli-hooks/)                                |
-| `reminders.yaml`   | Project/user | System reminders injected into the conversation on a schedule.                               | [System Reminders](#system-reminders)                       |
-| `judge.yaml`       | Project/user | LLM judge that decides approval-requiring tool calls (model, timeout, prompts, `on_error`).  | [Judge Mode](/cli-judge-mode/)                              |
-| `memory.yaml`      | Project/user | Persistent, cross-session agent memory - fact-files plus the `MEMORY.md` index.              | [Persistent Memory](#persistent-memory)                     |
-| `shortcuts/*.yaml` | Project      | Custom slash shortcuts - simple commands, subcommands, and AI-powered snippets.              | [Custom Shortcuts](#custom-shortcuts)                       |
-| `skills/`          | Project/user | Agent Skills folders (`name/SKILL.md`) discovered and injected on demand.                    | [Agent Skills](#agent-skills)                               |
-| `schedules/`       | User         | Persisted cron jobs created by the Schedule tool, run by the daemon.                         | [Schedule](#schedule)                                       |
-| `artifacts/`       | Project/user | Agent deliverables, grouped per session.                                                     | [Artifacts directory](#artifacts-directory)                 |
-| `logs/`            | User         | CLI and gateway log files (`~/.infer/logs`, overridable via `logging.dir`).                  | [Key Configuration Areas](#key-configuration-areas)         |
-| `bin/`             | User         | Downloaded binaries - the gateway server, plus optional helpers like `ffmpeg`.               | [Key Configuration Areas](#key-configuration-areas)         |
+| File               | Scope        | Purpose                                                                                                                                               | Where it is documented                                      |
+| ------------------ | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| `config.yaml`      | Project/user | Main config - agent, tools, storage, pricing, and everything `config get`/`set` touches.                                                              | [Configuration](#configuration-commands)                    |
+| `prompts.yaml`     | Project/user | System prompts (`prompts.agent.system_prompt`), per-mode adjustments, and tool descriptions (`prompts.tools.<Tool>.description`) - edited, not `set`. | [Configuration Commands](#configuration-commands)           |
+| `mcp.yaml`         | Project      | MCP server definitions and connection settings.                                                                                                       | [MCP Integration](#mcp-integration)                         |
+| `keybindings.yaml` | Project/user | Keybindings for the TUI and diff viewer (category `diff_viewer`).                                                                                     | [Diff viewer and git staging](#diff-viewer-and-git-staging) |
+| `hooks.yaml`       | Project/user | User-defined shell commands run at agent-loop hook points (feature-flagged off by default).                                                           | [Command Hooks](/cli-hooks/)                                |
+| `reminders.yaml`   | Project/user | System reminders injected into the conversation on a schedule.                                                                                        | [System Reminders](#system-reminders)                       |
+| `judge.yaml`       | Project/user | LLM judge that decides approval-requiring tool calls (model, timeout, prompts, `on_error`).                                                           | [Judge Mode](/cli-judge-mode/)                              |
+| `memory.yaml`      | Project/user | Persistent, cross-session agent memory - fact-files plus the `MEMORY.md` index.                                                                       | [Persistent Memory](#persistent-memory)                     |
+| `shortcuts/*.yaml` | Project      | Custom slash shortcuts - simple commands, subcommands, and AI-powered snippets.                                                                       | [Custom Shortcuts](#custom-shortcuts)                       |
+| `skills/`          | Project/user | Agent Skills folders (`name/SKILL.md`) discovered and injected on demand.                                                                             | [Agent Skills](#agent-skills)                               |
+| `schedules/`       | User         | Persisted cron jobs created by the Schedule tool, run by the daemon.                                                                                  | [Schedule](#schedule)                                       |
+| `artifacts/`       | Project/user | Agent deliverables, grouped per session.                                                                                                              | [Artifacts directory](#artifacts-directory)                 |
+| `logs/`            | User         | CLI and gateway log files (`~/.infer/logs`, overridable via `logging.dir`).                                                                           | [Key Configuration Areas](#key-configuration-areas)         |
+| `bin/`             | User         | Downloaded binaries - the gateway server, plus optional helpers like `ffmpeg`.                                                                        | [Key Configuration Areas](#key-configuration-areas)         |
 
 > **No migration.** `logs/` and `bin/` are userspace-only: they live under `~/.infer/` and are
 > shared by every project. Older versions wrote them into the project's `.infer/` directory; those
@@ -1782,7 +1793,7 @@ infer config set agent.model deepseek/deepseek-v4-flash --project
 infer config init --overwrite
 ```
 
-> System prompts are **not** set via `config set` - they live in `prompts.yaml` (for example `prompts.agent.system_prompt`, and the per-mode `prompts.agent.mode_adjustment_plan` / `mode_adjustment_auto`) and are edited there.
+> System prompts are **not** set via `config set` - they live in `prompts.yaml` (for example `prompts.agent.system_prompt`, and the per-mode `prompts.agent.mode_adjustment_plan` / `mode_adjustment_auto`) and are edited there. The same file holds the **tool descriptions** sent to the model under `prompts.tools.<Tool>.description` - for example `prompts.tools.RequestApproval.description`, which ships with a built-in default explaining when a judge rejection may be escalated. Any key you leave out keeps its built-in text.
 
 #### Command Mapping
 
