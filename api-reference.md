@@ -511,7 +511,7 @@ Content-Type: application/json
 
 ### Images API
 
-Create and modify images using the OpenAI-compatible Images endpoints. All three return the same `ImagesResponse` shape with one or more images as URLs or base64-encoded JSON data, and all require `ENABLE_IMAGES=true`.
+Create and modify images using the OpenAI-compatible Images endpoints. All three return the same `ImagesResponse` shape with one or more images as URLs or base64-encoded JSON data, and all require `IMAGES_ENABLED=true`.
 
 | Endpoint                      | Body                  | Purpose                              |
 | ----------------------------- | --------------------- | ------------------------------------ |
