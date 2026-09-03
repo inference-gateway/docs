@@ -163,7 +163,7 @@ spec:
   language:
     go:
       module: 'github.com/example/my-weather-agent'
-      version: '1.26.2'
+      version: '1.26.7'
 ```
 
 ### 3. Validate the ADL File
@@ -255,7 +255,7 @@ adl init my-agent \
 | --------------------- | ------------------------------------------------ |
 | `--language`          | Programming language: `go`, `rust`, `typescript` |
 | `--go-module`         | Go module path (e.g., `github.com/user/project`) |
-| `--go-version`        | Go version (e.g., `1.26.2`)                      |
+| `--go-version`        | Go version (e.g., `1.26.7`)                      |
 | `--rust-package-name` | Rust package name                                |
 | `--rust-version`      | Rust version (e.g., `1.94`)                      |
 | `--rust-edition`      | Rust edition (e.g., `2024`)                      |
@@ -510,7 +510,7 @@ spec:
   language:
     go:
       module: 'github.com/company/advanced-agent'
-      version: '1.26.2'
+      version: '1.26.7'
   acronyms:
     - api
     - json
@@ -1028,7 +1028,7 @@ Configure language-specific settings. Only one language block should be specifie
 language:
   go:
     module: 'github.com/company/my-agent'
-    version: '1.26.2'
+    version: '1.26.7'
 ```
 
 | Field     | Type   | Description    |

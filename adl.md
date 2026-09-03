@@ -48,7 +48,7 @@ spec:
   language:
     go:
       module: 'github.com/example/my-weather-agent'
-      version: '1.26.2'
+      version: '1.26.7'
 ```
 
 Scaffold, validate, and generate a runnable project from a manifest like this with the ADL CLI:
