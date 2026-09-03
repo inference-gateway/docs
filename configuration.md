@@ -9,7 +9,7 @@ const generalSettings = [
   { variable: 'ALLOWED_MODELS', description: 'Comma-separated list of models to allow. If empty, all models will be available', defaultValue: '""' },
   { variable: 'DISALLOWED_MODELS', description: 'Comma-separated list of models to disallow. If empty, no models will be blocked. Takes lower precedence than ALLOWED_MODELS', defaultValue: '""' },
   { variable: 'ENABLE_VISION', description: 'Enable vision/multimodal support for all providers', defaultValue: 'false' },
-  { variable: 'ENABLE_IMAGES', description: 'Enable the Images API (POST /v1/images/generations, /v1/images/edits, /v1/images/variations). When disabled, the endpoints return a 404', defaultValue: 'false' },
+  { variable: 'IMAGES_ENABLED', description: 'Enable the Images API (POST /v1/images/generations, /v1/images/edits, /v1/images/variations). When disabled, the endpoints return a 404', defaultValue: 'false' },
   { variable: 'AUDIO_ENABLED', description: 'Enable the Audio API (POST /v1/audio/speech). When disabled, the endpoint returns a 404', defaultValue: 'false' },
   { variable: 'AUDIO_LOCAL_AUTO_DOWNLOAD', description: 'Allow the local speech engine to download the llama-tts binary and Qwen3-TTS GGUF weights on demand', defaultValue: 'true' },
   { variable: 'AUDIO_LOCAL_MAX_CONCURRENCY', description: 'Maximum concurrent local syntheses; requests beyond the limit queue rather than fail', defaultValue: '2' },
