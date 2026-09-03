@@ -648,7 +648,7 @@ Content-Type: application/json
 
 Synthesize speech from text using the OpenAI-compatible Audio endpoint. It requires `AUDIO_ENABLED=true`; while disabled the endpoint returns `404 Not Found` with `The Audio API is not enabled. Set AUDIO_ENABLED=true to enable it.`
 
-Requests are served either by a provider (`openai/tts-1`, `llamacpp/...`) or by the gateway's [built-in local engine](#local-speech-engine-local-qwen3-tts) under the reserved model id `local/qwen3-tts`.
+Requests are served either by the `openai` provider (`openai/tts-1`, `openai/gpt-4o-mini-tts`) or by the gateway's [built-in local engine](#local-speech-engine-local-qwen3-tts) under the reserved model id `local/qwen3-tts`. Those two are the only supported backends today: the `llamacpp` provider has a Speech endpoint wired in the gateway registry, but that path is a work in progress and is not supported yet.
 
 ```http
 POST /v1/audio/speech?provider={provider}
@@ -702,14 +702,14 @@ The `CreateSpeechRequest` fields:
 | `response_format` | `string` |          | Audio format: `mp3` (default), `opus`, `aac`, `flac`, `wav`, or `pcm`.                                                                                                                                          |
 | `speed`           | `number` |          | Playback speed between `0.25` and `4.0` (default `1.0`).                                                                                                                                                        |
 | `instructions`    | `string` |          | Extra guidance on how the voice should sound (4096 characters maximum). Ignored by `tts-1` and `tts-1-hd`.                                                                                                      |
-| `reference_audio` | `string` |          | Base64-encoded audio sample for zero-shot voice cloning, forwarded to the provider as-is. Only providers with cloning support honor it (for example Qwen3-TTS behind llama.cpp); OpenAI does not.               |
+| `reference_audio` | `string` |          | Base64-encoded audio sample for zero-shot voice cloning. Only `local/qwen3-tts` honors it today; OpenAI does not support cloning.                                                                               |
 | `language`        | `string` |          | ISO 639-1 language code hint for synthesis (default `en`). Non-standard: forwarded to providers as-is; `local/qwen3-tts` validates it (see below).                                                              |
 
 #### Voice cloning
 
 `reference_audio` carries a base64-encoded voice sample for zero-shot cloning, so the generated speech mimics the voice in the sample. Use a clean mono recording between 1 and 30 seconds - WAV is the safest container.
 
-The simplest way to clone is `local/qwen3-tts`, which handles the sample in-process. For provider routing the gateway forwards the field as-is, so cloning also works with any speech backend that supports audio conditioning: typically a self-hosted Qwen3-TTS-compatible server pointed at by `LLAMACPP_API_URL` and addressed with the `llamacpp/` model prefix. OpenAI's Speech API does not support cloning and accepts only its built-in voices.
+Cloning is served by `local/qwen3-tts`, which handles the sample in-process. OpenAI's Speech API does not support cloning and accepts only its built-in voices, so `local/qwen3-tts` is the only way to clone a voice today - cloning through a self-hosted Qwen3-TTS server behind the `llamacpp` provider is a work in progress and is not supported yet.
 
 ```bash
 curl -X POST http://localhost:8080/v1/audio/speech \

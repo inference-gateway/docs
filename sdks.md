@@ -445,7 +445,7 @@ for chunk in client.create_response_stream(
 
 `create_speech(model, input, voice, provider=None, ...)` synthesizes speech via the OpenAI-compatible [`POST /v1/audio/speech`](/api-reference/#audio-api) endpoint. Unlike the other methods it parses no JSON - it returns the raw audio as `bytes` in the requested `response_format` (`mp3` by default), ready to write to a file or hand to a player. Pass `provider=` to pin the request to one provider, or omit it to let the gateway route from the model prefix.
 
-The endpoint is gated twice: the gateway must run with `AUDIO_ENABLED=true` (otherwise every call fails with `404`), and only providers that implement speech synthesis - OpenAI, plus self-hosted llama.cpp backends - accept it. Anything else answers `400` with the `SpeechNotSupported` body, which the SDK raises as `InferenceGatewayAPIError` carrying `The Audio API is not supported by this provider yet.`
+The endpoint is gated twice: the gateway must run with `AUDIO_ENABLED=true` (otherwise every call fails with `404`), and only the OpenAI provider and the gateway's built-in `local/qwen3-tts` engine serve it (`llamacpp` speech is a work in progress and not supported yet). Anything else answers `400` with the `SpeechNotSupported` body, which the SDK raises as `InferenceGatewayAPIError` carrying `The Audio API is not supported by this provider yet.`
 
 ```python
 from inference_gateway import InferenceGatewayClient
@@ -474,7 +474,7 @@ The keyword arguments mirror the OpenAI `POST /v1/audio/speech` body:
 | `instructions`    | `str \| None`             | Extra guidance on how the voice should sound. Ignored by `tts-1` and `tts-1-hd`.                                                                                       |
 | `response_format` | `str \| None`             | Audio format: `mp3` (gateway default), `opus`, `aac`, `flac`, `wav`, or `pcm`.                                                                                         |
 | `speed`           | `float \| None`           | Playback speed between `0.25` and `4.0` (gateway default `1.0`).                                                                                                       |
-| `reference_audio` | `str \| None`             | Base64-encoded audio sample for zero-shot voice cloning. Only providers with cloning support honor it (for example Qwen3-TTS behind llama.cpp); OpenAI does not.       |
+| `reference_audio` | `str \| None`             | Base64-encoded audio sample for zero-shot voice cloning. Only `local/qwen3-tts` honors it today; OpenAI does not support cloning.                                      |
 
 Every optional argument left at `None` is omitted from the request body rather than sent as a null, so `response_format` and `speed` fall back to the gateway defaults unless you set them. The request is validated as a `CreateSpeechRequest` before it goes out, so bad values raise `InferenceGatewayValidationError` locally.
 
@@ -487,10 +487,9 @@ with open('my-voice-sample.wav', 'rb') as f:
     sample = base64.b64encode(f.read()).decode()
 
 audio = client.create_speech(
-    model='qwen3-tts',
+    model='local/qwen3-tts',
     input='This is my cloned voice speaking.',
     voice='custom',
-    provider='llamacpp',
     response_format='wav',
     reference_audio=sample,
 )
@@ -926,7 +925,7 @@ await client.streamChatCompletion(
 
 `createSpeech(request, provider?)` synthesizes speech via the OpenAI-compatible [`POST /v1/audio/speech`](/api-reference/#audio-api) endpoint. Unlike the other methods it parses no JSON - it resolves to a `Blob` holding the raw audio, whose `type` reflects the requested `response_format` (`audio/mpeg` for the default `mp3`). The optional second argument pins the request to one `Provider`; omit it to let the gateway route from the model prefix.
 
-The endpoint is gated twice: the gateway must run with `AUDIO_ENABLED=true` (otherwise every call fails with `404`), and only providers that implement speech synthesis - OpenAI, plus self-hosted llama.cpp backends - accept it. Anything else rejects the request with `400` and the SDK throws an `Error` carrying `The Audio API is not supported by this provider yet.`
+The endpoint is gated twice: the gateway must run with `AUDIO_ENABLED=true` (otherwise every call fails with `404`), and only the OpenAI provider and the gateway's built-in `local/qwen3-tts` engine serve it (`llamacpp` speech is a work in progress and not supported yet). Anything else rejects the request with `400` and the SDK throws an `Error` carrying `The Audio API is not supported by this provider yet.`
 
 ```typescript
 import { InferenceGatewayClient, Provider } from '@inference-gateway/sdk';
@@ -958,26 +957,23 @@ The `SchemaCreateSpeechRequest` fields mirror the OpenAI `POST /v1/audio/speech`
 | `instructions`    | `string`                             | Extra guidance on how the voice should sound. Ignored by `tts-1` and `tts-1-hd`.                                                                                       |
 | `response_format` | `CreateSpeechRequestResponse_format` | Audio format: `mp3` (default), `opus`, `aac`, `flac`, `wav`, or `pcm`.                                                                                                 |
 | `speed`           | `number`                             | Playback speed between `0.25` and `4.0` (default `1.0`).                                                                                                               |
-| `reference_audio` | `string`                             | Base64-encoded audio sample for zero-shot voice cloning. Only providers with cloning support honor it (for example Qwen3-TTS behind llama.cpp); OpenAI does not.       |
+| `reference_audio` | `string`                             | Base64-encoded audio sample for zero-shot voice cloning. Only `local/qwen3-tts` honors it today; OpenAI does not support cloning.                                      |
 
 `reference_audio` is already-encoded base64 rather than raw bytes - encode the sample yourself:
 
 ```typescript
 import { readFile } from 'node:fs/promises';
-import { CreateSpeechRequestResponse_format, Provider } from '@inference-gateway/sdk';
+import { CreateSpeechRequestResponse_format } from '@inference-gateway/sdk';
 
 const sample = await readFile('my-voice-sample.wav');
 
-const speech = await client.createSpeech(
-  {
-    model: 'qwen3-tts',
-    input: 'This is my cloned voice speaking.',
-    voice: 'custom',
-    response_format: CreateSpeechRequestResponse_format.wav,
-    reference_audio: sample.toString('base64'),
-  },
-  Provider.llamacpp
-);
+const speech = await client.createSpeech({
+  model: 'local/qwen3-tts',
+  input: 'This is my cloned voice speaking.',
+  voice: 'custom',
+  response_format: CreateSpeechRequestResponse_format.wav,
+  reference_audio: sample.toString('base64'),
+});
 ```
 
 In the browser, hand the `Blob` straight to an `<audio>` element with `URL.createObjectURL(speech)` instead of writing a file.
@@ -1426,7 +1422,7 @@ A runnable example lives at [sdk/examples/images](https://github.com/inference-g
 
 `CreateSpeech(ctx, provider, CreateSpeechRequest) ([]byte, error)` synthesizes speech via the OpenAI-compatible `POST /v1/audio/speech` endpoint. Unlike the other methods it returns no struct - the `[]byte` is the raw audio in the requested `ResponseFormat` (`mp3` by default), ready to write to a file or stream to a player.
 
-The endpoint is provider-gated: the gateway must run with `AUDIO_ENABLED=true` (otherwise every call fails with `404`), and only providers that implement speech synthesis - OpenAI, plus self-hosted llama.cpp backends - accept it. Anything else returns a `400` error carrying `The Audio API is not supported by this provider yet.`
+The endpoint is provider-gated: the gateway must run with `AUDIO_ENABLED=true` (otherwise every call fails with `404`), and only the OpenAI provider and the gateway's built-in `local/qwen3-tts` engine serve it (`llamacpp` speech is a work in progress and not supported yet). Anything else returns a `400` error carrying `The Audio API is not supported by this provider yet.`
 
 ```go
 audio, err := client.CreateSpeech(ctx, sdk.Openai, sdk.CreateSpeechRequest{
@@ -1443,23 +1439,23 @@ _ = os.WriteFile("speech.mp3", audio, 0o644)
 
 The `CreateSpeechRequest` fields mirror the OpenAI `POST /v1/audio/speech` body:
 
-| Field            | Go type                              | Description                                                                                                                                                                                      |
-| ---------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `Model`          | `string`                             | Model ID to use for speech synthesis, for example `gpt-4o-mini-tts` or `tts-1` (required).                                                                                                       |
-| `Input`          | `string`                             | The text to synthesize, 4096 characters maximum (required).                                                                                                                                      |
-| `Voice`          | `string`                             | Voice to speak with (required). OpenAI built-ins are `alloy`, `ash`, `ballad`, `coral`, `echo`, `fable`, `onyx`, `nova`, `sage`, `shimmer`, `verse`, `marin`, `cedar`.                           |
-| `Instructions`   | `*string`                            | Extra guidance on how the voice should sound. Ignored by `tts-1` and `tts-1-hd`.                                                                                                                 |
-| `ResponseFormat` | `*CreateSpeechRequestResponseFormat` | Audio format: `sdk.Mp3` (default), `sdk.Opus`, `sdk.Aac`, `sdk.Flac`, `sdk.Wav`, or `sdk.Pcm`.                                                                                                   |
-| `Speed`          | `*float32`                           | Playback speed between `0.25` and `4.0` (default `1.0`).                                                                                                                                         |
-| `ReferenceAudio` | `*[]byte`                            | Audio sample for zero-shot voice cloning, base64-encoded on the wire by `encoding/json`. Only providers with cloning support honor it (for example Qwen3-TTS behind llama.cpp); OpenAI does not. |
+| Field            | Go type                              | Description                                                                                                                                                            |
+| ---------------- | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Model`          | `string`                             | Model ID to use for speech synthesis, for example `gpt-4o-mini-tts` or `tts-1` (required).                                                                             |
+| `Input`          | `string`                             | The text to synthesize, 4096 characters maximum (required).                                                                                                            |
+| `Voice`          | `string`                             | Voice to speak with (required). OpenAI built-ins are `alloy`, `ash`, `ballad`, `coral`, `echo`, `fable`, `onyx`, `nova`, `sage`, `shimmer`, `verse`, `marin`, `cedar`. |
+| `Instructions`   | `*string`                            | Extra guidance on how the voice should sound. Ignored by `tts-1` and `tts-1-hd`.                                                                                       |
+| `ResponseFormat` | `*CreateSpeechRequestResponseFormat` | Audio format: `sdk.Mp3` (default), `sdk.Opus`, `sdk.Aac`, `sdk.Flac`, `sdk.Wav`, or `sdk.Pcm`.                                                                         |
+| `Speed`          | `*float32`                           | Playback speed between `0.25` and `4.0` (default `1.0`).                                                                                                               |
+| `ReferenceAudio` | `*[]byte`                            | Audio sample for zero-shot voice cloning, base64-encoded on the wire by `encoding/json`. Only `local/qwen3-tts` honors it today; OpenAI does not support cloning.      |
 
 Pass `ReferenceAudio` the raw sample bytes - Go marshals `[]byte` to base64 automatically, so do not encode it yourself:
 
 ```go
 sample, _ := os.ReadFile("my-voice-sample.wav")
 
-audio, err := client.CreateSpeech(ctx, sdk.Llamacpp, sdk.CreateSpeechRequest{
-    Model:          "qwen3-tts",
+audio, err := client.CreateSpeech(ctx, sdk.Provider(""), sdk.CreateSpeechRequest{
+    Model:          "local/qwen3-tts",
     Input:          "This is my cloned voice speaking.",
     Voice:          "custom",
     ResponseFormat: ptr(sdk.Wav),
@@ -2053,7 +2049,7 @@ let response = client
 
 `create_speech(provider, request) -> Result<Vec<u8>, GatewayError>` synthesizes speech via the OpenAI-compatible [`POST /v1/audio/speech`](/api-reference/#audio-api) endpoint. Unlike the other methods it deserializes nothing - the `Vec<u8>` is the raw audio in the requested `response_format` (`mp3` by default), ready to write to a file or stream to a player. The `provider` argument is an `Option<Provider>`: pass `Some(...)` to pin the request to one provider, or `None` to let the gateway route it from the model prefix.
 
-The endpoint is gated twice: the gateway must run with `AUDIO_ENABLED=true` (otherwise every call fails with `404`), and only providers that implement speech synthesis - OpenAI, plus self-hosted llama.cpp backends - accept it. Anything else resolves to `GatewayError::BadRequest("The Audio API is not supported by this provider yet.")`.
+The endpoint is gated twice: the gateway must run with `AUDIO_ENABLED=true` (otherwise every call fails with `404`), and only the OpenAI provider and the gateway's built-in `local/qwen3-tts` engine serve it (`llamacpp` speech is a work in progress and not supported yet). Anything else resolves to `GatewayError::BadRequest("The Audio API is not supported by this provider yet.")`.
 
 ```rust
 use inference_gateway_sdk::{
@@ -2091,21 +2087,21 @@ The `CreateSpeechRequest` fields mirror the OpenAI `POST /v1/audio/speech` body:
 | `instructions`    | `Option<CreateSpeechRequestInstructions>` | Extra guidance on how the voice should sound. Ignored by `tts-1` and `tts-1-hd`. Also a 4096-character newtype.                                                        |
 | `response_format` | `CreateSpeechRequestResponseFormat`       | Audio format: `Mp3` (default), `Opus`, `Aac`, `Flac`, `Wav`, or `Pcm`.                                                                                                 |
 | `speed`           | `f64`                                     | Playback speed between `0.25` and `4.0` (default `1.0`).                                                                                                               |
-| `reference_audio` | `Option<String>`                          | Base64-encoded audio sample for zero-shot voice cloning. Only providers with cloning support honor it (for example Qwen3-TTS behind llama.cpp); OpenAI does not.       |
+| `reference_audio` | `Option<String>`                          | Base64-encoded audio sample for zero-shot voice cloning. Only `local/qwen3-tts` honors it today; OpenAI does not support cloning.                                      |
 
 `CreateSpeechRequest` implements `Default`, so `..Default::default()` fills in `response_format: Mp3` and `speed: 1.0` and leaves the optional fields unset. Unlike the Go SDK, `reference_audio` is already-encoded base64 rather than raw bytes - encode the sample yourself before assigning it:
 
 ```rust
 use base64::{Engine, engine::general_purpose::STANDARD};
-use inference_gateway_sdk::{CreateSpeechRequest, CreateSpeechRequestResponseFormat, Provider};
+use inference_gateway_sdk::{CreateSpeechRequest, CreateSpeechRequestResponseFormat};
 
 let sample = std::fs::read("my-voice-sample.wav").expect("read sample");
 
 let audio = client
     .create_speech(
-        Some(Provider::Llamacpp),
+        None,
         CreateSpeechRequest {
-            model: "qwen3-tts".to_string(),
+            model: "local/qwen3-tts".to_string(),
             input: "This is my cloned voice speaking.".parse().expect("valid text"),
             voice: "custom".to_string(),
             response_format: CreateSpeechRequestResponseFormat::Wav,

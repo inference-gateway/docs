@@ -10,7 +10,7 @@ const generalSettings = [
   { variable: 'DISALLOWED_MODELS', description: 'Comma-separated list of models to disallow. If empty, no models will be blocked. Takes lower precedence than ALLOWED_MODELS', defaultValue: '""' },
   { variable: 'ENABLE_VISION', description: 'Enable vision/multimodal support for all providers', defaultValue: 'false' },
   { variable: 'IMAGES_ENABLED', description: 'Enable the Images API (POST /v1/images/generations, /v1/images/edits, /v1/images/variations). When disabled, the endpoints return a 404', defaultValue: 'false' },
-  { variable: 'AUDIO_ENABLED', description: 'Enable the Audio API (POST /v1/audio/speech). When disabled, the endpoint returns a 404', defaultValue: 'false' },
+  { variable: 'AUDIO_ENABLED', description: 'Enable the Audio API (POST /v1/audio/speech). When disabled, the endpoint returns a 404. Supported by the openai provider and by the local llama-tts engine (local/qwen3-tts); llamacpp speech is a work in progress and not supported yet', defaultValue: 'false' },
   { variable: 'AUDIO_LOCAL_AUTO_DOWNLOAD', description: 'Allow the local speech engine to download the llama-tts binary and Qwen3-TTS GGUF weights on demand', defaultValue: 'true' },
   { variable: 'AUDIO_LOCAL_MAX_CONCURRENCY', description: 'Maximum concurrent local syntheses; requests beyond the limit queue rather than fail', defaultValue: '2' },
   { variable: 'AUDIO_LOCAL_TIMEOUT', description: 'Timeout in seconds for a single local synthesis, surfaced as a 504', defaultValue: '300' },
@@ -193,7 +193,7 @@ Environment variables are the primary method for configuring Inference Gateway. 
 
 When `ENABLE_VISION` is set to `true`, Inference Gateway enables vision/multimodal capabilities, allowing you to send images alongside text in chat completion requests. When disabled (default), requests with image content will be rejected even if the provider and model support vision. This is disabled by default for performance and security reasons.
 
-`IMAGES_ENABLED` and `AUDIO_ENABLED` are separate opt-ins for the [Images API](/api-reference/#images-api) and the [Audio API](/api-reference/#audio-api). While they are `false`, those endpoints return `404`. Only providers that implement the corresponding API can serve them (currently `openai`, plus `llamacpp` for speech); other providers return `400`.
+`IMAGES_ENABLED` and `AUDIO_ENABLED` are separate opt-ins for the [Images API](/api-reference/#images-api) and the [Audio API](/api-reference/#audio-api). While they are `false`, those endpoints return `404`. Only providers that implement the corresponding API can serve them (currently `openai`, plus the built-in `local/qwen3-tts` engine for speech); other providers return `400`. The `llamacpp` provider has a speech endpoint wired in the gateway registry, but that path is a work in progress and is not supported yet.
 
 The `AUDIO_LOCAL_*` variables tune the built-in [local speech engine](/api-reference/#local-speech-engine-local-qwen3-tts) that serves the reserved model id `local/qwen3-tts` without any provider. They are ignored when the request routes to a provider.
 
