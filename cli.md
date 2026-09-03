@@ -341,15 +341,46 @@ When you open the model picker (`/model` with no argument), each model may show 
 | Label       | Meaning                                                                                                          |
 | ----------- | ---------------------------------------------------------------------------------------------------------------- |
 | `vision`    | The model accepts image input natively - pasted or @-referenced images are seen directly, no ImageDecode needed. |
-| `image-gen` | The model generates images (e.g. DALL-E, GPT-Image). These models are filtered from the selectable chat list.    |
+| `audio`     | The model takes audio input (speech-to-text, multimodal chat).                                                   |
+| `video`     | The model takes video input.                                                                                     |
+| `image-gen` | The model generates images (e.g. DALL-E, GPT-Image) rather than text.                                            |
+| `view-only` | The model cannot serve `/chat/completions` and therefore cannot be selected - see below.                         |
 
-The picker lists only **chat-capable models**: a model appears only when the gateway reports modalities for it and those modalities are text in, text out. Speech-to-text (e.g. `groq/whisper-*`), text-to-speech (e.g. `openai/tts-*`, `groq/playai-tts*`), image-generation and embedding models are hidden without any configuration. A model the gateway reports no modalities for (`"modalities": null`) is treated as not chat-capable and hidden too, since that is how most speech and embedding models arrive.
+Labels are derived from the **gateway-reported modalities** (`/v1/models?include=modalities`), not from name patterns. A model gets the `vision` label when its input modalities include both `text` and `image`; it gets the `image-gen` label when its output modalities include `image` without `text`. Labels are appended to the metadata suffix after the context window and price:
 
-Labels are derived from the **gateway-reported modalities** (`/v1/models?include=modalities`), not from name patterns. A model gets the `vision` label when its input modalities include both `text` and `image`; it gets the `image-gen` label when its output modalities include `image` without `text`.
+```
+ollama_cloud/glm-5.3-flash (1M, vision, video)
+groq/whisper-large-v3      (?, $0.04/$0.00 per MTok, audio, view-only)
+```
 
-**Gateway version requirement:** Modalities-driven labels and the chat-capability filter require gateway v0.47+. Against an older gateway, models report no modalities, so no labels are shown and no model passes the filter - the picker comes up empty. Upgrade the running gateway to v0.47+ to see your catalog.
+**Gateway version requirement:** Modalities-driven labels and the chat-capability filter require gateway v0.47+. Against an older gateway, models report no modalities, so no labels are shown and no model is chat-capable. Upgrade the running gateway to v0.47+ to see your catalog.
 
-> Shipped in [inference-gateway/cli#1031](https://github.com/inference-gateway/cli/pull/1031) and [inference-gateway/cli#1132](https://github.com/inference-gateway/cli/pull/1132).
+##### View-only models
+
+Non-chat models - speech-to-text (e.g. `groq/whisper-*`), text-to-speech (e.g. `openai/tts-*`, `groq/playai-tts*`), image generation and video - are **listed** in the picker with a `view-only` marker, after the chat-capable rows. They are visible so you can see what the gateway offers, but pressing `Enter` on one is rejected with a notice (`<model> does not support chat and cannot be selected`) and the picker stays open. Only chat-capable models can be selected, and `/model <name>`, model validation and autocomplete are unaffected.
+
+A model the gateway reports no modalities for (`"modalities": null`) is treated as not chat-capable, which is how most speech and embedding models arrive.
+
+##### Filter tabs
+
+The picker has two tab rows that are **ANDed** together, so `Free` + `Vision` lists only free vision models:
+
+| Row        | Keys  | Tabs                                                           |
+| ---------- | ----- | -------------------------------------------------------------- |
+| Pricing    | `1-4` | `[1] All`, `[2] Free`, `[3] Pay-as-you-go`, `[4] Subscription` |
+| Capability | `5-8` | `[5] Any`, `[6] Vision`, `[7] Audio`, `[8] Video`              |
+
+`Vision` matches image **input**. `Audio` and `Video` match models that work with that modality on **either side**, so both speech-to-text and text-to-speech models appear under `Audio`. See [Model Categories](#model-categories-free-pay-as-you-go-subscription) for how the pricing tabs are derived.
+
+The footer help line lists the full keymap:
+
+```
+↑↓ navigate · Enter select · / search · esc clear · 1-4 pricing · 5-8 capability · Ctrl+C cancel
+```
+
+Digits typed while the search input is active (`/`) go into the query, not the tabs.
+
+> Shipped in [inference-gateway/cli#1031](https://github.com/inference-gateway/cli/pull/1031), [inference-gateway/cli#1132](https://github.com/inference-gateway/cli/pull/1132) and [inference-gateway/cli#1166](https://github.com/inference-gateway/cli/pull/1166).
 
 #### Diff viewer and git staging
 
@@ -2472,26 +2503,27 @@ pricing:
 
 > **Override caveat:** a `custom_prices` entry **fully replaces** the default for that model - it is not merged field by field. Omitting `requires_pro` in a custom override therefore resets it to `false`, even when the model is flagged Pro by default. Set `requires_pro: true` explicitly when overriding the pricing of a Pro model.
 
-#### Model Categories (Free / Paid / Pro)
+#### Model Categories (Free / Pay-as-you-go / Subscription)
 
-The model picker shows filter tabs - `[1] All`, `[2] Free`, `[3] Paid`, `[4] Pro` - and groups models into three disjoint categories:
+The model picker's [pricing tab row](#filter-tabs) - `[1] All`, `[2] Free`, `[3] Pay-as-you-go`, `[4] Subscription` - groups models into three disjoint categories:
 
-| Category | Meaning                                                        |
-| -------- | -------------------------------------------------------------- |
-| Free     | No per-token cost **and** not gated behind a Pro subscription. |
-| Paid     | Billed per token.                                              |
-| Pro      | Gated behind a paid Pro subscription (`requires_pro: true`).   |
+| Category      | Meaning                                                         |
+| ------------- | --------------------------------------------------------------- |
+| Free          | No per-token cost **and** not subscription-gated.               |
+| Pay-as-you-go | Billed per token.                                               |
+| Subscription  | Gated behind a paid subscription rather than per-token billing. |
 
-Pro is an axis **orthogonal to price**: an Ollama Cloud Pro model has no per-token cost but is not free, so it is labelled `pro subscription` rather than `free`. The marker appears both in the picker rows and in `/model` autocomplete descriptions:
+Subscription is an axis **orthogonal to price**: an Ollama Cloud model has no per-token cost but is not free, so it is labelled `pro subscription` rather than `free`. The marker appears both in the picker rows and in `/model` autocomplete descriptions:
 
 ```
 ollama_cloud/deepseek-v4-pro   (1M, pro subscription)
 ollama_cloud/deepseek-v4-flash (1M, pro subscription)
-ollama_cloud/deepseek-v3.2     (128K, free)
-deepseek/deepseek-v4-flash       (1M, $1.74/$3.48 per MTok)
+deepseek/deepseek-v4-flash     (1M, $1.74/$3.48 per MTok)
 ```
 
-`ollama_cloud/deepseek-v4-pro` and `ollama_cloud/deepseek-v4-flash` are flagged Pro by default. This default Pro set is **maintainer-curated** (Ollama publishes no stable per-model tier badge) and fully overridable through `custom_prices` - set `requires_pro: true` to gate additional models, or override a default Pro model as shown above.
+The classification comes from the **gateway's pricing metadata** - the `pricing.subscription` flag reported per model - so it tracks the gateway catalog with no CLI-side list to maintain. A `custom_prices` entry still wins: set `requires_pro: true` to gate a model the gateway does not flag, or `false` to un-gate one (remembering the [override caveat](#pricing-configuration) that an entry fully replaces the default).
+
+> The gateway-flag source shipped in [inference-gateway/cli#1166](https://github.com/inference-gateway/cli/pull/1166), replacing the previous hardcoded list of Pro models.
 
 ### Model Thinking Visualization
 
