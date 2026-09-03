@@ -774,7 +774,7 @@ go build -ldflags "\
 In a Dockerfile, drive these from `ARG`s so images can be tagged per release:
 
 ```dockerfile
-FROM golang:1.26-alpine AS builder
+FROM golang:1.26.7-alpine AS builder
 ARG AGENT_NAME="My A2A Agent"
 ARG AGENT_DESCRIPTION="A custom A2A agent built with the ADK"
 ARG AGENT_VERSION="0.1.0"
