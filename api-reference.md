@@ -130,6 +130,8 @@ Monetary values are USD per-token decimal strings (e.g. `"0.00000027"`) to avoid
 
 The pricing object may also include an optional `subscription` field (boolean, default `false`). When `true`, the model is gated behind a paid subscription - it has no per-token price (all rates are `"0"`) but requires an active subscription to use. Models without the field (or with `subscription: false`) are free-tier models with genuine zero per-token rates.
 
+Every `ollama_cloud/*` model is subscription-gated: the community table applies the rule at the provider level, so all Ollama Cloud models resolve to a populated pricing object with `subscription: true` and zero-rate `input_per_token` / `output_per_token` rather than `pricing: null`. Clients should classify them as Subscription, not Free. See [Ollama Cloud Provider](/supported-providers/#ollama-cloud-provider) for the provider setup.
+
 Example response for an OpenAI model with `include=pricing`:
 
 ```http
@@ -177,7 +179,7 @@ Content-Type: application/json
 
 In this example, `gpt-5` carries provider-published rates while `gpt-5-mini` fell back to the community table (`source: "community"`; community entries omit `updated_at`).
 
-Example response for a subscription-gated model with `include=pricing`:
+Example response for subscription-gated Ollama Cloud models with `include=pricing`:
 
 ```http
 GET /v1/models?include=pricing
@@ -203,12 +205,26 @@ Content-Type: application/json
         "subscription": true,
         "source": "community"
       }
+    },
+    {
+      "id": "ollama_cloud/gpt-oss:120b",
+      "object": "model",
+      "created": 1741879542,
+      "owned_by": "ollama_cloud",
+      "served_by": "ollama_cloud",
+      "pricing": {
+        "currency": "USD",
+        "input_per_token": "0",
+        "output_per_token": "0",
+        "subscription": true,
+        "source": "community"
+      }
     }
   ]
 }
 ```
 
-Here the model has zero per-token rates and `subscription: true`, indicating it requires a paid subscription. Compare with a free-tier model that also has zero rates but omits the `subscription` field entirely.
+Both models have zero per-token rates and `subscription: true`, indicating they require a paid subscription. The flag is not limited to specific families - every Ollama Cloud model carries it. Compare with a free-tier model that also has zero rates but omits the `subscription` field entirely.
 
 Models with no resolvable per-token pricing - locally hosted models or anything absent from both the provider listing and the community table - return `"pricing": null`.
 
