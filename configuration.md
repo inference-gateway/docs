@@ -193,7 +193,7 @@ Environment variables are the primary method for configuring Inference Gateway. 
 
 When `ENABLE_VISION` is set to `true`, Inference Gateway enables vision/multimodal capabilities, allowing you to send images alongside text in chat completion requests. When disabled (default), requests with image content will be rejected even if the provider and model support vision. This is disabled by default for performance and security reasons.
 
-`ENABLE_IMAGES` and `AUDIO_ENABLED` are separate opt-ins for the [Images API](/api-reference/#images-api) and the [Audio API](/api-reference/#audio-api). While they are `false`, those endpoints return `404`. Only providers that implement the corresponding API can serve them (currently `openai`, plus `llamacpp` for speech); other providers return `400`.
+`IMAGES_ENABLED` and `AUDIO_ENABLED` are separate opt-ins for the [Images API](/api-reference/#images-api) and the [Audio API](/api-reference/#audio-api). While they are `false`, those endpoints return `404`. Only providers that implement the corresponding API can serve them (currently `openai`, plus `llamacpp` for speech); other providers return `400`.
 
 The `AUDIO_LOCAL_*` variables tune the built-in [local speech engine](/api-reference/#local-speech-engine-local-qwen3-tts) that serves the reserved model id `local/qwen3-tts` without any provider. They are ignored when the request routes to a provider.
 
