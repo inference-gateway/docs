@@ -1539,11 +1539,48 @@ Two-layer configuration system with precedence from highest to lowest:
 | `artifacts/`       | Project/user | Agent deliverables, grouped per session.                                                                                                              | [Artifacts directory](#artifacts-directory)                 |
 | `logs/`            | User         | CLI and gateway log files (`~/.infer/logs`, overridable via `logging.dir`).                                                                           | [Key Configuration Areas](#key-configuration-areas)         |
 | `bin/`             | User         | Downloaded binaries - the gateway server, plus optional helpers like `ffmpeg`.                                                                        | [Key Configuration Areas](#key-configuration-areas)         |
+| `auth.json`        | User         | Fallback provider API keys, used when a key is not in the environment or the project `.env`.                                                          | [Provider API keys](#provider-api-keys)                     |
 
 > **No migration.** `logs/` and `bin/` are userspace-only: they live under `~/.infer/` and are
 > shared by every project. Older versions wrote them into the project's `.infer/` directory; those
 > directories are orphaned by design and safe to delete. The `.infer/.gitignore` seeded by
 > `infer init` no longer lists `bin/` or `logs/*.log`.
+
+### Provider API keys
+
+Provider API keys (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GROQ_API_KEY`, ...) are resolved **per key, first hit wins**:
+
+| Priority    | Source               | Notes                                          |
+| ----------- | -------------------- | ---------------------------------------------- |
+| 1 (Highest) | System environment   | Exported in your shell, CI secrets, and so on. |
+| 2           | Project `.env`       | `.env` in the project directory.               |
+| 3 (Lowest)  | `~/.infer/auth.json` | Userspace fallback, shared by every project.   |
+
+Because resolution is per key, sources mix: `OPENAI_API_KEY` can come from the environment while `ANTHROPIC_API_KEY` comes from `auth.json` in the same run. The fallback applies when the CLI starts the gateway in **both container and binary modes**, and to [A2A](#a2a-integration) agent containers.
+
+`auth.json` is a flat JSON map of environment-variable names to values:
+
+```json
+{
+  "ANTHROPIC_API_KEY": "sk-ant-...",
+  "OPENAI_API_KEY": "sk-...",
+  "DEEPSEEK_API_KEY": "sk-..."
+}
+```
+
+Create it once and keep it private:
+
+```bash
+mkdir -p ~/.infer
+$EDITOR ~/.infer/auth.json
+chmod 600 ~/.infer/auth.json
+```
+
+- **Permissions**: `0600` is recommended. Broader permissions still work but log a warning.
+- **Sandboxed**: `~/.infer/auth.json` is on the [protected paths](#protected-paths) list - agent tools cannot read or edit it.
+- **Graceful degradation**: a missing or unreadable file changes nothing; a malformed file is ignored with a logged warning. Key resolution never fails because of `auth.json`.
+
+> Shipped in [inference-gateway/cli#1169](https://github.com/inference-gateway/cli/pull/1169).
 
 ### Artifacts directory
 
@@ -3222,6 +3259,7 @@ Automatically excluded from tool access:
 - `.git/` - Repository data
 - `*.env` - Environment files
 - `.infer/` - Configuration directory
+- `~/.infer/auth.json` - [Fallback provider API keys](#provider-api-keys)
 - Custom paths via sandbox config
 
 ### Approval Workflow
