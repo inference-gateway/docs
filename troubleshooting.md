@@ -88,19 +88,19 @@ For full MCP setup details see [MCP Integration](/mcp/).
 
 ## Vision / Multimodal
 
-### Image input is rejected
+### The model answers as if it never saw the image
 
-**Symptom.** Sending a chat completion with an `image_url` or base64 image content returns `400 Bad Request` with a message about images being disabled, even though the provider/model supports vision.
+**Symptom.** A chat completion carrying an `image_url` or base64 image content succeeds, but the reply only reflects the text - the image appears to have been ignored.
 
-**Likely cause.** Vision support is opt-in. Without `ENABLE_VISION=true`, the gateway rejects any request that contains image content regardless of the underlying provider's capabilities.
+**Likely cause.** With `ENABLE_VISION=true`, the gateway strips image parts from requests to models it does not recognize as vision-capable and forwards the text only. With `ENABLE_VISION=false` (the default) the gateway forwards image content untouched, so an ignored image means the upstream provider or model dropped it. The gateway does not reject a request for containing an image in either mode.
 
-**Fix.** Enable vision globally on the gateway:
+**Fix.** Verify the model itself supports vision (e.g. `gpt-5`, `claude-opus-4-8`, `gemini-3-flash`) - see [Providers with Vision Support](/supported-providers/#providers-with-vision-support). If it does and images are still ignored, check the flag:
 
 ```bash
 ENABLE_VISION=true
 ```
 
-After restarting the gateway, retry the request. If it still fails, verify the model itself supports vision (e.g. `gpt-5`, `claude-opus-4-8`, `gemini-3-flash`) - vision support is also gated on the upstream model.
+Restart the gateway after changing it, then retry the request.
 
 ## Provider Errors
 
@@ -167,7 +167,7 @@ ANY /proxy/{provider}/{path}
 
 ### Environment variables look correct but the gateway behaves as if defaults were used
 
-**Symptom.** You set `AUTH_ENABLED=true` (or `MCP_ENABLED=true`, `ENABLE_VISION=true`, ...) but the gateway logs `auth disabled` / `mcp disabled` / continues to reject images.
+**Symptom.** You set `AUTH_ENABLED=true` (or `MCP_ENABLED=true`, `ENABLE_VISION=true`, ...) but the gateway logs `auth disabled` / `mcp disabled` / keeps behaving as if vision handling were off.
 
 **Likely cause.** Variables are not reaching the gateway process. In Docker Compose this usually means the variable is set in the shell but not declared under `environment:` in `docker-compose.yml`; in Kubernetes, the ConfigMap is mounted into a different container or the pod was not restarted.
 

@@ -8,7 +8,7 @@ const generalSettings = [
   { variable: 'ENVIRONMENT', description: 'Deployment environment', defaultValue: 'production' },
   { variable: 'ALLOWED_MODELS', description: 'Comma-separated list of models to allow. If empty, all models will be available', defaultValue: '""' },
   { variable: 'DISALLOWED_MODELS', description: 'Comma-separated list of models to disallow. If empty, no models will be blocked. Takes lower precedence than ALLOWED_MODELS', defaultValue: '""' },
-  { variable: 'ENABLE_VISION', description: 'Enable vision/multimodal support for all providers', defaultValue: 'false' },
+  { variable: 'ENABLE_VISION', description: 'Enable vision/multimodal handling for all providers. When enabled, image content is stripped from requests to models not known to accept images and passed through to vision-capable models. When disabled, image content is forwarded to the provider untouched', defaultValue: 'false' },
   { variable: 'IMAGES_ENABLED', description: 'Enable the Images API (POST /v1/images/generations, /v1/images/edits, /v1/images/variations). When disabled, the endpoints return a 404', defaultValue: 'false' },
   { variable: 'AUDIO_ENABLED', description: 'Enable the Audio API (POST /v1/audio/speech). When disabled, the endpoint returns a 404', defaultValue: 'false' },
   { variable: 'AUDIO_LOCAL_AUTO_DOWNLOAD', description: 'Allow the local speech engine to download the llama-tts binary and Qwen3-TTS GGUF weights on demand', defaultValue: 'true' },
@@ -191,7 +191,7 @@ Environment variables are the primary method for configuring Inference Gateway. 
 
 <ConfigTable :rows="generalSettings" />
 
-When `ENABLE_VISION` is set to `true`, Inference Gateway enables vision/multimodal capabilities, allowing you to send images alongside text in chat completion requests. When disabled (default), requests with image content will be rejected even if the provider and model support vision. This is disabled by default for performance and security reasons.
+`ENABLE_VISION` controls whether the gateway inspects image content in chat completion requests. When disabled (the default), the gateway does not look at image content at all - image parts are forwarded to the provider untouched. When set to `true`, the gateway checks each request's model: image parts are stripped for models it does not recognize as vision-capable (the request continues with the text parts only) and passed through for models that are. Either way, the gateway never rejects a request because it contains an image.
 
 `IMAGES_ENABLED` and `AUDIO_ENABLED` are separate opt-ins for the [Images API](/api-reference/#images-api) and the [Audio API](/api-reference/#audio-api). While they are `false`, those endpoints return `404`. Only providers that implement the corresponding API can serve them (currently `openai`, plus `llamacpp` for speech); other providers return `400`.
 
