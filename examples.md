@@ -130,7 +130,7 @@ curl -X POST http://localhost:8080/v1/chat/completions \
 Process images with vision-capable models. First, enable vision support:
 
 ```bash
-ENABLE_VISION=true
+VISION_ENABLED=true
 ```
 
 #### Using HTTP Image URL

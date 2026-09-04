@@ -36,7 +36,7 @@ Inference Gateway provides a unified interface to interact with multiple LLM pro
 Several providers support vision/multimodal capabilities, allowing you to process images alongside text. To have the gateway handle image content, enable it in your configuration:
 
 ```bash
-ENABLE_VISION=true
+VISION_ENABLED=true
 ```
 
 **Note:** Vision handling is disabled by default. When disabled, the gateway does not inspect image content and forwards it to the provider untouched. When enabled, image parts are stripped from requests to models the gateway does not recognize as vision-capable (the request continues with text only) and passed through for models that are. Image content never causes the gateway to reject a request.
