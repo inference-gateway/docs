@@ -125,15 +125,16 @@ Voice cloning quality depends entirely on the reference sample: one speaker, min
 
 ## Troubleshooting
 
-| Symptom                                              | What to check                                                                                                  |
-| ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| `llama-tts binary not found`                         | Build the `llama-tts` target from llama.cpp, or set `text_to_speech.binary_path`                               |
-| `ffmpeg not found`                                   | Install ffmpeg, or set `text_to_speech.ffmpeg_path`                                                            |
-| `tts model ... not found ... auto_download disabled` | Enable `auto_download`, or place the backbone and `mmproj` GGUFs in `models_dir`                               |
-| Slow first call                                      | Models download once (~1 GB by default); subsequent runs use the cache under `~/.infer/models/tts/`            |
-| Clone sounds wrong                                   | Use a cleaner or longer reference sample (10-30s, single speaker), and try the `q8` or `bf16` preset           |
-| Timeouts on long text                                | Raise `timeout` - synthesis takes multiple seconds of compute per second of audio on most hardware             |
-| The model never calls `TextToSpeech`                 | Set `text_to_speech.enabled: true` (or `INFER_TEXT_TO_SPEECH_ENABLED=true`) - the tool is hidden when disabled |
+| Symptom                                              | What to check                                                                                                         |
+| ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `llama-tts binary not found`                         | Build the `llama-tts` target from llama.cpp, or set `text_to_speech.binary_path`                                      |
+| `ffmpeg not found`                                   | Install ffmpeg, or set `text_to_speech.ffmpeg_path`                                                                   |
+| `tts model ... not found ... auto_download disabled` | Enable `auto_download`, or place the backbone and `mmproj` GGUFs in `models_dir`                                      |
+| Slow first call                                      | Models download once (~1 GB by default); subsequent runs use the cache under `~/.infer/models/tts/`                   |
+| `voice sample ... not found` (lists paths tried)     | Put the WAV in the working directory, or add it to `~/.infer/models/tts/samples/` - pass a bare file name, not a path |
+| Clone sounds wrong                                   | Use a cleaner or longer reference sample (10-30s, single speaker), and try the `q8` or `bf16` preset                  |
+| Timeouts on long text                                | Raise `timeout` - synthesis takes multiple seconds of compute per second of audio on most hardware                    |
+| The model never calls `TextToSpeech`                 | Set `text_to_speech.enabled: true` (or `INFER_TEXT_TO_SPEECH_ENABLED=true`) - the tool is hidden when disabled        |
 
 ## Related
 

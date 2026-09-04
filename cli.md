@@ -1186,7 +1186,7 @@ Synthesize speech from text with a local TTS engine and save it as a WAV file. T
 **Parameters:**
 
 - `text` (required): The text to speak
-- `voice_sample` (optional): Path to a WAV of the target speaker (~10-30s of clean speech) to clone
+- `voice_sample` (optional): Bare file name of a WAV of the target speaker (~10-30s of clean speech) to clone, resolved against the working directory first and then the [voice samples library](/cli-text-to-speech/#the-voice-samples-library) at `~/.infer/models/tts/samples/`; a name found in neither fails with an error listing both paths tried
 - `output_path` (optional): Destination WAV; defaults to a timestamped file under `text_to_speech.output_dir` (`~/.infer/tts/`)
 
 **Configuration:**
