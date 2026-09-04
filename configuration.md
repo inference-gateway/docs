@@ -8,7 +8,7 @@ const generalSettings = [
   { variable: 'ENVIRONMENT', description: 'Deployment environment', defaultValue: 'production' },
   { variable: 'ALLOWED_MODELS', description: 'Comma-separated list of models to allow. If empty, all models will be available', defaultValue: '""' },
   { variable: 'DISALLOWED_MODELS', description: 'Comma-separated list of models to disallow. If empty, no models will be blocked. Takes lower precedence than ALLOWED_MODELS', defaultValue: '""' },
-  { variable: 'ENABLE_VISION', description: 'Enable vision/multimodal handling for all providers. When enabled, image content is stripped from requests to models not known to accept images and passed through to vision-capable models. When disabled, image content is forwarded to the provider untouched', defaultValue: 'false' },
+  { variable: 'VISION_ENABLED', description: 'Enable vision/multimodal handling for all providers. When enabled, image content is stripped from requests to models not known to accept images and passed through to vision-capable models. When disabled, image content is forwarded to the provider untouched', defaultValue: 'false' },
   { variable: 'IMAGES_ENABLED', description: 'Enable the Images API (POST /v1/images/generations, /v1/images/edits, /v1/images/variations). When disabled, the endpoints return a 404', defaultValue: 'false' },
   { variable: 'AUDIO_ENABLED', description: 'Enable the Audio API (POST /v1/audio/speech). When disabled, the endpoint returns a 404. Supported by the openai provider and by the local llama-tts engine (local/qwen3-tts); llamacpp speech is a work in progress and not supported yet', defaultValue: 'false' },
   { variable: 'AUDIO_LOCAL_AUTO_DOWNLOAD', description: 'Allow the local speech engine to download the llama-tts binary and Qwen3-TTS GGUF weights on demand', defaultValue: 'true' },
@@ -172,6 +172,8 @@ const loggingSettings = [
 # Configuration
 
 > **Breaking change (schemas v0.15.3):** All `_ENABLE` env-var suffixes have been renamed to `_ENABLED`. Existing deployments must update their configuration: `TELEMETRY_ENABLE` -> `TELEMETRY_ENABLED`, `TELEMETRY_METRICS_PUSH_ENABLE` -> `TELEMETRY_METRICS_PUSH_ENABLED`, `TELEMETRY_TRACING_ENABLE` -> `TELEMETRY_TRACING_ENABLED`, `MCP_ENABLE` -> `MCP_ENABLED`, `MCP_POLLING_ENABLE` -> `MCP_POLLING_ENABLED`, `AUTH_ENABLE` -> `AUTH_ENABLED`. (`MCP_ENABLE_RECONNECT` is unchanged.)
+>
+> **Breaking change (schemas v0.27.4):** `ENABLE_VISION` has been renamed to `VISION_ENABLED` to match the other feature flags (`IMAGES_ENABLED`, `AUDIO_ENABLED`, `MCP_ENABLED`, `A2A_ENABLED`). `ENABLE_VISION` is deprecated and no longer takes effect - update any existing configuration to `VISION_ENABLED`.
 
 Inference Gateway provides flexible configuration options to adapt to your specific needs. As a proxy server designed to facilitate access to various language model APIs, proper configuration is essential for optimal performance and security.
 
@@ -191,7 +193,7 @@ Environment variables are the primary method for configuring Inference Gateway. 
 
 <ConfigTable :rows="generalSettings" />
 
-`ENABLE_VISION` controls whether the gateway inspects image content in chat completion requests. When disabled (the default), the gateway does not look at image content at all - image parts are forwarded to the provider untouched. When set to `true`, the gateway checks each request's model: image parts are stripped for models it does not recognize as vision-capable (the request continues with the text parts only) and passed through for models that are. Either way, the gateway never rejects a request because it contains an image.
+`VISION_ENABLED` controls whether the gateway inspects image content in chat completion requests. When disabled (the default), the gateway does not look at image content at all - image parts are forwarded to the provider untouched. When set to `true`, the gateway checks each request's model: image parts are stripped for models it does not recognize as vision-capable (the request continues with the text parts only) and passed through for models that are. Either way, the gateway never rejects a request because it contains an image.
 
 `IMAGES_ENABLED` and `AUDIO_ENABLED` are separate opt-ins for the [Images API](/api-reference/#images-api) and the [Audio API](/api-reference/#audio-api). While they are `false`, those endpoints return `404`. Only providers that implement the corresponding API can serve them (currently `openai`, plus the built-in `local/qwen3-tts` engine for speech); other providers return `400`. The `llamacpp` provider has a speech endpoint wired in the gateway registry, but that path is a work in progress and is not supported yet.
 
@@ -399,7 +401,7 @@ Here's a comprehensive example for configuring Inference Gateway in a production
 # General settings
 ENVIRONMENT=production
 ALLOWED_MODELS=
-ENABLE_VISION=false
+VISION_ENABLED=false
 DEBUG_CONTENT_TRUNCATE_WORDS=10
 DEBUG_MAX_MESSAGES=100
 # Telemetry

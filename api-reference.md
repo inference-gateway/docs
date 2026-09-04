@@ -1074,7 +1074,7 @@ curl -X POST http://localhost:8080/v1/chat/completions \
 
 ### Vision/Multimodal Support
 
-For vision-capable models, you can include images in your requests using either HTTP URLs or base64-encoded data URLs. Set `ENABLE_VISION=true` in your configuration to have the gateway handle image content (see the note below for what changes).
+For vision-capable models, you can include images in your requests using either HTTP URLs or base64-encoded data URLs. Set `VISION_ENABLED=true` in your configuration to have the gateway handle image content (see the note below for what changes).
 
 The `messages[].content` field accepts an array of `ContentPart` objects. Use a `TextContentPart` for text and an `ImageContentPart` for images. The `image_url` inside an `ImageContentPart` is an `ImageURL` object with a `url` field that accepts either an HTTPS URL or a `data:` URI.
 
@@ -1144,7 +1144,7 @@ curl -X POST http://localhost:8080/v1/chat/completions \
 - Moonshot (Kimi K2, Kimi K2 Thinking)
 - NVIDIA (Nemotron, Llama, DeepSeek, Mistral, Qwen)
 
-**Note:** When `ENABLE_VISION=false` (the default), the gateway does not inspect image content - it is forwarded to the provider untouched, and the provider decides how to handle it. When `ENABLE_VISION=true`, image parts are stripped from requests to models the gateway does not recognize as vision-capable and the request continues with text only; for recognized vision models they are passed through. The gateway does not reject a request for containing an image in either mode.
+**Note:** When `VISION_ENABLED=false` (the default), the gateway does not inspect image content - it is forwarded to the provider untouched, and the provider decides how to handle it. When `VISION_ENABLED=true`, image parts are stripped from requests to models the gateway does not recognize as vision-capable and the request continues with text only; for recognized vision models they are passed through. The gateway does not reject a request for containing an image in either mode.
 
 ### Direct API Proxy
 
