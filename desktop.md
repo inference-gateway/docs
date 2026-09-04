@@ -55,12 +55,13 @@ The app updates itself. When a newer release is available the top bar shows an u
 
 Open Settings with the gear icon at the right of the top bar. A left rail lists the sections, and **Back** returns to the chat. Settings opens on **API Keys**.
 
-| Section      | What it covers                                                    |
-| ------------ | ----------------------------------------------------------------- |
-| **General**  | [Max concurrent sessions](#the-concurrency-cap)                   |
-| **API Keys** | One API key per provider                                          |
-| **Agents**   | A2A agents the local agent can delegate to                        |
-| **Updates**  | Installed versions, manual check, and [Install updates](#updates) |
+| Section           | What it covers                                                                                            |
+| ----------------- | --------------------------------------------------------------------------------------------------------- |
+| **General**       | [Max concurrent sessions](#the-concurrency-cap) and the [text-to-speech toggle](#enabling-text-to-speech) |
+| **API Keys**      | One API key per provider                                                                                  |
+| **Agents**        | A2A agents the local agent can delegate to                                                                |
+| **Voice samples** | [WAV reference recordings](#voice-samples) for voice cloning                                              |
+| **Updates**       | Installed versions, manual check, and [Install updates](#updates)                                         |
 
 ### API Keys
 
@@ -248,11 +249,49 @@ These are shared with the CLI - if you have already used speech-to-text there, t
 
 Voice input works on every supported platform except Windows arm64, where clicking the microphone shows **"Voice input isn't available on this platform"**.
 
+## Text to speech
+
+The other direction - spoken audio out - is handled by the [`infer` CLI's `TextToSpeech` tool](/cli-text-to-speech/). The desktop app synthesizes nothing itself: it flips the feature on, plays the resulting WAVs, and manages the reference recordings used for voice cloning.
+
+### Enabling text to speech
+
+**Settings -> General -> Text to speech -> Enable Text to Speech**. It is off by default; while it is off the `TextToSpeech` tool is not sent to the model at all.
+
+Saving writes `text_to_speech.enabled` to `~/.infer/config.yaml` and, if the toggle changed, restarts the desktop-owned gateway - the same restart path as saving an API key. The restart is what makes the feature work: the gateway reads `AUDIO_ENABLED=true` and `AUDIO_LOCAL_AUTO_DOWNLOAD=true` at spawn, and those are only passed while the toggle is on, so [`POST /v1/audio/speech`](/api-reference/#audio-api) is unreachable until the gateway comes back up.
+
+Only `enabled` is written. The other keys in the `text_to_speech` section - `engine`, `model`, `voice`, `output_dir` and the rest of the [configuration reference](/cli-text-to-speech/#configuration-reference) - are CLI-managed and pass through untouched, so a config you tuned for the CLI survives a save from the desktop.
+
+### Playback in the transcript
+
+A WAV produced by the tool renders inline in the transcript as an audio player rather than a file path: play/pause, a waveform decoded from the file itself, click anywhere on it to seek, and elapsed/total time. Hover it to reveal a **download** button that copies the file to your Downloads folder, reporting itself with the [same icon states](#images-in-chat) as the image download button.
+
+The same player is used for [voice samples](#voice-samples).
+
+**Output-dir caveat:** only WAVs under `~/.infer/tts/` (the default `text_to_speech.output_dir`) and `~/.infer/models/tts/samples/` are inside the app's asset scope. Point `output_dir` at a directory outside those and the turn degrades to a plain tool card showing the path - the audio is still generated, it just cannot be played or downloaded from the app.
+
+### Voice samples
+
+**Settings -> Voice samples** is a managed library of WAV reference recordings for zero-shot voice cloning, stored flat in `~/.infer/models/tts/samples/` (created on first use, next to the CLI's TTS model cache). Only `.wav` files are listed, non-recursively, sorted by name.
+
+| Action      | How                                                                                                                                           |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Add**     | **Add sample** opens the native file picker, filtered to `.wav`. The file is copied in under its base name, overwriting a sample of that name |
+| **Record**  | Type a name, click the microphone, speak, click again to stop. Captured at the device's native sample rate, auto-stopped after 30 seconds     |
+| **Preview** | Every sample card carries the same audio player as the transcript, download button included                                                   |
+| **Delete**  | The trash icon on the card. Single click, no confirmation - the file is removed from disk                                                     |
+
+A recording is saved as `<name>.wav` (the `.wav` is added for you; the name defaults to `my-voice`) and needs microphone permission - denying it shows **Microphone access denied**. Anything other than a `.wav` is rejected, and names must be bare file names, no directories.
+
+To use a sample, name its full file name in chat: _"read this in the voice of my-voice.wav"_. The CLI's `voice_sample` argument takes a bare file name and looks it up in the working directory first, then in this library, so a sample added here is equally usable from the CLI. Sample-name lookup needs `infer` v0.189.1 or newer, which the app pins.
+
+Cloning quality comes down to the reference: one speaker, no music or background noise, roughly 10-30 seconds.
+
 ## Related
 
 - [Getting Started](/getting-started/) - set up the Inference Gateway server
 - [CLI](/cli/) - the `infer` CLI that powers the desktop backend
 - [Speech-to-Text](/cli-speech-to-text/) - speech-to-text in the `infer` CLI
+- [Text-to-Speech](/cli-text-to-speech/) - the `TextToSpeech` tool behind the desktop toggle
 - [A2A Integration](/a2a/) - chat with A2A agents from the desktop app
 - [Agent Registry](/registry/) - the catalog behind the Agents tab
 - [Configuration](/configuration/) - gateway configuration reference
