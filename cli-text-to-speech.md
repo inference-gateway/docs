@@ -112,10 +112,14 @@ The `llama-tts` binary is resolved from `binary_path`, then from `PATH`. No preb
 With `text_to_speech.enabled` set, the agent gains a `TextToSpeech` tool:
 
 - `text` (required) - the text to speak.
-- `voice_sample` (optional) - path to a WAV of the target speaker. The sample is normalized with `ffmpeg` (16 kHz mono, capped at 30s) and passed to the engine's `--tts-speaker-file` for zero-shot cloning.
+- `voice_sample` (optional) - bare file name (no directories, no absolute paths) of a WAV of the target speaker, resolved against the working directory first and then the voice samples library at `~/.infer/models/tts/samples/`. The sample is normalized with `ffmpeg` (16 kHz mono, capped at 30s) and passed to the engine's `--tts-speaker-file` for zero-shot cloning. A name that resolves nowhere fails with an error listing the paths tried.
 - `output_path` (optional) - destination WAV; otherwise a timestamped file is written to `output_dir` (default `~/.infer/tts/`). The tool result reports the path and audio duration.
 
-In chat, just ask: _"say this out loud and write it to say.wav"_ for a stock voice, or _"read this in the voice from ~/samples/narrator.wav"_ to clone.
+In chat, just ask: _"say this out loud and write it to say.wav"_ for a stock voice, or _"read this in the voice of narrator.wav"_ to clone.
+
+### The voice samples library
+
+`~/.infer/models/tts/samples/` is the shared home for reference recordings. Drop WAVs in there by hand, or manage them from the [desktop app's **Settings -> Voice samples** tab](/desktop/#voice-samples), which uploads through a native file picker, records new samples from your microphone, previews them inline, and deletes them. Either way the CLI resolves the same bare file names, so a sample added on the desktop clones from `infer` on the command line too.
 
 Voice cloning quality depends entirely on the reference sample: one speaker, minimal background noise, no music, roughly 10-30 seconds.
 
@@ -135,5 +139,6 @@ Voice cloning quality depends entirely on the reference sample: one speaker, min
 
 - [CLI](/cli/) - overview of the `infer` command-line tool, chat mode, and the full tool reference
 - [Speech-to-Text](/cli-speech-to-text/) - the reverse direction, local transcription with whisper.cpp
+- [Desktop App](/desktop/#text-to-speech) - the settings toggle, inline playback, and the voice samples library
 - [Configuration](/configuration/) - full configuration system across the gateway and CLI
 - [llama.cpp](https://github.com/ggml-org/llama.cpp) - the local synthesis engine
