@@ -209,7 +209,7 @@ Install system apt packages before the agent runs:
 ```yaml
 - uses: inference-gateway/infer-action@main
   with:
-    model: anthropic/claude-opus-4-8
+    model: anthropic/claude-opus-5
     anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
     github-token: ${{ secrets.GITHUB_TOKEN }}
     apt: |
