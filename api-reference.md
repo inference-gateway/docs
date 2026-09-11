@@ -1144,7 +1144,7 @@ curl -X POST http://localhost:8080/v1/chat/completions \
 - Moonshot (Kimi K2, Kimi K2 Thinking)
 - NVIDIA (Nemotron, Llama, DeepSeek, Mistral, Qwen)
 
-**Note:** When `VISION_ENABLED=false` (the default), the gateway does not inspect image content - it is forwarded to the provider untouched, and the provider decides how to handle it. When `VISION_ENABLED=true`, image parts are stripped from requests to models the gateway does not recognize as vision-capable and the request continues with text only; for recognized vision models they are passed through. The gateway does not reject a request for containing an image in either mode.
+**Note:** When `VISION_ENABLED=false` (the default), the gateway does not inspect image content - it is forwarded to the provider untouched, and the provider decides how to handle it. When `VISION_ENABLED=true`, image parts are stripped only from requests to models known to accept non-image input only and the request continues with text only; every other model, including ones the gateway has no modality information for, is passed through. The gateway does not reject a request for containing an image in either mode.
 
 ### Direct API Proxy
 
