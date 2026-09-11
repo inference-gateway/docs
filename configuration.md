@@ -31,9 +31,9 @@ const telemetrySettings = [
 ];
 
 const oidcSettings = [
-  { variable: 'AUTH_OIDC_ISSUER', description: 'OIDC issuer URL', defaultValue: 'http://keycloak:8080/realms/inference-gateway-realm' },
-  { variable: 'AUTH_OIDC_CLIENT_ID', description: 'OIDC client ID', defaultValue: 'inference-gateway-client' },
-  { variable: 'AUTH_OIDC_CLIENT_SECRET', description: 'OIDC client secret', defaultValue: '""' },
+  { variable: 'AUTH_OIDC_ISSUER', description: 'OIDC issuer URL. Discovery runs once at startup against {issuer}/.well-known/openid-configuration. Required when AUTH_ENABLED=true', defaultValue: '""' },
+  { variable: 'AUTH_OIDC_CLIENT_ID', description: 'OIDC client ID. Used as the expected token audience when AUTH_OIDC_AUDIENCE is empty. Required when AUTH_ENABLED=true', defaultValue: '""' },
+  { variable: 'AUTH_OIDC_AUDIENCE', description: 'Comma-separated list of accepted aud values, for example an API identifier. Empty means AUTH_OIDC_CLIENT_ID', defaultValue: '""' },
 ];
 
 const serverSettings = [
@@ -215,11 +215,17 @@ If authentication is enabled (`AUTH_ENABLED=true`), configure the following OIDC
 
 <ConfigTable :rows="oidcSettings" />
 
-When authentication is enabled, all API requests must include a valid JWT token in the Authorization header:
+`AUTH_OIDC_ISSUER` and `AUTH_OIDC_CLIENT_ID` have no defaults - with `AUTH_ENABLED=true` and either one unset, the gateway fails at startup. The gateway only verifies tokens against the issuer's public keys and never requests one, so it needs no client secret; `AUTH_OIDC_CLIENT_SECRET` was removed.
+
+When authentication is enabled, all API requests except `/health` must include a valid JWT token in the Authorization header:
 
 ```http
 Authorization: Bearer YOUR_JWT_TOKEN
 ```
+
+The gateway checks the token's signature, issuer, expiry and audience. `AUTH_OIDC_AUDIENCE` lists the accepted `aud` values (comma-separated for providers that need more than one, such as Microsoft Entra ID); leaving it empty expects `AUTH_OIDC_CLIENT_ID`. A token carrying no `aud` claim at all is accepted when its `client_id` claim matches one of the configured values, which is how Amazon Cognito machine-to-machine tokens work.
+
+Rejected requests return `401` with an [RFC 6750](https://www.rfc-editor.org/rfc/rfc6750#section-3) `WWW-Authenticate: Bearer realm="inference-gateway"` challenge, gaining `error="invalid_token"` when a token was presented but failed verification. See the [Authentication guide](/authentication/) for per-provider issuer and audience values and runnable examples.
 
 ### Server Settings
 
@@ -389,8 +395,9 @@ data:
   ANTHROPIC_API_KEY: '<base64-encoded-key>'
   COHERE_API_KEY: '<base64-encoded-key>'
   OPENAI_API_KEY: '<base64-encoded-key>'
-  AUTH_OIDC_CLIENT_SECRET: '<base64-encoded-key>'
 ```
+
+The `AUTH_OIDC_*` settings are public identifiers, not secrets, so they belong in the ConfigMap above.
 
 ## Complete Configuration Example
 
@@ -437,9 +444,9 @@ MCP_POLLING_TIMEOUT=5s
 MCP_DISABLE_HEALTHCHECK_LOGS=true
 # Authentication
 AUTH_ENABLED=false
-AUTH_OIDC_ISSUER=http://keycloak:8080/realms/inference-gateway-realm
-AUTH_OIDC_CLIENT_ID=inference-gateway-client
-AUTH_OIDC_CLIENT_SECRET=
+AUTH_OIDC_ISSUER=
+AUTH_OIDC_CLIENT_ID=
+AUTH_OIDC_AUDIENCE=
 # Server settings
 SERVER_HOST=0.0.0.0
 SERVER_PORT=8080
