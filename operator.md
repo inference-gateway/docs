@@ -204,6 +204,8 @@ For a complete runnable example, see [`examples/gpu/`](https://github.com/infere
 
 The OIDC variables are emitted only when `enabled: true` and an `oidc` block is present. `AUTH_OIDC_CLIENT_SECRET` is added only when `clientSecretRef` is set, and `SSL_CERT_FILE` only when `caCertRef` is set. The variables themselves are documented on the gateway side in [Configuration](/configuration/#openid-connect).
 
+> Two gaps against the current gateway: `clientSecretRef` still emits `AUTH_OIDC_CLIENT_SECRET`, which the gateway no longer reads (it only verifies tokens, never requests them), and the CRD has no field for [`AUTH_OIDC_AUDIENCE`](/authentication/#audience-validation) yet - tracked in [operator#216](https://github.com/inference-gateway/operator/issues/216). Until that lands, operator-managed gateways accept only the audience that equals `clientId`, which covers Keycloak but not providers whose tokens carry a separate API identifier.
+
 ### Example: Gateway with OIDC
 
 This mirrors the [Kubernetes authentication example](/authentication/#keycloak-integration) expressed as a `Gateway` CR. Create a Secret holding the client secret and (for a self-signed issuer) a ConfigMap holding the issuer's CA certificate, then reference both from `spec.auth.oidc`:
