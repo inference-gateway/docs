@@ -502,7 +502,7 @@ The output format is controlled by the `--format` flag (renamed from the legacy 
 
 - `json` (default) - newline-delimited JSON (JSONL), one compact object per line, suitable for programmatic consumption
 - `json-pretty` - same per-turn stream as `json` with each object indented across multiple lines for human reading
-- `ag-ui` - spec-compliant AG UI framed output with `TEXT_MESSAGE_START/CONTENT/END` framing and a fresh message id per turn
+- `ag-ui` - spec-compliant AG UI framed output with `TEXT_MESSAGE_START/CONTENT/END` framing and a fresh message id per turn. The terminal `RUN_FINISHED` event carries the session totals in its [`result`](#ag-ui-run-finished-result)
 - `text` - human-readable plain text output
 
 ```bash
@@ -645,6 +645,41 @@ When `pricing.enabled: false` (or pricing data is unavailable for the model), `i
 - It is **always emitted in `agent` mode** - there is no flag to enable or disable it.
 - Cost is attributed to a **single model per run**.
 - Consumers should **ignore unknown `type` values** to remain forward-compatible.
+
+##### AG-UI `RUN_FINISHED` result
+
+In the `ag-ui` format the same totals ride on the terminal `RUN_FINISHED` event instead of a `session_stats` line. `result` carries the per-session totals, cumulative across the session (not just the current run):
+
+```json
+{
+  "type": "RUN_FINISHED",
+  "threadId": "b7a1c3d2-...",
+  "runId": "9f4e1a0b-...",
+  "result": {
+    "inputTokens": 21000,
+    "outputTokens": 1260,
+    "cacheReadTokens": 18400,
+    "totalToolCalls": 7,
+    "cost": 0.0029,
+    "lastInputTokens": 12800,
+    "contextWindow": 128000
+  }
+}
+```
+
+| Key               | Type   | Description                                                                 |
+| ----------------- | ------ | --------------------------------------------------------------------------- |
+| `inputTokens`     | number | Total input tokens across the session.                                      |
+| `outputTokens`    | number | Total output tokens across the session.                                     |
+| `cacheReadTokens` | number | Tokens served from the prompt cache.                                        |
+| `totalToolCalls`  | number | Tool calls issued across the session.                                       |
+| `cost`            | number | Total session cost, in the configured currency.                             |
+| `lastInputTokens` | number | Input tokens of the most recent request.                                    |
+| `contextWindow`   | number | Model context window in tokens, omitted when the model's window is unknown. |
+
+The event has **no `result`** when the run made no model request, so consumers must treat it as optional.
+
+**For AG-UI consumers** (the [desktop app](/desktop/) sidecar, or any process hosting `infer headless --format ag-ui`): drive the context-percentage indicator from `lastInputTokens / contextWindow` - `lastInputTokens` is the live occupancy of the window, where `inputTokens` is a session-wide sum and will overshoot it. Hide the indicator when `contextWindow` is absent. Drive the cost indicator from `cost`, which is already the computed dollar total and needs no per-model pricing table on the client.
 
 #### Writing the result to a file (`--result-file`)
 
