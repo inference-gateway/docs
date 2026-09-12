@@ -431,7 +431,7 @@ infer chat
 # Agent explores code structure and provides detailed plan
 ```
 
-While planning, the agent can pause to ask you up to four multiple-choice clarifying questions with the [`AskUserQuestion`](#askuserquestion) tool, then fold your answers into the plan it submits for approval.
+While planning, the agent can pause to ask you up to four multiple-choice clarifying questions with the [`AskUserQuestion`](#askuserquestion) tool, then fold your answers into the plan it submits for approval. The same tool is available in the other interactive modes, where the answers come back mid-task instead.
 
 #### How mode instructions are delivered
 
@@ -1283,7 +1283,7 @@ Create, list, get, update, or delete cron jobs that fire on a schedule. Jobs are
 
 #### AskUserQuestion
 
-Pause the plan and ask the user 1-4 multiple-choice clarifying questions as an interactive, keyboard-driven form. The agent reaches for this in Plan Mode to resolve ambiguity **before** it calls [`RequestPlanApproval`](#requestplanapproval) - your answers feed straight back into the plan it then proposes. It is read-only with **no approval gate**.
+Pause and ask the user 1-4 multiple-choice clarifying questions as an interactive, keyboard-driven form. The agent reaches for this whenever a task is ambiguous - in Plan Mode it resolves the ambiguity **before** it calls [`RequestPlanApproval`](#requestplanapproval), so your answers feed straight back into the plan it then proposes; in the other interactive modes the answers come back mid-task. It is read-only with **no approval gate**.
 
 - **Parameters**: `questions` (required array, **1-4** items). Each question has:
   - `header` (required) - short chip label shown above the question, **<= 12 characters**
@@ -1291,7 +1291,7 @@ Pause the plan and ask the user 1-4 multiple-choice clarifying questions as an i
   - `options` (required array, **2-4** items) - each option is `{ label, description }`
   - `multiSelect` (optional, default `false`) - allow more than one answer to be selected
 - **Approval**: not required (read-only)
-- **Availability**: **Plan Mode only** - the tool is excluded from Standard and Auto-Accept modes.
+- **Availability**: every interactive mode - Plan, Standard, Auto-Accept and [auto-with-judge](/cli-judge-mode/) - when `tools.ask_user_question.enabled` is `true`. Headless runs have no interactive form and get the plain-text degradation below instead.
 
 The form always appends an **"Other"** free-text choice to every question, so the user can answer outside the offered options. Suffix a label with **`(Recommended)`** to preselect that option when the question opens.
 
