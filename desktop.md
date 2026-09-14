@@ -55,13 +55,13 @@ The app updates itself. When a newer release is available the top bar shows an u
 
 Open Settings with the gear icon at the right of the top bar. A left rail lists the sections, and **Back** returns to the chat. Settings opens on **API Keys**.
 
-| Section           | What it covers                                                                                            |
-| ----------------- | --------------------------------------------------------------------------------------------------------- |
-| **General**       | [Max concurrent sessions](#the-concurrency-cap) and the [text-to-speech toggle](#enabling-text-to-speech) |
-| **API Keys**      | One API key per provider                                                                                  |
-| **Agents**        | A2A agents the local agent can delegate to                                                                |
-| **Voice samples** | [WAV reference recordings](#voice-samples) for voice cloning                                              |
-| **Updates**       | Installed versions, manual check, and [Install updates](#updates)                                         |
+| Section           | What it covers                                                                                                                                             |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **General**       | [Max concurrent sessions](#the-concurrency-cap), [Browser Use](#browser-use-opentask-extension), and the [text-to-speech toggle](#enabling-text-to-speech) |
+| **API Keys**      | One API key per provider                                                                                                                                   |
+| **Agents**        | A2A agents the local agent can delegate to                                                                                                                 |
+| **Voice samples** | [WAV reference recordings](#voice-samples) for voice cloning                                                                                               |
+| **Updates**       | Installed versions, manual check, and [Install updates](#updates)                                                                                          |
 
 ### API Keys
 
@@ -234,6 +234,50 @@ Amber is the one to look for when several sessions are in flight: it marks the c
 
 Quitting the app stops every running session.
 
+## Browser use (opentask extension)
+
+**Settings -> General -> Browser Use** lets the agent drive **your everyday browser** - the one with your sessions and logins - through the [OpenTask extension](/opentask/), instead of a separate automated browser. It is off by default.
+
+Ticking **Enable Browser Use (extension)** writes `~/.infer/browser_use.yaml`:
+
+```yaml
+enabled: true
+backend: extension
+extension:
+  port: 52789
+  token: <generated when none is set>
+```
+
+Only those keys are touched; anything else you configured for the CLI passes through untouched. The bridge starts immediately - no restart - and the desktop app itself hosts it on `127.0.0.1:52789`, or on `extension.port` if you changed it.
+
+### Connecting the extension
+
+1. Enable the checkbox in **Settings -> General -> Browser Use**.
+2. Settings shows the **port** and the **token**, each with a **Copy** button.
+3. Open the [OpenTask extension](/opentask/) options and paste both in.
+
+A browser indicator appears above the composer while the feature is enabled, showing **Browser connected** or **Browser disconnected**. It is hidden entirely when Browser Use is off.
+
+The extension stays connected between agent turns. On every turn the desktop relays the CLI's browser tools - `browser_navigate`, `browser_click`, `browser_type`, `browser_read`, `browser_screenshot` and `browser_tabs` - to the extension, which runs them in the controlled tab. The wire contract is documented in the [CLI bridge protocol](/opentask/#cli-bridge-protocol).
+
+### One browser, one owner
+
+There is only one real browser, so only one thing may drive it:
+
+- While the desktop app is running it **holds the bridge port**. A standalone `infer` chat or headless session configured with `backend: extension` cannot bind it. Untick **Enable Browser Use (extension)** in the desktop (or quit the app) to hand the port back.
+- A second concurrent desktop session that tries to use the browser gets a clear tool error rather than hijacking the tab the first session is driving.
+
+### Troubleshooting
+
+If the indicator stays on **Browser disconnected**, check that the port and token in the extension options match Settings exactly, and that the extension is loaded and enabled.
+
+The CLI logs the bridge bind result to `~/.infer/logs/app-<date>.log`:
+
+| Log line                     | Meaning                                                                      |
+| ---------------------------- | ---------------------------------------------------------------------------- |
+| `extension bridge listening` | The bridge is up and waiting for the extension to dial in                    |
+| `failed to listen`           | The port is already taken - another desktop or `infer` session is holding it |
+
 ## Voice input
 
 Click the microphone icon in the chat composer and speak - your speech is transcribed locally and inserted into the message box. Unlike the [CLI speech-to-text](/cli-speech-to-text/), the desktop app sets everything up for you: no Homebrew, no manual `whisper-cpp` install.
@@ -290,6 +334,7 @@ Cloning quality comes down to the reference: one speaker, no music or background
 
 - [Getting Started](/getting-started/) - set up the Inference Gateway server
 - [CLI](/cli/) - the `infer` CLI that powers the desktop backend
+- [OpenTask](/opentask/) - the browser extension behind [Browser Use](#browser-use-opentask-extension)
 - [Speech-to-Text](/cli-speech-to-text/) - speech-to-text in the `infer` CLI
 - [Text-to-Speech](/cli-text-to-speech/) - the `TextToSpeech` tool behind the desktop toggle
 - [A2A Integration](/a2a/) - chat with A2A agents from the desktop app

@@ -44,6 +44,21 @@ The [Inference Gateway CLI](/cli/) can drive **your real browser** through OpenT
 
 > **Note:** Every frame is a single JSON text message with a `type` discriminator. Unknown `type` values are ignored on both sides, so the protocol is forward-compatible by contract - there is no protocol version to negotiate.
 
+### Bridge hosts
+
+The extension always dials in, and either of two hosts can be on the other end:
+
+| Host                                                    | How to enable                                                                              |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| [`infer` CLI](/cli/)                                    | Set `enabled: true` and `backend: extension` in `~/.infer/browser_use.yaml` (below)        |
+| [Desktop app](/desktop/#browser-use-opentask-extension) | Tick **Settings -> General -> Browser Use**; it writes the same file and starts the bridge |
+
+Either way you paste the **port** and **token** into the extension options, and the extension connects to whichever host holds the port.
+
+**Only one host can hold the port.** While the desktop app is running with Browser Use enabled it owns `127.0.0.1:52789`, and a standalone `infer` chat or headless session with `backend: extension` cannot bind it. Untick **Enable Browser Use (extension)** in the desktop (or quit the app) to hand the port back to the CLI.
+
+The CLI writes the outcome to `~/.infer/logs/app-<date>.log`: an `extension bridge listening` line when the bridge is up, `failed to listen` when the port is already taken.
+
 ### Transport
 
 - The CLI listens on `ws://127.0.0.1:<port>/ws` (default port `52789`, `browser_use.yaml` -> `extension.port`). The extension dials in, because MV3 service workers cannot listen.
@@ -274,6 +289,7 @@ CLI -> extension, when the request is no longer pending (answered in the panel *
 ## Related
 
 - [CLI](/cli/) - the agent on the other end of the bridge
+- [Desktop App](/desktop/#browser-use-opentask-extension) - the other bridge host, enabled from Settings
 - [Skills Catalog](/skills/) - the skills registry OpenTask discovers
 - [CLI Skills](/cli-skills/) - using skills from the Inference Gateway CLI
 - [Repository](https://github.com/inference-gateway/opentask) - source, issues, and releases
