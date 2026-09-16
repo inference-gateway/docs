@@ -1089,10 +1089,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ### Emitted spans
 
-With export active, the server emits two spans:
+With export active, the server emits three spans:
 
 - **`a2a.request`** - a server span around each `POST /a2a` request. It extracts the caller's W3C `tracecontext` from the request headers (so a client-initiated trace continues across the hop), records the JSON-RPC method, route, and status, and flags 5xx responses as errors.
 - **`task.process`** - a fresh root span wrapping each background task's execution.
+- **`tool.<name>`** - one span per tool call dispatched by the default task handlers, parented on `task.process`. No instrumentation is required in your tool implementations; the handler wraps every dispatch automatically. Mirrors the [Go ADK](/adk#telemetry) toolbox spans.
+
+Each `tool.<name>` span carries:
+
+| Attribute             | Source                                                                                   |
+| --------------------- | ---------------------------------------------------------------------------------------- |
+| `gen_ai.tool.name`    | The tool name, matching the `<name>` in the span name.                                   |
+| `gen_ai.tool.call.id` | The tool-call id assigned by the model.                                                  |
+| `session.id`          | Copied from the W3C `baggage` member of the same name, when the incoming request has it. |
+
+A tool that returns an error marks its span as errored, so failed calls stand out in the trace without extra wiring. All of this lands behind the `telemetry` Cargo feature - build without it and the spans compile down to no-ops.
 
 ### Configuration
 
