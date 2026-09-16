@@ -41,7 +41,7 @@ The ADK currently exposes the HTTP server core and the first A2A JSON-RPC method
 | `HTTPPushNotificationSender`                | Available | HTTP webhook delivery primitive for `task_update` payloads, with retry / auth / fan-out helpers.               |
 | `ArtifactService` + storage backends        | Available | Build text/file/data artifacts; persist via filesystem, MinIO/S3, or in-memory storage.                        |
 | `registerArtifactsRoute`                    | Available | `GET /artifacts/:artifactId/:filename` download route; auto-mounted by `createA2AServer({ artifactStorage })`. |
-| `TelemetryProvider`                         | Available | OpenTelemetry tracing; emits `adk.jsonrpc.request` server spans exported over OTLP.                            |
+| `TelemetryProvider`                         | Available | OpenTelemetry tracing; emits `adk.jsonrpc.request` server spans plus `tool.<name>` tool spans over OTLP.       |
 | `MetricsRegistry` / `MetricsServer`         | Available | Prometheus `a2a_*` metrics via a standalone `/metrics` server plus a request middleware.                       |
 | TLS server / client                         | Available | HTTPS and mutual TLS for `A2AServer` and the bundled A2A client.                                               |
 
@@ -2971,6 +2971,16 @@ With a started, enabled provider, each POST to the JSON-RPC endpoint emits a ser
 | `adk.jsonrpc.request_id` | The JSON-RPC request id (coerced to a string). |
 
 Errors are recorded on the span via `recordSpanError`. Node auto-instrumentations (HTTP, etc.) are enabled by default through `@opentelemetry/sdk-node`.
+
+`DefaultToolBox.executeTool` additionally opens one span per tool execution, named **`tool.<name>`** (e.g. `tool.get_weather`), so a task with several tool calls shows one span per call instead of a single opaque block:
+
+| Attribute             | Value                                                                        |
+| --------------------- | ---------------------------------------------------------------------------- |
+| `gen_ai.tool.name`    | The tool name.                                                               |
+| `session.id`          | Copied from the incoming `session.id` baggage member, when present.          |
+| `gen_ai.tool.call.id` | Copied from the incoming `gen_ai.tool.call.id` baggage member, when present. |
+
+The span is emitted automatically for every registered tool - built-in reserved tools and your own alike - with no per-tool instrumentation code. It uses the global tracer from `@opentelemetry/api`, so it needs no provider wiring and is a no-op when telemetry is disabled. The span is active while the tool runs, so nested instrumentation is parented under it, and a throwing tool gets ERROR status plus a recorded exception. Tool lookup and JSON-schema validation failures do not open a tool span (no tool ran); they surface on the surrounding span. This mirrors the Go ADK's `ExecuteTool` spans.
 
 The span-name constants `SPAN_NAME_BACKGROUND_TASK`, `SPAN_NAME_STREAMING_TASK`, and `SPAN_NAME_LLM_COMPLETION`, plus the attribute keys `ATTR_TASK_ID` / `ATTR_CONTEXT_ID`, are exported for your own instrumentation but are not auto-emitted by the server today.
 
