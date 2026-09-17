@@ -22,7 +22,7 @@ Use Bun (>= 1.3, pinned in `.bun-version`). Every `bun run <name>` has a `task <
 
 ## Generated content — do not hand-edit
 
-Sections between `GENERATED:*` markers in `configuration.md`, `supported-providers.md`, `rust-adk.md`, and `typescript-adk.md` are generated from the canonical `inference-gateway/schemas` OpenAPI schema. Edit `scripts/generate-provider-docs.mjs` or `scripts/provider-overrides.json` instead, then run `task generate`.
+Sections between `GENERATED:*` markers in `supported-providers.md`, `configuration.md`, `rust-adk.md`, `typescript-adk.md`, and `sdks.md` are generated from the canonical `inference-gateway/schemas` OpenAPI schema. Edit `scripts/generate-provider-docs.mjs` or `scripts/provider-overrides.json` instead, then run `task generate`.
 
 `task generate` / `generate:check` fetch the schema over the network. To regen offline:
 
@@ -36,5 +36,7 @@ When a provider's hard facts change (auth type, base URL, vision flag), update `
 ## Validation & commits
 
 Required for content changes: `bun run lint:md`, `bun run format:check`, `bun run build`. For nav/SEO/theme changes, also `bun run preview` and inspect locally.
+
+A husky pre-commit hook runs `format:check` and `lint:md` — failing commits are fixed with `bun run format` and `bun run lint:md:fix`.
 
 Conventional Commits (`docs: ...`, `chore(deps): ...`). CI must pass before merge.
