@@ -173,7 +173,6 @@ export default withMermaid(
           text: 'Reference',
           items: [
             { text: 'Desktop App', link: pageLink('/desktop') },
-            { text: 'Content Projects', link: pageLink('/content-projects') },
             { text: 'REST API', link: pageLink('/api-reference') },
             { text: 'SDKs', link: pageLink('/sdks') },
             { text: 'CLI', link: pageLink('/cli') },
@@ -304,7 +303,6 @@ export default withMermaid(
           collapsed: false,
           items: [
             { text: 'Desktop App', link: pageLink('/desktop') },
-            { text: 'Content Projects', link: pageLink('/content-projects') },
             { text: 'CLI', link: pageLink('/cli') },
             { text: 'Command Hooks', link: pageLink('/cli-hooks') },
             { text: 'Judge Mode', link: pageLink('/cli-judge-mode') },
