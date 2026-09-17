@@ -332,6 +332,7 @@ Cloning quality comes down to the reference: one speaker, no music or background
 
 ## Related
 
+- [Content Projects](/content-projects/) - the timeline, overlay cards, and the export
 - [Getting Started](/getting-started/) - set up the Inference Gateway server
 - [CLI](/cli/) - the `infer` CLI that powers the desktop backend
 - [OpenTask](/opentask/) - the browser extension behind [Browser Use](#browser-use-opentask-extension)
