@@ -177,7 +177,6 @@ export default withMermaid(
             { text: 'SDKs', link: pageLink('/sdks') },
             { text: 'CLI', link: pageLink('/cli') },
             { text: 'Command Hooks', link: pageLink('/cli-hooks') },
-            { text: 'Judge Mode', link: pageLink('/cli-judge-mode') },
             { text: 'Agent Definition Language', link: pageLink('/adl') },
             { text: 'ADL CLI', link: pageLink('/adl-cli') },
             { text: 'Channels', link: pageLink('/cli-channels') },
