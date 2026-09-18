@@ -2326,6 +2326,8 @@ Both read the local files under `~/.infer/telemetry/`, so they work fully offlin
 /reset confirm
 ```
 
+Both steps end with a disk-space total: the preview ends with `Total reclaimable space: <size>`, and `/reset confirm` ends with `Total reclaimed space: <size>` after the wipe. The confirm total counts only targets that were actually removed, so anything the wipe failed to delete is excluded. Sizes are formatted like `docker system prune` - decimal units and 4 significant digits (for example `1.653GB`, `4.096kB`). The same totals appear when running `infer reset` and `infer reset confirm` directly.
+
 `/reset confirm` only deletes after a preview was shown in the same session (within the last 5 minutes). A cold `/reset confirm` prints the preview instead, so a tab-completed confirm cannot wipe anything by accident.
 
 **Deleted**, for every project under `~/.infer/projects/`: conversations, plans, scratch dirs, artifacts, history, backups, exports, logs, telemetry, schedules, pid/lock files, and the userspace tmp tree (generated speech, retained recordings, channel media). With the SQLite backend the conversation database and its WAL sidecars go too.
@@ -2336,7 +2338,7 @@ Both read the local files under `~/.infer/telemetry/`, so they work fully offlin
 
 `/reset insights` runs the [`/insights`](#built-in-shortcuts) analysis (repeatable workflows worth turning into a skill, recurring tool failures) before the preview, so you can capture what past sessions were worth learning from before deleting them. The report is written to `~/.infer/insights/` and survives the reset. If conversation storage is disabled or no model is configured, the analysis is skipped with a notice and the preview is still shown.
 
-> Implemented in [inference-gateway/cli#1237](https://github.com/inference-gateway/cli/pull/1237).
+> Implemented in [inference-gateway/cli#1237](https://github.com/inference-gateway/cli/pull/1237). The disk-space totals were added by [inference-gateway/cli#1247](https://github.com/inference-gateway/cli/pull/1247).
 
 ### Voice Shortcut
 
