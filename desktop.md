@@ -21,7 +21,7 @@ On first run, the app downloads the `infer` CLI binary and installs it to `~/.in
 | `~/.infer/bin/inference-gateway` | The gateway server binary                                                             |
 | `~/.infer/config.yaml`           | Gateway configuration (providers, API keys, model routing)                            |
 | `~/.infer/agents.yaml`           | Registered A2A agent definitions                                                      |
-| `~/.infer/auth.json`             | Provider API keys saved from **Settings -> API Keys**                                 |
+| `~/.infer/auth.yaml`             | Provider API keys saved from **Settings -> API Keys**                                 |
 
 Everything is scoped to your home directory - no system-wide installs, no vendor lock-in.
 
@@ -82,7 +82,7 @@ Each supported provider gets one masked field. Fill in the providers you use and
 | MiniMax      | `MINIMAX_API_KEY`      |
 | Ollama Cloud | `OLLAMA_CLOUD_API_KEY` |
 
-**Save** writes the non-empty values to `~/.infer/auth.json` (mode `0600` on macOS and Linux), returns you to the chat, and restarts the gateway so the new keys take effect - which is also what refreshes the model list. Keys are passed to the agent as environment variables of the same name; nothing is sent anywhere else.
+**Save** writes the non-empty values to `~/.infer/auth.yaml` (mode `0600` on macOS and Linux; keys still sitting in a legacy `~/.infer/auth.json` are read as a fallback but never written back), returns you to the chat, and restarts the gateway so the new keys take effect - which is also what refreshes the model list. Keys are passed to the agent as environment variables of the same name; nothing is sent anywhere else.
 
 ### Model picker
 
@@ -529,7 +529,7 @@ A WAV produced by the tool renders inline in the transcript as an audio player r
 
 The same player is used for [voice samples](#voice-samples).
 
-**Output-dir caveat:** only WAVs under `~/.infer/tts/` (the default `text_to_speech.output_dir`) and `~/.infer/models/tts/samples/` are inside the app's asset scope. Point `output_dir` at a directory outside those and the turn degrades to a plain tool card showing the path - the audio is still generated, it just cannot be played or downloaded from the app.
+**Output-dir caveat:** only WAVs under `~/.infer/tmp/` (which covers `~/.infer/tmp/tts/`, the default `text_to_speech.output_dir`), `~/.infer/models/tts/samples/` and the legacy `~/.infer/tts/` are inside the app's asset scope. Point `output_dir` at a directory outside those and the turn degrades to a plain tool card showing the path - the audio is still generated, it just cannot be played or downloaded from the app.
 
 ### Voice samples
 

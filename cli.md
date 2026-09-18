@@ -1222,7 +1222,7 @@ Synthesize speech from text with a local TTS engine and save it as a WAV file. T
 
 - `text` (required): The text to speak
 - `voice_sample` (optional): Bare file name of a WAV of the target speaker (~10-30s of clean speech) to clone, resolved against the working directory first and then the [voice samples library](/cli-text-to-speech/#the-voice-samples-library) at `~/.infer/models/tts/samples/`; a name found in neither fails with an error listing both paths tried
-- `output_path` (optional): Destination WAV; defaults to a timestamped file under `text_to_speech.output_dir` (`~/.infer/tts/`)
+- `output_path` (optional): Destination WAV; defaults to a timestamped file under `text_to_speech.output_dir` (`~/.infer/tmp/tts/`)
 
 **Configuration:**
 
@@ -1574,7 +1574,8 @@ Two-layer configuration system with precedence from highest to lowest:
 | `artifacts/`       | Project/user | Agent deliverables, grouped per session.                                                                                                              | [Artifacts directory](#artifacts-directory)                 |
 | `logs/`            | User         | CLI and gateway log files (`~/.infer/logs`, overridable via `logging.dir`).                                                                           | [Key Configuration Areas](#key-configuration-areas)         |
 | `bin/`             | User         | Downloaded binaries - the gateway server, plus optional helpers like `ffmpeg`.                                                                        | [Key Configuration Areas](#key-configuration-areas)         |
-| `auth.json`        | User         | Fallback provider API keys, used when a key is not in the environment or the project `.env`.                                                          | [Provider API keys](#provider-api-keys)                     |
+| `auth.yaml`        | User         | Fallback provider API keys, used when a key is not in the environment or the project `.env`.                                                          | [Provider API keys](#provider-api-keys)                     |
+| `tmp/`             | User         | Userspace scratch - generated speech (`tmp/tts`), retained recordings (`tmp/voice`), channel media (`tmp/media`). Wiped by `/reset`.                  | [Userspace tmp tree](#userspace-tmp-tree)                   |
 
 > **No migration.** `logs/` and `bin/` are userspace-only: they live under `~/.infer/` and are
 > shared by every project. Older versions wrote them into the project's `.infer/` directory; those
@@ -1589,33 +1590,32 @@ Provider API keys (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GROQ_API_KEY`, ...) a
 | ----------- | -------------------- | ---------------------------------------------- |
 | 1 (Highest) | System environment   | Exported in your shell, CI secrets, and so on. |
 | 2           | Project `.env`       | `.env` in the project directory.               |
-| 3 (Lowest)  | `~/.infer/auth.json` | Userspace fallback, shared by every project.   |
+| 3 (Lowest)  | `~/.infer/auth.yaml` | Userspace fallback, shared by every project.   |
 
-Because resolution is per key, sources mix: `OPENAI_API_KEY` can come from the environment while `ANTHROPIC_API_KEY` comes from `auth.json` in the same run. The fallback applies when the CLI starts the gateway in **both container and binary modes**, and to [A2A](#a2a-integration) agent containers.
+Because resolution is per key, sources mix: `OPENAI_API_KEY` can come from the environment while `ANTHROPIC_API_KEY` comes from `auth.yaml` in the same run. The fallback applies when the CLI starts the gateway in **both container and binary modes**, and to [A2A](#a2a-integration) agent containers.
 
-`auth.json` is a flat JSON map of environment-variable names to values:
+`auth.yaml` is a flat YAML map of environment-variable names to values:
 
-```json
-{
-  "ANTHROPIC_API_KEY": "sk-ant-...",
-  "OPENAI_API_KEY": "sk-...",
-  "DEEPSEEK_API_KEY": "sk-..."
-}
+```yaml
+ANTHROPIC_API_KEY: sk-ant-...
+OPENAI_API_KEY: sk-...
+DEEPSEEK_API_KEY: sk-...
 ```
 
 Create it once and keep it private:
 
 ```bash
 mkdir -p ~/.infer
-$EDITOR ~/.infer/auth.json
-chmod 600 ~/.infer/auth.json
+$EDITOR ~/.infer/auth.yaml
+chmod 600 ~/.infer/auth.yaml
 ```
 
 - **Permissions**: `0600` is recommended. Broader permissions still work but log a warning.
-- **Sandboxed**: `~/.infer/auth.json` is on the [protected paths](#protected-paths) list - agent tools cannot read or edit it.
-- **Graceful degradation**: a missing or unreadable file changes nothing; a malformed file is ignored with a logged warning. Key resolution never fails because of `auth.json`.
+- **Sandboxed**: `~/.infer/auth.yaml` is on the [protected paths](#protected-paths) list - agent tools cannot read or edit it.
+- **Graceful degradation**: a missing or unreadable file changes nothing; a malformed file is ignored with a logged warning. Key resolution never fails because of `auth.yaml`.
+- **Legacy `auth.json`**: the old JSON file is still read as a fallback when `auth.yaml` is absent, so existing credentials keep working. Move your keys into `auth.yaml` - JSON is valid YAML, so the contents can be pasted as-is.
 
-> Shipped in [inference-gateway/cli#1169](https://github.com/inference-gateway/cli/pull/1169).
+> Shipped in [inference-gateway/cli#1169](https://github.com/inference-gateway/cli/pull/1169); renamed to `auth.yaml` in [inference-gateway/cli#1239](https://github.com/inference-gateway/cli/pull/1239).
 
 ### Artifacts directory
 
@@ -1637,6 +1637,20 @@ What lands there:
 Session IDs are sanitized before use, so a directory can never escape the artifacts root. The tool [sandbox](#tool-configuration) carves the artifacts directory out as writable, so tools can save there even when it sits outside the sandbox directory list.
 
 > Shipped in [inference-gateway/cli#1058](https://github.com/inference-gateway/cli/pull/1058).
+
+### Userspace tmp tree
+
+Disposable runtime output that is not tied to a single project lives under `~/.infer/tmp/`:
+
+| Directory            | Contents                          | Config default of               |
+| -------------------- | --------------------------------- | ------------------------------- |
+| `~/.infer/tmp/tts`   | Generated speech WAVs             | `text_to_speech.output_dir`     |
+| `~/.infer/tmp/voice` | Retained inbound voice recordings | `speech_to_text.recordings_dir` |
+| `~/.infer/tmp/media` | Retained inbound Telegram media   | `channels.telegram.media.dir`   |
+
+The whole `~/.infer/tmp` tree is agent-readable and writable by design - retained recordings and media are assets the agent consumes, and generated speech is output it can reference. The rest of `~/.infer/` stays on the [protected paths](#protected-paths) list. [`/reset`](#reset-shortcut) empties the tree through the `tmp` parent; the owning subsystems recreate the subdirectories on next use. Directories you explicitly point outside `~/.infer` are left alone.
+
+> **Existing installs.** Before [inference-gateway/cli#1239](https://github.com/inference-gateway/cli/pull/1239) these three directories sat directly under `~/.infer/` (`tts/`, `voice/`, `media/`). Nothing migrates automatically - they hold only disposable output, so delete them, or `mv` their contents under `~/.infer/tmp/` to keep the retained files. Explicit `output_dir` / `recordings_dir` / `media.dir` overrides are unaffected.
 
 ### Key Configuration Areas
 
@@ -3323,7 +3337,8 @@ Automatically excluded from tool access:
 - `.git/` - Repository data
 - `*.env` - Environment files
 - `.infer/` - Configuration directory
-- `~/.infer/auth.json` - [Fallback provider API keys](#provider-api-keys)
+- `~/.infer/auth.yaml` (and the legacy `~/.infer/auth.json`) - [Fallback provider API keys](#provider-api-keys)
+- `~/.infer/tmp/` is the exception: it is agent-readable and writable, see [Userspace tmp tree](#userspace-tmp-tree)
 - Custom paths via sandbox config
 
 ### Approval Workflow
