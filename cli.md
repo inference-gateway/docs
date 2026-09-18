@@ -2251,6 +2251,8 @@ The CLI provides built-in shortcuts and supports custom user-defined shortcuts.
 | `/traces [id]`        | Render a session's trace span tree offline (mirrors `infer traces`)                                | `/traces`, `/traces abc-123-def`          |
 | `/skills <cmd>`       | Manage Agent Skills                                                                                | `/skills list`, `/skills install <url>`   |
 | `/voice [seconds]`    | Record the mic and transcribe to the input field (requires [speech-to-text](/cli-speech-to-text/)) | `/voice`, `/voice 8`                      |
+| `/insights [since]`   | Analyze past sessions for repeatable workflows and recurring tool failures                         | `/insights`, `/insights 7d`               |
+| `/reset [arg]`        | Wipe all local runtime state on this machine and start a fresh session                             | `/reset`, `/reset confirm`                |
 
 ### Git Shortcuts
 
@@ -2294,6 +2296,33 @@ session (standard, success)                38.8s
 ```
 
 Both read the local files under `~/.infer/telemetry/`, so they work fully offline. See [Viewing traces](#viewing-traces) for the `infer traces` command, its `--list` and `--format json` flags, and how error spans are marked.
+
+### Reset Shortcut
+
+`/reset` wipes the CLI's **local runtime state on the whole machine** - not just the current project - and starts a fresh session. It is a two-step shortcut: a bare `/reset` only previews, and `/reset confirm` performs the wipe.
+
+```bash
+# Preview what would be deleted (deletes nothing)
+/reset
+
+# Analyze the sessions first, then preview
+/reset insights
+
+# Actually delete everything listed in the preview
+/reset confirm
+```
+
+`/reset confirm` only deletes after a preview was shown in the same session (within the last 5 minutes). A cold `/reset confirm` prints the preview instead, so a tab-completed confirm cannot wipe anything by accident.
+
+**Deleted**, for every project under `~/.infer/projects/`: conversations, plans, scratch dirs, artifacts, history, backups, exports, logs, telemetry, schedules, pid/lock files, and the userspace tmp tree (generated speech, retained recordings, channel media). With the SQLite backend the conversation database and its WAL sidecars go too.
+
+**Preserved**: configuration (`config.yaml`, custom shortcuts, skills, `projects.yaml`) and saved insights reports under `~/.infer/insights/`. Directories you pointed outside `~/.infer` (for example a `text_to_speech.output_dir` of `/data/tts`) are left alone.
+
+**Remote conversation stores are skipped.** If [`storage.type`](#conversation-management) is `postgres`, `redis`, or `d1`, `/reset` clears local state only and prints a notice that the remote store was left untouched - it is not an error.
+
+`/reset insights` runs the [`/insights`](#built-in-shortcuts) analysis (repeatable workflows worth turning into a skill, recurring tool failures) before the preview, so you can capture what past sessions were worth learning from before deleting them. The report is written to `~/.infer/insights/` and survives the reset. If conversation storage is disabled or no model is configured, the analysis is skipped with a notice and the preview is still shown.
+
+> Implemented in [inference-gateway/cli#1237](https://github.com/inference-gateway/cli/pull/1237).
 
 ### Voice Shortcut
 
