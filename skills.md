@@ -21,7 +21,7 @@ Every entry describes one [Agent Skill](/cli-skills/) - a portable, lazy-loaded 
 The catalog is consumed by:
 
 - [registry.inference-gateway.com/skills/](https://registry.inference-gateway.com/skills/) - human-browsable listing.
-- [registry.inference-gateway.com/skills/index.json](https://registry.inference-gateway.com/skills/index.json) - machine-readable index used by `infer skills search` and `infer skills install <name>` in the [Inference Gateway CLI](/cli-skills/).
+- [registry.inference-gateway.com/skills/index.json](https://registry.inference-gateway.com/skills/index.json) - machine-readable index used by `infer skills search` and `infer skills install <name> --user` in the [Inference Gateway CLI](/cli-skills/).
 
 The raw catalog is also served at:
 
