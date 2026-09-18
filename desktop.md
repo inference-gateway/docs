@@ -327,12 +327,12 @@ to a ProRes 4444 `.mov` with alpha, then placed as a clip on an overlay track.
 
 The agent reports missing prerequisites and stops - it never installs them. Set them up once:
 
-| Prerequisite                       | How                                                                                           |
-| ---------------------------------- | --------------------------------------------------------------------------------------------- |
-| The `hyperframes` skill            | [`infer skills install hyperframes motion-graphics`](/cli-skills/), or **Settings -> Skills** |
-| Node.js 22 or newer                | `node --version` must print `v22` or higher                                                   |
-| `ffmpeg` with the `overlay` filter | Installed with the Content project type; `ffmpeg -hide_banner -filters \| grep overlay`       |
-| A Chromium for HyperFrames         | Run `npx hyperframes browser ensure` once in a terminal if a render fails                     |
+| Prerequisite                       | How                                                                                                  |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| The `hyperframes` skill            | [`infer skills install hyperframes motion-graphics --user`](/cli-skills/), or **Settings -> Skills** |
+| Node.js 22 or newer                | `node --version` must print `v22` or higher                                                          |
+| `ffmpeg` with the `overlay` filter | Installed with the Content project type; `ffmpeg -hide_banner -filters \| grep overlay`              |
+| A Chromium for HyperFrames         | Run `npx hyperframes browser ensure` once in a terminal if a render fails                            |
 
 #### Card kinds
 

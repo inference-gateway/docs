@@ -3050,7 +3050,7 @@ agent:
 ```bash
 # Discover, install, and remove skills (also available in chat as /skills ...)
 infer skills list
-infer skills install acme/internal-comms   # or a bare name, or a github tree URL
+infer skills install acme/internal-comms --user   # or a bare name, or a github tree URL
 infer skills uninstall internal-comms
 ```
 

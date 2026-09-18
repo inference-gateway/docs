@@ -137,22 +137,22 @@ The matching environment variable `INFER_AGENT_SKILLS_MAX_CHARS` overrides the c
 infer skills list
 infer skills list --format json
 
-# Install (three accepted forms)
-infer skills install pdf-helper                                              # by name, from the Skills Catalog index
-infer skills install acme/internal-comms                                     # owner/repo GitHub shorthand
-infer skills install https://github.com/anthropics/skills/tree/main/skills/pdf  # full directory URL
+# Install (three accepted forms) - --user installs to ~/.infer/skills
+infer skills install pdf-helper --user                                              # by name, from the Skills Catalog index
+infer skills install acme/internal-comms --user                                     # owner/repo GitHub shorthand
+infer skills install https://github.com/anthropics/skills/tree/main/skills/pdf --user  # full directory URL
 
 # Install flags
-infer skills install pdf-helper --user        # install to ~/.infer/skills instead of ./.infer/skills
+infer skills install pdf-helper               # project scope: ./.infer/skills, needs a writable project dir
 infer skills install pdf-helper --overwrite   # replace an existing skill folder of the same name
 
 # Uninstall by directory name
-infer skills uninstall pdf-helper
 infer skills uninstall internal-comms --user  # remove from the user scope
+infer skills uninstall pdf-helper             # remove from the project scope
 
 # The same operations from inside chat
 > /skills list
-> /skills install acme/internal-comms
+> /skills install acme/internal-comms --user
 > /skills uninstall pdf-helper
 ```
 
@@ -162,7 +162,7 @@ A bare `<name>` resolves through the public [Skills Catalog](/skills/) index. Th
 
 **Installer notes:**
 
-- `infer skills install` writes to **`./.infer/skills/` by default**, or to **`~/.infer/skills/` with `--user`**. It never installs into `.agents/skills/` - that location is for skill folders you vendor yourself or that another agent tool drops in, and the CLI discovers them there read-only (see [On-disk layout](#on-disk-layout)).
+- **Prefer `--user`.** `infer skills install` writes to **`./.infer/skills/` by default**, so a bare install only works when the current directory is a writable project you intend to commit the skill into. Outside such a directory - a shell in `$HOME`, a CI job, or any run where the agent starts elsewhere - the project-scoped install fails or lands in a directory nothing discovers; **`--user` writes to `~/.infer/skills/`**, which is discovered from anywhere. It never installs into `.agents/skills/` - that location is for skill folders you vendor yourself or that another agent tool drops in, and the CLI discovers them there read-only (see [On-disk layout](#on-disk-layout)).
 - Frontmatter is **re-validated after download** against the same rules used at discovery - a half-installed skill is never left on disk. Without `--overwrite`, an existing folder is left untouched and the install fails fast.
 - Unauthenticated GitHub requests are limited to **60 per hour per IP** (easily exhausted on shared CI runners). Set `GITHUB_TOKEN` (or `GH_TOKEN`, matching the `gh` CLI) to raise the limit to 5,000/hour and to install from private repositories the token can access.
 - Refs containing a literal `/` (such as `feature/foo` branches) are not supported - use a tag, the default branch, or a single-segment branch.
