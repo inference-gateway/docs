@@ -56,7 +56,7 @@ text_to_speech:
   model: '' # gateway: "provider/model", "" = local/qwen3-tts - qwen3-tts: "" = base preset; q8 | bf16 | explicit GGUF filenames
   voice: '' # gateway engine only: voice name passed to /v1/audio/speech
   auto_download: true # download models (and ffmpeg) on first use if missing
-  output_dir: '' # where generated WAVs go; empty = ~/.infer/tts
+  output_dir: '' # where generated WAVs go; empty = ~/.infer/tmp/tts
   # Optional overrides:
   binary_path: '' # explicit llama-tts path; empty = resolve on PATH
   models_dir: '' # model cache; empty = ~/.infer/models/tts
@@ -76,7 +76,7 @@ All options live under `text_to_speech` in `.infer/config.yaml`. Every key also 
 | `text_to_speech.model`         | `INFER_TEXT_TO_SPEECH_MODEL`         | string | `""`      | `gateway`: `provider/model` id, empty defaults to `local/qwen3-tts` - `qwen3-tts`: preset (`""`/`base`, `q8`, `bf16`) or explicit `<backbone>[,<mmproj>].gguf` filenames - validated only when `enabled` is `true` |
 | `text_to_speech.voice`         | `INFER_TEXT_TO_SPEECH_VOICE`         | string | `""`      | `gateway` only: voice name passed to `/v1/audio/speech`                                                                                                                                                            |
 | `text_to_speech.models_dir`    | `INFER_TEXT_TO_SPEECH_MODELS_DIR`    | string | `""`      | `qwen3-tts` only: where models are cached; empty defaults to `~/.infer/models/tts`                                                                                                                                 |
-| `text_to_speech.output_dir`    | `INFER_TEXT_TO_SPEECH_OUTPUT_DIR`    | string | `""`      | Where generated WAVs are written; empty defaults to `~/.infer/tts`                                                                                                                                                 |
+| `text_to_speech.output_dir`    | `INFER_TEXT_TO_SPEECH_OUTPUT_DIR`    | string | `""`      | Where generated WAVs are written; empty defaults to `~/.infer/tmp/tts`                                                                                                                                             |
 | `text_to_speech.auto_download` | `INFER_TEXT_TO_SPEECH_AUTO_DOWNLOAD` | bool   | `true`    | Download models (and `ffmpeg`) on first use if missing                                                                                                                                                             |
 | `text_to_speech.timeout`       | `INFER_TEXT_TO_SPEECH_TIMEOUT`       | int    | `300`     | Synthesis timeout in seconds                                                                                                                                                                                       |
 | `text_to_speech.ffmpeg_path`   | `INFER_TEXT_TO_SPEECH_FFMPEG_PATH`   | string | `""`      | `qwen3-tts` only: explicit `ffmpeg` path; empty resolves `ffmpeg` on `PATH`                                                                                                                                        |
@@ -113,7 +113,7 @@ With `text_to_speech.enabled` set, the agent gains a `TextToSpeech` tool:
 
 - `text` (required) - the text to speak.
 - `voice_sample` (optional) - bare file name (no directories, no absolute paths) of a WAV of the target speaker, resolved against the working directory first and then the voice samples library at `~/.infer/models/tts/samples/`. The sample is normalized with `ffmpeg` (16 kHz mono, capped at 30s) and passed to the engine's `--tts-speaker-file` for zero-shot cloning. A name that resolves nowhere fails with an error listing the paths tried.
-- `output_path` (optional) - destination WAV; otherwise a timestamped file is written to `output_dir` (default `~/.infer/tts/`). The tool result reports the path and audio duration.
+- `output_path` (optional) - destination WAV; otherwise a timestamped file is written to `output_dir` (default `~/.infer/tmp/tts/`). The tool result reports the path and audio duration.
 
 In chat, just ask: _"say this out loud and write it to say.wav"_ for a stock voice, or _"read this in the voice of narrator.wav"_ to clone.
 

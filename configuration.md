@@ -360,7 +360,7 @@ OPENAI_API_KEY=your-openai-key
 ANTHROPIC_API_KEY=your-anthropic-key
 ```
 
-When the gateway is started by the [CLI](/cli/), provider keys missing from both the system environment and the project `.env` fall back to `~/.infer/auth.json` (system environment > project `.env` > `~/.infer/auth.json`, first hit wins). See [Provider API keys](/cli/#provider-api-keys).
+When the gateway is started by the [CLI](/cli/), provider keys missing from both the system environment and the project `.env` fall back to `~/.infer/auth.yaml` (system environment > project `.env` > `~/.infer/auth.yaml`, first hit wins; the legacy `~/.infer/auth.json` is still read when `auth.yaml` is absent). See [Provider API keys](/cli/#provider-api-keys).
 
 ## Kubernetes ConfigMaps and Secrets
 
