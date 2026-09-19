@@ -207,8 +207,8 @@ project groups do not sync to any backend.
 A **content project** is a project switched to the **Content** type in **Settings -> Projects**.
 The agent gets the bundled `video-editing` skill and the tools it needs (`ffmpeg`,
 `whisper-cli`), and the desktop renders a `<stem>.timeline.json` file in the project folder as an
-editable timeline: a video lane, audio lanes for the cloned voice and music, and **overlay** lanes
-for animated cards.
+editable timeline: a video lane, audio lanes for the cloned voice and music, **overlay** lanes for
+animated cards, and a **captions** lane for on-screen text.
 
 The agent only ever writes the timeline JSON and the media it generates. Rendering is the
 desktop's job: you review the plan on the timeline and press **Export**.
@@ -257,6 +257,27 @@ self-contained.
     },
     { "id": "music", "kind": "audio", "gain": 0.2, "clips": [] },
     {
+      "id": "captions",
+      "kind": "captions",
+      "style": "classic",
+      "position": "bottom",
+      "clips": [
+        { "id": "c1", "start": 0.0, "end": 4.6, "text": "First we open the settings panel." },
+        {
+          "id": "c2",
+          "start": 4.6,
+          "end": 9.2,
+          "text": "Then pick a voice",
+          "words": [
+            { "text": "Then", "start": 4.6, "end": 5.1 },
+            { "text": "pick", "start": 5.1, "end": 5.5 },
+            { "text": "a", "start": 5.5, "end": 5.6 },
+            { "text": "voice", "start": 5.9, "end": 6.4 }
+          ]
+        }
+      ]
+    },
+    {
       "id": "cards",
       "kind": "overlay",
       "clips": [
@@ -295,11 +316,12 @@ All times are seconds.
 
 #### Track kinds
 
-| Kind      | Lane                                                                                           |
-| --------- | ---------------------------------------------------------------------------------------------- |
-| `video`   | The recording                                                                                  |
-| `audio`   | Spoken clips (a clip with `text`) and plain files such as music, mixed with the track's `gain` |
-| `overlay` | Animated cards composited over the picture                                                     |
+| Kind       | Lane                                                                                           |
+| ---------- | ---------------------------------------------------------------------------------------------- |
+| `video`    | The recording                                                                                  |
+| `audio`    | Spoken clips (a clip with `text`) and plain files such as music, mixed with the track's `gain` |
+| `overlay`  | Animated cards composited over the picture                                                     |
+| `captions` | On-screen text drawn over the picture, one track per timeline                                  |
 
 The older `voice` kind still loads as `audio`.
 
@@ -318,6 +340,24 @@ A clip on an `overlay` track carries:
 Nothing other than cards belongs on an overlay track, and clips on one track must not overlap in
 time - use a second overlay track when two cards share a range.
 
+#### Caption clips
+
+A `captions` track carries the look of the text; its clips carry the text itself.
+
+| Field      | Where | Meaning                                                                                                          |
+| ---------- | ----- | ---------------------------------------------------------------------------------------------------------------- |
+| `style`    | Track | The preset name - `classic`, `bold`, `highlight`, or `karaoke`. An unknown name falls back to `classic`          |
+| `position` | Track | Optional. `bottom` (default), `center`, or `top`                                                                 |
+| `x`, `y`   | Track | Optional. The centre of the caption block as fractions (0-1) of the frame. Set together they win over `position` |
+| `id`       | Clip  | Stable identifier - the agent keeps it across edits                                                              |
+| `start`    | Clip  | When the caption appears, in seconds on the video                                                                |
+| `end`      | Clip  | When it disappears                                                                                               |
+| `text`     | Clip  | The line to draw. Empty means "a range waiting for the agent to fill"                                            |
+| `words`    | Clip  | Optional. Per-word timing, `{ "text", "start", "end" }` in absolute seconds, for the two word-by-word presets    |
+
+One captions track per timeline, and caption clips never carry `src` or `status` - there is no
+media behind a caption, so there is nothing to synthesize.
+
 ### Overlay cards
 
 A card is an HTML composition rendered by [HyperFrames](https://github.com/heygen-com/hyperframes)
@@ -327,12 +367,12 @@ to a ProRes 4444 `.mov` with alpha, then placed as a clip on an overlay track.
 
 The agent reports missing prerequisites and stops - it never installs them. Set them up once:
 
-| Prerequisite                       | How                                                                                                  |
-| ---------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| The `hyperframes` skill            | [`infer skills install hyperframes motion-graphics --user`](/cli-skills/), or **Settings -> Skills** |
-| Node.js 22 or newer                | `node --version` must print `v22` or higher                                                          |
-| `ffmpeg` with the `overlay` filter | Installed with the Content project type; `ffmpeg -hide_banner -filters \| grep overlay`              |
-| A Chromium for HyperFrames         | Run `npx hyperframes browser ensure` once in a terminal if a render fails                            |
+| Prerequisite                   | How                                                                                                  |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------- |
+| The `hyperframes` skill        | [`infer skills install hyperframes motion-graphics --user`](/cli-skills/), or **Settings -> Skills** |
+| Node.js 22 or newer            | `node --version` must print `v22` or higher                                                          |
+| An `ffmpeg` that encodes H.264 | Installed with the Content project type; see the export troubleshooting below                        |
+| A Chromium for HyperFrames     | Run `npx hyperframes browser ensure` once in a terminal if a render fails                            |
 
 #### Card kinds
 
@@ -369,6 +409,65 @@ export). ProRes is large, so keep cards under about 10 seconds.
 To change a card, edit the file named by its `html` and render over the same `src`; `start`, `end`,
 and the placement fractions are edited on the timeline and need no re-render.
 
+### Captions
+
+Captions are drawn by the desktop itself: the same renderer paints the preview and the exported
+frame, so what the preview shows is what the export burns in. No subtitle file is loaded at export
+time and `libass` is not needed.
+
+#### Preset catalogue
+
+`style` picks one of four looks. Each preset is a whole look - size (a fraction of the frame
+height), weight, case, outline, and colour - not one look with different word colouring.
+
+| Preset      | Look                                                                       | Needs `words` |
+| ----------- | -------------------------------------------------------------------------- | ------------- |
+| `classic`   | A broadcast subtitle: white semibold text on a translucent rounded box     | No            |
+| `bold`      | A short-form punch line: huge uppercase yellow with a thick black outline  | No            |
+| `highlight` | Each word turns green as it is spoken and stays green; the rest stay white | Yes           |
+| `karaoke`   | Words are dim grey until they are spoken, then white                       | Yes           |
+
+`classic` and `bold` ignore `words` entirely. `highlight` and `karaoke` need it: without `words` a
+clip is drawn as one whole line in the preset's spoken colour, so the effect is lost but nothing
+breaks. Use `classic` unless you want a word-by-word look or a clip for a muted feed.
+
+A line wraps to at most 90% of the frame width and sits a frame-height margin away from the edge
+`position` names. Dragging the caption block on the preview sets the track's `x`/`y` instead;
+double-clicking it clears them and puts the block back on `position`.
+
+#### In the editor
+
+- The captions lane sits with the overlay lanes above the video. Its preset is a select on the
+  lane header, so switching the whole look is one click. The `+ Captions` button under the lane
+  headers adds the lane, and disappears once the timeline has one.
+- `+` on the lane header inserts a caption at the playhead - five seconds long, or shorter if
+  another caption is in the way. When the playhead sits inside a caption the new one starts at
+  that caption's end, so caption clips never overlap.
+- Caption text is edited in place in the inspector, and caption clips move, trim, and delete like
+  every other kind.
+- **Speak this** on a caption adds a draft spoken clip with the same text and range on the voice
+  track; **Redo drafts** then synthesizes it. The two tracks are independent afterwards - editing
+  the caption does not touch the spoken clip.
+
+#### Asking the agent for captions
+
+The toolbar's captions button asks the agent for a captions track in the lane's current style. The
+`video-editing` skill then:
+
+- Takes the text from the timeline's spoken clips when it has them, and otherwise from the whisper
+  transcript of the recording (`source_audio: transcribe`). With neither there is nothing to
+  caption, and the agent says so rather than inventing lines.
+- Chunks one caption per breath: about 5 seconds, at most ~12 words and two lines, breaking at
+  sentence ends and pauses, never mid-word or mid-number. A long spoken clip splits into several
+  captions inside its own range.
+- Runs a second `whisper-cli -ml 1` pass for word timing, but only for `highlight` and `karaoke`,
+  and writes `words` as absolute seconds on the timeline.
+- Writes the JSON and stops. You review the captions on the timeline and press **Export**.
+
+Asking for a change to one caption changes that clip's `text`: a misheard word is not a reason to
+rebuild the track. A caption you add with empty `text` is a range for the agent to fill; one you
+type yourself stays verbatim.
+
 ### The timeline editor
 
 - Overlay lanes sit above the video lane and show thumbnails of their cards. Their clips move,
@@ -380,16 +479,20 @@ and the placement fractions are edited on the timeline and need no re-render.
 
 ### Export
 
-`ffmpeg` renders the timeline deterministically:
+The export is deterministic: frame _n_ is always drawn at exactly `n / fps`, never in real time, so
+the same JSON produces the same video.
 
-1. The recording is scaled to fit and padded into the timeline's `resolution`, so the picture is
-   always re-encoded.
-2. Every overlay clip is added as an input, scaled to its fraction of the frame, and composited
-   with `overlay` and `enable=between(...)` for its time range. A `.webm` card is decoded with
-   `libvpx-vp9` so its alpha survives.
-3. Audio clips are mixed with their track `gain`. A timeline with overlays but no audio clips
-   keeps the source audio as is.
-4. The result is written to `export/<output>`, out of the media pool. **Reveal** opens it there.
+1. The desktop composes each frame itself, with the renderer the preview uses: the recording
+   scaled to cover the timeline's `resolution`, then the overlay cards that are on screen, then
+   the caption that covers that moment.
+2. The finished frames are handed to `ffmpeg` as raw pixels, so there is no video filter in the
+   export at all - no scale, no pad, no `overlay`, no `subtitles`. Captions are already part of
+   the picture.
+3. `ffmpeg` mixes every audio clip at its track `gain`, delayed to its start, plus the recording's
+   own sound when `source_audio` is `keep`, and encodes the result.
+4. The video is written to `export/<output>`, out of the media pool. **Reveal** opens it there.
+5. A timeline with captions also gets `export/<stem>.srt` next to it - the sidecar to upload to
+   platforms that take their own subtitle file. Empty captions are left out of it.
 
 ### Content project troubleshooting
 
@@ -402,8 +505,8 @@ on black. Re-render it as a `.mov` (ProRes 4444, or HEVC with alpha):
 npx --yes hyperframes render -c cards/<id>.html --format mov -o media/<id>.mov --quiet
 ```
 
-The export composites a `.webm` with its alpha intact, so this is a preview-only limitation - but
-`.mov` is the format to use so the preview matches the export.
+The export draws its frames with the same renderer as the preview, so a `.webm` card lands on black
+there too. `.mov` is the format to use.
 
 #### The agent says Node.js 22 or newer is needed
 
@@ -414,11 +517,25 @@ Node (for example `brew install node` or [nvm](https://github.com/nvm-sh/nvm)), 
 If the render then fails because HyperFrames or its browser is missing, run
 `npx hyperframes browser ensure` once in a terminal - the agent will not run it for you.
 
-#### Export is unavailable or complains about a filter
+#### The app says no ffmpeg that can mix audio and encode H.264 was found
 
-The export needs an `ffmpeg` built with the `overlay` filter. The Content project type installs a
-suitable build into `~/.infer/bin/tools/ffmpeg`; if you point the app at your own `ffmpeg`, check
-it with `ffmpeg -hide_banner -filters | grep ' overlay '`.
+The export needs an `ffmpeg` that lists the `adelay`, `amix`, and `apad` filters and the `libx264`
+and `aac` encoders; the desktop's own copy in `~/.infer/bin/tools/ffmpeg` is audio-only for now, so
+it falls back to a full `ffmpeg` on your `PATH`. Install one (`brew install ffmpeg`) and check it:
+
+```sh
+ffmpeg -hide_banner -filters | grep -E ' (adelay|amix|apad) '
+ffmpeg -hide_banner -encoders | grep -E ' (libx264|aac) '
+```
+
+Captions need nothing extra here - the desktop draws them into the frame, so no `libass` and no
+`subtitles` filter is involved.
+
+#### Highlight or Karaoke captions show a plain line
+
+Both presets colour each word as it is spoken, which needs the clip's `words` timing. Without it
+the whole line is drawn at once in the preset's spoken colour. Ask the agent to add word timing to
+the captions, or switch the lane to `classic` or `bold`, which never use it.
 
 ## Parallel sessions
 
