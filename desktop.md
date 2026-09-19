@@ -264,7 +264,7 @@ self-contained.
           "end": 6.2,
           "text": "First we open the settings panel.",
           "src": "media/demo-s1.wav",
-          "voice_sample": "eden.wav",
+          "voice_sample": "sample.wav",
           "status": "done"
         }
       ]
