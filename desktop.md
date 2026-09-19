@@ -233,12 +233,25 @@ self-contained.
   "duration": 42.3,
   "output": "demo.with-voice.mp4",
   "resolution": "1920x1080",
+  "fps": 30,
   "source_audio": "transcribe",
   "tracks": [
     {
       "id": "video",
       "kind": "video",
-      "clips": [{ "id": "v1", "src": "media/demo.mov", "start": 0, "end": 42.3 }]
+      "clips": [
+        { "id": "v1", "src": "media/demo.mov", "start": 0, "end": 30 },
+        {
+          "id": "v2",
+          "src": "media/demo.mov",
+          "start": 30,
+          "end": 42.3,
+          "offset": 61.5,
+          "scale": 1.4,
+          "x": 0.35,
+          "y": 0.5
+        }
+      ]
     },
     {
       "id": "voice",
@@ -251,6 +264,7 @@ self-contained.
           "end": 6.2,
           "text": "First we open the settings panel.",
           "src": "media/demo-s1.wav",
+          "voice_sample": "sample.wav",
           "status": "done"
         }
       ]
@@ -311,6 +325,7 @@ All times are seconds.
 | `duration`     | Length of the finished video                                                                                                 |
 | `output`       | File name of the export, written to `export/<output>`                                                                        |
 | `resolution`   | Export frame as `"WxH"` - `1920x1080` (default), `1080x1920`, or `1350x1350`; picked with the **Frame** select in the editor |
+| `fps`          | Optional. The rate the export renders at, `30` when absent. There is no control for it - the agent writes it                 |
 | `source_audio` | What to do with the recording's own audio: `transcribe`, `mute`, or `keep`                                                   |
 | `tracks`       | Lanes of the timeline, each with an `id`, a `kind`, and `clips`                                                              |
 
@@ -318,12 +333,43 @@ All times are seconds.
 
 | Kind       | Lane                                                                                           |
 | ---------- | ---------------------------------------------------------------------------------------------- |
-| `video`    | The recording                                                                                  |
+| `video`    | The picture: one or more clips, played in `start` order                                        |
 | `audio`    | Spoken clips (a clip with `text`) and plain files such as music, mixed with the track's `gain` |
 | `overlay`  | Animated cards composited over the picture                                                     |
 | `captions` | On-screen text drawn over the picture, one track per timeline                                  |
 
 The older `voice` kind still loads as `audio`.
+
+#### Video clips
+
+A video track holds as many clips as the cut needs - one recording chopped into pieces, or several
+different files - and the export plays them in `start` order. A gap between two clips is black.
+
+| Field          | Meaning                                                                                                                              |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `src`          | The file under `media/`                                                                                                              |
+| `start`, `end` | When the clip is on screen, in seconds on the finished video                                                                         |
+| `offset`       | Optional. Where the clip starts inside its `src` file, in seconds. `0` when absent - the desktop sets it when you trim a clip's head |
+| `scale`        | Optional. A multiplier on the size that covers the export frame. `1` (the default) fills the frame and crops                         |
+| `x`, `y`       | Optional. The centre the clip is framed on, as fractions (0-1) of the frame. `0.5`, `0.5` when absent                                |
+
+So a clip plays its `src` from `offset` for `end - start` seconds. `scale`, `x`, and `y` are what
+the framing controls under the preview write; an untouched recording carries none of them.
+
+#### Spoken clips
+
+A clip on an `audio` track with `text` is spoken: the agent synthesizes it and writes the wav to
+`src`.
+
+| Field          | Where | Meaning                                                                                   |
+| -------------- | ----- | ----------------------------------------------------------------------------------------- |
+| `text`         | Clip  | What the voice says                                                                       |
+| `status`       | Clip  | `draft` means it still needs synthesizing; `done` means the wav at `src` is current       |
+| `voice_sample` | Clip  | Optional. The sample this clip's wav was cloned from. The timeline colours the clip by it |
+| `voice_sample` | Track | The sample used for spoken clips that carry none of their own                             |
+
+Picking a different sample for a clip in the inspector puts it back to `draft`, so **Redo drafts**
+synthesizes it in the new voice; other clips on the lane keep theirs.
 
 #### Overlay clips
 
@@ -472,8 +518,17 @@ type yourself stays verbatim.
 
 - Overlay lanes sit above the video lane and show thumbnails of their cards. Their clips move,
   trim, and delete exactly like audio clips.
-- The preview stage has the export's aspect ratio and plays each card over the video inside its
-  time range, at the position its fractions describe - what you see is where the export puts it.
+- The preview stage draws the whole picture, with the export frame sharp inside a thin outline and
+  whatever falls outside it blurred and dimmed - so you can see what a crop is leaving out. Cards
+  and captions play over the video inside their time range, at the position their fractions
+  describe: what is sharp is what the export puts there.
+- Drag the video on the stage to move it and scroll to zoom; the slider under the preview does the
+  same scaling, and arrow keys step it finely. **Fit** scales the whole clip to sit inside the
+  frame, **Fill** puts it back to covering the frame with no offset (it clears `scale`, `x`, and
+  `y`). The controls apply to the clip under the playhead, so each video clip is framed on its own.
+- Dragging a clip's head moves what is under it with it: `start` and `offset` rise together, so
+  trimming the head cuts the beginning off instead of sliding the picture. The tail of a plain file
+  clip stops at the end of its source.
 - The **Frame** select sets `resolution`.
 - **Export** is enabled as soon as a timeline has overlay clips, even with no voice clips.
 
@@ -482,9 +537,9 @@ type yourself stays verbatim.
 The export is deterministic: frame _n_ is always drawn at exactly `n / fps`, never in real time, so
 the same JSON produces the same video.
 
-1. The desktop composes each frame itself, with the renderer the preview uses: the recording
-   scaled to cover the timeline's `resolution`, then the overlay cards that are on screen, then
-   the caption that covers that moment.
+1. The desktop composes each frame itself, at the timeline's `fps` and with the renderer the
+   preview uses: the video clip that covers that moment, scaled and positioned by its `scale` and
+   `x`/`y`, then the overlay cards that are on screen, then the caption that covers it.
 2. The finished frames are handed to `ffmpeg` as raw pixels, so there is no video filter in the
    export at all - no scale, no pad, no `overlay`, no `subtitles`. Captions are already part of
    the picture.
