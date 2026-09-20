@@ -502,7 +502,7 @@ The output format is controlled by the `--format` flag (renamed from the legacy 
 
 - `json` (default) - newline-delimited JSON (JSONL), one compact object per line, suitable for programmatic consumption
 - `json-pretty` - same per-turn stream as `json` with each object indented across multiple lines for human reading
-- `ag-ui` - spec-compliant AG UI framed output with `TEXT_MESSAGE_START/CONTENT/END` framing and a fresh message id per turn. The terminal `RUN_FINISHED` event carries the session totals in its [`result`](#ag-ui-run-finished-result)
+- `ag-ui` - spec-compliant AG UI framed output with `TEXT_MESSAGE_START/CONTENT/END` framing and a fresh message id per turn. A `token_usage` custom event follows every LLM step. The terminal `RUN_FINISHED` event carries the session totals in its [`result`](#ag-ui-run-finished-result)
 - `text` - human-readable plain text output
 
 ```bash
@@ -679,7 +679,25 @@ In the `ag-ui` format the same totals ride on the terminal `RUN_FINISHED` event 
 
 The event has **no `result`** when the run made no model request, so consumers must treat it as optional.
 
-**For AG-UI consumers** (the [desktop app](/desktop/) sidecar, or any process hosting `infer headless --format ag-ui`): drive the context-percentage indicator from `lastInputTokens / contextWindow` - `lastInputTokens` is the live occupancy of the window, where `inputTokens` is a session-wide sum and will overshoot it. Hide the indicator when `contextWindow` is absent. Drive the cost indicator from `cost`, which is already the computed dollar total and needs no per-model pricing table on the client.
+The same stats object is also streamed as a `CUSTOM` event named `token_usage` after every LLM step, before tool execution continues, so consumers can track cumulative usage while the run progresses. Its `value` keys match the `RUN_FINISHED` `result` above, including `contextWindow` being omitted when the model's window is unknown, and the event is not emitted until the session has made at least one model request:
+
+```json
+{
+  "type": "CUSTOM",
+  "name": "token_usage",
+  "value": {
+    "inputTokens": 21000,
+    "outputTokens": 1260,
+    "cacheReadTokens": 18400,
+    "totalToolCalls": 7,
+    "cost": 0.0029,
+    "lastInputTokens": 12800,
+    "contextWindow": 128000
+  }
+}
+```
+
+**For AG-UI consumers** (the [desktop app](/desktop/) sidecar, or any process hosting `infer headless --format ag-ui`): the per-step `token_usage` events stream the cumulative stats above, so live indicators stay current during the run instead of jumping once at `RUN_FINISHED`. Drive the context-percentage indicator from `lastInputTokens / contextWindow` - `lastInputTokens` is the live occupancy of the window, where `inputTokens` is a session-wide sum and will overshoot it. Hide the indicator when `contextWindow` is absent. Drive the cost indicator from `cost`, which is already the computed dollar total and needs no per-model pricing table on the client.
 
 #### Writing the result to a file (`--result-file`)
 
