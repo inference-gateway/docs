@@ -502,7 +502,7 @@ The output format is controlled by the `--format` flag (renamed from the legacy 
 
 - `json` (default) - newline-delimited JSON (JSONL), one compact object per line, suitable for programmatic consumption
 - `json-pretty` - same per-turn stream as `json` with each object indented across multiple lines for human reading
-- `ag-ui` - spec-compliant AG UI framed output with `TEXT_MESSAGE_START/CONTENT/END` framing and a fresh message id per turn. A `token_usage` custom event follows every LLM step; the terminal `RUN_FINISHED` event carries the session totals in its [`result`](#ag-ui-run-finished-result)
+- `ag-ui` - spec-compliant AG UI framed output with `TEXT_MESSAGE_START/CONTENT/END` framing and a fresh message id per turn. A `token_usage` custom event follows every LLM step. The terminal `RUN_FINISHED` event carries the session totals in its [`result`](#ag-ui-run-finished-result)
 - `text` - human-readable plain text output
 
 ```bash
