@@ -2240,7 +2240,7 @@ See the [example README](https://github.com/inference-gateway/cli/tree/main/exam
   cat ~/.infer/telemetry/\<session-id\>-traces.jsonl | jq .
   ```
 
-- **`infer stats`** - aggregates metrics from local files into a summary of tool outcomes, token usage, and sessions. Trace and log files are excluded from the aggregate.
+- **`infer stats`** - aggregates metrics from local files into a summary of tool outcomes, token usage, and sessions. Trace and log files are excluded from the aggregate. The per-tool **Avg** column renders microseconds (for example `432us`) when the mean duration is below 1ms and milliseconds otherwise, so fast tools no longer collapse to `0ms`. In `infer stats --format json` the matching `avg_ms` field can be fractional (for example `0.432`) rather than an integer. The same applies to `infer insights` and the [`/stats`](#telemetry-shortcuts) shortcut.
 - **`infer traces`** - renders the span tree of a session from its local trace file. See [Viewing traces](#viewing-traces).
 - **Remote backend** - when OTLP export is configured, data appears in your collector's configured backend (Jaeger for traces, your metrics store, your log aggregator).
 
@@ -2356,7 +2356,7 @@ The CLI provides built-in shortcuts and supports custom user-defined shortcuts.
 
 `/stats` and `/traces` surface the CLI's local [telemetry](#telemetry) from inside a chat session, mirroring the `infer stats` and `infer traces` commands.
 
-- `/stats` summarizes the session's token usage, tool outcomes, and cost.
+- `/stats` summarizes the session's token usage, tool outcomes, and cost. Its markdown and vertical views use the same duration formatting as `infer stats`: the **Avg** column shows microseconds (for example `432us`) below 1ms and milliseconds otherwise.
 - `/traces [session-id]` renders the span tree of a session - the session root, its LLM turns, and the tool calls under each turn - with per-span durations. With no argument it shows the most recent session.
 
 ```text
