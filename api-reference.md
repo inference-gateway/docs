@@ -959,7 +959,7 @@ The gateway keeps **no job state**. The job `id` is opaque - it may encode the p
 POST /v1/videos?provider={provider}
 ```
 
-Unlike the other JSON endpoints, the request is `multipart/form-data`, so the reference image and audio clip are uploaded as binary fields.
+Unlike the other JSON endpoints, the request is `multipart/form-data`, so the reference images and audio clip are uploaded as binary fields. The whole body - every file together - must fit inside `SERVER_MAX_REQUEST_BODY_SIZE` (10 MiB by default).
 
 ```bash
 curl -X POST http://localhost:8080/v1/videos \
@@ -993,14 +993,46 @@ Content-Type: application/json
 
 The `CreateVideoRequest` fields:
 
-| Field             | Type     | Required | Description                                                                                                                                                                                                                                                                                                      |
-| ----------------- | -------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `model`           | `string` | Yes      | Model ID to use for video generation, for example `elevenlabs/creatify-aurora`.                                                                                                                                                                                                                                  |
-| `prompt`          | `string` |          | Text description of the video. Optional for audio-driven avatar models, where the dialogue comes from `audio` and the prompt describes framing only - never the spoken words.                                                                                                                                    |
-| `input_reference` | `file`   |          | Image used as the first frame or, for avatar models, the portrait to animate.                                                                                                                                                                                                                                    |
-| `audio`           | `file`   |          | **Non-standard**: an `audio/wav` or `audio/mpeg` clip that drives a talking-avatar render. When present, the model lip-syncs `input_reference` to it and the video lasts as long as the clip, so `seconds` is ignored. Forwarded as-is; only providers with avatar support honor it, others ignore or reject it. |
-| `seconds`         | `string` |          | Requested duration in seconds, as a string (`4`, `8`, `12`). Providers accept a limited set; omit for the provider default. Ignored when `audio` is present.                                                                                                                                                     |
-| `size`            | `string` |          | Requested resolution as `widthxheight` (for example `720x1280`). Providers accept a limited set - `creatify-aurora` maps to `480p` and `720p`. Omit for the provider default.                                                                                                                                    |
+| Field              | Type     | Required | Description                                                                                                                                                                                                                                                                                                      |
+| ------------------ | -------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `model`            | `string` | Yes      | Model ID to use for video generation, for example `elevenlabs/creatify-aurora`.                                                                                                                                                                                                                                  |
+| `prompt`           | `string` |          | Text description of the video. Optional for audio-driven avatar models, where the dialogue comes from `audio` and the prompt describes framing only - never the spoken words.                                                                                                                                    |
+| `input_reference`  | `file`   |          | Image used as the first frame or, for avatar models, the portrait to animate.                                                                                                                                                                                                                                    |
+| `reference_images` | `file[]` |          | Repeated binary parts carrying reference images of the subject - the same person or object from several angles - for models that keep a character consistent across shots. Distinct from `input_reference`; avatar (lip-sync) models ignore it. See [Reference images](#reference-images).                       |
+| `audio`            | `file`   |          | **Non-standard**: an `audio/wav` or `audio/mpeg` clip that drives a talking-avatar render. When present, the model lip-syncs `input_reference` to it and the video lasts as long as the clip, so `seconds` is ignored. Forwarded as-is; only providers with avatar support honor it, others ignore or reject it. |
+| `seconds`          | `string` |          | Requested duration in seconds, as a string (`4`, `8`, `12`). Providers accept a limited set; omit for the provider default. Ignored when `audio` is present.                                                                                                                                                     |
+| `size`             | `string` |          | Requested resolution as `widthxheight` (for example `720x1280`). Providers accept a limited set - `creatify-aurora` maps to `480p` and `720p`. Omit for the provider default.                                                                                                                                    |
+
+#### Reference images
+
+`reference_images` is an array, so send one multipart part **per image, all under the same field name** - do not index or bracket the name:
+
+```bash
+curl -X POST http://localhost:8080/v1/videos \
+  -H "Authorization: Bearer $INFERENCE_GATEWAY_API_KEY" \
+  -F model=elevenlabs/veo-3.1-fast-generate-001 \
+  -F prompt="the same woman walking through a rainy street at night, neon reflections" \
+  -F reference_images=@subject-front.png \
+  -F reference_images=@subject-side.png \
+  -F reference_images=@subject-three-quarter.png
+```
+
+In JavaScript that is `append`, not `set`, which would overwrite the previous part:
+
+```typescript
+for (const name of ['subject-front.png', 'subject-side.png']) {
+  form.append('reference_images', new Blob([await fs.readFile(name)]), name);
+}
+```
+
+It is **not** the same field as `input_reference`:
+
+- `input_reference` is a single image the render starts from - the first frame, or for avatar models the portrait to animate.
+- `reference_images` describes **what the subject looks like**, so the model can keep the character consistent across shots. It does not fix the first frame.
+
+Both may be sent together. Models that keep a character consistent honor it - `elevenlabs/veo-3.1-*` and `bytedance-seedance-v2*` today - while avatar (lip-sync) models such as `elevenlabs/creatify-aurora` ignore `reference_images` entirely and animate `input_reference` instead.
+
+Every part counts against the gateway's request body limit: `SERVER_MAX_REQUEST_BODY_SIZE` (10 MiB by default) applies to the **whole multipart body**, not per file, so a portrait, an audio clip and several reference images share that budget. Oversized requests are rejected before they reach the provider - downscale the images or raise the limit.
 
 #### Audio-driven avatars
 
@@ -1075,7 +1107,7 @@ Content-Type: application/json
 }
 ```
 
-The `/videos` operations and the `audio` extension landed in [schemas#213](https://github.com/inference-gateway/schemas/pull/213).
+The `/videos` operations and the `audio` extension landed in [schemas#213](https://github.com/inference-gateway/schemas/pull/213), and `reference_images` in [schemas#222](https://github.com/inference-gateway/schemas/pull/222).
 
 ### Proxy Requests
 
