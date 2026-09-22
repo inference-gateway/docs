@@ -891,18 +891,18 @@ When tools are enabled, LLMs have access to a comprehensive suite across multipl
 
 ### Tool Categories
 
-| Category              | Tools                                                                              | Description                                                                                                                         |
-| --------------------- | ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| **File System**       | Read, Write, Edit, MultiEdit, Delete, Tree, Grep                                   | File operations and search with safety controls                                                                                     |
-| **Command Execution** | Bash, BashOutput, KillShell, ListShells, Wait                                      | Allow-listed shell execution (including `gh` for GitHub), background shell control, and blocking wait for conditions                |
-| **Web**               | WebSearch, WebFetch                                                                | Internet research and content fetching                                                                                              |
-| **Workflow**          | TodoWrite, Schedule, RequestPlanApproval, AskUserQuestion, RequestApproval, Memory | Task tracking, cron jobs, plan-mode approval, clarifying questions, judge-rejection escalation, and persistent cross-session memory |
-| **A2A Integration**   | A2A_QueryAgent, A2A_SubmitTask, A2A_QueryTask                                      | Delegate to external specialized agents - see [A2A](/a2a/)                                                                          |
-| **Local Subagents**   | Agent                                                                              | Fan out short-lived local subagents in parallel - see [Local Subagents](#local-subagents-agent-tool)                                |
-| **Computer Use**      | Computer, GetLatestFrame                                                           | Accessibility-tree reads, presses, screenshots, and pointer/keyboard control - see the Computer Use section above                   |
-| **Image**             | ImageGeneration, ImageEdit, ImageVariation                                         | Generate, edit, and vary images using the configured image model - independent of the chat session model                            |
-| **Audio**             | TextToSpeech                                                                       | Local speech synthesis and voice cloning - opt-in via `text_to_speech.enabled`, see [Text-to-Speech](/cli-text-to-speech/)          |
-| **MCP**               | `MCP_<server>_<tool>`                                                              | Dynamically registered tools from MCP servers - see [MCP](/mcp/)                                                                    |
+| Category              | Tools                                                                              | Description                                                                                                                                                                                            |
+| --------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **File System**       | Read, Write, Edit, MultiEdit, Delete, Tree, Grep                                   | File operations and search with safety controls                                                                                                                                                        |
+| **Command Execution** | Bash, BashOutput, KillShell, ListShells, Wait                                      | Allow-listed shell execution (including `gh` for GitHub), background shell control, and blocking wait for conditions                                                                                   |
+| **Web**               | WebSearch, WebFetch                                                                | Internet research and content fetching                                                                                                                                                                 |
+| **Workflow**          | TodoWrite, Schedule, RequestPlanApproval, AskUserQuestion, RequestApproval, Memory | Task tracking, cron jobs, plan-mode approval, clarifying questions, judge-rejection escalation, and persistent cross-session memory                                                                    |
+| **A2A Integration**   | A2A_QueryAgent, A2A_SubmitTask, A2A_QueryTask                                      | Delegate to external specialized agents - see [A2A](/a2a/)                                                                                                                                             |
+| **Local Subagents**   | Agent                                                                              | Fan out short-lived local subagents in parallel - see [Local Subagents](#local-subagents-agent-tool)                                                                                                   |
+| **Computer Use**      | Computer, GetLatestFrame                                                           | Accessibility-tree reads, presses, screenshots, and pointer/keyboard control - see the Computer Use section above                                                                                      |
+| **Image**             | ImageGeneration, ImageEdit, ImageVariation                                         | Generate, edit, and vary images using the configured image model - independent of the chat session model                                                                                               |
+| **Audio**             | TextToSpeech, TextToMusic                                                          | Local speech synthesis and voice cloning - opt-in via `text_to_speech.enabled`, see [Text-to-Speech](/cli-text-to-speech/); music composition through the gateway - opt-in via `text_to_music.enabled` |
+| **MCP**               | `MCP_<server>_<tool>`                                                              | Dynamically registered tools from MCP servers - see [MCP](/mcp/)                                                                                                                                       |
 
 ### File System Tools
 
@@ -1250,6 +1250,44 @@ text_to_speech:
 ```
 
 See [Text-to-Speech](/cli-text-to-speech/) for prerequisites, the full configuration reference, model presets, and voice-cloning guidance.
+
+#### TextToMusic Tool
+
+Compose a music clip from a text prompt and save it as an MP3 file. The chat model calls the tool when the user asks for background music, a loop, or a jingle. Generation goes through the gateway's Music API (`POST /v1/audio/music`) using the configured `provider/model` - the CLI holds no provider key, the gateway does, so requests show up in gateway logs and traces. **Disabled by default** - while `text_to_music.enabled` is `false`, the tool definition is not sent to the LLM at all.
+
+**Parameters:**
+
+- `prompt` (required): Description of the music - genre, mood, instruments, tempo
+- `seconds` (optional): Clip length in seconds; omitted lets the provider pick a length that fits the prompt
+- `instrumental` (optional): `true` to guarantee the clip has no vocals
+- `output_path` (optional): Bare file name (no directories, no absolute paths) for the generated MP3, written inside `text_to_music.output_dir`; defaults to a timestamped `music-*.mp3`
+
+The clip is always MP3 - the format the gateway's music providers serve (ElevenLabs offers mp3, opus, and pcm, not wav). To place it elsewhere, compose first and copy the returned file.
+
+**Configuration:**
+
+```yaml
+text_to_music:
+  enabled: true
+  # model: elevenlabs/music_v2_5 # gateway provider/model id
+  # output_dir: ~/.infer/tmp/music
+  require_approval: false # optional; unset = no approval, like the image tools
+```
+
+Every key also has an `INFER_TEXT_TO_MUSIC_`-prefixed environment variable that takes precedence over the config file:
+
+| Config key                       | Environment variable                   | Type   | Default                 | Notes                                                                                       |
+| -------------------------------- | -------------------------------------- | ------ | ----------------------- | ------------------------------------------------------------------------------------------- |
+| `text_to_music.enabled`          | `INFER_TEXT_TO_MUSIC_ENABLED`          | bool   | `false`                 | Feature flag - must be `true` for the `TextToMusic` tool to reach the LLM                   |
+| `text_to_music.model`            | `INFER_TEXT_TO_MUSIC_MODEL`            | string | `elevenlabs/music_v2_5` | Gateway `provider/model` id; a bare model name fails validation once the feature is enabled |
+| `text_to_music.output_dir`       | `INFER_TEXT_TO_MUSIC_OUTPUT_DIR`       | string | `~/.infer/tmp/music`    | Where generated MP3s are written                                                            |
+| `text_to_music.require_approval` | `INFER_TEXT_TO_MUSIC_REQUIRE_APPROVAL` | bool   | unset (no approval)     | Tri-state: unset keeps the tool's own default, an explicit value pins the policy either way |
+
+**Gateway requirements:** the music endpoint is part of the gateway's Audio API, so the gateway must run with `AUDIO_ENABLED=true` and hold credentials for the provider behind `model` (an ElevenLabs API key for the default). The CLI-managed local gateway is started with `AUDIO_ENABLED=true` automatically when `text_to_music.enabled` is on, and an already-running instance without the Audio API is restarted. Point the CLI at an externally managed gateway and you set `AUDIO_ENABLED=true` and the provider key there yourself.
+
+A gateway without the endpoint, or a provider that rejects the request, fails the tool call with a one-line error naming the configured model (`music generation with elevenlabs/music_v2_5 failed: ...`). The agent run still completes and no partial file is left behind.
+
+> Shipped in [inference-gateway/cli#1265](https://github.com/inference-gateway/cli/pull/1265).
 
 ### GitHub Operations
 
@@ -1663,6 +1701,7 @@ Disposable runtime output that is not tied to a single project lives under `~/.i
 | Directory            | Contents                          | Config default of               |
 | -------------------- | --------------------------------- | ------------------------------- |
 | `~/.infer/tmp/tts`   | Generated speech WAVs             | `text_to_speech.output_dir`     |
+| `~/.infer/tmp/music` | Generated music MP3s              | `text_to_music.output_dir`      |
 | `~/.infer/tmp/voice` | Retained inbound voice recordings | `speech_to_text.recordings_dir` |
 | `~/.infer/tmp/media` | Retained inbound Telegram media   | `channels.telegram.media.dir`   |
 
