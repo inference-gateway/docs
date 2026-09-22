@@ -891,18 +891,18 @@ When tools are enabled, LLMs have access to a comprehensive suite across multipl
 
 ### Tool Categories
 
-| Category              | Tools                                                                              | Description                                                                                                                                                                                            |
-| --------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **File System**       | Read, Write, Edit, MultiEdit, Delete, Tree, Grep                                   | File operations and search with safety controls                                                                                                                                                        |
-| **Command Execution** | Bash, BashOutput, KillShell, ListShells, Wait                                      | Allow-listed shell execution (including `gh` for GitHub), background shell control, and blocking wait for conditions                                                                                   |
-| **Web**               | WebSearch, WebFetch                                                                | Internet research and content fetching                                                                                                                                                                 |
-| **Workflow**          | TodoWrite, Schedule, RequestPlanApproval, AskUserQuestion, RequestApproval, Memory | Task tracking, cron jobs, plan-mode approval, clarifying questions, judge-rejection escalation, and persistent cross-session memory                                                                    |
-| **A2A Integration**   | A2A_QueryAgent, A2A_SubmitTask, A2A_QueryTask                                      | Delegate to external specialized agents - see [A2A](/a2a/)                                                                                                                                             |
-| **Local Subagents**   | Agent                                                                              | Fan out short-lived local subagents in parallel - see [Local Subagents](#local-subagents-agent-tool)                                                                                                   |
-| **Computer Use**      | Computer, GetLatestFrame                                                           | Accessibility-tree reads, presses, screenshots, and pointer/keyboard control - see the Computer Use section above                                                                                      |
-| **Image**             | ImageGeneration, ImageEdit, ImageVariation                                         | Generate, edit, and vary images using the configured image model - independent of the chat session model                                                                                               |
-| **Audio**             | TextToSpeech, TextToMusic                                                          | Local speech synthesis and voice cloning - opt-in via `text_to_speech.enabled`, see [Text-to-Speech](/cli-text-to-speech/); music composition through the gateway - opt-in via `text_to_music.enabled` |
-| **MCP**               | `MCP_<server>_<tool>`                                                              | Dynamically registered tools from MCP servers - see [MCP](/mcp/)                                                                                                                                       |
+| Category              | Tools                                                                              | Description                                                                                                                                                                                                                                                  |
+| --------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **File System**       | Read, Write, Edit, MultiEdit, Delete, Tree, Grep                                   | File operations and search with safety controls                                                                                                                                                                                                              |
+| **Command Execution** | Bash, BashOutput, KillShell, ListShells, Wait                                      | Allow-listed shell execution (including `gh` for GitHub), background shell control, and blocking wait for conditions                                                                                                                                         |
+| **Web**               | WebSearch, WebFetch                                                                | Internet research and content fetching                                                                                                                                                                                                                       |
+| **Workflow**          | TodoWrite, Schedule, RequestPlanApproval, AskUserQuestion, RequestApproval, Memory | Task tracking, cron jobs, plan-mode approval, clarifying questions, judge-rejection escalation, and persistent cross-session memory                                                                                                                          |
+| **A2A Integration**   | A2A_QueryAgent, A2A_SubmitTask, A2A_QueryTask                                      | Delegate to external specialized agents - see [A2A](/a2a/)                                                                                                                                                                                                   |
+| **Local Subagents**   | Agent                                                                              | Fan out short-lived local subagents in parallel - see [Local Subagents](#local-subagents-agent-tool)                                                                                                                                                         |
+| **Computer Use**      | Computer, GetLatestFrame                                                           | Accessibility-tree reads, presses, screenshots, and pointer/keyboard control - see the Computer Use section above                                                                                                                                            |
+| **Image**             | ImageGeneration, ImageEdit, ImageVariation                                         | Generate, edit, and vary images using the configured image model - independent of the chat session model                                                                                                                                                     |
+| **Audio**             | TextToSpeech, TextToMusic, TextToSFX                                               | Local speech synthesis and voice cloning - opt-in via `text_to_speech.enabled`, see [Text-to-Speech](/cli-text-to-speech/); music composition and sound-effect generation through the gateway - opt-in via `text_to_music.enabled` and `text_to_sfx.enabled` |
+| **MCP**               | `MCP_<server>_<tool>`                                                              | Dynamically registered tools from MCP servers - see [MCP](/mcp/)                                                                                                                                                                                             |
 
 ### File System Tools
 
@@ -1288,6 +1288,44 @@ Every key also has an `INFER_TEXT_TO_MUSIC_`-prefixed environment variable that 
 A gateway without the endpoint, or a provider that rejects the request, fails the tool call with a one-line error naming the configured model (`music generation with elevenlabs/music_v2_5 failed: ...`). The agent run still completes and no partial file is left behind.
 
 > Shipped in [inference-gateway/cli#1265](https://github.com/inference-gateway/cli/pull/1265).
+
+#### TextToSFX Tool
+
+Generate a short sound effect or ambience clip from a text prompt and save it as a WAV file. The chat model calls the tool when the user asks for a whoosh, a click, a riser or room tone - non-speech audio that `TextToSpeech` (it would read the words aloud) and `TextToMusic` (it composes songs) cannot cover. Generation goes through the gateway's [SFX API](/api-reference/#sound-effects) (`POST /v1/audio/sfx`) using the configured `provider/model` - the CLI holds no provider key, the gateway does, so requests show up in gateway logs and traces. **Disabled by default** - while `text_to_sfx.enabled` is `false`, the tool definition is not sent to the LLM at all.
+
+**Parameters:**
+
+- `prompt` (required): Description of the sound - the event or atmosphere and its character (a whoosh, a click, a riser, room tone, distant thunder)
+- `seconds` (optional): Clip length in seconds, `0.5`-`30`; omitted lets the provider pick a length that fits the prompt
+- `loop` (optional): `true` for a clip that loops seamlessly - useful for ambience beds
+- `output_path` (optional): Bare file name (no directories, no absolute paths) for the generated WAV, written inside `text_to_sfx.output_dir`; defaults to a timestamped file
+
+The same `output_path` rule as [TextToMusic](#texttomusic-tool) applies: the clip always lands in the configured output directory. To place it elsewhere, generate first and copy the returned file.
+
+**Configuration:**
+
+```yaml
+text_to_sfx:
+  enabled: true
+  # model: elevenlabs/eleven_text_to_sound_v2 # gateway provider/model id
+  # output_dir: ~/.infer/tmp/sfx
+  require_approval: false # optional; unset = no approval, like the image tools
+```
+
+Every key also has an `INFER_TEXT_TO_SFX_`-prefixed environment variable that takes precedence over the config file:
+
+| Config key                     | Environment variable                 | Type   | Default                              | Notes                                                                                       |
+| ------------------------------ | ------------------------------------ | ------ | ------------------------------------ | ------------------------------------------------------------------------------------------- |
+| `text_to_sfx.enabled`          | `INFER_TEXT_TO_SFX_ENABLED`          | bool   | `false`                              | Feature flag - must be `true` for the `TextToSFX` tool to reach the LLM                     |
+| `text_to_sfx.model`            | `INFER_TEXT_TO_SFX_MODEL`            | string | `elevenlabs/eleven_text_to_sound_v2` | Gateway `provider/model` id; a bare model name fails validation once the feature is enabled |
+| `text_to_sfx.output_dir`       | `INFER_TEXT_TO_SFX_OUTPUT_DIR`       | string | `~/.infer/tmp/sfx`                   | Where generated WAVs are written                                                            |
+| `text_to_sfx.require_approval` | `INFER_TEXT_TO_SFX_REQUIRE_APPROVAL` | bool   | unset (no approval)                  | Tri-state: unset keeps the tool's own default, an explicit value pins the policy either way |
+
+**Gateway requirements:** the SFX endpoint is part of the gateway's Audio API (gateway v0.54.0 or newer), so the gateway must run with `AUDIO_ENABLED=true` and hold credentials for the provider behind `model` (an ElevenLabs API key for the default). The CLI-managed local gateway is started with `AUDIO_ENABLED=true` automatically when `text_to_sfx.enabled` is on, and an already-running instance without the Audio API is restarted. Point the CLI at an externally managed gateway and you set `AUDIO_ENABLED=true` and the provider key there yourself.
+
+A gateway without the endpoint, or a provider that rejects the request, fails the tool call with a one-line error naming the configured model (`sfx generation with elevenlabs/eleven_text_to_sound_v2 failed: ...`). The agent run still completes and no partial file is left behind.
+
+> Shipped in [inference-gateway/cli#1268](https://github.com/inference-gateway/cli/pull/1268).
 
 ### GitHub Operations
 
@@ -1702,6 +1740,7 @@ Disposable runtime output that is not tied to a single project lives under `~/.i
 | -------------------- | --------------------------------- | ------------------------------- |
 | `~/.infer/tmp/tts`   | Generated speech WAVs             | `text_to_speech.output_dir`     |
 | `~/.infer/tmp/music` | Generated music MP3s              | `text_to_music.output_dir`      |
+| `~/.infer/tmp/sfx`   | Generated sound-effect WAVs       | `text_to_sfx.output_dir`        |
 | `~/.infer/tmp/voice` | Retained inbound voice recordings | `speech_to_text.recordings_dir` |
 | `~/.infer/tmp/media` | Retained inbound Telegram media   | `channels.telegram.media.dir`   |
 

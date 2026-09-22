@@ -850,6 +850,8 @@ const sfx = await res.blob(); // audio/mpeg
 
 Set `ELEVENLABS_API_KEY` (and optionally `ELEVENLABS_API_URL`) so the gateway can authenticate - see [Configuration](/configuration/#elevenlabs).
 
+The CLI wraps this endpoint in the opt-in [`TextToSFX` tool](/cli/#texttosfx-tool), so the agent can generate a clip during a chat.
+
 #### Music
 
 `POST /v1/audio/music` composes a music clip from a text prompt. Like [sound effects](#sound-effects) it is a gateway extension shaped after `/v1/audio/speech` - JSON in, raw audio bytes out - and shares the `AUDIO_ENABLED` gate. The provider comes from the `provider/model` prefix or the `provider` query parameter.
