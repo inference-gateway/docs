@@ -286,9 +286,6 @@ export function buildProviders(model, overrides) {
         `Provider "${id}" supports vision in the schema but has no "vision" string in overrides.`
       );
     }
-    // A provider without a chat endpoint in the schema (ElevenLabs is
-    // speech-only) cannot back an ADK agent, so it gets no ADK table row and
-    // needs no example model.
     const supportsChat = cfg.endpoints != null && cfg.endpoints.chat != null;
     if (supportsChat && !ov.adkExampleModel) {
       throw new Error(
