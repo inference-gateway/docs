@@ -827,7 +827,7 @@ The `CreateSFXRequest` fields:
 | `loop`             | `boolean` |          | Generate a clip that loops seamlessly. Useful for ambience beds.                                                                                                                     |
 | `response_format`  | `string`  |          | Audio format: `mp3` (default), `opus`, `aac`, `flac`, `wav`, or `pcm`. ElevenLabs produces only `mp3`, `opus` and `pcm`; the rest return `400 Bad Request` naming the supported set. |
 
-The SDKs do not wrap this endpoint yet - call it over plain HTTP in the meantime:
+The SDKs do not wrap this endpoint yet (tracked in [typescript-sdk#243](https://github.com/inference-gateway/typescript-sdk/issues/243), [go-sdk#184](https://github.com/inference-gateway/sdk/issues/184), [rust-sdk#146](https://github.com/inference-gateway/rust-sdk/issues/146) and [python-sdk#121](https://github.com/inference-gateway/python-sdk/issues/121)) - call it over plain HTTP in the meantime:
 
 ```typescript
 const res = await fetch('http://localhost:8080/v1/audio/sfx', {
@@ -893,7 +893,7 @@ The `CreateMusicRequest` fields:
 | `instrumental`     | `boolean` |          | Compose without vocals (default `false`).                                             |
 | `response_format`  | `string`  |          | Audio format: `mp3` (default), `opus`, `aac`, `flac`, `wav`, or `pcm`.                |
 
-A request routed to a provider without music support returns `400 Bad Request` (see [Unsupported providers](#unsupported-providers)). The SDKs do not wrap this endpoint yet - call it over plain HTTP as in the [sound effects example](#sound-effects).
+A request routed to a provider without music support returns `400 Bad Request` (see [Unsupported providers](#unsupported-providers)). The SDKs do not wrap this endpoint yet either (tracked in the same SDK issues as sound effects) - call it over plain HTTP as in the [sound effects example](#sound-effects).
 
 #### Unsupported providers
 
