@@ -2636,6 +2636,18 @@ pricing:
 | `output_price_per_mtoken` | number  | Cost per 1M completion (output) tokens, in `currency`.                        |
 | `requires_pro`            | boolean | Marks the model as gated behind a paid Pro subscription. Defaults to `false`. |
 
+Subscription-gated models are billed at **zero session cost** regardless of the rates on the entry. Use non-zero rates with `requires_pro: true` to keep an informational rate in the picker label while a flat-fee subscription covers the actual billing:
+
+```yaml
+pricing:
+  enabled: true
+  custom_prices:
+    ollama_cloud/glm-5.3-flash:
+      input_price_per_mtoken: 0.15
+      output_price_per_mtoken: 0.50
+      requires_pro: true # informational rate only, billed as flat-fee subscription
+```
+
 > **Override caveat:** a `custom_prices` entry **fully replaces** the default for that model - it is not merged field by field. Omitting `requires_pro` in a custom override therefore resets it to `false`, even when the model is flagged Pro by default. Set `requires_pro: true` explicitly when overriding the pricing of a Pro model.
 
 #### Model Categories (Free / Pay-as-you-go / Subscription)
@@ -2648,17 +2660,19 @@ The model picker's [pricing tab row](#filter-tabs) - `[1] All`, `[2] Free`, `[3]
 | Pay-as-you-go | Billed per token.                                               |
 | Subscription  | Gated behind a paid subscription rather than per-token billing. |
 
-Subscription is an axis **orthogonal to price**: an Ollama Cloud model has no per-token cost but is not free, so it is labelled `pro subscription` rather than `free`. The marker appears both in the picker rows and in `/model` autocomplete descriptions:
+Subscription is an axis **orthogonal to price**: an Ollama Cloud model is not metered per token but is not free, so it is labelled `pro subscription` rather than `free`. A subscription model may still carry a per-token rate - the gateway keeps the provider's pay-as-you-go rate for reference - in which case the picker shows the rate with a `subscription` suffix. The marker appears both in the picker rows and in `/model` autocomplete descriptions:
 
 ```
 ollama_cloud/deepseek-v4-pro   (1M, pro subscription)
-ollama_cloud/deepseek-v4-flash (1M, pro subscription)
+ollama_cloud/glm-5.3-flash     (1M, $0.15/$0.50 per MTok, subscription)
 deepseek/deepseek-v4-flash     (1M, $1.74/$3.48 per MTok)
 ```
 
+**Subscription models cost zero per session.** The session cost line and the status-bar cost report `$0.00` for any subscription-gated model, even when the picker label shows a rate - the rate is informational and the flat-fee subscription covers usage. This applies whether the model is flagged by the gateway (`pricing.subscription: true`) or by a `custom_prices` entry with `requires_pro: true`, as in the [example above](#pricing-configuration).
+
 The classification comes from the **gateway's pricing metadata** - the `pricing.subscription` flag reported per model - so it tracks the gateway catalog with no CLI-side list to maintain. A `custom_prices` entry still wins: set `requires_pro: true` to gate a model the gateway does not flag, or `false` to un-gate one (remembering the [override caveat](#pricing-configuration) that an entry fully replaces the default).
 
-> The gateway-flag source shipped in [inference-gateway/cli#1166](https://github.com/inference-gateway/cli/pull/1166), replacing the previous hardcoded list of Pro models.
+> The gateway-flag source shipped in [inference-gateway/cli#1166](https://github.com/inference-gateway/cli/pull/1166), replacing the previous hardcoded list of Pro models. Zero-cost billing for subscription models with per-token rates shipped in [inference-gateway/cli#1263](https://github.com/inference-gateway/cli/pull/1263), alongside the gateway keeping rates on flagged models in [inference-gateway/inference-gateway#683](https://github.com/inference-gateway/inference-gateway/pull/683).
 
 ### Model Thinking Visualization
 

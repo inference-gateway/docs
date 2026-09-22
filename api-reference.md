@@ -128,9 +128,9 @@ The `pricing` field resolves in the following order (first hit wins):
 
 Monetary values are USD per-token decimal strings (e.g. `"0.00000027"`) to avoid floating-point precision loss. Rates the source does not publish are omitted entirely (never `0` or `null`).
 
-The pricing object may also include an optional `subscription` field (boolean, default `false`). When `true`, the model is gated behind a paid subscription - it has no per-token price (all rates are `"0"`) but requires an active subscription to use. Models without the field (or with `subscription: false`) are free-tier models with genuine zero per-token rates.
+The pricing object may also include an optional `subscription` field (boolean, default `false`). When `true`, the model is gated behind a paid subscription: access is billed as a flat fee, not per token. The flag and the per-token rates are independent - a subscription-gated model may carry `"0"` rates or non-zero `input_per_token` / `output_per_token` rates. Non-zero rates on a subscription model are informational only (the provider's pay-as-you-go price for the same model) and must not be used to meter a session; the `subscription` flag decides billing. Models without the field (or with `subscription: false`) and zero rates are free-tier models with genuine zero per-token rates.
 
-Every `ollama_cloud/*` model is subscription-gated: the community table applies the rule at the provider level, so all Ollama Cloud models resolve to a populated pricing object with `subscription: true` and zero-rate `input_per_token` / `output_per_token` rather than `pricing: null`. Clients should classify them as Subscription, not Free. See [Ollama Cloud Provider](/supported-providers/#ollama-cloud-provider) for the provider setup.
+Every `ollama_cloud/*` model is subscription-gated: the community table applies the rule at the provider level, so all Ollama Cloud models resolve to a populated pricing object with `subscription: true` rather than `pricing: null`. Ollama Cloud sells both flat-fee subscription plans and pay-as-you-go API access, and models.dev publishes the pay-as-you-go rates, so priced Ollama Cloud models keep their rates alongside the flag (see [inference-gateway/inference-gateway#683](https://github.com/inference-gateway/inference-gateway/pull/683)). Clients should classify them as Subscription, not Free, and bill them at zero per-token cost - see how the [CLI handles subscription models](/cli/#model-categories-free-pay-as-you-go-subscription). See [Ollama Cloud Provider](/supported-providers/#ollama-cloud-provider) for the provider setup.
 
 Example response for an OpenAI model with `include=pricing`:
 
@@ -207,15 +207,15 @@ Content-Type: application/json
       }
     },
     {
-      "id": "ollama_cloud/gpt-oss:120b",
+      "id": "ollama_cloud/glm-5.3-flash",
       "object": "model",
       "created": 1741879542,
       "owned_by": "ollama_cloud",
       "served_by": "ollama_cloud",
       "pricing": {
         "currency": "USD",
-        "input_per_token": "0",
-        "output_per_token": "0",
+        "input_per_token": "0.00000015",
+        "output_per_token": "0.00000050",
         "subscription": true,
         "source": "community"
       }
@@ -224,7 +224,7 @@ Content-Type: application/json
 }
 ```
 
-Both models have zero per-token rates and `subscription: true`, indicating they require a paid subscription. The flag is not limited to specific families - every Ollama Cloud model carries it. Compare with a free-tier model that also has zero rates but omits the `subscription` field entirely.
+Both models carry `subscription: true`, indicating they require a paid subscription. `deepseek-v4-pro` has no published pay-as-you-go rate, so its rates are `"0"`; `glm-5.3-flash` keeps the models.dev pay-as-you-go rate for reference, but the flag still applies and a subscription client bills it at zero. The flag is not limited to specific families - every Ollama Cloud model carries it. Compare with a free-tier model that also has zero rates but omits the `subscription` field entirely.
 
 Models with no resolvable per-token pricing - locally hosted models or anything absent from both the provider listing and the community table - return `"pricing": null`.
 
