@@ -880,6 +880,138 @@ The SDKs wrap this endpoint as a single call that returns the raw audio: [`creat
 
 The endpoint and its audio gate landed in [inference-gateway#569](https://github.com/inference-gateway/inference-gateway/pull/569), the schema in [schemas#186](https://github.com/inference-gateway/schemas/pull/186), and `reference_audio` cloning in [schemas#187](https://github.com/inference-gateway/schemas/pull/187). The local engine, the `ENABLE_AUDIO` to `AUDIO_ENABLED` rename (no legacy alias) and the `AUDIO_LOCAL_*` settings landed in [inference-gateway#575](https://github.com/inference-gateway/inference-gateway/pull/575) and [schemas#191](https://github.com/inference-gateway/schemas/pull/191). The `elevenlabs` provider landed in [schemas#210](https://github.com/inference-gateway/schemas/pull/210) and the `/audio/sfx` operation in [schemas#211](https://github.com/inference-gateway/schemas/pull/211).
 
+### Videos API
+
+Generate a video from a prompt, a reference image, or an audio clip. The API mirrors the OpenAI Videos API and is split into three operations because video generation is **asynchronous at every provider**: `POST /v1/videos` creates a job and returns at once, `GET /v1/videos/{video_id}` polls it, and `GET /v1/videos/{video_id}/content` downloads the rendered bytes once `status` is `completed`. All three require `VIDEOS_ENABLED=true`; while disabled they return `404 Not Found`.
+
+`elevenlabs` is the only provider that serves it today, with `elevenlabs/creatify-aurora` - a talking-avatar model that renders at `480p` or `720p`. Set `ELEVENLABS_API_KEY` (and optionally `ELEVENLABS_API_URL`) so the gateway can authenticate - see [Configuration](/configuration/#elevenlabs).
+
+The gateway keeps **no job state**. The job `id` is opaque - it may encode the provider - and must be sent back verbatim; the two `GET` operations take the same optional `provider` query parameter as `POST` for when the id alone is not enough to route the request.
+
+#### Create a video generation job
+
+```http
+POST /v1/videos?provider={provider}
+```
+
+Unlike the other JSON endpoints, the request is `multipart/form-data`, so the reference image and audio clip are uploaded as binary fields.
+
+```bash
+curl -X POST http://localhost:8080/v1/videos \
+  -H "Authorization: Bearer $INFERENCE_GATEWAY_API_KEY" \
+  -F model=elevenlabs/creatify-aurora \
+  -F prompt="medium shot, presenter facing the camera, soft studio light" \
+  -F size=720x1280 \
+  -F input_reference=@portrait.png \
+  -F audio=@dialogue.mp3
+```
+
+**Response** (`VideoJob`):
+
+```http
+Status: 200 OK
+Content-Type: application/json
+
+{
+  "id": "elevenlabs:vid_01j9x5k2m4",
+  "object": "video",
+  "model": "elevenlabs/creatify-aurora",
+  "status": "queued",
+  "progress": 0,
+  "created_at": 1758550200,
+  "completed_at": null,
+  "seconds": "12",
+  "size": "720x1280",
+  "error": null
+}
+```
+
+The `CreateVideoRequest` fields:
+
+| Field             | Type     | Required | Description                                                                                                                                                                                                                                                                                                      |
+| ----------------- | -------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `model`           | `string` | Yes      | Model ID to use for video generation, for example `elevenlabs/creatify-aurora`.                                                                                                                                                                                                                                  |
+| `prompt`          | `string` |          | Text description of the video. Optional for audio-driven avatar models, where the dialogue comes from `audio` and the prompt describes framing only - never the spoken words.                                                                                                                                    |
+| `input_reference` | `file`   |          | Image used as the first frame or, for avatar models, the portrait to animate.                                                                                                                                                                                                                                    |
+| `audio`           | `file`   |          | **Non-standard**: an `audio/wav` or `audio/mpeg` clip that drives a talking-avatar render. When present, the model lip-syncs `input_reference` to it and the video lasts as long as the clip, so `seconds` is ignored. Forwarded as-is; only providers with avatar support honor it, others ignore or reject it. |
+| `seconds`         | `string` |          | Requested duration in seconds, as a string (`4`, `8`, `12`). Providers accept a limited set; omit for the provider default. Ignored when `audio` is present.                                                                                                                                                     |
+| `size`            | `string` |          | Requested resolution as `widthxheight` (for example `720x1280`). Providers accept a limited set - `creatify-aurora` maps to `480p` and `720p`. Omit for the provider default.                                                                                                                                    |
+
+#### Audio-driven avatars
+
+`audio` is a gateway extension the way `reference_audio` is on [`/v1/audio/speech`](#voice-cloning): OpenAI's Videos API has no audio field. Pair it with `input_reference` (the portrait) and the model lip-syncs the face to the clip; the output is exactly as long as the audio. Keep `prompt` to framing, lighting and camera notes - anything spoken must come from the clip, and a prompt that contains dialogue is not read aloud. Today only `elevenlabs/creatify-aurora` honors the field.
+
+A common pipeline synthesizes the dialogue first with [`/v1/audio/speech`](#speech-synthesis), then feeds the resulting file to `/v1/videos` as `audio`.
+
+#### Poll the job
+
+```http
+GET /v1/videos/{video_id}?provider={provider}
+```
+
+```bash
+curl http://localhost:8080/v1/videos/elevenlabs:vid_01j9x5k2m4 \
+  -H "Authorization: Bearer $INFERENCE_GATEWAY_API_KEY"
+```
+
+Returns the same `VideoJob` shape as create. `status` moves through `queued`, `in_progress` and ends at `completed` or `failed`; `progress` is a `0`-`100` percentage, `completed_at` is `null` until the job finishes, and `error` (`code` + `message`) is set only on failure.
+
+#### Download the rendered video
+
+```http
+GET /v1/videos/{video_id}/content?provider={provider}
+```
+
+```bash
+curl http://localhost:8080/v1/videos/elevenlabs:vid_01j9x5k2m4/content \
+  -H "Authorization: Bearer $INFERENCE_GATEWAY_API_KEY" \
+  -o avatar.mp4
+```
+
+As with audio, the response is **not JSON** - it is the raw video bytes, with a `Content-Type` reflecting the container the provider produced (for example `video/mp4`). Write it to a file. The operation returns `404 Not Found` while the job is still `queued` or `in_progress`, or if it `failed`, so poll first.
+
+#### End-to-end: create, poll, download
+
+The SDKs do not wrap these operations yet - call them over plain HTTP in the meantime:
+
+```typescript
+const base = 'http://localhost:8080/v1';
+const headers = { Authorization: `Bearer ${process.env.INFERENCE_GATEWAY_API_KEY}` };
+
+const form = new FormData();
+form.set('model', 'elevenlabs/creatify-aurora');
+form.set('prompt', 'medium shot, presenter facing the camera');
+form.set('size', '720x1280');
+form.set('input_reference', new Blob([await fs.readFile('portrait.png')]), 'portrait.png');
+form.set('audio', new Blob([await fs.readFile('dialogue.mp3')]), 'dialogue.mp3');
+
+let job = await (await fetch(`${base}/videos`, { method: 'POST', headers, body: form })).json();
+
+while (job.status === 'queued' || job.status === 'in_progress') {
+  await new Promise((r) => setTimeout(r, 5000));
+  job = await (await fetch(`${base}/videos/${job.id}`, { headers })).json();
+}
+if (job.status === 'failed') throw new Error(job.error?.message);
+
+const res = await fetch(`${base}/videos/${job.id}/content`, { headers });
+await fs.writeFile('avatar.mp4', Buffer.from(await res.arrayBuffer()));
+```
+
+#### Unsupported providers
+
+Requests routed to a provider without video support return `400 Bad Request`:
+
+```http
+Status: 400 Bad Request
+Content-Type: application/json
+
+{
+  "error": "The Videos API is not supported by this provider yet."
+}
+```
+
+The `/videos` operations and the `audio` extension landed in [schemas#213](https://github.com/inference-gateway/schemas/pull/213).
+
 ### Proxy Requests
 
 Pass requests directly through to provider APIs. The response body is a `ProviderSpecificResponse` - the exact shape depends on the upstream provider. Each provider uses a `ProviderAuthType` to authenticate: `Bearer Token`, `X-Header`, or none.
