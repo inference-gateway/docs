@@ -326,7 +326,7 @@ curl -X POST http://localhost:8080/v1/chat/completions \
   }'
 ```
 
-Ollama Cloud models are subscription-gated rather than metered per token. `GET /v1/models?include=pricing` returns a populated pricing object for every `ollama_cloud/*` model with `subscription: true` and zero `input_per_token` / `output_per_token` rates, so clients classify them as Subscription instead of Free. See [List All Models](/api-reference/#list-all-models) for the full resolution order.
+Ollama Cloud models are subscription-gated rather than metered per token. `GET /v1/models?include=pricing` returns a populated pricing object for every `ollama_cloud/*` model with `subscription: true`, so clients classify them as Subscription instead of Free. Models with a published pay-as-you-go rate keep non-zero `input_per_token` / `output_per_token` values for reference; the flag still decides billing. See [List All Models](/api-reference/#list-all-models) for the full resolution order.
 
 ### Google Provider
 
