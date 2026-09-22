@@ -140,6 +140,7 @@ Voice cloning quality depends entirely on the reference sample: one speaker, min
 
 - [CLI](/cli/) - overview of the `infer` command-line tool, chat mode, and the full tool reference
 - [Speech-to-Text](/cli-speech-to-text/) - the reverse direction, local transcription with whisper.cpp
+- [TextToMusic](/cli/#texttomusic-tool) and [TextToSFX](/cli/#texttosfx-tool) - the non-speech siblings: music clips and sound effects through the gateway, with the same `output_path` rules
 - [Desktop App](/desktop/#text-to-speech) - the settings toggle, inline playback, and the voice samples library
 - [Configuration](/configuration/) - full configuration system across the gateway and CLI
 - [llama.cpp](https://github.com/ggml-org/llama.cpp) - the local synthesis engine
