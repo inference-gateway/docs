@@ -33,9 +33,9 @@ GET /v1/models
 
 **Query Parameters:**
 
-| Parameter | Type     | Required | Description                                                                                                                                                                                                                                                               |
-| --------- | -------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `include` | `string` |          | Comma-separated list of additional metadata keys to include per model. Supported keys: `context_window`, `pricing`. Unknown keys return `400 Bad Request`. Keys are trimmed and de-duplicated. When omitted, the response is byte-for-byte unchanged (OpenAI-compatible). |
+| Parameter | Type     | Required | Description                                                                                                                                                                                                                                                                             |
+| --------- | -------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `include` | `string` |          | Comma-separated list of additional metadata keys to include per model. Supported keys: `context_window`, `pricing`, `modalities`. Unknown keys return `400 Bad Request`. Keys are trimmed and de-duplicated. When omitted, the response is byte-for-byte unchanged (OpenAI-compatible). |
 
 **Response** (`ListModelsResponse`):
 
@@ -858,7 +858,14 @@ Set `ELEVENLABS_API_KEY` (and optionally `ELEVENLABS_API_URL`) so the gateway ca
 POST /v1/audio/music?provider={provider}
 ```
 
-`elevenlabs` is the only provider that serves it today, through its `POST /v1/music` API.
+`elevenlabs` is the only provider that serves it today, through its `POST /v1/music` API, with `music_v2` and `music_v2_5`. ElevenLabs' own models endpoint returns speech models only, so the gateway appends its music, sound-effect and video models to `GET /v1/models` for discovery. Filter on `modalities` (text in, audio out) to find them:
+
+```bash
+curl -s 'http://localhost:8080/v1/models?provider=elevenlabs&include=modalities' \
+  | jq '.data[] | select(.modalities.output == ["audio"]) | .id'
+```
+
+`pricing` and `context_window` are `null` for every ElevenLabs model: billing is credit-based and there is no token window.
 
 ```bash
 curl -X POST http://localhost:8080/v1/audio/music \
