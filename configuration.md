@@ -138,6 +138,11 @@ const zaiSettings = [
   { variable: 'ZAI_API_KEY', description: 'Z-AI API Key', defaultValue: '""' },
 ];
 
+const elevenlabsSettings = [
+  { variable: 'ELEVENLABS_API_URL', description: 'ElevenLabs API URL', defaultValue: 'https://api.elevenlabs.io/v1' },
+  { variable: 'ELEVENLABS_API_KEY', description: 'ElevenLabs API Key', defaultValue: '""' },
+];
+
 // GENERATED:provider-settings END (do not edit - run: task generate)
 
 const mcpSettings = [
@@ -257,6 +262,8 @@ CLIENT_MAX_IDLE_CONNS_PER_HOST=50
 
 Configure access to various LLM providers. At minimum, you should configure the providers you plan to use.
 
+ElevenLabs is the one exception to "LLM provider": it has no chat-completions API and serves only the [Audio API](/api-reference/#audio-api), so `ELEVENLABS_API_KEY` is worth setting only when you synthesize speech.
+
 <!-- GENERATED:provider-config-sections START (do not edit - run: task generate) -->
 
 #### OpenAI
@@ -318,6 +325,10 @@ Configure access to various LLM providers. At minimum, you should configure the 
 #### Z-AI
 
 <ConfigTable :rows="zaiSettings" />
+
+#### ElevenLabs
+
+<ConfigTable :rows="elevenlabsSettings" />
 
 <!-- GENERATED:provider-config-sections END (do not edit - run: task generate) -->
 

@@ -648,7 +648,7 @@ Content-Type: application/json
 
 Synthesize speech from text using the OpenAI-compatible Audio endpoint. It requires `AUDIO_ENABLED=true`; while disabled the endpoint returns `404 Not Found` with `The Audio API is not enabled. Set AUDIO_ENABLED=true to enable it.`
 
-Requests are served either by the `openai` provider (`openai/tts-1`, `openai/gpt-4o-mini-tts`) or by the gateway's [built-in local engine](#local-speech-engine-local-qwen3-tts) under the reserved model id `local/qwen3-tts`. Those two are the only supported backends today: the `llamacpp` provider has a Speech endpoint wired in the gateway registry, but that path is a work in progress and is not supported yet.
+Requests are served by the `openai` provider (`openai/tts-1`, `openai/gpt-4o-mini-tts`), the `elevenlabs` provider (`elevenlabs/<model>` with an [ElevenLabs voice id](#elevenlabs-voices)), or the gateway's [built-in local engine](#local-speech-engine-local-qwen3-tts) under the reserved model id `local/qwen3-tts`. Those three are the only supported backends today: the `llamacpp` provider has a Speech endpoint wired in the gateway registry, but that path is a work in progress and is not supported yet.
 
 ```http
 POST /v1/audio/speech?provider={provider}
@@ -694,22 +694,41 @@ Content-Type: audio/mpeg
 
 The `CreateSpeechRequest` fields:
 
-| Field             | Type     | Required | Description                                                                                                                                                                                                     |
-| ----------------- | -------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `model`           | `string` | Yes      | Model ID to use for speech synthesis, for example `openai/tts-1`, `openai/gpt-4o-mini-tts` or the reserved local id `local/qwen3-tts`.                                                                          |
-| `input`           | `string` | Yes      | The text to synthesize (4096 characters maximum).                                                                                                                                                               |
-| `voice`           | `string` | Yes      | Voice to speak with. OpenAI built-ins are `alloy`, `ash`, `ballad`, `coral`, `echo`, `fable`, `onyx`, `nova`, `sage`, `shimmer`, `verse`, `marin`, `cedar`. Other providers accept their own voice identifiers. |
-| `response_format` | `string` |          | Audio format: `mp3` (default), `opus`, `aac`, `flac`, `wav`, or `pcm`.                                                                                                                                          |
-| `speed`           | `number` |          | Playback speed between `0.25` and `4.0` (default `1.0`).                                                                                                                                                        |
-| `instructions`    | `string` |          | Extra guidance on how the voice should sound (4096 characters maximum). Ignored by `tts-1` and `tts-1-hd`.                                                                                                      |
-| `reference_audio` | `string` |          | Base64-encoded audio sample for zero-shot voice cloning. Only `local/qwen3-tts` honors it today; OpenAI does not support cloning.                                                                               |
-| `language`        | `string` |          | ISO 639-1 language code hint for synthesis (default `en`). Non-standard: forwarded to providers as-is; `local/qwen3-tts` validates it (see below).                                                              |
+| Field             | Type     | Required | Description                                                                                                                                                                                                                                                                   |
+| ----------------- | -------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `model`           | `string` | Yes      | Model ID to use for speech synthesis, for example `openai/tts-1`, `openai/gpt-4o-mini-tts`, `elevenlabs/<model>` or the reserved local id `local/qwen3-tts`.                                                                                                                  |
+| `input`           | `string` | Yes      | The text to synthesize (4096 characters maximum).                                                                                                                                                                                                                             |
+| `voice`           | `string` | Yes      | Voice to speak with. OpenAI built-ins are `alloy`, `ash`, `ballad`, `coral`, `echo`, `fable`, `onyx`, `nova`, `sage`, `shimmer`, `verse`, `marin`, `cedar`. Other providers accept their own voice identifiers - for `elevenlabs` this is a voice id, including a cloned one. |
+| `response_format` | `string` |          | Audio format: `mp3` (default), `opus`, `aac`, `flac`, `wav`, or `pcm`.                                                                                                                                                                                                        |
+| `speed`           | `number` |          | Playback speed between `0.25` and `4.0` (default `1.0`).                                                                                                                                                                                                                      |
+| `instructions`    | `string` |          | Extra guidance on how the voice should sound (4096 characters maximum). Ignored by `tts-1` and `tts-1-hd`.                                                                                                                                                                    |
+| `reference_audio` | `string` |          | Base64-encoded audio sample for zero-shot voice cloning. Only `local/qwen3-tts` honors it today; OpenAI does not support cloning.                                                                                                                                             |
+| `language`        | `string` |          | ISO 639-1 language code hint for synthesis (default `en`). Non-standard: forwarded to providers as-is; `local/qwen3-tts` validates it (see below).                                                                                                                            |
+
+#### ElevenLabs voices
+
+ElevenLabs is reached with `"model": "elevenlabs/<model>"` and an ElevenLabs **voice id** in `voice` - either a stock voice or one you cloned in your ElevenLabs account. Set `ELEVENLABS_API_KEY` (and optionally `ELEVENLABS_API_URL`); the gateway authenticates with the `xi-api-key` header on your behalf. See [Configuration](/configuration/#elevenlabs).
+
+```bash
+curl -X POST http://localhost:8080/v1/audio/speech \
+  -H "Authorization: Bearer $INFERENCE_GATEWAY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -o speech.mp3 \
+  -d '{
+"model": "elevenlabs/eleven_multilingual_v2",
+"input": "Hello from the Inference Gateway.",
+"voice": "21m00Tcm4TlvDq8ikWAM",
+"response_format": "mp3"
+  }'
+```
+
+ElevenLabs has no chat-completions API, so it is speech-only: a `/v1/chat/completions` request routed to it is not supported.
 
 #### Voice cloning
 
 `reference_audio` carries a base64-encoded voice sample for zero-shot cloning, so the generated speech mimics the voice in the sample. Use a clean mono recording between 1 and 30 seconds - WAV is the safest container.
 
-Cloning is served by `local/qwen3-tts`, which handles the sample in-process. OpenAI's Speech API does not support cloning and accepts only its built-in voices, so `local/qwen3-tts` is the only way to clone a voice today - cloning through a self-hosted Qwen3-TTS server behind the `llamacpp` provider is a work in progress and is not supported yet.
+Cloning is served by `local/qwen3-tts`, which handles the sample in-process. OpenAI's Speech API does not support cloning and accepts only its built-in voices, so `local/qwen3-tts` is the only way to clone a voice from a sample in the request today - ElevenLabs clones voices in your ElevenLabs account instead and you pass the resulting voice id in `voice`. Cloning through a self-hosted Qwen3-TTS server behind the `llamacpp` provider is a work in progress and is not supported yet.
 
 ```bash
 curl -X POST http://localhost:8080/v1/audio/speech \
@@ -779,7 +798,7 @@ Because the gateway proxies the request, speech traffic shows up in gateway logs
 
 The SDKs wrap this endpoint as a single call that returns the raw audio: [`createSpeech`](/sdks/#speech-synthesis) in TypeScript (a `Blob`), [`CreateSpeech`](/sdks/#speech-synthesis-1) in Go and [`create_speech`](/sdks/#speech-synthesis-2) in Rust (raw bytes).
 
-The endpoint and its audio gate landed in [inference-gateway#569](https://github.com/inference-gateway/inference-gateway/pull/569), the schema in [schemas#186](https://github.com/inference-gateway/schemas/pull/186), and `reference_audio` cloning in [schemas#187](https://github.com/inference-gateway/schemas/pull/187). The local engine, the `ENABLE_AUDIO` to `AUDIO_ENABLED` rename (no legacy alias) and the `AUDIO_LOCAL_*` settings landed in [inference-gateway#575](https://github.com/inference-gateway/inference-gateway/pull/575) and [schemas#191](https://github.com/inference-gateway/schemas/pull/191).
+The endpoint and its audio gate landed in [inference-gateway#569](https://github.com/inference-gateway/inference-gateway/pull/569), the schema in [schemas#186](https://github.com/inference-gateway/schemas/pull/186), and `reference_audio` cloning in [schemas#187](https://github.com/inference-gateway/schemas/pull/187). The local engine, the `ENABLE_AUDIO` to `AUDIO_ENABLED` rename (no legacy alias) and the `AUDIO_LOCAL_*` settings landed in [inference-gateway#575](https://github.com/inference-gateway/inference-gateway/pull/575) and [schemas#191](https://github.com/inference-gateway/schemas/pull/191). The `elevenlabs` provider landed in [schemas#210](https://github.com/inference-gateway/schemas/pull/210).
 
 ### Proxy Requests
 

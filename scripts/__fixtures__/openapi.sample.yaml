@@ -25,6 +25,7 @@ components:
         - nvidia
         - llamacpp
         - zai
+        - elevenlabs
       x-provider-configs:
         openai:
           url: https://api.openai.com/v1
@@ -180,3 +181,14 @@ components:
             chat:
               method: POST
               path: /chat/completions
+        elevenlabs:
+          url: https://api.elevenlabs.io/v1
+          auth_type: xheader
+          auth_header: xi-api-key
+          endpoints:
+            models:
+              method: GET
+              path: /models
+            speech:
+              method: POST
+              path: /text-to-speech/{voice}

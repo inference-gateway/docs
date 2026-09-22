@@ -37,7 +37,7 @@ All four SDKs target the same gateway, so they share a single provider set. Rout
 
 <!-- GENERATED:sdks-provider-list START (do not edit - run: task generate) -->
 
-`openai`, `deepseek`, `anthropic`, `cohere`, `groq`, `cloudflare`, `ollama_cloud`, `ollama`, `llamacpp`, `google`, `mistral`, `minimax`, `moonshot`, `nvidia`, and `zai`.
+`openai`, `deepseek`, `anthropic`, `cohere`, `groq`, `cloudflare`, `ollama_cloud`, `ollama`, `llamacpp`, `google`, `mistral`, `minimax`, `moonshot`, `nvidia`, `zai`, and `elevenlabs`.
 
 <!-- GENERATED:sdks-provider-list END (do not edit - run: task generate) -->
 

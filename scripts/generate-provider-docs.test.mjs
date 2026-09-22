@@ -56,6 +56,7 @@ test('fixture yields the full canonical provider set in schema order', () => {
     'moonshot',
     'nvidia',
     'zai',
+    'elevenlabs',
   ]);
 });
 
@@ -105,6 +106,11 @@ test('ADK provider table matches typescript-adk.md', () => {
   expect(renderAdkProviderTable(providers)).toEqual(
     committedRegion('typescript-adk.md', 'adk-provider-table')
   );
+});
+
+test('speech-only providers are kept out of the ADK table', () => {
+  expect(providers.find((p) => p.id === 'elevenlabs').supportsChat).toBe(false);
+  expect(renderAdkProviderTable(providers).join('\n')).not.toContain('elevenlabs');
 });
 
 test('injectRegion replaces the body of a single marked region', () => {
