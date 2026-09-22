@@ -818,14 +818,14 @@ Content-Type: audio/mpeg
 
 The `CreateSFXRequest` fields:
 
-| Field              | Type      | Required | Description                                                                                                                                                                          |
-| ------------------ | --------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `model`            | `string`  | Yes      | Model ID to use for sound-effect generation, for example `elevenlabs/eleven_text_to_sound_v2`.                                                                                       |
-| `prompt`           | `string`  | Yes      | Description of the sound to generate, for example `distant thunder rolling over a valley`.                                                                                           |
-| `duration_seconds` | `number`  |          | Length of the clip, between `0.5` and `30`. Omit it to let the provider pick a length that fits the prompt.                                                                          |
-| `prompt_influence` | `number`  |          | How closely the generation follows the prompt, between `0` and `1` - higher stays closer, lower varies more. Omit it for the provider default.                                       |
-| `loop`             | `boolean` |          | Generate a clip that loops seamlessly. Useful for ambience beds.                                                                                                                     |
-| `response_format`  | `string`  |          | Audio format: `mp3` (default), `opus`, `aac`, `flac`, `wav`, or `pcm`. ElevenLabs produces only `mp3`, `opus` and `pcm`; the rest return `400 Bad Request` naming the supported set. |
+| Field              | Type      | Required | Description                                                                                                                                                                                                                                               |
+| ------------------ | --------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `model`            | `string`  | Yes      | Model ID to use for sound-effect generation, for example `elevenlabs/eleven_text_to_sound_v2`.                                                                                                                                                            |
+| `prompt`           | `string`  | Yes      | Description of the sound to generate, for example `distant thunder rolling over a valley`.                                                                                                                                                                |
+| `duration_seconds` | `number`  |          | Length of the clip, between `0.5` and `30`. Omit it to let the provider pick a length that fits the prompt.                                                                                                                                               |
+| `prompt_influence` | `number`  |          | How closely the generation follows the prompt, between `0` and `1` - higher stays closer, lower varies more. Omit it for the provider default.                                                                                                            |
+| `loop`             | `boolean` |          | Generate a clip that loops seamlessly. Useful for ambience beds.                                                                                                                                                                                          |
+| `response_format`  | `string`  |          | Audio format: `mp3` (default), `opus`, `aac`, `flac`, or `pcm`. `wav` is not accepted here (unlike `/v1/audio/speech`) - use `mp3` instead. ElevenLabs produces only `mp3`, `opus` and `pcm`; the rest return `400 Bad Request` naming the supported set. |
 
 The SDKs do not wrap this endpoint yet (tracked in [typescript-sdk#243](https://github.com/inference-gateway/typescript-sdk/issues/243), [go-sdk#184](https://github.com/inference-gateway/sdk/issues/184), [rust-sdk#146](https://github.com/inference-gateway/rust-sdk/issues/146) and [python-sdk#121](https://github.com/inference-gateway/python-sdk/issues/121)) - call it over plain HTTP in the meantime:
 
@@ -894,13 +894,13 @@ Content-Type: audio/mpeg
 
 The `CreateMusicRequest` fields:
 
-| Field              | Type      | Required | Description                                                                           |
-| ------------------ | --------- | -------- | ------------------------------------------------------------------------------------- |
-| `model`            | `string`  | Yes      | Model ID to use for music generation, for example `elevenlabs/music_v2_5`.            |
-| `prompt`           | `string`  | Yes      | Description of the music to compose - genre, mood, instruments, tempo.                |
-| `duration_seconds` | `number`  |          | Length of the clip, between `3` and `600`. Omit it to let the provider pick a length. |
-| `instrumental`     | `boolean` |          | Compose without vocals (default `false`).                                             |
-| `response_format`  | `string`  |          | Audio format: `mp3` (default), `opus`, `aac`, `flac`, `wav`, or `pcm`.                |
+| Field              | Type      | Required | Description                                                                                                                                 |
+| ------------------ | --------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `model`            | `string`  | Yes      | Model ID to use for music generation, for example `elevenlabs/music_v2_5`.                                                                  |
+| `prompt`           | `string`  | Yes      | Description of the music to compose - genre, mood, instruments, tempo.                                                                      |
+| `duration_seconds` | `number`  |          | Length of the clip, between `3` and `600`. Omit it to let the provider pick a length.                                                       |
+| `instrumental`     | `boolean` |          | Compose without vocals (default `false`).                                                                                                   |
+| `response_format`  | `string`  |          | Audio format: `mp3` (default), `opus`, `aac`, `flac`, or `pcm`. `wav` is not accepted here (unlike `/v1/audio/speech`) - use `mp3` instead. |
 
 A request routed to a provider without music support returns `400 Bad Request` (see [Unsupported providers](#unsupported-providers)). The SDKs do not wrap this endpoint yet either (tracked in the same SDK issues as sound effects) - call it over plain HTTP as in the [sound effects example](#sound-effects).
 
