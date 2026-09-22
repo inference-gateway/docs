@@ -1327,6 +1327,46 @@ A gateway without the endpoint, or a provider that rejects the request, fails th
 
 > Shipped in [inference-gateway/cli#1268](https://github.com/inference-gateway/cli/pull/1268).
 
+### Video Tools
+
+#### TextToVideo Tool
+
+Render a short video clip and save it as an MP4. The chat model calls the tool when the user asks for a video clip or for an avatar to say something. Rendering goes through the gateway's Videos API (`POST /v1/videos`, polled with `GET /v1/videos/{id}` and downloaded from `GET /v1/videos/{id}/content`) using the configured `provider/model` - the CLI holds no provider key, the gateway does. **Disabled by default** - while `text_to_video.enabled` is `false`, the tool definition is not sent to the LLM at all, because avatar renders send the user's face and voice to a third-party provider.
+
+Two modes:
+
+- **Prompt render** - a text prompt, optionally with a portrait used as the first frame, rendered with `text_to_video.model`.
+- **Avatar render (lip-sync)** - a portrait plus a `.wav` or `.mp3` clip, rendered with `text_to_video.avatar_model` so the face speaks the audio.
+
+**Parameters:**
+
+- `prompt` (required for a prompt render): Description of the clip - subject, action, camera, mood
+- `avatar` (optional): Name of an avatar folder in the [avatar library](/cli-text-to-video/#the-avatar-library) at `~/.infer/avatars/`, or a local image path, used as the portrait
+- `audio` (optional): Local path to a `.wav` or `.mp3` clip to lip-sync; providing it selects the avatar render mode and requires a portrait
+- `output_path` (optional): Bare file name (no directories, no absolute paths) for the generated MP4, written inside `text_to_video.output_dir`; defaults to a timestamped file
+
+**Configuration:**
+
+```yaml
+text_to_video:
+  enabled: true
+  # model: elevenlabs/veo-3.1-fast-generate-001 # prompt renders
+  # avatar_model: elevenlabs/creatify-aurora # lip-synced avatar renders
+  # size: '' # "widthxheight" passthrough
+  # output_dir: ~/.infer/tmp/video
+  # timeout: 900
+  # poll_interval: 5
+  require_approval: false # optional; unset = no approval, like the image tools
+```
+
+**Gateway requirements:** the gateway must run with `VIDEOS_ENABLED=true` (gateway v0.54.0 or newer) and hold credentials for the provider behind the configured models. The CLI-managed local gateway is started with `VIDEOS_ENABLED=true` automatically while `text_to_video.enabled` is on; an externally managed gateway is your responsibility.
+
+The portrait and the audio clip travel in one request, so together they must fit the gateway's 10 MiB request body limit, and `creatify-aurora` renders 480p or 720p keeping the portrait's aspect ratio.
+
+See [Text-to-Video and Avatars](/cli-text-to-video/) for the full configuration reference, the `INFER_TEXT_TO_VIDEO_*` environment variables, the avatar library layout, and `infer avatars`.
+
+> Shipped in [inference-gateway/cli#1270](https://github.com/inference-gateway/cli/pull/1270).
+
 ### GitHub Operations
 
 There is **no built-in GitHub tool**. The agent performs all GitHub work - issues, pull requests, releases, repository metadata, and the raw API - through the [`gh` CLI](https://cli.github.com/) run via the [Bash](#bash) tool.
@@ -1668,6 +1708,7 @@ Two-layer configuration system with precedence from highest to lowest:
 | `artifacts/`       | Project/user | Agent deliverables, grouped per session.                                                                                                              | [Artifacts directory](#artifacts-directory)                 |
 | `logs/`            | User         | CLI and gateway log files (`~/.infer/logs`, overridable via `logging.dir`).                                                                           | [Key Configuration Areas](#key-configuration-areas)         |
 | `bin/`             | User         | Downloaded binaries - the gateway server, plus optional helpers like `ffmpeg`.                                                                        | [Key Configuration Areas](#key-configuration-areas)         |
+| `avatars/`         | User         | Avatar portrait folders (`avatars/<name>/*.png`) used by `TextToVideo` lip-sync renders. Kept by `/reset`.                                            | [Text-to-Video](/cli-text-to-video/#the-avatar-library)     |
 | `auth.yaml`        | User         | Fallback provider API keys, used when a key is not in the environment or the project `.env`.                                                          | [Provider API keys](#provider-api-keys)                     |
 | `tmp/`             | User         | Userspace scratch - generated speech (`tmp/tts`), retained recordings (`tmp/voice`), channel media (`tmp/media`). Wiped by `/reset`.                  | [Userspace tmp tree](#userspace-tmp-tree)                   |
 
@@ -1741,6 +1782,7 @@ Disposable runtime output that is not tied to a single project lives under `~/.i
 | `~/.infer/tmp/tts`   | Generated speech WAVs             | `text_to_speech.output_dir`     |
 | `~/.infer/tmp/music` | Generated music MP3s              | `text_to_music.output_dir`      |
 | `~/.infer/tmp/sfx`   | Generated sound-effect WAVs       | `text_to_sfx.output_dir`        |
+| `~/.infer/tmp/video` | Rendered MP4 clips                | `text_to_video.output_dir`      |
 | `~/.infer/tmp/voice` | Retained inbound voice recordings | `speech_to_text.recordings_dir` |
 | `~/.infer/tmp/media` | Retained inbound Telegram media   | `channels.telegram.media.dir`   |
 
@@ -2428,7 +2470,7 @@ Both steps end with a disk-space total: the preview ends with `Total reclaimable
 
 **Deleted**, for every project under `~/.infer/projects/`: conversations, plans, scratch dirs, artifacts, history, backups, exports, logs, telemetry, schedules, pid/lock files, and the userspace tmp tree (generated speech, retained recordings, channel media). With the SQLite backend the conversation database and its WAL sidecars go too.
 
-**Preserved**: configuration (`config.yaml`, custom shortcuts, skills, `projects.yaml`) and saved insights reports under `~/.infer/insights/`. Directories you pointed outside `~/.infer` (for example a `text_to_speech.output_dir` of `/data/tts`) are left alone.
+**Preserved**: configuration (`config.yaml`, custom shortcuts, skills, `projects.yaml`), the [avatar library](/cli-text-to-video/#the-avatar-library) under `~/.infer/avatars/`, and saved insights reports under `~/.infer/insights/`. Directories you pointed outside `~/.infer` (for example a `text_to_speech.output_dir` of `/data/tts`) are left alone.
 
 **Remote conversation stores are skipped.** If [`storage.type`](#conversation-management) is `postgres`, `redis`, or `d1`, `/reset` clears local state only and prints a notice that the remote store was left untouched - it is not an error.
 
@@ -3588,6 +3630,7 @@ If completions still do not appear, the shell rc is usually not sourcing the com
 | `infer tools <subcommand>`         | Run agent tools directly (`execute`, `validate`)                                           |
 | `infer agents <subcommand>`        | A2A agent management                                                                       |
 | `infer conversations <subcommand>` | Conversation history management (`list`, `show`, `delete`)                                 |
+| `infer avatars <subcommand>`       | Avatar library management (`list`, `create`, `delete`) for `TextToVideo` renders           |
 | `infer completion <shell>`         | Generate a shell completion script (bash, zsh, fish, powershell)                           |
 | `infer version`                    | Show version information (backwards-compatible subcommand)                                 |
 | `infer --version`                  | Show version information (styled by fang)                                                  |
