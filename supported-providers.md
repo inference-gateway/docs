@@ -1,6 +1,6 @@
 ---
 title: Supported Providers
-description: Provider matrix for Inference Gateway covering OpenAI, Anthropic, Cohere, Groq, Cloudflare, Ollama, Ollama Cloud, Google, DeepSeek, Mistral, MiniMax, Moonshot, Nvidia and the speech-only ElevenLabs, with auth modes, default URLs, vision support, and per-provider request examples.
+description: Provider matrix for Inference Gateway covering OpenAI, Anthropic, Cohere, Groq, Cloudflare, Ollama, Ollama Cloud, Google, DeepSeek, Mistral, MiniMax, Moonshot, Nvidia and the audio-only ElevenLabs (speech and sound effects), with auth modes, default URLs, vision support, and per-provider request examples.
 ---
 
 # Supported Providers
@@ -32,7 +32,7 @@ Inference Gateway provides a unified interface to interact with multiple LLM pro
 
 <!-- GENERATED:providers-table END (do not edit - run: task generate) -->
 
-Every provider above serves `/v1/chat/completions` except **ElevenLabs**, which has no chat-completions API: it is speech-only and answers the [Audio API](/api-reference/#audio-api) alone. Routing a chat request to it is not supported.
+Every provider above serves `/v1/chat/completions` except **ElevenLabs**, which has no chat-completions API: it is audio-only and answers the [Audio API](/api-reference/#audio-api) alone - speech synthesis with `elevenlabs/<model>` and an ElevenLabs voice id, plus [sound-effect generation](/api-reference/#sound-effects) through `POST /v1/audio/sfx` with `elevenlabs/eleven_text_to_sound_v2` - it is the only provider serving sound effects today. Routing a chat request to it is not supported.
 
 ## Vision/Multimodal Support
 
