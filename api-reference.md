@@ -646,7 +646,7 @@ Content-Type: application/json
 
 ### Audio API
 
-Generate audio from text. Two operations share the API: `POST /v1/audio/speech` synthesizes a voice, and [`POST /v1/audio/sfx`](#sound-effects) generates a non-speech clip - a sound effect or ambience. Both require `AUDIO_ENABLED=true`; while disabled they return `404 Not Found` with `The Audio API is not enabled. Set AUDIO_ENABLED=true to enable it.`
+Generate audio from text. Three operations share the API: `POST /v1/audio/speech` synthesizes a voice, [`POST /v1/audio/sfx`](#sound-effects) generates a non-speech clip - a sound effect or ambience - and [`POST /v1/audio/music`](#music) composes a music clip. All three require `AUDIO_ENABLED=true`; while disabled they return `404 Not Found` with `The Audio API is not enabled. Set AUDIO_ENABLED=true to enable it.`
 
 #### Speech synthesis
 
@@ -724,7 +724,7 @@ curl -X POST http://localhost:8080/v1/audio/speech \
   }'
 ```
 
-ElevenLabs has no chat-completions API, so it is audio-only - speech and [sound effects](#sound-effects): a `/v1/chat/completions` request routed to it is not supported.
+ElevenLabs has no chat-completions API, so it is audio-only - speech, [sound effects](#sound-effects) and [music](#music): a `/v1/chat/completions` request routed to it is not supported.
 
 #### Voice cloning
 
@@ -850,6 +850,51 @@ const sfx = await res.blob(); // audio/mpeg
 
 Set `ELEVENLABS_API_KEY` (and optionally `ELEVENLABS_API_URL`) so the gateway can authenticate - see [Configuration](/configuration/#elevenlabs).
 
+#### Music
+
+`POST /v1/audio/music` composes a music clip from a text prompt. Like [sound effects](#sound-effects) it is a gateway extension shaped after `/v1/audio/speech` - JSON in, raw audio bytes out - and shares the `AUDIO_ENABLED` gate. The provider comes from the `provider/model` prefix or the `provider` query parameter.
+
+```http
+POST /v1/audio/music?provider={provider}
+```
+
+`elevenlabs` is the only provider that serves it today, through its `POST /v1/music` API.
+
+```bash
+curl -X POST http://localhost:8080/v1/audio/music \
+  -H "Authorization: Bearer $INFERENCE_GATEWAY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -o track.mp3 \
+  -d '{
+"model": "elevenlabs/music_v1",
+"prompt": "upbeat lo-fi hip hop with a warm piano loop",
+"duration_seconds": 30,
+"instrumental": true,
+"response_format": "mp3"
+  }'
+```
+
+The response is the raw audio bytes, with the `Content-Type` reflecting `response_format` (see the [table above](#audio-api)). Write it to a file or pipe it to a player.
+
+```http
+Status: 200 OK
+Content-Type: audio/mpeg
+
+<binary audio bytes>
+```
+
+The `CreateMusicRequest` fields:
+
+| Field              | Type      | Required | Description                                                                           |
+| ------------------ | --------- | -------- | ------------------------------------------------------------------------------------- |
+| `model`            | `string`  | Yes      | Model ID to use for music generation, for example `elevenlabs/music_v1`.              |
+| `prompt`           | `string`  | Yes      | Description of the music to compose - genre, mood, instruments, tempo.                |
+| `duration_seconds` | `number`  |          | Length of the clip, between `3` and `600`. Omit it to let the provider pick a length. |
+| `instrumental`     | `boolean` |          | Compose without vocals (default `false`).                                             |
+| `response_format`  | `string`  |          | Audio format: `mp3` (default), `opus`, `aac`, `flac`, `wav`, or `pcm`.                |
+
+A request routed to a provider without music support returns `400 Bad Request`. The SDKs do not wrap this endpoint yet - call it over plain HTTP as in the [sound effects example](#sound-effects).
+
 #### Unsupported providers
 
 Not every provider implements the Audio API. Requests routed to a provider without speech synthesis support return `400 Bad Request`:
@@ -878,7 +923,7 @@ Because the gateway proxies the request, speech traffic shows up in gateway logs
 
 The SDKs wrap this endpoint as a single call that returns the raw audio: [`createSpeech`](/sdks/#speech-synthesis) in TypeScript (a `Blob`), [`CreateSpeech`](/sdks/#speech-synthesis-1) in Go and [`create_speech`](/sdks/#speech-synthesis-2) in Rust (raw bytes).
 
-The endpoint and its audio gate landed in [inference-gateway#569](https://github.com/inference-gateway/inference-gateway/pull/569), the schema in [schemas#186](https://github.com/inference-gateway/schemas/pull/186), and `reference_audio` cloning in [schemas#187](https://github.com/inference-gateway/schemas/pull/187). The local engine, the `ENABLE_AUDIO` to `AUDIO_ENABLED` rename (no legacy alias) and the `AUDIO_LOCAL_*` settings landed in [inference-gateway#575](https://github.com/inference-gateway/inference-gateway/pull/575) and [schemas#191](https://github.com/inference-gateway/schemas/pull/191). The `elevenlabs` provider landed in [schemas#210](https://github.com/inference-gateway/schemas/pull/210) and the `/audio/sfx` operation in [schemas#211](https://github.com/inference-gateway/schemas/pull/211).
+The endpoint and its audio gate landed in [inference-gateway#569](https://github.com/inference-gateway/inference-gateway/pull/569), the schema in [schemas#186](https://github.com/inference-gateway/schemas/pull/186), and `reference_audio` cloning in [schemas#187](https://github.com/inference-gateway/schemas/pull/187). The local engine, the `ENABLE_AUDIO` to `AUDIO_ENABLED` rename (no legacy alias) and the `AUDIO_LOCAL_*` settings landed in [inference-gateway#575](https://github.com/inference-gateway/inference-gateway/pull/575) and [schemas#191](https://github.com/inference-gateway/schemas/pull/191). The `elevenlabs` provider landed in [schemas#210](https://github.com/inference-gateway/schemas/pull/210) the `/audio/sfx` operation in [schemas#211](https://github.com/inference-gateway/schemas/pull/211), and the `/audio/music` operation in [schemas#215](https://github.com/inference-gateway/schemas/pull/215) (gateway support tracked in [inference-gateway#680](https://github.com/inference-gateway/inference-gateway/issues/680)).
 
 ### Videos API
 
