@@ -646,9 +646,11 @@ Content-Type: application/json
 
 ### Audio API
 
-Synthesize speech from text using the OpenAI-compatible Audio endpoint. It requires `AUDIO_ENABLED=true`; while disabled the endpoint returns `404 Not Found` with `The Audio API is not enabled. Set AUDIO_ENABLED=true to enable it.`
+Generate audio from text. Two operations share the API: `POST /v1/audio/speech` synthesizes a voice, and [`POST /v1/audio/sfx`](#sound-effects) generates a non-speech clip - a sound effect or ambience. Both require `AUDIO_ENABLED=true`; while disabled they return `404 Not Found` with `The Audio API is not enabled. Set AUDIO_ENABLED=true to enable it.`
 
-Requests are served by the `openai` provider (`openai/tts-1`, `openai/gpt-4o-mini-tts`), the `elevenlabs` provider (`elevenlabs/<model>` with an [ElevenLabs voice id](#elevenlabs-voices)), or the gateway's [built-in local engine](#local-speech-engine-local-qwen3-tts) under the reserved model id `local/qwen3-tts`. Those three are the only supported backends today: the `llamacpp` provider has a Speech endpoint wired in the gateway registry, but that path is a work in progress and is not supported yet.
+#### Speech synthesis
+
+Speech requests are served by the `openai` provider (`openai/tts-1`, `openai/gpt-4o-mini-tts`), the `elevenlabs` provider (`elevenlabs/<model>` with an [ElevenLabs voice id](#elevenlabs-voices)), or the gateway's [built-in local engine](#local-speech-engine-local-qwen3-tts) under the reserved model id `local/qwen3-tts`. Those three are the only supported backends today: the `llamacpp` provider has a Speech endpoint wired in the gateway registry, but that path is a work in progress and is not supported yet.
 
 ```http
 POST /v1/audio/speech?provider={provider}
@@ -722,7 +724,7 @@ curl -X POST http://localhost:8080/v1/audio/speech \
   }'
 ```
 
-ElevenLabs has no chat-completions API, so it is speech-only: a `/v1/chat/completions` request routed to it is not supported.
+ElevenLabs has no chat-completions API, so it is audio-only - speech and [sound effects](#sound-effects): a `/v1/chat/completions` request routed to it is not supported.
 
 #### Voice cloning
 
@@ -781,6 +783,73 @@ With `AUDIO_LOCAL_AUTO_DOWNLOAD=false` the gateway never downloads anything and 
 
 **Known ceiling.** Each request pays model and graph initialization (roughly 1s warm, slower cold or on GPU) and there is no cross-request batching - fine for agent speech, not for bulk synthesis. The local path is a stopgap until llama.cpp ships server-side TTS ([ggml-org/llama.cpp#21956](https://github.com/ggml-org/llama.cpp/issues/21956)), after which the gateway can proxy to `llama-server` instead.
 
+#### Sound effects
+
+`POST /v1/audio/sfx` turns a text prompt into a non-speech audio clip - a sound effect or an ambience loop - the way `/v1/audio/speech` turns text into a voice. It is a gateway extension: OpenAI has no sound-effects endpoint, so the operation is shaped like `/v1/audio/speech` (JSON in, raw audio bytes out) rather than mirroring an upstream OpenAI body. The provider comes from the `provider/model` prefix or the `provider` query parameter, and the endpoint shares the `AUDIO_ENABLED` gate with `/v1/audio/speech`.
+
+```http
+POST /v1/audio/sfx?provider={provider}
+```
+
+`elevenlabs` is the only provider that serves it today, with `eleven_text_to_sound_v2`.
+
+```bash
+curl -X POST http://localhost:8080/v1/audio/sfx \
+  -H "Authorization: Bearer $INFERENCE_GATEWAY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -o thunder.mp3 \
+  -d '{
+"model": "elevenlabs/eleven_text_to_sound_v2",
+"prompt": "distant thunder rolling over a valley",
+"duration_seconds": 8,
+"prompt_influence": 0.5,
+"response_format": "mp3"
+  }'
+```
+
+As with speech, the response is **not JSON** - it is the raw audio bytes, with the `Content-Type` reflecting `response_format` (see the [table above](#audio-api)). Write it to a file or pipe it to a player.
+
+```http
+Status: 200 OK
+Content-Type: audio/mpeg
+
+<binary audio bytes>
+```
+
+The `CreateSFXRequest` fields:
+
+| Field              | Type      | Required | Description                                                                                                                                                                          |
+| ------------------ | --------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `model`            | `string`  | Yes      | Model ID to use for sound-effect generation, for example `elevenlabs/eleven_text_to_sound_v2`.                                                                                       |
+| `prompt`           | `string`  | Yes      | Description of the sound to generate, for example `distant thunder rolling over a valley`.                                                                                           |
+| `duration_seconds` | `number`  |          | Length of the clip, between `0.5` and `30`. Omit it to let the provider pick a length that fits the prompt.                                                                          |
+| `prompt_influence` | `number`  |          | How closely the generation follows the prompt, between `0` and `1` - higher stays closer, lower varies more. Omit it for the provider default.                                       |
+| `loop`             | `boolean` |          | Generate a clip that loops seamlessly. Useful for ambience beds.                                                                                                                     |
+| `response_format`  | `string`  |          | Audio format: `mp3` (default), `opus`, `aac`, `flac`, `wav`, or `pcm`. ElevenLabs produces only `mp3`, `opus` and `pcm`; the rest return `400 Bad Request` naming the supported set. |
+
+The SDKs do not wrap this endpoint yet - call it over plain HTTP in the meantime:
+
+```typescript
+const res = await fetch('http://localhost:8080/v1/audio/sfx', {
+  method: 'POST',
+  headers: {
+    Authorization: `Bearer ${process.env.INFERENCE_GATEWAY_API_KEY}`,
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    model: 'elevenlabs/eleven_text_to_sound_v2',
+    prompt: 'rain on a tin roof, steady',
+    duration_seconds: 10,
+    loop: true,
+    response_format: 'mp3',
+  }),
+});
+
+const sfx = await res.blob(); // audio/mpeg
+```
+
+Set `ELEVENLABS_API_KEY` (and optionally `ELEVENLABS_API_URL`) so the gateway can authenticate - see [Configuration](/configuration/#elevenlabs).
+
 #### Unsupported providers
 
 Not every provider implements the Audio API. Requests routed to a provider without speech synthesis support return `400 Bad Request`:
@@ -794,11 +863,22 @@ Content-Type: application/json
 }
 ```
 
+Sound-effect generation is gated separately, because a provider can serve speech without serving sound effects. A `/v1/audio/sfx` request routed to a provider without text-to-sound support - `openai` and the local engine included - returns `400 Bad Request`:
+
+```http
+Status: 400 Bad Request
+Content-Type: application/json
+
+{
+  "error": "Sound effect generation is not supported by this provider yet."
+}
+```
+
 Because the gateway proxies the request, speech traffic shows up in gateway logs, tracing and pricing like any other endpoint. See [Text-to-Speech](/cli-text-to-speech/) for the CLI-side tooling.
 
 The SDKs wrap this endpoint as a single call that returns the raw audio: [`createSpeech`](/sdks/#speech-synthesis) in TypeScript (a `Blob`), [`CreateSpeech`](/sdks/#speech-synthesis-1) in Go and [`create_speech`](/sdks/#speech-synthesis-2) in Rust (raw bytes).
 
-The endpoint and its audio gate landed in [inference-gateway#569](https://github.com/inference-gateway/inference-gateway/pull/569), the schema in [schemas#186](https://github.com/inference-gateway/schemas/pull/186), and `reference_audio` cloning in [schemas#187](https://github.com/inference-gateway/schemas/pull/187). The local engine, the `ENABLE_AUDIO` to `AUDIO_ENABLED` rename (no legacy alias) and the `AUDIO_LOCAL_*` settings landed in [inference-gateway#575](https://github.com/inference-gateway/inference-gateway/pull/575) and [schemas#191](https://github.com/inference-gateway/schemas/pull/191). The `elevenlabs` provider landed in [schemas#210](https://github.com/inference-gateway/schemas/pull/210).
+The endpoint and its audio gate landed in [inference-gateway#569](https://github.com/inference-gateway/inference-gateway/pull/569), the schema in [schemas#186](https://github.com/inference-gateway/schemas/pull/186), and `reference_audio` cloning in [schemas#187](https://github.com/inference-gateway/schemas/pull/187). The local engine, the `ENABLE_AUDIO` to `AUDIO_ENABLED` rename (no legacy alias) and the `AUDIO_LOCAL_*` settings landed in [inference-gateway#575](https://github.com/inference-gateway/inference-gateway/pull/575) and [schemas#191](https://github.com/inference-gateway/schemas/pull/191). The `elevenlabs` provider landed in [schemas#210](https://github.com/inference-gateway/schemas/pull/210) and the `/audio/sfx` operation in [schemas#211](https://github.com/inference-gateway/schemas/pull/211).
 
 ### Proxy Requests
 
