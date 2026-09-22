@@ -497,6 +497,8 @@ audio = client.create_speech(
 
 `create_speech` landed in [python-sdk#112](https://github.com/inference-gateway/python-sdk/pull/112). See the [Audio API reference](/api-reference/#audio-api) for the endpoint-level details.
 
+The sibling [sound effects](/api-reference/#sound-effects) and [music](/api-reference/#music) endpoints have no `create_sfx` / `create_music` yet ([python-sdk#121](https://github.com/inference-gateway/python-sdk/issues/121)) - call them over plain HTTP in the meantime.
+
 ### Models, tools, and health
 
 `list_models` returns every model across configured providers, or a single provider's catalog when you pass `provider=`. `list_tools` enumerates gateway-managed MCP tools and requires MCP to be exposed (`MCP_ENABLED=true` and `MCP_EXPOSE=true`); otherwise the call raises `InferenceGatewayAPIError`. `health_check` probes the gateway and returns a `bool` - it swallows transport errors and returns `False` rather than raising.
@@ -978,7 +980,7 @@ const speech = await client.createSpeech({
 
 In the browser, hand the `Blob` straight to an `<audio>` element with `URL.createObjectURL(speech)` instead of writing a file.
 
-See the [Audio API reference](/api-reference/#audio-api) for the endpoint-level details.
+See the [Audio API reference](/api-reference/#audio-api) for the endpoint-level details. The sibling [sound effects](/api-reference/#sound-effects) and [music](/api-reference/#music) endpoints have no `createSFX` / `createMusic` yet ([typescript-sdk#243](https://github.com/inference-gateway/typescript-sdk/issues/243)) - call them with plain `fetch` in the meantime.
 
 ### Models, tools, and health
 
@@ -1463,7 +1465,7 @@ audio, err := client.CreateSpeech(ctx, sdk.Provider(""), sdk.CreateSpeechRequest
 })
 ```
 
-See the [Audio API reference](/api-reference/#audio-api) for the endpoint-level details.
+See the [Audio API reference](/api-reference/#audio-api) for the endpoint-level details. The sibling [sound effects](/api-reference/#sound-effects) and [music](/api-reference/#music) endpoints have no `CreateSFX` / `CreateMusic` yet ([go-sdk#184](https://github.com/inference-gateway/sdk/issues/184)) - call them over plain HTTP in the meantime.
 
 ### Models, tools, and health
 
@@ -2113,6 +2115,8 @@ let audio = client
 ```
 
 `create_speech` landed in [rust-sdk#133](https://github.com/inference-gateway/rust-sdk/pull/133). See the [Audio API reference](/api-reference/#audio-api) for the endpoint-level details.
+
+The sibling [sound effects](/api-reference/#sound-effects) and [music](/api-reference/#music) endpoints have no `create_sfx` / `create_music` yet ([rust-sdk#146](https://github.com/inference-gateway/rust-sdk/issues/146)) - call them over plain HTTP in the meantime.
 
 ### Models, tools, and health
 
