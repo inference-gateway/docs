@@ -286,7 +286,11 @@ export function buildProviders(model, overrides) {
         `Provider "${id}" supports vision in the schema but has no "vision" string in overrides.`
       );
     }
-    if (!ov.adkExampleModel) {
+    // A provider without a chat endpoint in the schema (ElevenLabs is
+    // speech-only) cannot back an ADK agent, so it gets no ADK table row and
+    // needs no example model.
+    const supportsChat = cfg.endpoints != null && cfg.endpoints.chat != null;
+    if (supportsChat && !ov.adkExampleModel) {
       throw new Error(
         `Provider "${id}" has no "adkExampleModel" in overrides (required for the ADK ` +
           `"Switching providers and models" table). Add one and re-run.`
@@ -304,6 +308,7 @@ export function buildProviders(model, overrides) {
       authType,
       authLabel: authLabels[authType],
       supportsVision,
+      supportsChat,
       displayName: ov.displayName || id,
       urlLabel: ov.urlLabel || ov.displayName || id,
       keyLabel: ov.keyLabel || ov.displayName || id,
@@ -342,8 +347,9 @@ export function renderProvidersTable(providers) {
 }
 
 // The "Switching providers and models" table shared by rust-adk.md and
-// typescript-adk.md. Every provider in the canonical schema order gets a row;
-// the example-model column is display-only (adkExampleModel in the overrides).
+// typescript-adk.md. Every chat-capable provider in the canonical schema order
+// gets a row (speech-only providers are skipped); the example-model column is
+// display-only (adkExampleModel in the overrides).
 // Providers with auth_type "none" (local Ollama) take no API key, so that cell
 // carries the adkKeyNote override instead of an API-key env var.
 export function renderAdkProviderTable(providers) {
@@ -353,12 +359,14 @@ export function renderAdkProviderTable(providers) {
     'Example `A2A_AGENT_CLIENT_MODEL`',
     'API key env var',
   ];
-  const rows = providers.map((p) => [
-    p.displayName,
-    '`' + p.id + '`',
-    '`' + p.adkExampleModel + '`',
-    p.authType === 'none' ? p.adkKeyNote : '`' + p.envUpper + '_API_KEY`',
-  ]);
+  const rows = providers
+    .filter((p) => p.supportsChat)
+    .map((p) => [
+      p.displayName,
+      '`' + p.id + '`',
+      '`' + p.adkExampleModel + '`',
+      p.authType === 'none' ? p.adkKeyNote : '`' + p.envUpper + '_API_KEY`',
+    ]);
   return formatTable(headers, rows);
 }
 

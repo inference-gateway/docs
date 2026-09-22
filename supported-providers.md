@@ -1,6 +1,6 @@
 ---
 title: Supported Providers
-description: Provider matrix for Inference Gateway covering OpenAI, Anthropic, Cohere, Groq, Cloudflare, Ollama, Ollama Cloud, Google, DeepSeek, Mistral, MiniMax, Moonshot and Nvidia, with auth modes, default URLs, vision support, and per-provider request examples.
+description: Provider matrix for Inference Gateway covering OpenAI, Anthropic, Cohere, Groq, Cloudflare, Ollama, Ollama Cloud, Google, DeepSeek, Mistral, MiniMax, Moonshot, Nvidia and the speech-only ElevenLabs, with auth modes, default URLs, vision support, and per-provider request examples.
 ---
 
 # Supported Providers
@@ -28,8 +28,11 @@ Inference Gateway provides a unified interface to interact with multiple LLM pro
 | Moonshot     | Bearer Token     | `https://api.moonshot.ai/v1`                                    | No             |
 | NVIDIA       | Bearer Token     | `https://integrate.api.nvidia.com/v1`                           | No             |
 | Z-AI         | Bearer Token     | `https://api.z.ai/api/paas/v4`                                  | No             |
+| ElevenLabs   | X-Header         | `https://api.elevenlabs.io/v1`                                  | No             |
 
 <!-- GENERATED:providers-table END (do not edit - run: task generate) -->
+
+Every provider above serves `/v1/chat/completions` except **ElevenLabs**, which has no chat-completions API: it is speech-only and answers the [Audio API](/api-reference/#audio-api) alone. Routing a chat request to it is not supported.
 
 ## Vision/Multimodal Support
 
@@ -85,7 +88,7 @@ Each provider requires specific configuration through environment variables:
 
 <!-- GENERATED:provider-uppercase START (do not edit - run: task generate) -->
 
-Replace "PROVIDER" with the provider name (uppercase): OPENAI, DEEPSEEK, ANTHROPIC, COHERE, GROQ, CLOUDFLARE, OLLAMA_CLOUD, OLLAMA, LLAMACPP, GOOGLE, MISTRAL, MINIMAX, MOONSHOT, NVIDIA, ZAI.
+Replace "PROVIDER" with the provider name (uppercase): OPENAI, DEEPSEEK, ANTHROPIC, COHERE, GROQ, CLOUDFLARE, OLLAMA_CLOUD, OLLAMA, LLAMACPP, GOOGLE, MISTRAL, MINIMAX, MOONSHOT, NVIDIA, ZAI, ELEVENLABS.
 
 <!-- GENERATED:provider-uppercase END (do not edit - run: task generate) -->
 

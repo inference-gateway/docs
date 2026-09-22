@@ -1,5 +1,5 @@
 {
-  "_note": "Non-schema, human-authored data for the provider docs generator. The canonical openapi.yaml drives the hard facts (id, default url, auth_type, supports_vision, env-var names). This file supplies what the schema does not model: display-name casing, the descriptor label used in the *_API_URL / *_API_KEY descriptions, the per-provider vision-model prose, and the ADK example model shown in the 'Switching providers and models' tables (adkExampleModel; adkKeyNote overrides the API-key cell for auth_type: none providers). Provider ORDER in this file is the canonical render order across every generated region. To onboard a provider: add it to the schema, then add an entry here (with adkExampleModel) and run `task generate`.",
+  "_note": "Non-schema, human-authored data for the provider docs generator. The canonical openapi.yaml drives the hard facts (id, default url, auth_type, supports_vision, env-var names). This file supplies what the schema does not model: display-name casing, the descriptor label used in the *_API_URL / *_API_KEY descriptions, the per-provider vision-model prose, and the ADK example model shown in the 'Switching providers and models' tables (adkExampleModel; adkKeyNote overrides the API-key cell for auth_type: none providers). Provider ORDER in this file is the canonical render order across every generated region. To onboard a provider: add it to the schema, then add an entry here (with adkExampleModel, unless the provider has no chat endpoint in the schema - speech-only providers get no ADK row) and run `task generate`.",
   "authLabels": {
     "bearer": "Bearer Token",
     "xheader": "X-Header",
@@ -109,6 +109,11 @@
       "keyLabel": "Z-AI",
       "vision": "GLM 5.2",
       "adkExampleModel": "glm-5.2"
+    },
+    "elevenlabs": {
+      "displayName": "ElevenLabs",
+      "urlLabel": "ElevenLabs",
+      "keyLabel": "ElevenLabs"
     }
   }
 }
