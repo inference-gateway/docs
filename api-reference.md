@@ -866,7 +866,7 @@ curl -X POST http://localhost:8080/v1/audio/music \
   -H "Content-Type: application/json" \
   -o track.mp3 \
   -d '{
-"model": "elevenlabs/music_v1",
+"model": "elevenlabs/music_v2_5",
 "prompt": "upbeat lo-fi hip hop with a warm piano loop",
 "duration_seconds": 30,
 "instrumental": true,
@@ -887,13 +887,13 @@ The `CreateMusicRequest` fields:
 
 | Field              | Type      | Required | Description                                                                           |
 | ------------------ | --------- | -------- | ------------------------------------------------------------------------------------- |
-| `model`            | `string`  | Yes      | Model ID to use for music generation, for example `elevenlabs/music_v1`.              |
+| `model`            | `string`  | Yes      | Model ID to use for music generation, for example `elevenlabs/music_v2_5`.            |
 | `prompt`           | `string`  | Yes      | Description of the music to compose - genre, mood, instruments, tempo.                |
 | `duration_seconds` | `number`  |          | Length of the clip, between `3` and `600`. Omit it to let the provider pick a length. |
 | `instrumental`     | `boolean` |          | Compose without vocals (default `false`).                                             |
 | `response_format`  | `string`  |          | Audio format: `mp3` (default), `opus`, `aac`, `flac`, `wav`, or `pcm`.                |
 
-A request routed to a provider without music support returns `400 Bad Request`. The SDKs do not wrap this endpoint yet - call it over plain HTTP as in the [sound effects example](#sound-effects).
+A request routed to a provider without music support returns `400 Bad Request` (see [Unsupported providers](#unsupported-providers)). The SDKs do not wrap this endpoint yet - call it over plain HTTP as in the [sound effects example](#sound-effects).
 
 #### Unsupported providers
 
@@ -916,6 +916,17 @@ Content-Type: application/json
 
 {
   "error": "Sound effect generation is not supported by this provider yet."
+}
+```
+
+Music generation is gated the same way. A `/v1/audio/music` request routed to a provider other than `elevenlabs` returns `400 Bad Request`:
+
+```http
+Status: 400 Bad Request
+Content-Type: application/json
+
+{
+  "error": "Music generation is not supported by this provider yet."
 }
 ```
 
