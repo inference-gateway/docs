@@ -9,8 +9,6 @@ description: Configure user-defined shell commands that run at agent-loop hook p
 
 Hooks live in a dedicated [`hooks.yaml`](#schema) file, are **feature-flagged off by default**, and every command is gated through the existing [per-mode bash allow-list](/cli/#command-allow-listing) - there is no new bypass of the secure-by-default model. An off-list command is **skipped and reported, never run**.
 
-> Shipped in [inference-gateway/cli#270](https://github.com/inference-gateway/cli/pull/270), building on the system-reminder machinery from [inference-gateway/cli#669](https://github.com/inference-gateway/cli/pull/669).
-
 ## Where hooks live
 
 `hooks.yaml` is loaded from the same two scopes as the rest of the CLI configuration, with project config taking precedence over user config:

@@ -108,7 +108,7 @@ The workflow uploads the run's conversation `*.jsonl` files plus everything the 
 
 Set `artifacts.enabled: false` to turn the poller off.
 
-> Non-jsonl artifact pull-back shipped in [inference-gateway/cli#1058](https://github.com/inference-gateway/cli/pull/1058).
+> Non-jsonl artifact pull-back is also supported.
 
 ### Out of scope in the first cut
 

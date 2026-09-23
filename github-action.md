@@ -103,10 +103,6 @@ When set, the input **replaces** the action's bundled default prompt for that co
 
 The bundled defaults carry git-safety instructions (branch-first, commit-per-todo, push, draft PR, finish checklist). If your override omits those instructions, the action emits a `::warning::` in the run log so the lost-work guard is not dropped silently. Prefer `custom-instructions` to layer extras on top of the default unless you need a full replacement.
 
-#### Source reference
-
-- Action PR: [inference-gateway/infer-action#177](https://github.com/inference-gateway/infer-action/pull/177) - fix: send the agent system prompt via `INFER_PROMPTS_AGENT_SYSTEM_PROMPT` (dead env var since CLI v0.105.0)
-
 ### Dynamic model selection
 
 Override the workflow's default model on a per-issue or per-comment basis by including `/model provider/model-name` in the trigger text:
@@ -264,10 +260,6 @@ A hook failure never strands the agent's work: the [salvage step](#outputs) comm
 
 Requires a reasonably recent `inference-gateway/infer-action` release; referencing `@main` as every example on this page does always qualifies.
 
-#### Source reference
-
-- Action PR: [inference-gateway/infer-action#337](https://github.com/inference-gateway/infer-action/pull/337) - feat: add enable-git-hooks and hooks-path inputs for repo pre-commit hooks
-
 ## Outputs
 
 | Output                    | Description                                                                                                                                                  |
@@ -285,7 +277,7 @@ Reference outputs in downstream steps via <code v-pre>${{ steps.&lt;id&gt;.outpu
 
 ## Persistent Agent Memory
 
-`infer-action` supports the Infer CLI's persistent-memory git backend ([inference-gateway/cli#707](https://github.com/inference-gateway/cli/pull/707), shipped in CLI v0.127.0). When enabled, the agent's memory is pulled from a git remote at run start and committed + pushed when a fact changes, giving the agent cross-run memory in CI.
+`infer-action` supports the Infer CLI's persistent-memory git backend (shipped in CLI v0.127.0). When enabled, the agent's memory is pulled from a git remote at run start and committed + pushed when a fact changes, giving the agent cross-run memory in CI.
 
 **Opt-in and inert by default.** When `memory-repo` is empty (the default), no memory environment variables are set and nothing changes for existing workflows. The feature requires Infer CLI >= v0.127.0; the action's default version pin already satisfies this.
 
@@ -405,8 +397,6 @@ The `memory-branch`, `memory-sync-on-start`, and `memory-sync-on-finish` inputs 
 
 ### Source references
 
-- Action PR: [inference-gateway/infer-action#142](https://github.com/inference-gateway/infer-action/pull/142) - feat: support the persistent memory git backend
-- CLI PR: [inference-gateway/cli#707](https://github.com/inference-gateway/cli/pull/707) - persistent memory git backend
 - Example workflow: [`examples/with-memory.yml`](https://github.com/inference-gateway/infer-action/blob/main/examples/with-memory.yml) in the action repository
 
 ## Direct prompt (manual runs)
@@ -585,10 +575,6 @@ jobs:
 Trigger by commenting `@review` on the PR. The agent posts its findings
 as a formal PR review with inline comments anchored to the relevant lines
 and suggestion blocks the author can apply directly.
-
-#### Source reference
-
-- Action PR: [inference-gateway/infer-action#297](https://github.com/inference-gateway/infer-action/pull/297) - feat: opt-in inline PR review with suggestion comments
 
 ### Scheduled summary / drift report
 

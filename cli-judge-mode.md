@@ -9,7 +9,7 @@ description: Let an LLM judge answer tool-approval gates in the Inference Gatewa
 
 It exists for unattended runs where a human approval prompt would deadlock (CI, [headless agents](/cli/#headless-agent-stream-output), [heartbeat](/cli-scheduling/) jobs) but you still want a gate on mutating or dangerous actions.
 
-> Shipped in [inference-gateway/cli#1148](https://github.com/inference-gateway/cli/pull/1148). Disabled by default - Standard, Plan, and Auto-Accept behave exactly as before.
+> Disabled by default - Standard, Plan, and Auto-Accept behave exactly as before.
 
 ## Why use it
 

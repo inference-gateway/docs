@@ -204,7 +204,7 @@ For a complete runnable example, see [`examples/gpu/`](https://github.com/infere
 
 The OIDC variables are emitted only when `enabled: true` and an `oidc` block is present. `AUTH_OIDC_CLIENT_SECRET` is added only when `clientSecretRef` is set, and `SSL_CERT_FILE` only when `caCertRef` is set. The variables themselves are documented on the gateway side in [Configuration](/configuration/#openid-connect).
 
-> Two gaps against the current gateway: `clientSecretRef` still emits `AUTH_OIDC_CLIENT_SECRET`, which the gateway no longer reads (it only verifies tokens, never requests them), and the CRD has no field for [`AUTH_OIDC_AUDIENCE`](/authentication/#audience-validation) yet - tracked in [operator#216](https://github.com/inference-gateway/operator/issues/216). Until that lands, operator-managed gateways accept only the audience that equals `clientId`, which covers Keycloak but not providers whose tokens carry a separate API identifier.
+> Two gaps against the current gateway: `clientSecretRef` still emits `AUTH_OIDC_CLIENT_SECRET`, which the gateway no longer reads (it only verifies tokens, never requests them), and the CRD has no field for [`AUTH_OIDC_AUDIENCE`](/authentication/#audience-validation) yet. Until that lands, operator-managed gateways accept only the audience that equals `clientId`, which covers Keycloak but not providers whose tokens carry a separate API identifier.
 
 ### Example: Gateway with OIDC
 
@@ -410,7 +410,7 @@ For a runnable manifest, see [`gateway-with-model-routing`](https://github.com/i
 
 `spec.gatewayAPI` exposes the gateway to north-south traffic through the [Kubernetes Gateway API](https://gateway-api.sigs.k8s.io/) (`gateway.networking.k8s.io`). It is the `v1alpha1` successor to the removed `ingress` field: instead of an `Ingress` fronted by ingress-nginx, the operator provisions a Gateway API `Gateway` and `HTTPRoute` for the gateway Service, served by [Envoy Gateway](https://gateway.envoyproxy.io/) (the `envoy` GatewayClass). It is unrelated to [`spec.routing`](#model-routing) (gateway-native model routing) above - the field was renamed from `spec.routing` to `spec.gatewayAPI` to free that name for model routing.
 
-The `ingress:` field and the NGINX Ingress path are gone - Kubernetes deployments now front the gateway with the Gateway API. This mirrors the migration in the gateway's [`examples/kubernetes`](https://github.com/inference-gateway/inference-gateway/tree/main/examples/kubernetes) (tracking issue [inference-gateway/inference-gateway#370](https://github.com/inference-gateway/inference-gateway/issues/370), verification PR [inference-gateway/inference-gateway#367](https://github.com/inference-gateway/inference-gateway/pull/367)).
+The `ingress:` field and the NGINX Ingress path are gone - Kubernetes deployments now front the gateway with the Gateway API. This mirrors the migration in the gateway's [`examples/kubernetes`](https://github.com/inference-gateway/inference-gateway/tree/main/examples/kubernetes).
 
 ### Install the Gateway API and Envoy Gateway
 

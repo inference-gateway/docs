@@ -1181,7 +1181,7 @@ What the builder does at `build()` time when both `withAuthenticator(...)` and `
 3. Constructs the `A2AServer` with both `card` (public) and `extendedCard`, which causes the server to auto-register `agent/getAuthenticatedExtendedCard` against the extended card.
 4. Wires the authenticator's middleware on the JSON-RPC route, so the handler's "trust upstream auth" contract holds.
 
-> **Behavior change vs. prior versions.** Earlier releases of the TypeScript ADK decorated the **public** card with auth schemes when `withAuthConfig(...)` was supplied. As of [typescript-adk#36](https://github.com/inference-gateway/typescript-adk/pull/36) the public card is left undecorated; auth schemes live only on the extended card. Clients that relied on parsing `securitySchemes` from the well-known card must either switch to fetching the extended card after authentication, or look for the `supportsExtendedAgentCard: true` flag and then negotiate. The Go ADK has always behaved this way; the TS ADK is now aligned.
+> **Behavior change vs. prior versions.** Earlier releases of the TypeScript ADK decorated the **public** card with auth schemes when `withAuthConfig(...)` was supplied. Current releases leave the public card undecorated; auth schemes live only on the extended card. Clients that relied on parsing `securitySchemes` from the well-known card must either switch to fetching the extended card after authentication, or look for the `supportsExtendedAgentCard: true` flag and then negotiate. The Go ADK has always behaved this way; the TS ADK is now aligned.
 
 #### Via `A2AServer` directly
 
@@ -1438,7 +1438,7 @@ The integration fixtures backing every assertion above (handler contract, valida
 
 It mirrors the Go ADK's `DefaultBackgroundTaskHandler` in [`adk/server/task_handler.go`](https://github.com/inference-gateway/adk/blob/main/server/task_handler.go). The TypeScript variant inlines the iteration loop because the early-bootstrap TS surface does not yet ship a stream-based agent abstraction; callers wire it into [`A2AServerBuilder`](#wiring-into-a2aserverbuilder) via the `withBackgroundTaskHandler` hook.
 
-The handler depends only on the structural `LLMClient` and `ToolBox` interfaces - concrete implementations land separately in [typescript-adk#27](https://github.com/inference-gateway/typescript-adk/issues/27) (HTTP-backed LLM client) and [typescript-adk#31](https://github.com/inference-gateway/typescript-adk/issues/31) (tool registry). Until those ship, supply your own implementations of the two interfaces below.
+The handler depends only on the structural `LLMClient` and `ToolBox` interfaces - concrete implementations land separately in follow-up releases. Until those ship, supply your own implementations of the two interfaces below.
 
 ### Constructor
 
@@ -1524,7 +1524,7 @@ interface ToolExecutionContext {
 
 `ChatMessage` is a discriminated union covering the four OpenAI-style roles - `system`, `user`, `assistant` (with optional `toolCalls`), and `tool` (with the originating `toolCallId`). The handler manages the array internally; callers do not construct these directly.
 
-> **Concrete implementations.** A first-party HTTP-backed `LLMClient` lands in [typescript-adk#27](https://github.com/inference-gateway/typescript-adk/issues/27); a tool registry built around the same JSON Schema surface lands in [typescript-adk#31](https://github.com/inference-gateway/typescript-adk/issues/31). Until then, supply your own - the interfaces are deliberately small.
+> **Concrete implementations.** A first-party HTTP-backed `LLMClient` and a tool registry built around the same JSON Schema surface land in follow-up releases. Until then, supply your own - the interfaces are deliberately small.
 
 ### Iteration loop
 
@@ -1864,7 +1864,7 @@ The agent itself does not run anything. The agentic loop lives in [`DefaultBackg
 
 `Callbacks` is the lifecycle-hook configuration consumed by [`AgentBuilder.withCallbacks(...)`](#builder-methods), and the same `callbacks` option is accepted directly by [`DefaultBackgroundTaskHandler`](#background-task-handler-defaultbackgroundtaskhandler) and `DefaultStreamingTaskHandler`. The hook surface lets you observe, replace, or short-circuit the LLM-driven loop without forking the handler.
 
-The contract mirrors the Go ADK's `CallbackConfig` in [`adk/server/callbacks.go`](https://github.com/inference-gateway/adk/blob/main/server/callbacks.go) byte-for-byte; the only Go-specific affordance not carried over is `context.Context` propagation - the TypeScript variant uses the `AbortSignal` on `CallbackContext` for cancellation instead. The hooks shipped in [typescript-adk#87](https://github.com/inference-gateway/typescript-adk/pull/87).
+The contract mirrors the Go ADK's `CallbackConfig` in [`adk/server/callbacks.go`](https://github.com/inference-gateway/adk/blob/main/server/callbacks.go) byte-for-byte; the only Go-specific affordance not carried over is `context.Context` propagation - the TypeScript variant uses the `AbortSignal` on `CallbackContext` for cancellation instead.
 
 #### Hook points
 
@@ -2359,7 +2359,7 @@ try {
 
 It mirrors the Go ADK's `HTTPPushNotificationSender` in [`adk/server/push_notification_sender.go`](https://github.com/inference-gateway/adk/blob/main/server/push_notification_sender.go) - same wire payload, same auth-header resolution order, same retry classification - so a webhook receiver written against either ADK accepts deliveries from the other unchanged.
 
-> **Delivery primitive only.** This section documents the sender. As of [typescript-adk#93](https://github.com/inference-gateway/typescript-adk/pull/93) the sender is **not yet wired into the task-state-transition pipeline automatically**. Subscribing to `TaskEventBus` `TASK_STATUS_CHANGED` and calling `deliverTaskUpdate` is a follow-up integration step - see [Bridging into the state-transition pipeline](#bridging-into-the-state-transition-pipeline-follow-up) below.
+> **Delivery primitive only.** This section documents the sender. It is **not yet wired into the task-state-transition pipeline automatically**. Subscribing to `TaskEventBus` `TASK_STATUS_CHANGED` and calling `deliverTaskUpdate` is a follow-up integration step - see [Bridging into the state-transition pipeline](#bridging-into-the-state-transition-pipeline-follow-up) below.
 
 ### Wire payload (`TaskUpdateNotification`)
 
@@ -2682,7 +2682,7 @@ Each subsequent state transition (`SUBMITTED` -> `WORKING` -> `COMPLETED` / `FAI
 
 ### Bridging into the state-transition pipeline (follow-up)
 
-As of [typescript-adk#93](https://github.com/inference-gateway/typescript-adk/pull/93), `HTTPPushNotificationSender` is the **delivery primitive only**. Wiring it into the task-state-transition pipeline - subscribing to the `TaskEventBus`'s `TASK_STATUS_CHANGED` events and calling `deliverTaskUpdate` with the per-task configs - is a follow-up integration step that is **not done automatically**.
+`HTTPPushNotificationSender` is the **delivery primitive only**. Wiring it into the task-state-transition pipeline - subscribing to the `TaskEventBus`'s `TASK_STATUS_CHANGED` events and calling `deliverTaskUpdate` with the per-task configs - is a follow-up integration step that is **not done automatically**.
 
 Until that wiring lands in the ADK itself, application code that wants to emit push notifications must subscribe to state transitions and invoke the sender by hand. The sketch:
 
@@ -2706,14 +2706,10 @@ taskEventBus.on('TASK_STATUS_CHANGED', (task) => {
 });
 ```
 
-Track [typescript-adk#38](https://github.com/inference-gateway/typescript-adk/issues/38) for the automatic wiring follow-up.
-
 ### Cross-reference
 
 - **Go ADK equivalent.** `HTTPPushNotificationSender` in [`adk/server/push_notification_sender.go`](https://github.com/inference-gateway/adk/blob/main/server/push_notification_sender.go). Same `TaskUpdateNotification` shape, same auth-header resolution, same retryable-vs-non-retryable classification.
 - **TypeScript source.** [`src/server/push-notification-sender.ts`](https://github.com/inference-gateway/typescript-adk/blob/main/src/server/push-notification-sender.ts) in the `inference-gateway/typescript-adk` repo.
-- **Originating issue.** [typescript-adk#38](https://github.com/inference-gateway/typescript-adk/issues/38) (delivery primitive + follow-up wiring).
-- **Originating PR.** [typescript-adk#93](https://github.com/inference-gateway/typescript-adk/pull/93).
 
 ## Artifacts
 
