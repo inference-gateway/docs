@@ -511,13 +511,12 @@ Content-Type: application/json
 
 ### Images API
 
-Create and modify images using the OpenAI-compatible Images endpoints. All three return the same `ImagesResponse` shape with one or more images as URLs or base64-encoded JSON data, and all require `IMAGES_ENABLED=true`.
+Create and modify images using the OpenAI-compatible Images endpoints. Both return the same `ImagesResponse` shape with one or more images as URLs or base64-encoded JSON data, and both require `IMAGES_ENABLED=true`.
 
-| Endpoint                      | Body                  | Purpose                              |
-| ----------------------------- | --------------------- | ------------------------------------ |
-| `POST /v1/images/generations` | `application/json`    | Generate images from a text prompt.  |
-| `POST /v1/images/edits`       | `multipart/form-data` | Edit or extend a source image.       |
-| `POST /v1/images/variations`  | `multipart/form-data` | Create variations of a source image. |
+| Endpoint                      | Body                  | Purpose                             |
+| ----------------------------- | --------------------- | ----------------------------------- |
+| `POST /v1/images/generations` | `application/json`    | Generate images from a text prompt. |
+| `POST /v1/images/edits`       | `multipart/form-data` | Edit or extend a source image.      |
 
 Not every provider implements the Images API. Requests routed to a provider that does not support it return `400 Bad Request`; use `/v1/chat/completions` for those providers.
 
@@ -599,35 +598,6 @@ The form fields:
 | `size`            | `string` |          | Image size, for example `1024x1024`.                           |
 | `quality`         | `string` |          | Image quality: `auto`, `standard`, `low`, `medium`, or `high`. |
 | `response_format` | `string` |          | Response format: `url` (default) or `b64_json`.                |
-
-The response is the same `ImagesResponse` shown above.
-
-#### Variations
-
-Create variations of an existing image. No prompt is used; the body is `multipart/form-data`.
-
-```http
-POST /v1/images/variations?provider={provider}
-```
-
-```bash
-curl -X POST http://localhost:8080/v1/images/variations \
-  -H "Authorization: Bearer $INFERENCE_GATEWAY_API_KEY" \
-  -F image=@cat.png \
-  -F model=openai/gpt-image-2 \
-  -F n=2 \
-  -F size=1024x1024
-```
-
-The form fields:
-
-| Field             | Type     | Required | Description                                     |
-| ----------------- | -------- | -------- | ----------------------------------------------- |
-| `image`           | `binary` | Yes      | The source image to vary.                       |
-| `model`           | `string` |          | Model ID to use.                                |
-| `n`               | `int`    |          | Number of images to generate (1-10, default 1). |
-| `size`            | `string` |          | Image size, for example `1024x1024`.            |
-| `response_format` | `string` |          | Response format: `url` (default) or `b64_json`. |
 
 The response is the same `ImagesResponse` shown above.
 
