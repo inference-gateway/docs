@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.15](https://github.com/inference-gateway/docs/compare/0.9.14...0.9.15) (2026-09-23)
+
+### 📚 Documentation
+
+* add cli text-to-video and avatar library ([#729](https://github.com/inference-gateway/docs/issues/729)) ([4abcc6b](https://github.com/inference-gateway/docs/commit/4abcc6ba3a38246e769eff5dc562d0b0fe4394bc))
+* add TextToMusic tool and text_to_music config ([#720](https://github.com/inference-gateway/docs/issues/720)) ([22e0bd7](https://github.com/inference-gateway/docs/commit/22e0bd7e06495bd18171d58f5afd9894f5acdfa2))
+* document createavatar and avatar reference images ([#733](https://github.com/inference-gateway/docs/issues/733)) ([03dde6e](https://github.com/inference-gateway/docs/commit/03dde6e06a7b0198196179fd09cf2aefb6ba0355))
+* document reference_images on videos api ([#730](https://github.com/inference-gateway/docs/issues/730)) ([5d69458](https://github.com/inference-gateway/docs/commit/5d69458976e84d2496bc6a45668ee5c528fd2c1f))
+* document the TextToSFX cli tool ([#724](https://github.com/inference-gateway/docs/issues/724)) ([c46259f](https://github.com/inference-gateway/docs/commit/c46259f5885e19af7443380c43f0a8248da67d14))
+* drop wav from sfx and music response_format tables ([#726](https://github.com/inference-gateway/docs/issues/726)) ([33f44be](https://github.com/inference-gateway/docs/commit/33f44be8fa25df7260ecc3da953fb4f7513a1518))
+* note microsecond avg duration in stats output ([#722](https://github.com/inference-gateway/docs/issues/722)) ([70bfbae](https://github.com/inference-gateway/docs/commit/70bfbae917a01e9b6fdedb5c3d9a7487493d6b0b))
+* remove github issue and pull request references from docs ([#743](https://github.com/inference-gateway/docs/issues/743)) ([e0326be](https://github.com/inference-gateway/docs/commit/e0326bee3c3c6e3a998db83590651ad6cc210746))
+* remove the /v1/images/variations endpoint ([#735](https://github.com/inference-gateway/docs/issues/735)) ([a3e9681](https://github.com/inference-gateway/docs/commit/a3e96817da44c2136a5a06952839b4f40dea09c7))
+* subscription models with per-token rates cost zero per session ([#718](https://github.com/inference-gateway/docs/issues/718)) ([72f42df](https://github.com/inference-gateway/docs/commit/72f42dfbd889853d09533cd2774ec5fa5e274126))
+* use python sdk for sfx and music ([#741](https://github.com/inference-gateway/docs/issues/741)) ([ece9551](https://github.com/inference-gateway/docs/commit/ece955145b4997dc5ca5bb299c159ec404a36d2a))
+* use rust sdk examples for sfx and music ([#739](https://github.com/inference-gateway/docs/issues/739)) ([cb3ae70](https://github.com/inference-gateway/docs/commit/cb3ae706b02f7d4f14dcf69276cddcd2e58887ea))
+* use typescript sdk for sfx and music ([#740](https://github.com/inference-gateway/docs/issues/740)) ([e90b534](https://github.com/inference-gateway/docs/commit/e90b5342c4ff7771804f3ca3637f09f75fef66cb))
+
+### 🔧 Miscellaneous
+
+* **deps:** bump claude-code 2.1.266 -> 2.1.278 ([#734](https://github.com/inference-gateway/docs/issues/734)) ([0713d38](https://github.com/inference-gateway/docs/commit/0713d383a2472f664d0cac3bae96c6ba76c625d4))
+* **deps:** bump infer CLI v0.192.0 -> v0.205.3 ([#742](https://github.com/inference-gateway/docs/issues/742)) ([88219a1](https://github.com/inference-gateway/docs/commit/88219a10ec58d3cd3c961f3230a6e692b83e3278))
+
 ## [0.9.14](https://github.com/inference-gateway/docs/compare/0.9.13...0.9.14) (2026-09-22)
 
 ### 📚 Documentation
