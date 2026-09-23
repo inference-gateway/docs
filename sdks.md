@@ -497,7 +497,45 @@ audio = client.create_speech(
 
 `create_speech` landed in [python-sdk#112](https://github.com/inference-gateway/python-sdk/pull/112). See the [Audio API reference](/api-reference/#audio-api) for the endpoint-level details.
 
-The sibling [sound effects](/api-reference/#sound-effects) and [music](/api-reference/#music) endpoints have no `create_sfx` / `create_music` yet ([python-sdk#121](https://github.com/inference-gateway/python-sdk/issues/121)) - call them over plain HTTP in the meantime.
+### Sound effects and music
+
+`create_sfx(model, prompt, provider=None, ...)` and `create_music(model, prompt, provider=None, ...)` wrap the sibling [`POST /v1/audio/sfx`](/api-reference/#sound-effects) and [`POST /v1/audio/music`](/api-reference/#music) endpoints. Both are shaped exactly like `create_speech` - JSON in, raw audio `bytes` out in the requested `response_format` (`mp3` by default) - and share the `AUDIO_ENABLED` gate. `elevenlabs` is the only provider serving them today; anything else answers `400`, raised as `InferenceGatewayAPIError`.
+
+```python
+from inference_gateway import InferenceGatewayClient
+
+client = InferenceGatewayClient('http://localhost:8080/v1')
+
+sfx = client.create_sfx(
+    'elevenlabs/eleven_text_to_sound_v2',
+    'distant thunder rolling over a valley',
+    provider='elevenlabs',
+    duration_seconds=5.0,
+)
+
+music = client.create_music(
+    'elevenlabs/music_v2_5',
+    'upbeat synthwave with driving bass',
+    provider='elevenlabs',
+    instrumental=True,
+)
+
+with open('thunder.mp3', 'wb') as f:
+    f.write(sfx)
+```
+
+`model` and `prompt` are positional and required; everything else is keyword-only and omitted from the body when left at `None`, so the gateway defaults apply. The bodies are validated as `CreateSFXRequest` / `CreateMusicRequest` before the request goes out, so bad values raise `InferenceGatewayValidationError` locally.
+
+| Argument           | Applies to     | Python type               | Description                                                                                              |
+| ------------------ | -------------- | ------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `provider`         | both           | `Provider \| str \| None` | Pins the request to one provider; omit it to route from the model prefix.                                |
+| `duration_seconds` | both           | `float \| None`           | Clip length - `0.5` to `30` for sound effects, `3` to `600` for music. Omit it to let the provider pick. |
+| `prompt_influence` | `create_sfx`   | `float \| None`           | How closely generation follows the prompt, between `0` and `1`.                                          |
+| `loop`             | `create_sfx`   | `bool \| None`            | Generate a clip that loops seamlessly, for ambience beds.                                                |
+| `instrumental`     | `create_music` | `bool \| None`            | Compose without vocals (gateway default `false`).                                                        |
+| `response_format`  | both           | `str \| None`             | Audio format: `mp3` (default), `opus`, `aac`, `flac`, or `pcm`. `wav` is not accepted here.              |
+
+Both methods landed in [python-sdk#120](https://github.com/inference-gateway/python-sdk/pull/120). See the [sound effects](/api-reference/#sound-effects) and [music](/api-reference/#music) references for the endpoint-level details.
 
 ### Models, tools, and health
 

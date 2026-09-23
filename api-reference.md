@@ -797,7 +797,7 @@ The `CreateSFXRequest` fields:
 | `loop`             | `boolean` |          | Generate a clip that loops seamlessly. Useful for ambience beds.                                                                                                                                                                                          |
 | `response_format`  | `string`  |          | Audio format: `mp3` (default), `opus`, `aac`, `flac`, or `pcm`. `wav` is not accepted here (unlike `/v1/audio/speech`) - use `mp3` instead. ElevenLabs produces only `mp3`, `opus` and `pcm`; the rest return `400 Bad Request` naming the supported set. |
 
-The [Rust SDK](/sdks/#sound-effects-and-music-1) wraps this endpoint as [`create_sfx`](/sdks/#sound-effects-and-music-1), which returns the raw audio bytes:
+The [Rust SDK](/sdks/#sound-effects-and-music-2) wraps this endpoint as [`create_sfx`](/sdks/#sound-effects-and-music-2), which returns the raw audio bytes:
 
 ```rust
 let sfx = client
@@ -815,7 +815,7 @@ let sfx = client
     .await?;
 ```
 
-The [TypeScript SDK](/sdks/#sound-effects-and-music) wraps it as [`createSFX`](/sdks/#sound-effects-and-music), which resolves to a `Blob` of the raw audio:
+The [TypeScript SDK](/sdks/#sound-effects-and-music-1) wraps it as [`createSFX`](/sdks/#sound-effects-and-music-1), which resolves to a `Blob` of the raw audio:
 
 ```typescript
 const sfx = await client.createSFX(
@@ -829,7 +829,19 @@ const sfx = await client.createSFX(
 );
 ```
 
-The Go and Python SDKs do not wrap it yet (tracked in [go-sdk#184](https://github.com/inference-gateway/sdk/issues/184) and [python-sdk#121](https://github.com/inference-gateway/python-sdk/issues/121)) - call it over plain HTTP in the meantime.
+The [Python SDK](/sdks/#sound-effects-and-music) wraps it as [`create_sfx`](/sdks/#sound-effects-and-music), returning the raw audio as `bytes`:
+
+```python
+sfx = client.create_sfx(
+    'elevenlabs/eleven_text_to_sound_v2',
+    'rain on a tin roof, steady',
+    provider='elevenlabs',
+    duration_seconds=10.0,
+    loop=True,
+)
+```
+
+The Go SDK does not wrap it yet (tracked in [go-sdk#184](https://github.com/inference-gateway/sdk/issues/184)) - call it over plain HTTP in the meantime.
 
 Set `ELEVENLABS_API_KEY` (and optionally `ELEVENLABS_API_URL`) so the gateway can authenticate - see [Configuration](/configuration/#elevenlabs).
 
@@ -885,7 +897,7 @@ The `CreateMusicRequest` fields:
 | `instrumental`     | `boolean` |          | Compose without vocals (default `false`).                                                                                                   |
 | `response_format`  | `string`  |          | Audio format: `mp3` (default), `opus`, `aac`, `flac`, or `pcm`. `wav` is not accepted here (unlike `/v1/audio/speech`) - use `mp3` instead. |
 
-A request routed to a provider without music support returns `400 Bad Request` (see [Unsupported providers](#unsupported-providers)). The Rust SDK wraps this endpoint as [`create_music`](/sdks/#sound-effects-and-music-1), returning the raw audio bytes like `create_sfx`:
+A request routed to a provider without music support returns `400 Bad Request` (see [Unsupported providers](#unsupported-providers)). The Rust SDK wraps this endpoint as [`create_music`](/sdks/#sound-effects-and-music-2), returning the raw audio bytes like `create_sfx`:
 
 ```rust
 let track = client
@@ -902,7 +914,7 @@ let track = client
     .await?;
 ```
 
-The TypeScript SDK wraps it as [`createMusic`](/sdks/#sound-effects-and-music), the `createSFX` sibling, resolving to a `Blob`:
+The TypeScript SDK wraps it as [`createMusic`](/sdks/#sound-effects-and-music-1), the `createSFX` sibling, resolving to a `Blob`:
 
 ```typescript
 const music = await client.createMusic(
@@ -916,7 +928,19 @@ const music = await client.createMusic(
 );
 ```
 
-The Go and Python SDKs do not wrap it yet (tracked in the same SDK issues as sound effects) - call it over plain HTTP in the meantime.
+The Python SDK wraps it as [`create_music`](/sdks/#sound-effects-and-music), the `create_sfx` sibling, returning `bytes`:
+
+```python
+music = client.create_music(
+    'elevenlabs/music_v2_5',
+    'upbeat lo-fi hip hop with a warm piano loop',
+    provider='elevenlabs',
+    duration_seconds=30.0,
+    instrumental=True,
+)
+```
+
+The Go SDK does not wrap it yet (tracked in the same SDK issue as sound effects) - call it over plain HTTP in the meantime.
 
 #### Unsupported providers
 
@@ -955,7 +979,7 @@ Content-Type: application/json
 
 Because the gateway proxies the request, speech traffic shows up in gateway logs, tracing and pricing like any other endpoint. See [Text-to-Speech](/cli-text-to-speech/) for the CLI-side tooling.
 
-The SDKs wrap this endpoint as a single call that returns the raw audio: [`createSpeech`](/sdks/#speech-synthesis) in TypeScript (a `Blob`), [`CreateSpeech`](/sdks/#speech-synthesis-1) in Go and [`create_speech`](/sdks/#speech-synthesis-2) in Rust (raw bytes).
+The SDKs wrap this endpoint as a single call that returns the raw audio: [`create_speech`](/sdks/#speech-synthesis) in Python (raw `bytes`), [`createSpeech`](/sdks/#speech-synthesis-1) in TypeScript (a `Blob`), [`CreateSpeech`](/sdks/#speech-synthesis-2) in Go and [`create_speech`](/sdks/#speech-synthesis-3) in Rust (raw bytes).
 
 The endpoint and its audio gate landed in [inference-gateway#569](https://github.com/inference-gateway/inference-gateway/pull/569), the schema in [schemas#186](https://github.com/inference-gateway/schemas/pull/186), and `reference_audio` cloning in [schemas#187](https://github.com/inference-gateway/schemas/pull/187). The local engine, the `ENABLE_AUDIO` to `AUDIO_ENABLED` rename (no legacy alias) and the `AUDIO_LOCAL_*` settings landed in [inference-gateway#575](https://github.com/inference-gateway/inference-gateway/pull/575) and [schemas#191](https://github.com/inference-gateway/schemas/pull/191). The `elevenlabs` provider landed in [schemas#210](https://github.com/inference-gateway/schemas/pull/210) the `/audio/sfx` operation in [schemas#211](https://github.com/inference-gateway/schemas/pull/211), and the `/audio/music` operation in [schemas#215](https://github.com/inference-gateway/schemas/pull/215) (gateway support tracked in [inference-gateway#680](https://github.com/inference-gateway/inference-gateway/issues/680)).
 
