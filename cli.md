@@ -73,7 +73,7 @@ cd cli
 CGO_ENABLED=0 go build -tags purego -o infer ./cmd/infer
 ```
 
-The build is fully cgo-free on macOS, Linux, and Windows - no C toolchain and no macOS SDK are required, and the same host cross-compiles every target. The `purego` build tag selects the pure-Go display and input backend and is used on all three platforms ([inference-gateway/cli#1086](https://github.com/inference-gateway/cli/pull/1086)).
+The build is fully cgo-free on macOS, Linux, and Windows - no C toolchain and no macOS SDK are required, and the same host cross-compiles every target. The `purego` build tag selects the pure-Go display and input backend and is used on all three platforms.
 
 ### Shell Completions
 
@@ -100,8 +100,6 @@ infer completion powershell | Out-String | Invoke-Expression
 ```
 
 Run `infer completion --help` to list the supported shells. After writing a persistent completion file, start a new shell (or re-source your shell rc) for it to take effect. If completions do not appear, see [Shell Completions Not Working](#shell-completions-not-working).
-
-> Shipped in [inference-gateway/cli#592](https://github.com/inference-gateway/cli/pull/592).
 
 ## Quick Start
 
@@ -220,7 +218,7 @@ The standalone `version` subcommand is **kept for backwards compatibility** and 
 infer version
 ```
 
-> The manual `--version` boolean flag was replaced by fang's built-in version handling (`fang.WithVersion`) in [inference-gateway/cli#592](https://github.com/inference-gateway/cli/pull/592). Both `infer --version` and the `infer version` subcommand remain supported.
+> The manual `--version` boolean flag was replaced by fang's built-in version handling (`fang.WithVersion`). Both `infer --version` and the `infer version` subcommand remain supported.
 
 ## Core Commands
 
@@ -269,8 +267,6 @@ infer chat
 
 **Prerequisite:** the [`gh` CLI](#github-operations) must be installed and authenticated, and the working directory must be a git repository with a remote. The feature **gracefully no-ops** when `gh` is missing, the directory is not a git repo, the repo has no remote, or authentication has expired - the dropdown simply shows nothing.
 
-> Shipped in [inference-gateway/cli#574](https://github.com/inference-gateway/cli/pull/574).
-
 #### Resuming a session (`--session-id`)
 
 `infer chat --session-id <id>` loads a persisted conversation before the TUI starts, letting you pick up where you left off. The session must have been persisted by a [storage backend](#conversation-management) (`storage.enabled: true`).
@@ -291,8 +287,6 @@ infer chat --session-id abc-123-def
 **Fallback:** If the session cannot be loaded (e.g. the ID does not exist or storage is disabled), the CLI prints a visible notice and starts a new session under the requested ID — the same semantics as [`infer agent --session-id`](#session-id-agent).
 
 **Ignored in non-interactive modes:** The flag is ignored (with a printed notice) in `--web` mode and when input is piped (non-interactive).
-
-> Shipped in [inference-gateway/cli#760](https://github.com/inference-gateway/cli/pull/760).
 
 #### Status indicator row
 
@@ -316,8 +310,6 @@ The selected indicator is highlighted as an **accent-colored pill**.
 | Theme     | `Theme`                                  | Opens the theme selector to change the TUI color scheme.                                                                                                                                                                                                                                                        |
 | Reconnect | `Reconnecting...` / `Reconnecting (N/M)` | Shown in red when the stream has stalled and the CLI is reconnecting. `N` is the current attempt, `M` is `client.retry.max_attempts`. Input is blocked until the stream recovers or all attempts are exhausted.                                                                                                 |
 
-> Shipped in [inference-gateway/cli#732](https://github.com/inference-gateway/cli/pull/732). Reconnect indicator added in [inference-gateway/cli#845](https://github.com/inference-gateway/cli/pull/845).
-
 #### Switching models (`/model`)
 
 `/model` is the unified model command - it replaces the deprecated `/switch`:
@@ -332,7 +324,7 @@ infer chat
 > /model anthropic/claude-opus-4-8 Explain this stack trace    # one-off, then restore
 ```
 
-> `/switch` is **deprecated** - use `/model <name>`. Shipped in [inference-gateway/cli#618](https://github.com/inference-gateway/cli/pull/618).
+> `/switch` is **deprecated** - use `/model <name>`.
 
 ##### Model picker labels
 
@@ -380,8 +372,6 @@ The footer help line lists the full keymap:
 
 Digits typed while the search input is active (`/`) go into the query, not the tabs.
 
-> Shipped in [inference-gateway/cli#1031](https://github.com/inference-gateway/cli/pull/1031), [inference-gateway/cli#1132](https://github.com/inference-gateway/cli/pull/1132) and [inference-gateway/cli#1166](https://github.com/inference-gateway/cli/pull/1166).
-
 #### Diff viewer and git staging
 
 When the agent proposes file changes (or you open a diff), the diff viewer supports **patch-level** staging - select individual lines, split hunks, and stage or unstage everything at once. All keys are configurable in `.infer/keybindings.yaml` (category `diff_viewer`); the defaults:
@@ -396,8 +386,6 @@ When the agent proposes file changes (or you open a diff), the diff viewer suppo
 | `U`                 | Unstage **all** changes (`git reset -q HEAD`)                                 |
 
 Select a range with `space`/`v`, navigate, then apply to stage just those lines - or split a mixed hunk with `s` and stage each block separately. The footer hint reflects whether a selection is active, and hides `discard` when a staged file is selected (discard only applies to unstaged changes).
-
-> Shipped in [inference-gateway/cli#618](https://github.com/inference-gateway/cli/pull/618).
 
 ## Agent Modes
 
@@ -593,8 +581,6 @@ In the `ag-ui` stream they arrive as `CUSTOM` events with the same names:
 {"type":"session_stats","message":"Session complete","...":"..."}
 ```
 
-> Shipped in [inference-gateway/cli#1075](https://github.com/inference-gateway/cli/pull/1075).
-
 #### Session stats summary line
 
 When a session completes, the CLI emits a single `session_stats` line summarizing token usage and computed dollar cost for the run. This lets consumers report real run cost without re-implementing the per-model pricing table.
@@ -728,8 +714,6 @@ infer headless "Continue the refactoring" --session-id abc-123-def
 
 The same flag is also available on [`infer chat --session-id`](#resuming-a-session---session-id) for resuming chat sessions interactively.
 
-> Shipped in [inference-gateway/cli#760](https://github.com/inference-gateway/cli/pull/760).
-
 ## Computer Use
 
 GUI automation and visual understanding capabilities for interacting with applications and desktop environments.
@@ -761,7 +745,7 @@ Computer use exposes two tools: **`Computer`**, an action-based desktop tool, an
 | `move`, `click`, `double_click`, `triple_click`, `scroll` | Pointer control.                                                                                                        |
 | `type`, `key`                                             | Type text or send key combinations (Ctrl+C, Cmd+V).                                                                     |
 
-**Targets.** `accessibility` and `press` accept an optional `target`: `frontmost` (default), `dock`, `menubar`, `pid:<N>`, `app:<name>`, or a bare application name. Application identifiers are `pid:<N>` on every platform - the macOS bundle ID form is gone, as are the older `GetFocusedApp` and `ActivateApp` tools ([inference-gateway/cli#1086](https://github.com/inference-gateway/cli/pull/1086)).
+**Targets.** `accessibility` and `press` accept an optional `target`: `frontmost` (default), `dock`, `menubar`, `pid:<N>`, `app:<name>`, or a bare application name. Application identifiers are `pid:<N>` on every platform - the macOS bundle ID form is gone, as are the older `GetFocusedApp` and `ActivateApp` tools.
 
 **Coordinate space.** Accessibility bounding boxes use the same frame coordinate space as screenshots and pointer actions, so an element's center can be passed straight to a `click`.
 
@@ -799,7 +783,7 @@ Computer use exposes two tools: **`Computer`**, an action-based desktop tool, an
 
 The [desktop app](/desktop/) is the visualization layer for computer use: it shows the live screen monitor, the on-screen action overlay, and the approval prompts driven by [`computer_use.approval`](#computer-use-approval). Run the CLI from the desktop app to watch a computer-use run as it happens.
 
-The CLI's own macOS floating window was removed in [inference-gateway/cli#1079](https://github.com/inference-gateway/cli/pull/1079). The `computer_use.floating_window` config section and the `INFER_COMPUTER_USE_FLOATING_WINDOW_*` environment variables no longer exist - existing config files that still carry those keys keep loading, the keys are simply ignored.
+The CLI's own macOS floating window was removed. The `computer_use.floating_window` config section and the `INFER_COMPUTER_USE_FLOATING_WINDOW_*` environment variables no longer exist - existing config files that still carry those keys keep loading, the keys are simply ignored.
 
 ### Computer Use Configuration
 
@@ -848,8 +832,6 @@ export INFER_COMPUTER_USE_APPROVAL=always
 - **Env override:** `INFER_COMPUTER_USE_APPROVAL` takes precedence over the YAML value.
 - **Fail closed:** an unknown value is rejected at config load with a validation error, and if one ever reaches the approval policy it is treated as `always` rather than silently bypassing the gate.
 - Under `destructive` or `always`, a headless run needs an approver reachable over IPC - otherwise the gated calls are blocked, same as any other approval-requiring tool. See [Headless secure-by-default](#headless-secure-by-default).
-
-> Shipped in [inference-gateway/cli#1075](https://github.com/inference-gateway/cli/pull/1075).
 
 ### Safety and Rate Limiting
 
@@ -1027,7 +1009,7 @@ export INFER_TOOLS_BASH_ALLOW_APPEND="git commit,git push"
 infer headless "Release the changelog" --tools-bash-allow-append "git commit,git push"
 ```
 
-The extra commands merge onto `mode.all.allow`, so they auto-run in every mode. There is no replace override - the old `tools.bash.whitelist.commands` key, the `INFER_TOOLS_BASH_WHITELIST_COMMANDS[_APPEND]` env vars, and the `--tools-bash-whitelist-commands*` flags were removed in [inference-gateway/cli#618](https://github.com/inference-gateway/cli/pull/618).
+The extra commands merge onto `mode.all.allow`, so they auto-run in every mode. There is no replace override - the old `tools.bash.whitelist.commands` key, the `INFER_TOOLS_BASH_WHITELIST_COMMANDS[_APPEND]` env vars, and the `--tools-bash-whitelist-commands*` flags were removed.
 
 #### BashOutput, KillShell, ListShells
 
@@ -1124,8 +1106,6 @@ Wait(condition=command, command="gh pr checks 792 --repo inference-gateway/cli",
 # Wait for all background shells
 Wait(condition=shells, timeout_seconds=300)
 ```
-
-> Shipped in [inference-gateway/cli#792](https://github.com/inference-gateway/cli/pull/792).
 
 ### Web Tools
 
@@ -1229,8 +1209,6 @@ Vision-capable models (those with the `vision` label in the [model picker](#mode
 
 The tool **remains executable** if called - a model that invokes it from conversation history or right after a model switch gets a working tool, not an error. Text-only models keep the tool and the "use ImageDecode to inspect it" note unchanged.
 
-> Shipped in [inference-gateway/cli#1031](https://github.com/inference-gateway/cli/pull/1031).
-
 ### Audio Tools
 
 #### TextToSpeech Tool
@@ -1288,8 +1266,6 @@ Every key also has an `INFER_TEXT_TO_MUSIC_`-prefixed environment variable that 
 
 A gateway without the endpoint, or a provider that rejects the request, fails the tool call with a one-line error naming the configured model (`music generation with elevenlabs/music_v2_5 failed: ...`). The agent run still completes and no partial file is left behind.
 
-> Shipped in [inference-gateway/cli#1265](https://github.com/inference-gateway/cli/pull/1265).
-
 #### TextToSFX Tool
 
 Generate a short sound effect or ambience clip from a text prompt and save it as a WAV file. The chat model calls the tool when the user asks for a whoosh, a click, a riser or room tone - non-speech audio that `TextToSpeech` (it would read the words aloud) and `TextToMusic` (it composes songs) cannot cover. Generation goes through the gateway's [SFX API](/api-reference/#sound-effects) (`POST /v1/audio/sfx`) using the configured `provider/model` - the CLI holds no provider key, the gateway does, so requests show up in gateway logs and traces. **Disabled by default** - while `text_to_sfx.enabled` is `false`, the tool definition is not sent to the LLM at all.
@@ -1325,8 +1301,6 @@ Every key also has an `INFER_TEXT_TO_SFX_`-prefixed environment variable that ta
 **Gateway requirements:** the SFX endpoint is part of the gateway's Audio API (gateway v0.54.0 or newer), so the gateway must run with `AUDIO_ENABLED=true` and hold credentials for the provider behind `model` (an ElevenLabs API key for the default). The CLI-managed local gateway is started with `AUDIO_ENABLED=true` automatically when `text_to_sfx.enabled` is on, and an already-running instance without the Audio API is restarted. Point the CLI at an externally managed gateway and you set `AUDIO_ENABLED=true` and the provider key there yourself.
 
 A gateway without the endpoint, or a provider that rejects the request, fails the tool call with a one-line error naming the configured model (`sfx generation with elevenlabs/eleven_text_to_sound_v2 failed: ...`). The agent run still completes and no partial file is left behind.
-
-> Shipped in [inference-gateway/cli#1268](https://github.com/inference-gateway/cli/pull/1268).
 
 ### Video Tools
 
@@ -1367,8 +1341,6 @@ The portrait and the audio clip travel in one request, so together they must fit
 
 See [Text-to-Video and Avatars](/cli-text-to-video/) for the full configuration reference, the `INFER_TEXT_TO_VIDEO_*` environment variables, the avatar library layout, and `infer avatars`.
 
-> Shipped in [inference-gateway/cli#1270](https://github.com/inference-gateway/cli/pull/1270).
-
 #### CreateAvatar Tool
 
 Build an avatar folder at `~/.infer/avatars/<name>/` from a photo - the agent-side twin of [`infer avatars create`](/cli-text-to-video/#managing-avatars). It stores the photo as the primary image and generates extra views of the same face through the gateway's image edit API using `tools.image_edit.model`, so a portrait the agent just generated, a selfie sent over a channel, or a photo in the project can become an avatar without leaving the chat.
@@ -1386,8 +1358,6 @@ Build an avatar folder at `~/.infer/avatars/<name>/` from a photo - the agent-si
 It **never overwrites** an existing avatar - a name already in the library fails the call - and there is no delete counterpart, so the agent cannot remove an avatar. A failed view generation removes the half-built folder.
 
 > **Privacy:** generating views sends the photo to the image-edit provider (OpenAI by default). Before anything is stored or uploaded, a JPEG is turned upright per its EXIF orientation and re-encoded without its metadata, so camera and GPS tags never reach the library or a provider. PNG and WebP pass through unchanged.
->
-> Shipped in [inference-gateway/cli#1270](https://github.com/inference-gateway/cli/pull/1270).
 
 ### GitHub Operations
 
@@ -1425,7 +1395,7 @@ GitHub operations run through Bash, so they obey the [Bash allowed-list](#comman
 - **Destructive** - `gh pr merge`, `gh pr close`, `gh issue delete`, `gh repo delete`, `gh release create`, `gh run cancel`, `gh auth login`.
 - **Raw `gh api`** - any call. The previous GET-wildcard auto-approval was dropped; a raw-API need is now opt-in per repo.
 
-> **Hardened in [inference-gateway/cli#618](https://github.com/inference-gateway/cli/pull/618).** Earlier defaults auto-approved `gh issue/pr` writes and read-only `gh api`. They now require approval - add the specific commands you trust to an allowed-list, or use the [append override](#append-only-override-ci).
+> **Behavior change.** Earlier defaults auto-approved `gh issue/pr` writes and read-only `gh api`. They now require approval - add the specific commands you trust to an allowed-list, or use the [append override](#append-only-override-ci).
 
 The shipped `mode.all` baseline:
 
@@ -1443,7 +1413,7 @@ tools:
 
 #### Migration: the built-in GitHub tool was removed
 
-> **Breaking change.** The built-in `Github` tool was removed in favor of the `gh` CLI ([inference-gateway/cli#572](https://github.com/inference-gateway/cli/pull/572)). The `tools.github` config block and the `infer config tools github` commands no longer exist. Existing configs that still contain a `tools.github` section are **ignored** - unknown keys are dropped, so they do not error and need no manual cleanup. Replace any scripted use of the old tool with the matching `gh` command (for example `gh issue view`, `gh pr create`, `gh api`).
+> **Breaking change.** The built-in `Github` tool was removed in favor of the `gh` CLI. The `tools.github` config block and the `infer config tools github` commands no longer exist. Existing configs that still contain a `tools.github` section are **ignored** - unknown keys are dropped, so they do not error and need no manual cleanup. Replace any scripted use of the old tool with the matching `gh` command (for example `gh issue view`, `gh pr create`, `gh api`).
 
 ### Workflow Tools
 
@@ -1642,8 +1612,6 @@ session (standard, success)            152ms
 Interactive (tmux-pane) subagents are **not** stitched into the caller's trace; use `mode: headless` when you need the subagent's spans in the same trace. See [Trace context propagation to subprocesses](#trace-context-propagation-to-subprocesses) for the full contract.
 
 > **v1 scope.** Subagents do not nest (depth capped at 1), a subagent's tool-approval prompt is not routed back to the main chat TUI, only tmux is supported (no screen/zellij), and there is no `/agent` chat shortcut yet.
->
-> Shipped in [inference-gateway/cli#658](https://github.com/inference-gateway/cli/pull/658).
 
 ### Security Features
 
@@ -1694,7 +1662,7 @@ infer tools validate "git status"
 
 `infer tools execute <tool> [json-args]` resolves tool names case-insensitively in the CLI - the agent itself still uses the exact PascalCase names. `infer tools validate <command>` reports whether a bash command would be permitted by the configured allowed-list, without executing it.
 
-> `infer tools execute` and `infer tools validate` moved from `config tools exec`/`config tools validate` to the top-level `infer tools` command in [inference-gateway/cli#601](https://github.com/inference-gateway/cli/pull/601).
+> `infer tools execute` and `infer tools validate` moved from `config tools exec`/`config tools validate` to the top-level `infer tools` command.
 
 ## Configuration
 
@@ -1772,8 +1740,6 @@ chmod 600 ~/.infer/auth.yaml
 - **Graceful degradation**: a missing or unreadable file changes nothing; a malformed file is ignored with a logged warning. Key resolution never fails because of `auth.yaml`.
 - **Legacy `auth.json`**: the old JSON file is still read as a fallback when `auth.yaml` is absent, so existing credentials keep working. Move your keys into `auth.yaml` - JSON is valid YAML, so the contents can be pasted as-is.
 
-> Shipped in [inference-gateway/cli#1169](https://github.com/inference-gateway/cli/pull/1169); renamed to `auth.yaml` in [inference-gateway/cli#1239](https://github.com/inference-gateway/cli/pull/1239).
-
 ### Artifacts directory
 
 Files the agent produces for you land in `.infer/artifacts/<session-id>/`, under the project config dir when there is one and the userspace config dir (`~/.infer/artifacts/`) otherwise. Each conversation gets its own subdirectory, so a session's output stays grouped and is easy to find, keep, or delete as a unit.
@@ -1793,8 +1759,6 @@ What lands there:
 
 Session IDs are sanitized before use, so a directory can never escape the artifacts root. The tool [sandbox](#tool-configuration) carves the artifacts directory out as writable, so tools can save there even when it sits outside the sandbox directory list.
 
-> Shipped in [inference-gateway/cli#1058](https://github.com/inference-gateway/cli/pull/1058).
-
 ### Userspace tmp tree
 
 Disposable runtime output that is not tied to a single project lives under `~/.infer/tmp/`:
@@ -1810,7 +1774,7 @@ Disposable runtime output that is not tied to a single project lives under `~/.i
 
 The whole `~/.infer/tmp` tree is agent-readable and writable by design - retained recordings and media are assets the agent consumes, and generated speech is output it can reference. The rest of `~/.infer/` stays on the [protected paths](#protected-paths) list. [`/reset`](#reset-shortcut) empties the tree through the `tmp` parent; the owning subsystems recreate the subdirectories on next use. Directories you explicitly point outside `~/.infer` are left alone.
 
-> **Existing installs.** Before [inference-gateway/cli#1239](https://github.com/inference-gateway/cli/pull/1239) these three directories sat directly under `~/.infer/` (`tts/`, `voice/`, `media/`). Nothing migrates automatically - they hold only disposable output, so delete them, or `mv` their contents under `~/.infer/tmp/` to keep the retained files. Explicit `output_dir` / `recordings_dir` / `media.dir` overrides are unaffected.
+> **Existing installs.** Older releases placed these three directories directly under `~/.infer/` (`tts/`, `voice/`, `media/`). Nothing migrates automatically - they hold only disposable output, so delete them, or `mv` their contents under `~/.infer/tmp/` to keep the retained files. Explicit `output_dir` / `recordings_dir` / `media.dir` overrides are unaffected.
 
 ### Key Configuration Areas
 
@@ -1905,8 +1869,6 @@ client:
 - **client.retry.backoff_multiplier**: Backoff multiplier for exponential delay (default: `2`).
 
 **Reconnecting indicator:** In the chat TUI, the status bar shows a red `Reconnecting...` indicator when a stall is detected, then `Reconnecting (N/M)` per attempt (where `N` is the current attempt and `M` is `max_attempts`). Input is blocked until the stream recovers or all attempts are exhausted. See [Status indicator row](#status-indicator-row).
-
-> Shipped in [inference-gateway/cli#845](https://github.com/inference-gateway/cli/pull/845) (resolves [inference-gateway/cli#579](https://github.com/inference-gateway/cli/issues/579)).
 
 ### System Reminders
 
@@ -2074,7 +2036,7 @@ infer config init --overwrite
 
 #### Command Mapping
 
-The per-setting subcommands were removed in [inference-gateway/cli#601](https://github.com/inference-gateway/cli/pull/601) in favor of `config get`/`config set` and the top-level `infer tools` command:
+The per-setting subcommands were removed in favor of `config get`/`config set` and the top-level `infer tools` command:
 
 | Old command                            | New command                                      |
 | -------------------------------------- | ------------------------------------------------ |
@@ -2185,8 +2147,6 @@ export INFER_TELEMETRY_RECEIVER_ADDRESS=0.0.0.0:4318
 When set, the receiver binds to that address at startup (instead of a random loopback port) and accepts OTLP/HTTP `POST /v1/traces` (protobuf) from any reachable producer. Received spans are filtered to the session's trace ID and appended to the local trace file, where they appear in `infer traces` nested under the originating `execute_tool` span.
 
 **Defensive limits:** 4 MiB per request body, 5000 spans per session. The receiver always responds 200 - receiver failures never fail the tool.
-
-> Shipped in [inference-gateway/cli#909](https://github.com/inference-gateway/cli/pull/909).
 
 ### Example: OpenTelemetry Collector
 
@@ -2320,8 +2280,6 @@ docker compose exec cli infer traces
 ```
 
 See the [example README](https://github.com/inference-gateway/cli/tree/main/examples/a2a-traces) for full configuration notes and troubleshooting.
-
-> Shipped in [inference-gateway/cli#909](https://github.com/inference-gateway/cli/pull/909).
 
 #### Limitations
 
@@ -2497,8 +2455,6 @@ Both steps end with a disk-space total: the preview ends with `Total reclaimable
 **Remote conversation stores are skipped.** If [`storage.type`](#conversation-management) is `postgres`, `redis`, or `d1`, `/reset` clears local state only and prints a notice that the remote store was left untouched - it is not an error.
 
 `/reset insights` runs the [`/insights`](#built-in-shortcuts) analysis (repeatable workflows worth turning into a skill, recurring tool failures) before the preview, so you can capture what past sessions were worth learning from before deleting them. The report is written to `~/.infer/insights/` and survives the reset. If conversation storage is disabled or no model is configured, the analysis is skipped with a notice and the preview is still shown.
-
-> Implemented in [inference-gateway/cli#1237](https://github.com/inference-gateway/cli/pull/1237). The disk-space totals were added by [inference-gateway/cli#1247](https://github.com/inference-gateway/cli/pull/1247).
 
 ### Voice Shortcut
 
@@ -2814,7 +2770,7 @@ deepseek/deepseek-v4-flash     (1M, $1.74/$3.48 per MTok)
 
 The classification comes from the **gateway's pricing metadata** - the `pricing.subscription` flag reported per model - so it tracks the gateway catalog with no CLI-side list to maintain. A `custom_prices` entry still wins: set `requires_pro: true` to gate a model the gateway does not flag, or `false` to un-gate one (remembering the [override caveat](#pricing-configuration) that an entry fully replaces the default).
 
-> The gateway-flag source shipped in [inference-gateway/cli#1166](https://github.com/inference-gateway/cli/pull/1166), replacing the previous hardcoded list of Pro models. Zero-cost billing for subscription models with per-token rates shipped in [inference-gateway/cli#1263](https://github.com/inference-gateway/cli/pull/1263), alongside the gateway keeping rates on flagged models in [inference-gateway/inference-gateway#683](https://github.com/inference-gateway/inference-gateway/pull/683).
+> The gateway flag replaced the previous hardcoded list of Pro models. Subscription models with per-token rates bill at zero cost while keeping their published rates.
 
 ### Model Thinking Visualization
 
@@ -2977,8 +2933,6 @@ storage:
 - **UTC timestamps.** Timestamps are stored as UTC RFC3339 so `ORDER BY updated_at DESC` sorts stably across runners in any timezone and external reads stay unambiguous.
 - **Secret handling.** `api_token` follows the existing plaintext-config + env-override convention (like the Postgres password) and is never logged - inject it via `INFER_STORAGE_D1_API_TOKEN`.
 
-> Shipped in [inference-gateway/cli#646](https://github.com/inference-gateway/cli/pull/646).
-
 ### Persistent Memory
 
 The **Memory** tool gives the agent durable, **cross-session** memory: facts it learns in one session survive into the next. Each fact is a single Markdown **fact-file** (with YAML frontmatter) stored under a configurable directory - `~/.infer/memory` by default - and catalogued by a `MEMORY.md` index. That index is injected into context at the **start of every session**, so the agent always knows what it has recorded; it then reads or writes individual facts on demand. A default [system reminder](#system-reminders) (`memory-consult`) nudges it to consult and keep memory current. Memory is **enabled by default**.
@@ -3124,8 +3078,6 @@ Sync uses the **ambient git credential chain** - ssh-agent, a git credential hel
 
 The per-op `timeout` (default `60` seconds) keeps an interactive credential prompt from hanging a run.
 
-> Shipped in [inference-gateway/cli#707](https://github.com/inference-gateway/cli/pull/707) (closes [inference-gateway/cli#683](https://github.com/inference-gateway/cli/issues/683)).
-
 #### Disabling memory
 
 Turn it off in `memory.yaml`:
@@ -3142,8 +3094,6 @@ export INFER_MEMORY_ENABLED=false
 ```
 
 When disabled, the `Memory` tool is not registered, no `MEMORY.md` index is injected, and the `memory-consult` reminder is pruned automatically.
-
-> Shipped in [inference-gateway/cli#679](https://github.com/inference-gateway/cli/pull/679).
 
 ### MCP Integration
 
@@ -3212,7 +3162,7 @@ See [MCP documentation](/mcp/) for detailed integration guide and server develop
 
 ### Agent Skills
 
-Reusable, model-readable instruction folders that the agent loads on demand. The CLI uses the same on-disk format as Gemini CLI and OpenAI Codex CLI, so a skill authored for any of those tools drops into `.infer/skills/` unchanged. Skills are discovered from three locations, in precedence order: project `.infer/skills/`, the `.agents/skills/` open standard (a shared cross-tool convention), then user-global `~/.infer/skills/`. Skills are **enabled by default** ([since cli#618](https://github.com/inference-gateway/cli/pull/618)) - discovered skills are injected into the system prompt out of the box. Only the lightweight metadata (name + description) is added; each `SKILL.md` body is read on demand. Turn them off with `agent.skills.enabled: false`, or skip individual skills with `disabled_skills`.
+Reusable, model-readable instruction folders that the agent loads on demand. The CLI uses the same on-disk format as Gemini CLI and OpenAI Codex CLI, so a skill authored for any of those tools drops into `.infer/skills/` unchanged. Skills are discovered from three locations, in precedence order: project `.infer/skills/`, the `.agents/skills/` open standard (a shared cross-tool convention), then user-global `~/.infer/skills/`. Skills are **enabled by default** - discovered skills are injected into the system prompt out of the box. Only the lightweight metadata (name + description) is added; each `SKILL.md` body is read on demand. Turn them off with `agent.skills.enabled: false`, or skip individual skills with `disabled_skills`.
 
 ```yaml
 # .infer/config.yaml
@@ -3249,8 +3199,6 @@ infer chat
 > /tools
 ```
 
-> Shipped in [inference-gateway/cli#732](https://github.com/inference-gateway/cli/pull/732).
-
 ### `/a2a` view
 
 The `/a2a` shortcut opens a **list of registered A2A agents** showing their connection state. Each entry displays whether the agent is connected or disconnected, alongside its name and URL.
@@ -3267,8 +3215,6 @@ The status bar `A2A: X/Y` indicator reflects the same live state - `X` counts do
 infer chat
 > /a2a  # View connected agents
 ```
-
-> Shipped in [inference-gateway/cli#732](https://github.com/inference-gateway/cli/pull/732). Liveness probes added in [inference-gateway/cli#936](https://github.com/inference-gateway/cli/pull/936).
 
 ### `/tasks` view
 
@@ -3296,8 +3242,6 @@ Selecting a **subagent** row shows the subagent's result:
 Rendering is bounded so a chatty shell cannot overflow the panel: the Output section shows **at most the last 10KB** of output. When the captured output is larger, it is prefixed with `(truncated, showing last 10KB)` and only the trailing 10KB is displayed.
 
 > The Output section brings background shells and subagents to parity with the A2A "Final Result" panel. Rows for jobs that expose no output (an A2A task keeps its own Final Result panel) show no Output section.
->
-> Shipped in [inference-gateway/cli#897](https://github.com/inference-gateway/cli/pull/897).
 
 ### A2A Integration
 
@@ -3370,8 +3314,6 @@ a2a:
 | `liveness_probe_interval` | `30`    | `INFER_A2A_LIVENESS_PROBE_INTERVAL` | Interval in seconds between probes                                |
 
 Setting `liveness_probe_enabled: false` restores the old behavior where agents are checked only once at startup.
-
-> Shipped in [inference-gateway/cli#936](https://github.com/inference-gateway/cli/pull/936) (resolves [inference-gateway/cli#932](https://github.com/inference-gateway/cli/issues/932)).
 
 ### Parallel Tool Execution
 

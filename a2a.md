@@ -212,8 +212,6 @@ a2a:
 
 **Tuning the interval:** Set `liveness_probe_interval` to a higher value (for example `60` for once per minute) to reduce network traffic, or lower it (for example `10`) for faster failure detection on critical agents.
 
-> Shipped in [inference-gateway/cli#936](https://github.com/inference-gateway/cli/pull/936) (resolves [inference-gateway/cli#932](https://github.com/inference-gateway/cli/issues/932)).
-
 ### Why Use the CLI for A2A?
 
 The Inference Gateway CLI acts as an **A2A agent client**, providing a seamless interface for interacting with A2A-compatible agents. The CLI provides several advantages for A2A integration:

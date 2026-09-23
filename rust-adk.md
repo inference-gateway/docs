@@ -703,7 +703,7 @@ See [`examples/tls/`](https://github.com/inference-gateway/rust-adk/tree/main/ex
 
 ## Artifacts
 
-The ADK ships a first-class **artifacts subsystem** so agents can produce downloadable file artifacts (reports, images, structured-data dumps) and hand A2A clients a **URI** rather than inline base64 bytes embedded in JSON-RPC responses. It mirrors the Go ADK artifacts surface, so artifact-producing agents behave identically on the wire across ADKs. The subsystem landed in [rust-adk#34](https://github.com/inference-gateway/rust-adk/pull/34).
+The ADK ships a first-class **artifacts subsystem** so agents can produce downloadable file artifacts (reports, images, structured-data dumps) and hand A2A clients a **URI** rather than inline base64 bytes embedded in JSON-RPC responses. It mirrors the Go ADK artifacts surface, so artifact-producing agents behave identically on the wire across ADKs.
 
 The subsystem has four moving parts, each behind a trait so production deployments can swap in their own backends:
 
@@ -1042,7 +1042,7 @@ The retention and artifacts-server bind variables from the [artifacts configurat
 
 ## Telemetry
 
-The ADK bridges its `tracing` instrumentation to [OpenTelemetry](https://opentelemetry.io/), exporting spans to an OTLP collector over **HTTP/protobuf**. It is a **traces-only** signal - there is no metrics export and no gRPC/`tonic` transport - and it lands behind the optional `telemetry` Cargo feature so the default build stays lean. It mirrors the [Go ADK](/adk#telemetry): `A2A_TELEMETRY_ENABLED` is the sole switch, and `A2A_OTEL_TRACES_EXPORTER=none` opts the trace signal out while telemetry stays enabled. The wiring landed in [rust-adk#117](https://github.com/inference-gateway/rust-adk/pull/117).
+The ADK bridges its `tracing` instrumentation to [OpenTelemetry](https://opentelemetry.io/), exporting spans to an OTLP collector over **HTTP/protobuf**. It is a **traces-only** signal - there is no metrics export and no gRPC/`tonic` transport - and it lands behind the optional `telemetry` Cargo feature so the default build stays lean. It mirrors the [Go ADK](/adk#telemetry): `A2A_TELEMETRY_ENABLED` is the sole switch, and `A2A_OTEL_TRACES_EXPORTER=none` opts the trace signal out while telemetry stays enabled.
 
 Enable the feature at build time:
 

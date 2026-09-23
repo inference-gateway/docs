@@ -130,7 +130,7 @@ Monetary values are USD per-token decimal strings (e.g. `"0.00000027"`) to avoid
 
 The pricing object may also include an optional `subscription` field (boolean, default `false`). When `true`, the model is gated behind a paid subscription: access is billed as a flat fee, not per token. The flag and the per-token rates are independent - a subscription-gated model may carry `"0"` rates or non-zero `input_per_token` / `output_per_token` rates. Non-zero rates on a subscription model are informational only (the provider's pay-as-you-go price for the same model) and must not be used to meter a session; the `subscription` flag decides billing. Models without the field (or with `subscription: false`) and zero rates are free-tier models with genuine zero per-token rates.
 
-Every `ollama_cloud/*` model is subscription-gated: the community table applies the rule at the provider level, so all Ollama Cloud models resolve to a populated pricing object with `subscription: true` rather than `pricing: null`. Ollama Cloud sells both flat-fee subscription plans and pay-as-you-go API access, and models.dev publishes the pay-as-you-go rates, so priced Ollama Cloud models keep their rates alongside the flag (see [inference-gateway/inference-gateway#683](https://github.com/inference-gateway/inference-gateway/pull/683)). Clients should classify them as Subscription, not Free, and bill them at zero per-token cost - see how the [CLI handles subscription models](/cli/#model-categories-free-pay-as-you-go-subscription). See [Ollama Cloud Provider](/supported-providers/#ollama-cloud-provider) for the provider setup.
+Every `ollama_cloud/*` model is subscription-gated: the community table applies the rule at the provider level, so all Ollama Cloud models resolve to a populated pricing object with `subscription: true` rather than `pricing: null`. Ollama Cloud sells both flat-fee subscription plans and pay-as-you-go API access, and models.dev publishes the pay-as-you-go rates, so priced Ollama Cloud models keep their rates alongside the flag. Clients should classify them as Subscription, not Free, and bill them at zero per-token cost - see how the [CLI handles subscription models](/cli/#model-categories-free-pay-as-you-go-subscription). See [Ollama Cloud Provider](/supported-providers/#ollama-cloud-provider) for the provider setup.
 
 Example response for an OpenAI model with `include=pricing`:
 
@@ -751,7 +751,7 @@ With `AUDIO_LOCAL_AUTO_DOWNLOAD=false` the gateway never downloads anything and 
 | `AUDIO_LOCAL_MAX_CONCURRENCY` | `2`     | Concurrent syntheses; requests beyond the limit queue rather than fail |
 | `AUDIO_LOCAL_TIMEOUT`         | `300`   | Per-request synthesis timeout in seconds, surfaced as `504`            |
 
-**Known ceiling.** Each request pays model and graph initialization (roughly 1s warm, slower cold or on GPU) and there is no cross-request batching - fine for agent speech, not for bulk synthesis. The local path is a stopgap until llama.cpp ships server-side TTS ([ggml-org/llama.cpp#21956](https://github.com/ggml-org/llama.cpp/issues/21956)), after which the gateway can proxy to `llama-server` instead.
+**Known ceiling.** Each request pays model and graph initialization (roughly 1s warm, slower cold or on GPU) and there is no cross-request batching - fine for agent speech, not for bulk synthesis. The local path is a stopgap until llama.cpp ships server-side TTS, after which the gateway can proxy to `llama-server` instead.
 
 #### Sound effects
 
@@ -841,7 +841,7 @@ sfx = client.create_sfx(
 )
 ```
 
-The Go SDK does not wrap it yet (tracked in [go-sdk#184](https://github.com/inference-gateway/sdk/issues/184)) - call it over plain HTTP in the meantime.
+The Go SDK does not wrap it yet - call it over plain HTTP in the meantime.
 
 Set `ELEVENLABS_API_KEY` (and optionally `ELEVENLABS_API_URL`) so the gateway can authenticate - see [Configuration](/configuration/#elevenlabs).
 
@@ -940,7 +940,7 @@ music = client.create_music(
 )
 ```
 
-The Go SDK does not wrap it yet (tracked in the same SDK issue as sound effects) - call it over plain HTTP in the meantime.
+The Go SDK does not wrap it yet - call it over plain HTTP in the meantime.
 
 #### Unsupported providers
 
@@ -980,8 +980,6 @@ Content-Type: application/json
 Because the gateway proxies the request, speech traffic shows up in gateway logs, tracing and pricing like any other endpoint. See [Text-to-Speech](/cli-text-to-speech/) for the CLI-side tooling.
 
 The SDKs wrap this endpoint as a single call that returns the raw audio: [`create_speech`](/sdks/#speech-synthesis) in Python (raw `bytes`), [`createSpeech`](/sdks/#speech-synthesis-1) in TypeScript (a `Blob`), [`CreateSpeech`](/sdks/#speech-synthesis-2) in Go and [`create_speech`](/sdks/#speech-synthesis-3) in Rust (raw bytes).
-
-The endpoint and its audio gate landed in [inference-gateway#569](https://github.com/inference-gateway/inference-gateway/pull/569), the schema in [schemas#186](https://github.com/inference-gateway/schemas/pull/186), and `reference_audio` cloning in [schemas#187](https://github.com/inference-gateway/schemas/pull/187). The local engine, the `ENABLE_AUDIO` to `AUDIO_ENABLED` rename (no legacy alias) and the `AUDIO_LOCAL_*` settings landed in [inference-gateway#575](https://github.com/inference-gateway/inference-gateway/pull/575) and [schemas#191](https://github.com/inference-gateway/schemas/pull/191). The `elevenlabs` provider landed in [schemas#210](https://github.com/inference-gateway/schemas/pull/210) the `/audio/sfx` operation in [schemas#211](https://github.com/inference-gateway/schemas/pull/211), and the `/audio/music` operation in [schemas#215](https://github.com/inference-gateway/schemas/pull/215) (gateway support tracked in [inference-gateway#680](https://github.com/inference-gateway/inference-gateway/issues/680)).
 
 ### Videos API
 
@@ -1144,8 +1142,6 @@ Content-Type: application/json
   "error": "The Videos API is not supported by this provider yet."
 }
 ```
-
-The `/videos` operations and the `audio` extension landed in [schemas#213](https://github.com/inference-gateway/schemas/pull/213), and `reference_images` in [schemas#222](https://github.com/inference-gateway/schemas/pull/222).
 
 ### Proxy Requests
 

@@ -9,7 +9,7 @@ description: Install, enable, and invoke Agent Skills in the Inference Gateway C
 
 The CLI uses the **same on-disk format** as Claude Code, Gemini CLI, and OpenAI Codex CLI, so a folder authored for any of those tools drops into `.infer/skills/` - or the cross-tool [`.agents/skills/` open standard](#on-disk-layout) - unchanged. To browse or publish skills in the shared index, see the [Skills Catalog](/skills/).
 
-> Skills are **enabled by default** ([since cli#618](https://github.com/inference-gateway/cli/pull/618)) - discovered skills are injected into every run's system prompt as lightweight metadata. Turn them off with `agent.skills.enabled: false` (or `INFER_AGENT_SKILLS_ENABLED=false`).
+> Skills are **enabled by default** - discovered skills are injected into every run's system prompt as lightweight metadata. Turn them off with `agent.skills.enabled: false` (or `INFER_AGENT_SKILLS_ENABLED=false`).
 
 ## How skills work
 
@@ -286,5 +286,3 @@ A catalog skill (one from [`agent.skills.repository`](#the-skills-catalog-and-ag
 - [CLI](/cli/) - overview of the `infer` command-line tool, modes, tools, and shortcuts.
 - [Configuration](/configuration/) - the full configuration system across the gateway and CLI.
 - [ADL CLI - Skills](/adl-cli/#skills) - declare skills inside an A2A agent project so they scaffold into `.agents/skills/<id>/SKILL.md`.
-- Source: [inference-gateway/cli#571](https://github.com/inference-gateway/cli/pull/571) (activation + sandbox carve-out), fixing [inference-gateway/cli#569](https://github.com/inference-gateway/cli/issues/569).
-- Built-in skills: [inference-gateway/cli#890](https://github.com/inference-gateway/cli/pull/890) (the seeded `tmux` starter skill), closing [inference-gateway/cli#827](https://github.com/inference-gateway/cli/issues/827).

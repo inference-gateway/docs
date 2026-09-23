@@ -26,7 +26,7 @@ curl -X POST http://localhost:8080/v1/audio/speech \
 
 The gateway can also synthesize without any provider: the reserved model id `local/qwen3-tts` runs the same `llama-tts` binary and Qwen3-TTS GGUFs inside the gateway, sharing the `~/.infer/models/tts` and `~/.infer/bin` caches with the CLI - see [Local speech engine](/api-reference/#local-speech-engine-local-qwen3-tts).
 
-This gateway-backed engine (`engine: gateway`, [cli#1126](https://github.com/inference-gateway/cli/issues/1126)) is what the CLI's `TextToSpeech` tool uses by default. The rest of this page - prerequisites, models, `llama-tts`/`ffmpeg` - applies to the local `qwen3-tts` engine; under `gateway` the CLI just posts to the Audio API and the gateway downloads whatever its engine needs.
+This gateway-backed engine (`engine: gateway`) is what the CLI's `TextToSpeech` tool uses by default. The rest of this page - prerequisites, models, `llama-tts`/`ffmpeg` - applies to the local `qwen3-tts` engine; under `gateway` the CLI just posts to the Audio API and the gateway downloads whatever its engine needs.
 
 > **Note:** Under the `qwen3-tts` engine, text-to-speech shells out to `llama-tts` and `ffmpeg` - no CGO is added to the `infer` binary. When a required tool is missing, the CLI reports an actionable error naming what to install; it never fails silently.
 
@@ -83,8 +83,7 @@ All options live under `text_to_speech` in `.infer/config.yaml`. Every key also 
 
 `engine` and `model` are only validated while `enabled` is `true`. With text-to-speech disabled the CLI never reads those sub-fields, so an unknown engine or
 model value - for example one written by a newer `infer` binary sharing the same `~/.infer/config.yaml`, such as the older CLI bundled with the desktop app - is
-ignored instead of failing config loading. Flip `enabled: true` and the same value is rejected at load time with a fast, explicit error
-([cli#1142](https://github.com/inference-gateway/cli/pull/1142)).
+ignored instead of failing config loading. Flip `enabled: true` and the same value is rejected at load time with a fast, explicit error.
 
 For example:
 

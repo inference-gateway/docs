@@ -495,7 +495,7 @@ audio = client.create_speech(
 )
 ```
 
-`create_speech` landed in [python-sdk#112](https://github.com/inference-gateway/python-sdk/pull/112). See the [Audio API reference](/api-reference/#audio-api) for the endpoint-level details.
+See the [Audio API reference](/api-reference/#audio-api) for the endpoint-level details.
 
 ### Sound effects and music
 
@@ -535,7 +535,7 @@ with open('thunder.mp3', 'wb') as f:
 | `instrumental`     | `create_music` | `bool \| None`            | Compose without vocals (gateway default `false`).                                                        |
 | `response_format`  | both           | `str \| None`             | Audio format: `mp3` (default), `opus`, `aac`, `flac`, or `pcm`. `wav` is not accepted here.              |
 
-Both methods landed in [python-sdk#120](https://github.com/inference-gateway/python-sdk/pull/120). See the [sound effects](/api-reference/#sound-effects) and [music](/api-reference/#music) references for the endpoint-level details.
+See the [sound effects](/api-reference/#sound-effects) and [music](/api-reference/#music) references for the endpoint-level details.
 
 ### Models, tools, and health
 
@@ -1053,7 +1053,7 @@ const music = await client.createMusic(
 await writeFile('track.mp3', Buffer.from(await music.arrayBuffer()));
 ```
 
-The request bodies are `SchemaCreateSfxRequest` and `SchemaCreateMusicRequest`; their fields are listed in the [sound effects](/api-reference/#sound-effects) and [music](/api-reference/#music) reference. Both methods landed in [typescript-sdk#242](https://github.com/inference-gateway/typescript-sdk/pull/242).
+The request bodies are `SchemaCreateSfxRequest` and `SchemaCreateMusicRequest`; their fields are listed in the [sound effects](/api-reference/#sound-effects) and [music](/api-reference/#music) reference.
 
 ### Models, tools, and health
 
@@ -1538,7 +1538,7 @@ audio, err := client.CreateSpeech(ctx, sdk.Provider(""), sdk.CreateSpeechRequest
 })
 ```
 
-See the [Audio API reference](/api-reference/#audio-api) for the endpoint-level details. The sibling [sound effects](/api-reference/#sound-effects) and [music](/api-reference/#music) endpoints have no `CreateSFX` / `CreateMusic` yet ([go-sdk#184](https://github.com/inference-gateway/sdk/issues/184)) - call them over plain HTTP in the meantime.
+See the [Audio API reference](/api-reference/#audio-api) for the endpoint-level details. The sibling [sound effects](/api-reference/#sound-effects) and [music](/api-reference/#music) endpoints have no `CreateSFX` / `CreateMusic` yet - call them over plain HTTP in the meantime.
 
 ### Models, tools, and health
 
@@ -2187,7 +2187,7 @@ let audio = client
     .await?;
 ```
 
-`create_speech` landed in [rust-sdk#133](https://github.com/inference-gateway/rust-sdk/pull/133). See the [Audio API reference](/api-reference/#audio-api) for the endpoint-level details.
+See the [Audio API reference](/api-reference/#audio-api) for the endpoint-level details.
 
 ### Sound effects and music
 
@@ -2238,8 +2238,6 @@ async fn main() -> Result<(), GatewayError> {
 ```
 
 `loop_` carries the request's `loop` field, renamed because `loop` is a Rust keyword. The optional fields take `None` for the provider default; see the [sound effects](/api-reference/#sound-effects) and [music](/api-reference/#music) field tables for the accepted ranges and formats.
-
-Both methods landed in [rust-sdk#145](https://github.com/inference-gateway/rust-sdk/pull/145).
 
 ### Models, tools, and health
 
