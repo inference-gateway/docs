@@ -2116,7 +2116,57 @@ let audio = client
 
 `create_speech` landed in [rust-sdk#133](https://github.com/inference-gateway/rust-sdk/pull/133). See the [Audio API reference](/api-reference/#audio-api) for the endpoint-level details.
 
-The sibling [sound effects](/api-reference/#sound-effects) and [music](/api-reference/#music) endpoints have no `create_sfx` / `create_music` yet ([rust-sdk#146](https://github.com/inference-gateway/rust-sdk/issues/146)) - call them over plain HTTP in the meantime.
+### Sound effects and music
+
+`create_sfx(provider, request) -> Result<Vec<u8>, GatewayError>` and `create_music(provider, request) -> Result<Vec<u8>, GatewayError>` wrap the sibling [`POST /v1/audio/sfx`](/api-reference/#sound-effects) and [`POST /v1/audio/music`](/api-reference/#music) endpoints. Both behave like `create_speech`: the `Vec<u8>` is the raw audio in the requested `response_format` (`mp3` by default), and the `Option<Provider>` pins the request to one provider or lets the gateway route it from the model prefix. Both share the `AUDIO_ENABLED` gate, and `elevenlabs` is the only provider serving them today - anything else resolves to `GatewayError::BadRequest`.
+
+```rust
+use inference_gateway_sdk::{
+    CreateMusicRequest, CreateMusicRequestResponseFormat, CreateSFXRequest,
+    CreateSFXRequestResponseFormat, GatewayError, InferenceGatewayAPI, InferenceGatewayClient,
+    Provider,
+};
+
+#[tokio::main]
+async fn main() -> Result<(), GatewayError> {
+    let client = InferenceGatewayClient::new_default();
+
+    let sfx = client
+        .create_sfx(
+            Some(Provider::Elevenlabs),
+            CreateSFXRequest {
+                model: "elevenlabs/eleven_text_to_sound_v2".to_string(),
+                prompt: "distant thunder rolling over a valley".to_string(),
+                duration_seconds: Some(3.0),
+                loop_: None,
+                prompt_influence: None,
+                response_format: CreateSFXRequestResponseFormat::Mp3,
+            },
+        )
+        .await?;
+    std::fs::write("thunder.mp3", sfx).expect("write thunder.mp3");
+
+    let track = client
+        .create_music(
+            Some(Provider::Elevenlabs),
+            CreateMusicRequest {
+                model: "elevenlabs/music_v2_5".to_string(),
+                prompt: "upbeat lo-fi hip hop with a warm piano loop".to_string(),
+                duration_seconds: Some(30.0),
+                instrumental: Some(true),
+                response_format: CreateMusicRequestResponseFormat::Mp3,
+            },
+        )
+        .await?;
+    std::fs::write("track.mp3", track).expect("write track.mp3");
+
+    Ok(())
+}
+```
+
+`loop_` carries the request's `loop` field, renamed because `loop` is a Rust keyword. The optional fields take `None` for the provider default; see the [sound effects](/api-reference/#sound-effects) and [music](/api-reference/#music) field tables for the accepted ranges and formats.
+
+Both methods landed in [rust-sdk#145](https://github.com/inference-gateway/rust-sdk/pull/145).
 
 ### Models, tools, and health
 

@@ -797,7 +797,25 @@ The `CreateSFXRequest` fields:
 | `loop`             | `boolean` |          | Generate a clip that loops seamlessly. Useful for ambience beds.                                                                                                                                                                                          |
 | `response_format`  | `string`  |          | Audio format: `mp3` (default), `opus`, `aac`, `flac`, or `pcm`. `wav` is not accepted here (unlike `/v1/audio/speech`) - use `mp3` instead. ElevenLabs produces only `mp3`, `opus` and `pcm`; the rest return `400 Bad Request` naming the supported set. |
 
-The SDKs do not wrap this endpoint yet (tracked in [typescript-sdk#243](https://github.com/inference-gateway/typescript-sdk/issues/243), [go-sdk#184](https://github.com/inference-gateway/sdk/issues/184), [rust-sdk#146](https://github.com/inference-gateway/rust-sdk/issues/146) and [python-sdk#121](https://github.com/inference-gateway/python-sdk/issues/121)) - call it over plain HTTP in the meantime:
+The [Rust SDK](/sdks/#sound-effects-and-music) wraps this endpoint as [`create_sfx`](/sdks/#sound-effects-and-music), which returns the raw audio bytes:
+
+```rust
+let sfx = client
+    .create_sfx(
+        Some(Provider::Elevenlabs),
+        CreateSFXRequest {
+            model: "elevenlabs/eleven_text_to_sound_v2".to_string(),
+            prompt: "rain on a tin roof, steady".to_string(),
+            duration_seconds: Some(10.0),
+            loop_: Some(true),
+            prompt_influence: None,
+            response_format: CreateSFXRequestResponseFormat::Mp3,
+        },
+    )
+    .await?;
+```
+
+The other SDKs do not wrap it yet (tracked in [typescript-sdk#243](https://github.com/inference-gateway/typescript-sdk/issues/243), [go-sdk#184](https://github.com/inference-gateway/sdk/issues/184) and [python-sdk#121](https://github.com/inference-gateway/python-sdk/issues/121)) - call it over plain HTTP in the meantime:
 
 ```typescript
 const res = await fetch('http://localhost:8080/v1/audio/sfx', {
@@ -872,7 +890,24 @@ The `CreateMusicRequest` fields:
 | `instrumental`     | `boolean` |          | Compose without vocals (default `false`).                                                                                                   |
 | `response_format`  | `string`  |          | Audio format: `mp3` (default), `opus`, `aac`, `flac`, or `pcm`. `wav` is not accepted here (unlike `/v1/audio/speech`) - use `mp3` instead. |
 
-A request routed to a provider without music support returns `400 Bad Request` (see [Unsupported providers](#unsupported-providers)). The SDKs do not wrap this endpoint yet either (tracked in the same SDK issues as sound effects) - call it over plain HTTP as in the [sound effects example](#sound-effects).
+A request routed to a provider without music support returns `400 Bad Request` (see [Unsupported providers](#unsupported-providers)). The Rust SDK wraps this endpoint as [`create_music`](/sdks/#sound-effects-and-music), returning the raw audio bytes like `create_sfx`:
+
+```rust
+let track = client
+    .create_music(
+        Some(Provider::Elevenlabs),
+        CreateMusicRequest {
+            model: "elevenlabs/music_v2_5".to_string(),
+            prompt: "upbeat lo-fi hip hop with a warm piano loop".to_string(),
+            duration_seconds: Some(30.0),
+            instrumental: Some(true),
+            response_format: CreateMusicRequestResponseFormat::Mp3,
+        },
+    )
+    .await?;
+```
+
+The other SDKs do not wrap it yet (tracked in the same SDK issues as sound effects) - call it over plain HTTP as in the [sound effects example](#sound-effects).
 
 #### Unsupported providers
 
