@@ -902,6 +902,7 @@ When tools are enabled, LLMs have access to a comprehensive suite across multipl
 | **Computer Use**      | Computer, GetLatestFrame                                                           | Accessibility-tree reads, presses, screenshots, and pointer/keyboard control - see the Computer Use section above                                                                                                                                            |
 | **Image**             | ImageGeneration, ImageEdit, ImageVariation                                         | Generate, edit, and vary images using the configured image model - independent of the chat session model                                                                                                                                                     |
 | **Audio**             | TextToSpeech, TextToMusic, TextToSFX                                               | Local speech synthesis and voice cloning - opt-in via `text_to_speech.enabled`, see [Text-to-Speech](/cli-text-to-speech/); music composition and sound-effect generation through the gateway - opt-in via `text_to_music.enabled` and `text_to_sfx.enabled` |
+| **Video**             | TextToVideo, CreateAvatar                                                          | Prompt and lip-synced avatar renders through the gateway, plus avatar-library creation - opt-in via `text_to_video.enabled` and `text_to_video.create_avatar`, see [Text-to-Video and Avatars](/cli-text-to-video/)                                          |
 | **MCP**               | `MCP_<server>_<tool>`                                                              | Dynamically registered tools from MCP servers - see [MCP](/mcp/)                                                                                                                                                                                             |
 
 ### File System Tools
@@ -1341,7 +1342,7 @@ Two modes:
 **Parameters:**
 
 - `prompt` (required for a prompt render): Description of the clip - subject, action, camera, mood
-- `avatar` (optional): Name of an avatar folder in the [avatar library](/cli-text-to-video/#the-avatar-library) at `~/.infer/avatars/`, or a local image path, used as the portrait
+- `avatar` (optional): Name of an avatar folder in the [avatar library](/cli-text-to-video/#the-avatar-library) at `~/.infer/avatars/`, or a local image file, used as the portrait. With `audio` it is the portrait to lip-sync (first image in sort order); without `audio` a library avatar is sent as [reference images](/cli-text-to-video/#reference-images-in-prompt-renders) instead, while a bare image file stays the first frame
 - `audio` (optional): Local path to a `.wav` or `.mp3` clip to lip-sync; providing it selects the avatar render mode and requires a portrait
 - `output_path` (optional): Bare file name (no directories, no absolute paths) for the generated MP4, written inside `text_to_video.output_dir`; defaults to a timestamped file
 
@@ -1356,6 +1357,7 @@ text_to_video:
   # output_dir: ~/.infer/tmp/video
   # timeout: 900
   # poll_interval: 5
+  # create_avatar: false # register the CreateAvatar tool as well
   require_approval: false # optional; unset = no approval, like the image tools
 ```
 
@@ -1365,6 +1367,26 @@ The portrait and the audio clip travel in one request, so together they must fit
 
 See [Text-to-Video and Avatars](/cli-text-to-video/) for the full configuration reference, the `INFER_TEXT_TO_VIDEO_*` environment variables, the avatar library layout, and `infer avatars`.
 
+> Shipped in [inference-gateway/cli#1270](https://github.com/inference-gateway/cli/pull/1270).
+
+#### CreateAvatar Tool
+
+Build an avatar folder at `~/.infer/avatars/<name>/` from a photo - the agent-side twin of [`infer avatars create`](/cli-text-to-video/#managing-avatars). It stores the photo as the primary image and generates extra views of the same face through the gateway's image edit API using `tools.image_edit.model`, so a portrait the agent just generated, a selfie sent over a channel, or a photo in the project can become an avatar without leaving the chat.
+
+**Opt-in twice.** The tool is registered only when both `text_to_video.enabled` and `text_to_video.create_avatar` (`INFER_TEXT_TO_VIDEO_CREATE_AVATAR`) are `true`; `create_avatar` defaults to `false`. It **requires approval by default** - unlike the other media tools - and an explicit `text_to_video.require_approval` overrides that either way.
+
+**Parameters:**
+
+- `name` (required): Avatar name, which becomes the folder name under `~/.infer/avatars/`
+- `photo` (required): Bare file name of the source photo, looked up in the working directory and then in the [session artifacts directory](#artifacts-directory); absolute paths and `..` are rejected
+- `angles` (optional): Which extra views to generate - defaults to both three-quarter angles, left/right profiles are available, and `[]` stores the photo only, with no image-edit call
+- `quality` (optional): Image quality passed to the image edit API; defaults to `high`
+- `size` (optional): Size of the generated views; defaults to `1024x1536`
+
+It **never overwrites** an existing avatar - a name already in the library fails the call - and there is no delete counterpart, so the agent cannot remove an avatar. A failed view generation removes the half-built folder.
+
+> **Privacy:** generating views sends the photo to the image-edit provider (OpenAI by default). Before anything is stored or uploaded, a JPEG is turned upright per its EXIF orientation and re-encoded without its metadata, so camera and GPS tags never reach the library or a provider. PNG and WebP pass through unchanged.
+>
 > Shipped in [inference-gateway/cli#1270](https://github.com/inference-gateway/cli/pull/1270).
 
 ### GitHub Operations
