@@ -19,6 +19,7 @@ Use Bun (>= 1.3, pinned in `.bun-version`). Every `bun run <name>` has a `task <
 - Pages are root-level `*.md` files; each maps to a clean URL. Add `title` and `description` frontmatter, then register the page in `themeConfig.sidebar` in `.vitepress/config.ts`.
 - Markdown: ATX headings, dash bullets, 2-space nested indent. Prettier: 2-space indent, single quotes, semicolons, trailing commas, 100-col width. Lowercase route-oriented filenames (`browser-agent.md`).
 - For Vue-sensitive placeholders or GitHub Actions expressions, use `<code v-pre>...</code>` instead of backticks.
+- Do not reference GitHub issues or pull requests in doc content: no tracker numbers or links (the `repo#<number>` shorthand, or URLs to `/issues/` or `/pull/` pages). Describe the behavior or change itself; provenance belongs in the generated `CHANGELOG.md`.
 
 ## Generated content — do not hand-edit
 
