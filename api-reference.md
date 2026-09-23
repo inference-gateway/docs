@@ -797,7 +797,7 @@ The `CreateSFXRequest` fields:
 | `loop`             | `boolean` |          | Generate a clip that loops seamlessly. Useful for ambience beds.                                                                                                                                                                                          |
 | `response_format`  | `string`  |          | Audio format: `mp3` (default), `opus`, `aac`, `flac`, or `pcm`. `wav` is not accepted here (unlike `/v1/audio/speech`) - use `mp3` instead. ElevenLabs produces only `mp3`, `opus` and `pcm`; the rest return `400 Bad Request` naming the supported set. |
 
-The [Rust SDK](/sdks/#sound-effects-and-music) wraps this endpoint as [`create_sfx`](/sdks/#sound-effects-and-music), which returns the raw audio bytes:
+The [Rust SDK](/sdks/#sound-effects-and-music-1) wraps this endpoint as [`create_sfx`](/sdks/#sound-effects-and-music-1), which returns the raw audio bytes:
 
 ```rust
 let sfx = client
@@ -815,26 +815,21 @@ let sfx = client
     .await?;
 ```
 
-The other SDKs do not wrap it yet (tracked in [typescript-sdk#243](https://github.com/inference-gateway/typescript-sdk/issues/243), [go-sdk#184](https://github.com/inference-gateway/sdk/issues/184) and [python-sdk#121](https://github.com/inference-gateway/python-sdk/issues/121)) - call it over plain HTTP in the meantime:
+The [TypeScript SDK](/sdks/#sound-effects-and-music) wraps it as [`createSFX`](/sdks/#sound-effects-and-music), which resolves to a `Blob` of the raw audio:
 
 ```typescript
-const res = await fetch('http://localhost:8080/v1/audio/sfx', {
-  method: 'POST',
-  headers: {
-    Authorization: `Bearer ${process.env.INFERENCE_GATEWAY_API_KEY}`,
-    'Content-Type': 'application/json',
-  },
-  body: JSON.stringify({
+const sfx = await client.createSFX(
+  {
     model: 'elevenlabs/eleven_text_to_sound_v2',
     prompt: 'rain on a tin roof, steady',
     duration_seconds: 10,
     loop: true,
-    response_format: 'mp3',
-  }),
-});
-
-const sfx = await res.blob(); // audio/mpeg
+  },
+  Provider.elevenlabs
+);
 ```
+
+The Go and Python SDKs do not wrap it yet (tracked in [go-sdk#184](https://github.com/inference-gateway/sdk/issues/184) and [python-sdk#121](https://github.com/inference-gateway/python-sdk/issues/121)) - call it over plain HTTP in the meantime.
 
 Set `ELEVENLABS_API_KEY` (and optionally `ELEVENLABS_API_URL`) so the gateway can authenticate - see [Configuration](/configuration/#elevenlabs).
 
@@ -890,7 +885,7 @@ The `CreateMusicRequest` fields:
 | `instrumental`     | `boolean` |          | Compose without vocals (default `false`).                                                                                                   |
 | `response_format`  | `string`  |          | Audio format: `mp3` (default), `opus`, `aac`, `flac`, or `pcm`. `wav` is not accepted here (unlike `/v1/audio/speech`) - use `mp3` instead. |
 
-A request routed to a provider without music support returns `400 Bad Request` (see [Unsupported providers](#unsupported-providers)). The Rust SDK wraps this endpoint as [`create_music`](/sdks/#sound-effects-and-music), returning the raw audio bytes like `create_sfx`:
+A request routed to a provider without music support returns `400 Bad Request` (see [Unsupported providers](#unsupported-providers)). The Rust SDK wraps this endpoint as [`create_music`](/sdks/#sound-effects-and-music-1), returning the raw audio bytes like `create_sfx`:
 
 ```rust
 let track = client
@@ -907,7 +902,21 @@ let track = client
     .await?;
 ```
 
-The other SDKs do not wrap it yet (tracked in the same SDK issues as sound effects) - call it over plain HTTP as in the [sound effects example](#sound-effects).
+The TypeScript SDK wraps it as [`createMusic`](/sdks/#sound-effects-and-music), the `createSFX` sibling, resolving to a `Blob`:
+
+```typescript
+const music = await client.createMusic(
+  {
+    model: 'elevenlabs/music_v2_5',
+    prompt: 'upbeat lo-fi hip hop with a warm piano loop',
+    duration_seconds: 30,
+    instrumental: true,
+  },
+  Provider.elevenlabs
+);
+```
+
+The Go and Python SDKs do not wrap it yet (tracked in the same SDK issues as sound effects) - call it over plain HTTP in the meantime.
 
 #### Unsupported providers
 

@@ -980,7 +980,42 @@ const speech = await client.createSpeech({
 
 In the browser, hand the `Blob` straight to an `<audio>` element with `URL.createObjectURL(speech)` instead of writing a file.
 
-See the [Audio API reference](/api-reference/#audio-api) for the endpoint-level details. The sibling [sound effects](/api-reference/#sound-effects) and [music](/api-reference/#music) endpoints have no `createSFX` / `createMusic` yet ([typescript-sdk#243](https://github.com/inference-gateway/typescript-sdk/issues/243)) - call them with plain `fetch` in the meantime.
+See the [Audio API reference](/api-reference/#audio-api) for the endpoint-level details.
+
+### Sound effects and music
+
+`createSFX(request, provider?)` and `createMusic(request, provider?)` wrap the sibling [`POST /v1/audio/sfx`](/api-reference/#sound-effects) and [`POST /v1/audio/music`](/api-reference/#music) endpoints. Both are shaped exactly like `createSpeech` - JSON in, a `Blob` of raw audio out, in the requested `response_format` (`mp3` by default) - and share the `AUDIO_ENABLED` gate. `elevenlabs` is the only provider serving them today; anything else throws with `Sound effect generation is not supported by this provider yet.` or its music equivalent.
+
+```typescript
+import { InferenceGatewayClient, Provider } from '@inference-gateway/sdk';
+import { writeFile } from 'node:fs/promises';
+
+const client = new InferenceGatewayClient({
+  baseURL: 'http://localhost:8080/v1',
+});
+
+const sfx = await client.createSFX(
+  {
+    model: 'elevenlabs/eleven_text_to_sound_v2',
+    prompt: 'distant thunder rolling over a valley',
+    duration_seconds: 5,
+  },
+  Provider.elevenlabs
+);
+await writeFile('thunder.mp3', Buffer.from(await sfx.arrayBuffer()));
+
+const music = await client.createMusic(
+  {
+    model: 'elevenlabs/music_v2_5',
+    prompt: 'upbeat synthwave',
+    instrumental: true,
+  },
+  Provider.elevenlabs
+);
+await writeFile('track.mp3', Buffer.from(await music.arrayBuffer()));
+```
+
+The request bodies are `SchemaCreateSfxRequest` and `SchemaCreateMusicRequest`; their fields are listed in the [sound effects](/api-reference/#sound-effects) and [music](/api-reference/#music) reference. Both methods landed in [typescript-sdk#242](https://github.com/inference-gateway/typescript-sdk/pull/242).
 
 ### Models, tools, and health
 
