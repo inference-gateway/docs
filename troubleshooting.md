@@ -60,7 +60,7 @@ See [Authentication](/authentication/) for the full Keycloak integration walkthr
 
 ```bash
 MCP_ENABLED=true
-MCP_SERVERS=http://mcp-tools:8081/mcp,http://mcp-search:8082/mcp
+MCP_SERVERS=filesystem=http://mcp-tools:8081/mcp,search=http://mcp-search:8082/mcp
 
 # Connection timeouts
 MCP_CLIENT_TIMEOUT=10s          # default 5s   - bump if servers are slow

@@ -361,6 +361,8 @@ Each entry in `MCP_SERVERS` may be written as `alias=url`. The alias namespaces 
 MCP_SERVERS="deepwiki=https://mcp.deepwiki.com/mcp,http://mcp-time-server:8081/mcp"
 ```
 
+On Kubernetes the [Operator](/operator/#mcp-servers-spec-mcp) renders this variable for you as `name=url` entries - `spec.mcp.servers[].name` for static servers, the discovered `MCP` CR's `metadata.name` for `spec.mcp.serviceDiscovery` - and mirrors the result in `status.mcpServers`.
+
 `MCP_EXPOSE=true` (together with `MCP_ENABLED=true`) serves the gateway's own JSON-RPC MCP endpoint at `POST /mcp`, which aggregates every configured server behind one URL. It is covered by the gateway's `AUTH_*` settings like any other route, so with `AUTH_ENABLED=true` clients must send a bearer token. Left at the default `false`, `POST /mcp` answers `403`. See the [MCP guide](/mcp/#gateway-as-an-mcp-server).
 
 Use `MCP_INCLUDE_TOOLS` and `MCP_EXCLUDE_TOOLS` to control exactly which discovered tools are injected into LLM requests. Both accept a comma-separated list of tool names and default to empty:
