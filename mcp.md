@@ -343,6 +343,8 @@ The endpoint lives at the **root**, not under `/v1`: `/v1/*` is the OpenAI-compa
 
 Param and result shapes are the [MCP specification](https://modelcontextprotocol.io/specification) types; the gateway only wraps them in JSON-RPC envelopes.
 
+Transport is plain JSON request/response: one JSON-RPC message per `POST`, one JSON body back. The streamable HTTP/SSE server transport is not implemented, so a client that insists on an SSE response stream cannot talk to this endpoint.
+
 ### Initializing a Session
 
 ```bash
@@ -478,17 +480,40 @@ Protocol errors come back as JSON-RPC error envelopes with HTTP `200`; transport
 
 ### Using It from an Agent Client
 
-Point your client's MCP configuration at the gateway:
+Point your client's MCP configuration at the gateway. One entry replaces one entry per backend server, and adding or removing a server in `MCP_SERVERS` needs no client change.
+
+For [opencode](https://opencode.ai/), in `opencode.json`:
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "servers": {
+      "inference-gateway": {
+        "type": "remote",
+        "url": "http://localhost:8080/mcp",
+        "oauth": false,
+        "headers": { "Authorization": "Bearer {env:INFERENCE_GATEWAY_TOKEN}" }
+      }
+    }
+  }
+}
+```
+
+Drop `oauth` and `headers` when `AUTH_ENABLED=false`. Clients using the common `mcpServers` shape take the same URL:
 
 ```json
 {
   "mcpServers": {
     "inference-gateway": {
-      "url": "http://localhost:8080/mcp"
+      "url": "http://localhost:8080/mcp",
+      "headers": { "Authorization": "Bearer $INFERENCE_GATEWAY_TOKEN" }
     }
   }
 }
 ```
+
+A tool hidden by `MCP_INCLUDE_TOOLS` / `MCP_EXCLUDE_TOOLS` is invisible to these clients as well - the lists gate `/mcp` exactly as they gate chat completions, so a filtered tool is neither listed by `tools/list` nor callable through `tools/call`.
 
 Agent clients that run their own local tools (bash, read, edit) should combine this with the `X-MCP-Bypass` header on their **chat completion** requests:
 

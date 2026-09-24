@@ -1192,7 +1192,9 @@ The request body is a single JSON-RPC 2.0 request (or a notification, sent witho
 | `tools/list`                | optional `cursor`                               | Aggregated, namespaced tools of every healthy MCP server |
 | `tools/call`                | `name`, `arguments`                             | The tool result                                          |
 
-Tool names are namespaced <code v-pre>mcp_&lt;server alias&gt;_&lt;tool name&gt;</code>, for example `mcp_deepwiki_ask_question`. Aliases come from the `alias=url` syntax in `MCP_SERVERS`.
+Requests and responses are plain JSON - one JSON-RPC message per `POST`, one JSON body back. The streamable HTTP/SSE server transport is not implemented.
+
+Tool names are namespaced <code v-pre>mcp_&lt;server alias&gt;_&lt;tool name&gt;</code>, for example `mcp_deepwiki_ask_question`. Aliases come from the `alias=url` syntax in `MCP_SERVERS`. `MCP_INCLUDE_TOOLS` and `MCP_EXCLUDE_TOOLS` apply to this endpoint too: a filtered tool is neither listed nor callable. `tools/list` returns the tools of the healthy servers and skips unreachable ones instead of failing; a `tools/call` routed to an unavailable server returns `-32603`.
 
 ```http
 POST /mcp
@@ -1215,6 +1217,17 @@ Content-Type: application/json
 Protocol errors are returned with HTTP `200` and a JSON-RPC error envelope: `-32700` parse error, `-32600` invalid request, `-32601` method not found, `-32602` invalid params (unknown tool name or bad arguments), `-32603` internal error (upstream MCP server failure or unavailability). Transport-level failures use HTTP status codes - `401` when auth is enabled and the token is missing or invalid, `403` when the MCP surface is not exposed.
 
 The endpoint is covered by the gateway's global auth, so with `AUTH_ENABLED=true` it requires a bearer token like every route except `/health`. See the [MCP guide](/mcp/#gateway-as-an-mcp-server) for a walkthrough and client configuration.
+
+#### MCP status endpoints
+
+Two REST endpoints sit alongside the JSON-RPC surface, both requiring `MCP_ENABLED=true` and `MCP_EXPOSE=true`:
+
+```http
+GET /v1/mcp/tools
+GET /v1/mcp/health
+```
+
+`GET /v1/mcp/tools` returns a [`ListToolsResponse`](#listtoolsresponse) listing the discovered tools with their namespaced names and owning server alias. It is superseded by the `tools/list` method above and is being removed - use `POST /mcp` for new clients. `GET /v1/mcp/health` reports the health of each connected MCP server.
 
 ### Health Check
 
