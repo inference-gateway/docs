@@ -79,18 +79,20 @@ Every series carries a `source` label: `gateway` for gateway-observed traffic, o
 | `gen_ai_server_time_to_first_token_seconds`           | Histogram | Time to first token (push-only)                                         |
 | `inference_gateway_tool_calls_total`                  | Counter   | Total function/tool calls                                               |
 
+`inference_gateway_tool_calls_total` counts tool calls from both surfaces that run MCP tools: the agent loop behind `/v1/chat/completions`, and a `tools/call` on [`POST /mcp`](/mcp/#gateway-as-an-mcp-server). Calls over `/mcp` carry `source=gateway`, `gen_ai_tool_type=mcp` and the namespaced <code v-pre>mcp_&lt;alias&gt;_&lt;tool&gt;</code> name, with an empty provider and model - no model is involved in that path. Only names that resolve to an advertised, allowed tool are counted, so a client cannot inflate label cardinality with arbitrary strings. Each call also opens an `execute_tool <name>` span.
+
 ### Labels
 
-| Label                   | Applies to                           | Description                                                |
-| ----------------------- | ------------------------------------ | ---------------------------------------------------------- |
-| `gen_ai_provider_name`  | All metrics                          | LLM provider (openai, anthropic, etc.)                     |
-| `gen_ai_request_model`  | All metrics                          | Model name (gpt-4o, claude-sonnet-4, etc.)                 |
-| `gen_ai_operation_name` | All metrics                          | Operation (e.g. `chat`)                                    |
-| `gen_ai_token_type`     | `gen_ai_client_token_usage`          | `input` or `output`                                        |
-| `gen_ai_tool_type`      | `inference_gateway_tool_calls_total` | Tool type (`mcp`, `a2a`, `function`)                       |
-| `gen_ai_tool_name`      | `inference_gateway_tool_calls_total` | Fully qualified tool identifier                            |
-| `error_type`            | Duration histograms                  | HTTP status string, present only on errors                 |
-| `source`                | All metrics                          | `gateway` for gateway-observed, client-supplied for pushed |
+| Label                   | Applies to                           | Description                                                                                                                  |
+| ----------------------- | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| `gen_ai_provider_name`  | All metrics                          | LLM provider (openai, anthropic, etc.)                                                                                       |
+| `gen_ai_request_model`  | All metrics                          | Model name (gpt-4o, claude-sonnet-4, etc.)                                                                                   |
+| `gen_ai_operation_name` | All metrics                          | Operation (e.g. `chat`)                                                                                                      |
+| `gen_ai_token_type`     | `gen_ai_client_token_usage`          | `input` or `output`                                                                                                          |
+| `gen_ai_tool_type`      | `inference_gateway_tool_calls_total` | Tool type: `mcp` or `standard_tool_use` for gateway-observed calls, client-supplied (e.g. `a2a`, `function`) for pushed ones |
+| `gen_ai_tool_name`      | `inference_gateway_tool_calls_total` | Fully qualified tool identifier                                                                                              |
+| `error_type`            | Duration histograms                  | HTTP status string, present only on errors                                                                                   |
+| `source`                | All metrics                          | `gateway` for gateway-observed, client-supplied for pushed                                                                   |
 
 ### Histogram bucket boundaries
 
@@ -366,7 +368,7 @@ OTEL_RESOURCE_ATTRIBUTES=deployment.environment=production
 
 - **Root spans** are created for every inbound request **except** `/health` and `/v1/metrics`, which are excluded to keep health checks and the metrics push endpoint out of your traces.
 - **GenAI attributes** (`gen_ai` provider and model span attributes) are attached on the inference routes `/v1/chat/completions`, `/v1/messages`, and `/v1/responses`, so a span records which provider and model served the request.
-- **MCP tool execution** produces one child span per tool call, nested under the request's root span.
+- **MCP tool execution** produces one child span per tool call - `execute_tool <namespaced name>`, carrying the resolved `mcp.server.alias` - nested under the request's root span. A `tools/call` on `POST /mcp` is traced the same way as a tool call made inside the chat-completions agent loop.
 
 ### Context propagation
 
