@@ -469,6 +469,14 @@ curl -X POST http://localhost:8080/mcp \
   }'
 ```
 
+A `tools/call` here is the same tool call the chat-completions agent loop makes, so it gets the same enforcement and observability:
+
+- **Guardrails** - the `tool_args` policy phase runs before the upstream call and `tool_output` after it, so one policy covers both `/v1/chat/completions` and `POST /mcp`. Policies see the namespaced `mcp_<alias>_<tool>` name; see [Guardrails](/configuration/#guardrails) for the per-phase `input` shape.
+- **Metrics** - every call that resolves to an advertised, allowed tool increments `inference_gateway.tool_calls` with `source=gateway`, `gen_ai.tool.type=mcp` and `gen_ai.tool.name=<namespaced name>`. Provider and model are empty: nothing about this path involves a model. Unresolved names are not counted, so a client cannot inflate label cardinality.
+- **Traces** - the call runs inside an `execute_tool <name>` span carrying the resolved `mcp.server.alias`.
+
+A policy block answers HTTP `403` with a JSON-RPC error envelope (code `-32001`, see [Errors](#errors)) instead of running the tool. `GUARDRAILS_FAIL_MODE` decides what a tool-phase evaluation _error_ does: `closed` blocks the call, `open` allows it and logs a warning.
+
 ### Authentication
 
 Gateway auth is global, so `/mcp` is protected by the same `AUTH_*` settings as every other route except `/health`. With `AUTH_ENABLED=true`, send a bearer token:
@@ -486,18 +494,31 @@ See the [Authentication guide](/authentication/) for configuring the OIDC provid
 
 Protocol errors come back as JSON-RPC error envelopes with HTTP `200`; transport-level failures use HTTP status codes:
 
-| Code     | Meaning                                                    |
-| -------- | ---------------------------------------------------------- |
-| `-32700` | Parse error - malformed JSON                               |
-| `-32600` | Invalid request - missing or wrong `jsonrpc` version       |
-| `-32601` | Method not found - unknown method                          |
-| `-32602` | Invalid params - unknown tool name or bad arguments        |
-| `-32603` | Internal error - upstream MCP server failed or unavailable |
+| Code     | Meaning                                                                        |
+| -------- | ------------------------------------------------------------------------------ |
+| `-32700` | Parse error - malformed JSON                                                   |
+| `-32600` | Invalid request - missing or wrong `jsonrpc` version                           |
+| `-32601` | Method not found - unknown method                                              |
+| `-32602` | Invalid params - unknown tool name or bad arguments                            |
+| `-32603` | Internal error - upstream MCP server failed or unavailable                     |
+| `-32001` | Blocked by guardrails - a policy refused the request, answered with HTTP `403` |
 
-| HTTP  | Meaning                                             |
-| ----- | --------------------------------------------------- |
-| `401` | Auth is enabled and the token is missing or invalid |
-| `403` | The MCP surface is not exposed (`MCP_EXPOSE=false`) |
+`-32001` is a server-defined code (the JSON-RPC `-32000..-32099` range), so a client can tell a policy refusal from an upstream failure (`-32603`). It is returned for a block at any phase that touches `/mcp` - `pre_call` on the request body, or `tool_args` / `tool_output` around a `tools/call` - and the envelope echoes the request `id` with the policy's message:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 3,
+  "error": { "code": -32001, "message": "that tool is off limits" }
+}
+```
+
+A policy that returns no message, and a fail-closed evaluation error, use `request blocked by guardrails` and `guardrail evaluation failed` respectively. The underlying evaluator error stays in the gateway log.
+
+| HTTP  | Meaning                                                                             |
+| ----- | ----------------------------------------------------------------------------------- |
+| `401` | Auth is enabled and the token is missing or invalid                                 |
+| `403` | The MCP surface is not exposed (`MCP_EXPOSE=false`), or guardrails blocked the call |
 
 ### Using It from an Agent Client
 

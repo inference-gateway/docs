@@ -1,6 +1,6 @@
 ---
 title: Configuration
-description: Complete configuration reference for Inference Gateway, covering environment variables for server, client, providers, MCP, telemetry, auth, and Kubernetes-friendly ConfigMap and Secret examples.
+description: Complete configuration reference for Inference Gateway, covering environment variables for server, client, providers, MCP, telemetry, auth, guardrails, and Kubernetes-friendly ConfigMap and Secret examples.
 ---
 
 <script setup>
@@ -34,6 +34,14 @@ const oidcSettings = [
   { variable: 'AUTH_OIDC_ISSUER', description: 'OIDC issuer URL. Discovery runs once at startup against {issuer}/.well-known/openid-configuration. Required when AUTH_ENABLED=true', defaultValue: '""' },
   { variable: 'AUTH_OIDC_CLIENT_ID', description: 'OIDC client ID. Used as the expected token audience when AUTH_OIDC_AUDIENCE is empty. Required when AUTH_ENABLED=true', defaultValue: '""' },
   { variable: 'AUTH_OIDC_AUDIENCE', description: 'Comma-separated list of accepted aud values, for example an API identifier. Empty means AUTH_OIDC_CLIENT_ID', defaultValue: '""' },
+];
+
+const guardrailsSettings = [
+  { variable: 'GUARDRAILS_ENABLED', description: 'Enable gateway guardrails (OPA/Rego policy enforcement)', defaultValue: 'false' },
+  { variable: 'GUARDRAILS_POLICY_DIR', description: 'Directory of .rego files compiled at startup. All files are compiled into one query: data.guardrails.main', defaultValue: '""' },
+  { variable: 'GUARDRAILS_FAIL_MODE', description: 'closed or open: behavior when a policy evaluation, the external service, or a timeout errors', defaultValue: 'closed' },
+  { variable: 'GUARDRAILS_EXTERNAL_URL', description: 'Optional external HTTP guardrail service, sent the same input document and answering with the same decision shape', defaultValue: '""' },
+  { variable: 'GUARDRAILS_EXTERNAL_TIMEOUT', description: 'Timeout for the external guardrail service', defaultValue: '5s' },
 ];
 
 const serverSettings = [
@@ -240,6 +248,42 @@ Authorization: Bearer YOUR_JWT_TOKEN
 The gateway checks the token's signature, issuer, expiry and audience. `AUTH_OIDC_AUDIENCE` lists the accepted `aud` values (comma-separated for providers that need more than one, such as Microsoft Entra ID); leaving it empty expects `AUTH_OIDC_CLIENT_ID`. A token carrying no `aud` claim at all is accepted when its `client_id` claim matches one of the configured values, which is how Amazon Cognito machine-to-machine tokens work.
 
 Rejected requests return `401` with an [RFC 6750](https://www.rfc-editor.org/rfc/rfc6750#section-3) `WWW-Authenticate: Bearer realm="inference-gateway"` challenge, gaining `error="invalid_token"` when a token was presented but failed verification. See the [Authentication guide](/authentication/) for per-provider issuer and audience values and runnable examples.
+
+### Guardrails
+
+Guardrails evaluate every request against [OPA/Rego](https://www.openpolicyagent.org/docs/policy-language) policies compiled at startup, and optionally against an external HTTP service:
+
+<ConfigTable :rows="guardrailsSettings" />
+
+A policy returns a decision object - `{"action": "allow" | "block" | "redact" | "warn", "message": "..."}` - from the rule `data.guardrails.main`. A missing or undefined decision allows the request. `GUARDRAILS_FAIL_MODE` governs evaluation _errors_ rather than decisions: `closed` (the default) blocks, `open` allows and logs a warning.
+
+#### Phases and policy input
+
+A policy runs at four points in the request lifecycle and sees which one it is in `input.phase`:
+
+| Phase         | When it runs                    | `input.method` | `input.path`                                      | `input.request.body` |
+| ------------- | ------------------------------- | -------------- | ------------------------------------------------- | -------------------- |
+| `pre_call`    | before the request is forwarded | the HTTP verb  | the request path                                  | the request body     |
+| `post_call`   | on the response body            | the HTTP verb  | the request path                                  | the response body    |
+| `tool_args`   | before an MCP tool runs         | `TOOL_CALL`    | <code v-pre>mcp_&lt;alias&gt;_&lt;tool&gt;</code> | the tool arguments   |
+| `tool_output` | after an MCP tool returns       | `TOOL_CALL`    | <code v-pre>mcp_&lt;alias&gt;_&lt;tool&gt;</code> | the tool output      |
+
+Every phase also carries `input.request.model` (the requested model, empty on the tool phases) and `input.identity` - the verified OIDC claims when [authentication](/authentication/) is enabled - so the same identity checks apply to tool arguments and tool outputs.
+
+The tool phases cover both surfaces that run MCP tools: the agent loop behind `/v1/chat/completions` and a `tools/call` on [`POST /mcp`](/mcp/#gateway-as-an-mcp-server), so one policy applies to both. On `/mcp`, a block at any phase answers HTTP `403` with a JSON-RPC error envelope carrying code `-32001`.
+
+```rego
+package guardrails
+
+import rego.v1
+
+default main := {"action": "allow"}
+
+main := {"action": "block", "message": "that tool is off limits"} if {
+	input.phase == "tool_args"
+	input.path == "mcp_filesystem_write_file"
+}
+```
 
 ### Server Settings
 
