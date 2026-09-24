@@ -21,6 +21,8 @@ The [Model Context Protocol](https://modelcontextprotocol.io/) is an open standa
 
 - **Automatic Tool Discovery**: MCP servers are automatically discovered and their tools are made available to LLMs
 - **Multi-Server Support**: Connect to multiple MCP servers simultaneously
+- **Gateway as an MCP Server**: A single JSON-RPC `POST /mcp` endpoint aggregates every configured MCP server, so MCP clients configure one entry instead of one per server
+- **Per-Server Namespacing**: Tools are named `mcp_<server alias>_<tool name>`, so two servers can expose the same tool name without colliding
 - **Dynamic Tool Injection**: Tools are automatically injected into LLM requests based on available MCP servers
 - **Two Exposure Modes**: Choose between **selector** mode (default) with two meta-tools for discovery and dispatch, or **direct** mode for full schema injection
 - **Seamless Execution**: Tool calls are executed transparently and results returned to the LLM
@@ -98,11 +100,12 @@ Enable MCP integration by setting these environment variables:
 # Enable MCP middleware
 MCP_ENABLED=true
 
-# Expose MCP endpoints for debugging
+# Expose the gateway itself as an MCP server on POST /mcp
 MCP_EXPOSE=true
 
-# Comma-separated list of MCP server URLs
-MCP_SERVERS="http://time-server:8081/mcp,http://search-server:8082/mcp,http://filesystem-server:8083/mcp"
+# Comma-separated list of MCP servers as alias=url
+# Without "alias=", the alias is derived from the URL host
+MCP_SERVERS="time=http://time-server:8081/mcp,search=http://search-server:8082/mcp,files=http://filesystem-server:8083/mcp"
 
 # Tool filtering (optional)
 # Allowlist of tool names to inject - if empty, all discovered tools are injected
@@ -134,7 +137,7 @@ services:
     environment:
       - MCP_ENABLED=true
       - MCP_EXPOSE=true
-      - MCP_SERVERS=http://mcp-time-server:8081/mcp,http://mcp-search-server:8082/mcp
+      - MCP_SERVERS=time=http://mcp-time-server:8081/mcp,search=http://mcp-search-server:8082/mcp
       - GROQ_API_KEY=${GROQ_API_KEY}
     ports:
       - '8080:8080'
@@ -161,10 +164,33 @@ On Kubernetes, run the gateway with the [Kubernetes Operator](/operator/) and co
 env:
   MCP_ENABLED: 'true'
   MCP_EXPOSE: 'true'
-  MCP_SERVERS: 'http://mcp-time-server:8081/mcp,http://mcp-search-server:8082/mcp'
+  MCP_SERVERS: 'time=http://mcp-time-server:8081/mcp,search=http://mcp-search-server:8082/mcp'
   MCP_CLIENT_TIMEOUT: '10s'
   MCP_REQUEST_TIMEOUT: '10s'
 ```
+
+### Server Aliases and Tool Namespacing
+
+Each entry in `MCP_SERVERS` carries an **alias** that namespaces the tools it provides. Tools are exposed to models - and over the [`/mcp` endpoint](#gateway-as-an-mcp-server) - as `mcp_<alias>_<tool name>`:
+
+```bash
+# Explicit aliases
+MCP_SERVERS="deepwiki=https://mcp.deepwiki.com/mcp,time=http://mcp-time-server:8081/mcp"
+
+# Mixed: the second entry derives its alias from the URL host
+MCP_SERVERS="deepwiki=https://mcp.deepwiki.com/mcp,http://mcp-time-server:8081/mcp"
+```
+
+With that configuration, DeepWiki's `ask_question` tool reaches the model as `mcp_deepwiki_ask_question`.
+
+Rules:
+
+- **Explicit alias** - write `alias=url`. Omit it and the alias is derived from the URL host.
+- **Format** - aliases must match `^[a-z0-9_-]+$`, so the resulting tool name stays valid across all LLM providers.
+- **Uniqueness** - an invalid or duplicate alias fails startup with an actionable error rather than silently shadowing a server.
+- **Reserved names** - `mcp_tools_get` and `mcp_tools_execute` belong to the gateway's selector meta-tools, so an alias of `tools` is rejected.
+
+Namespacing is what makes two servers exposing the same tool name both work: tool calls are routed by alias instead of scanning every server for a matching name.
 
 ### Filtering Injected Tools
 
@@ -183,7 +209,14 @@ MCP_INCLUDE_TOOLS="get_time,search"
 MCP_EXCLUDE_TOOLS="delete_file,write_file"
 ```
 
-Tool names match those reported by the `GET /v1/mcp/tools` endpoint (available when `MCP_EXPOSE=true`).
+Matching accepts either form of the name - the bare tool name or the fully namespaced one - so `read_wiki_structure` and `deepwiki_read_wiki_structure` both select the same tool. Use the namespaced form when two servers expose the same tool name and you only want one of them:
+
+```bash
+# Only DeepWiki's search, not the search server's
+MCP_INCLUDE_TOOLS="deepwiki_search"
+```
+
+Tool names match those reported by the [`tools/list`](#listing-tools) method of the `/mcp` endpoint (available when `MCP_EXPOSE=true`).
 
 ### Tool Exposure Mode
 
@@ -191,7 +224,7 @@ Tool names match those reported by the `GET /v1/mcp/tools` endpoint (available w
 
 - **`selector`** (default) - The model sees exactly two gateway-defined meta-tools instead of every individual tool schema. Discovery and dispatch happen server-side, reducing request size significantly for deployments with many tools (benchmarked ~23x smaller for 50 tools). The meta-tools are:
 
-  - **`mcp_tools_get`** - Lists available tools. With no arguments returns a compact catalog (name, description, server). Pass `names` to get full input schemas for specific tools. Honors `MCP_INCLUDE_TOOLS` / `MCP_EXCLUDE_TOOLS`.
+  - **`mcp_tools_get`** - Lists available tools. With no arguments returns a compact catalog (namespaced name, description, server alias). Pass `names` to get full input schemas for specific tools. Honors `MCP_INCLUDE_TOOLS` / `MCP_EXCLUDE_TOOLS`.
   - **`mcp_tools_execute`** - Calls a tool by name on the correct MCP server. The gateway unwraps the call so guardrails evaluate the underlying tool name and arguments.
 
 - **`direct`** - Restores the previous behavior: every tool schema from every connected MCP server is injected into every chat completion request. Per Anthropic guidance, this is fine for small tool sets (under ~10 tools) but grows request size linearly with each tool.
@@ -259,53 +292,191 @@ curl -X POST http://localhost:8080/v1/chat/completions \
   }'
 ```
 
-## Available MCP Endpoints
+## Gateway as an MCP Server
 
-When `MCP_EXPOSE=true`, the gateway exposes additional endpoints for debugging:
-
-### List Available Tools
+Besides injecting tools into chat completions, the gateway can act as an **MCP server itself**. When `MCP_ENABLED=true` and `MCP_EXPOSE=true`, it serves a JSON-RPC 2.0 endpoint at:
 
 ```bash
-GET /v1/mcp/tools
+POST /mcp
 ```
 
-Returns all available tools from connected MCP servers:
+Every server in `MCP_SERVERS` is aggregated behind that single URL, so an MCP client (opencode, `infer`, IDE assistants) declares **one** entry and gets the whole fleet - with the gateway's auth, metrics, and guardrails applied to every tool call, and no client config churn when a backend server is added or removed.
+
+The endpoint lives at the **root**, not under `/v1`: `/v1/*` is the OpenAI-compatible surface, while MCP is its own protocol and clients expect a plain `/mcp`.
+
+### Supported Methods
+
+| Method                      | Params                                          | Result                                                                 |
+| --------------------------- | ----------------------------------------------- | ---------------------------------------------------------------------- |
+| `initialize`                | `protocolVersion`, `capabilities`, `clientInfo` | `protocolVersion`, `capabilities`, `serverInfo`                        |
+| `notifications/initialized` | none                                            | none - a notification (no `id`), answered with `202` and an empty body |
+| `tools/list`                | optional `cursor`                               | The aggregated, namespaced tools of every healthy MCP server           |
+| `tools/call`                | `name` (namespaced), `arguments`                | The tool result                                                        |
+
+Param and result shapes are the [MCP specification](https://modelcontextprotocol.io/specification) types; the gateway only wraps them in JSON-RPC envelopes.
+
+### Initializing a Session
+
+```bash
+curl -X POST http://localhost:8080/mcp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "initialize",
+    "params": {
+      "protocolVersion": "2025-06-18",
+      "capabilities": {},
+      "clientInfo": { "name": "my-client", "version": "1.0.0" }
+    }
+  }'
+```
 
 ```json
 {
-  "tools": [
-    {
-      "name": "get_time",
-      "description": "Get current time in various formats",
-      "server": "http://time-server:8081/mcp",
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "format": {
-            "type": "string",
-            "description": "Time format (ISO, human-readable, etc.)"
-          }
-        }
-      }
-    },
-    {
-      "name": "search",
-      "description": "Perform web search",
-      "server": "http://search-server:8082/mcp",
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "query": {
-            "type": "string",
-            "description": "Search query"
-          }
-        },
-        "required": ["query"]
-      }
-    }
-  ]
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "protocolVersion": "2025-06-18",
+    "capabilities": { "tools": { "listChanged": true } },
+    "serverInfo": { "name": "inference-gateway", "version": "1.0.0" }
+  }
 }
 ```
+
+Follow it with the `notifications/initialized` notification - sent **without** an `id`, answered with `202` and no body:
+
+```bash
+curl -X POST http://localhost:8080/mcp \
+  -H "Content-Type: application/json" \
+  -d '{ "jsonrpc": "2.0", "method": "notifications/initialized" }'
+```
+
+### Listing Tools
+
+```bash
+curl -X POST http://localhost:8080/mcp \
+  -H "Content-Type: application/json" \
+  -d '{ "jsonrpc": "2.0", "id": 2, "method": "tools/list" }'
+```
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 2,
+  "result": {
+    "tools": [
+      {
+        "name": "mcp_time_get_time",
+        "description": "Get current time in various formats",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "format": {
+              "type": "string",
+              "description": "Time format (ISO, human-readable, etc.)"
+            }
+          }
+        }
+      },
+      {
+        "name": "mcp_search_search",
+        "description": "Perform web search",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "query": { "type": "string", "description": "Search query" }
+          },
+          "required": ["query"]
+        }
+      }
+    ]
+  }
+}
+```
+
+`tools/list` tolerates partial availability: if one configured server is unreachable, its tools are omitted and the healthy servers' tools are still returned instead of failing the whole call. `MCP_INCLUDE_TOOLS` and `MCP_EXCLUDE_TOOLS` apply here too.
+
+### Calling a Tool
+
+Use the namespaced name - the gateway routes the call to the server that owns the alias:
+
+```bash
+curl -X POST http://localhost:8080/mcp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 3,
+    "method": "tools/call",
+    "params": {
+      "name": "mcp_deepwiki_ask_question",
+      "arguments": {
+        "repoName": "inference-gateway/inference-gateway",
+        "question": "How is MCP wired up?"
+      }
+    }
+  }'
+```
+
+### Authentication
+
+Gateway auth is global, so `/mcp` is protected by the same `AUTH_*` settings as every other route except `/health`. With `AUTH_ENABLED=true`, send a bearer token:
+
+```bash
+curl -X POST http://localhost:8080/mcp \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "jsonrpc": "2.0", "id": 1, "method": "tools/list" }'
+```
+
+See the [Authentication guide](/authentication/) for configuring the OIDC provider.
+
+### Errors
+
+Protocol errors come back as JSON-RPC error envelopes with HTTP `200`; transport-level failures use HTTP status codes:
+
+| Code     | Meaning                                                    |
+| -------- | ---------------------------------------------------------- |
+| `-32700` | Parse error - malformed JSON                               |
+| `-32600` | Invalid request - missing or wrong `jsonrpc` version       |
+| `-32601` | Method not found - unknown method                          |
+| `-32602` | Invalid params - unknown tool name or bad arguments        |
+| `-32603` | Internal error - upstream MCP server failed or unavailable |
+
+| HTTP  | Meaning                                             |
+| ----- | --------------------------------------------------- |
+| `401` | Auth is enabled and the token is missing or invalid |
+| `403` | The MCP surface is not exposed (`MCP_EXPOSE=false`) |
+
+### Using It from an Agent Client
+
+Point your client's MCP configuration at the gateway:
+
+```json
+{
+  "mcpServers": {
+    "inference-gateway": {
+      "url": "http://localhost:8080/mcp"
+    }
+  }
+}
+```
+
+Agent clients that run their own local tools (bash, read, edit) should combine this with the `X-MCP-Bypass` header on their **chat completion** requests:
+
+```bash
+curl -X POST http://localhost:8080/v1/chat/completions \
+  -H "X-MCP-Bypass: true" \
+  -H "Content-Type: application/json" \
+  -d '{ "model": "deepseek/deepseek-v4-flash", "messages": [...], "tools": [...] }'
+```
+
+The two compose cleanly:
+
+- **`/v1/chat/completions` with `X-MCP-Bypass: true`** - the gateway does not inject or execute MCP tools, so the client's own tools reach the model untouched and are executed client-side.
+- **`POST /mcp`** - the client pulls the backend tools it wants over MCP and lets the gateway execute them server-side.
+
+Without the bypass header, the MCP middleware manages tools for the chat-completions path as usual - see [Tool Exposure Mode](#tool-exposure-mode).
 
 ### Check MCP Server Health
 
@@ -314,6 +485,8 @@ GET /v1/mcp/health
 ```
 
 Returns the health status of all connected MCP servers.
+
+> The legacy `GET /v1/mcp/tools` listing is superseded by `tools/list` over `POST /mcp` and is being removed. Its entries now report namespaced tool names and the server alias while it remains available.
 
 ## Common MCP Server Types
 
@@ -501,7 +674,9 @@ curl http://localhost:8080/health
 curl http://localhost:8080/v1/mcp/health
 
 # List available tools
-curl http://localhost:8080/v1/mcp/tools
+curl -X POST http://localhost:8080/mcp \
+  -H "Content-Type: application/json" \
+  -d '{ "jsonrpc": "2.0", "id": 1, "method": "tools/list" }'
 ```
 
 ## Best Practices

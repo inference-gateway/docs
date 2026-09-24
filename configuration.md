@@ -147,8 +147,17 @@ const elevenlabsSettings = [
 
 const mcpSettings = [
   { variable: 'MCP_ENABLED', description: 'Enable MCP middleware', defaultValue: 'false' },
-  { variable: 'MCP_EXPOSE', description: 'Expose MCP endpoints for debugging', defaultValue: 'false' },
-  { variable: 'MCP_SERVERS', description: 'Comma-separated list of MCP server URLs', defaultValue: '""' },
+  {
+    variable: 'MCP_EXPOSE',
+    description: 'Expose the gateway as an MCP server on POST /mcp (requires MCP_ENABLED)',
+    defaultValue: 'false',
+  },
+  {
+    variable: 'MCP_SERVERS',
+    description:
+      'Comma-separated list of MCP servers as alias=url. Without alias= the alias is derived from the URL host. Aliases must match ^[a-z0-9_-]+$ and namespace the tools as mcp_<alias>_<tool>',
+    defaultValue: '""',
+  },
   { variable: 'MCP_INCLUDE_TOOLS', description: 'Comma-separated allowlist of MCP tool names to inject. If empty, all tools are injected. Takes precedence over MCP_EXCLUDE_TOOLS', defaultValue: '""' },
   { variable: 'MCP_EXCLUDE_TOOLS', description: 'Comma-separated denylist of MCP tool names to skip injecting. If empty, no tools are excluded. Takes lower precedence than MCP_INCLUDE_TOOLS', defaultValue: '""' },
   { variable: 'MCP_TOOL_MODE', description: 'MCP tool exposure mode: selector (default) injects two meta-tools (mcp_tools_get, mcp_tools_execute); direct injects every tool schema into every request', defaultValue: 'selector' },
@@ -346,12 +355,20 @@ These settings control MCP integration for external tool access:
 
 <ConfigTable :rows="mcpSettings" />
 
+Each entry in `MCP_SERVERS` may be written as `alias=url`. The alias namespaces that server's tools as <code v-pre>mcp_&lt;alias&gt;_&lt;tool name&gt;</code>, both for the tools injected into chat completions and for those listed over the `/mcp` endpoint. When `alias=` is omitted the alias is derived from the URL host; aliases must match `^[a-z0-9_-]+$`, and an invalid, duplicate, or reserved (`tools`) alias fails startup.
+
+```bash
+MCP_SERVERS="deepwiki=https://mcp.deepwiki.com/mcp,http://mcp-time-server:8081/mcp"
+```
+
+`MCP_EXPOSE=true` (together with `MCP_ENABLED=true`) serves the gateway's own JSON-RPC MCP endpoint at `POST /mcp`, which aggregates every configured server behind one URL. It is covered by the gateway's `AUTH_*` settings like any other route. See the [MCP guide](/mcp/#gateway-as-an-mcp-server).
+
 Use `MCP_INCLUDE_TOOLS` and `MCP_EXCLUDE_TOOLS` to control exactly which discovered tools are injected into LLM requests. Both accept a comma-separated list of tool names and default to empty:
 
 - `MCP_INCLUDE_TOOLS` is an allowlist. When empty (the default), all discovered tools are injected. When set, only the listed tools are injected.
 - `MCP_EXCLUDE_TOOLS` is a denylist. When empty (the default), no tools are excluded. When set, the listed tools are skipped.
 
-`MCP_INCLUDE_TOOLS` takes precedence over `MCP_EXCLUDE_TOOLS`: when both are set, the allowlist is applied and the denylist is ignored.
+`MCP_INCLUDE_TOOLS` takes precedence over `MCP_EXCLUDE_TOOLS`: when both are set, the allowlist is applied and the denylist is ignored. Both match either the bare tool name or the namespaced <code v-pre>&lt;alias&gt;_&lt;tool name&gt;</code> form, so use the namespaced form to single out one server when several expose the same tool name.
 
 ### Logging and Debugging
 
