@@ -158,7 +158,26 @@ services:
 
 ### Using Kubernetes
 
-On Kubernetes, run the gateway with the [Kubernetes Operator](/operator/) and configure MCP through the `Gateway` resource's `spec.mcp` block (`enabled`, `servers`, and timeouts - see the [Operator guide](/operator/#gateway)). The gateway reads the same settings from environment variables:
+On Kubernetes, run the gateway with the [Kubernetes Operator](/operator/) and configure MCP through the `Gateway` resource's `spec.mcp` block - see [MCP Servers (`spec.mcp`)](/operator/#mcp-servers-spec-mcp):
+
+```yaml
+spec:
+  mcp:
+    enabled: true
+    expose: true
+    servers:
+      - name: time
+        url: http://mcp-time-server:8081/mcp
+      - name: search
+        url: http://mcp-search-server:8082/mcp
+    timeouts:
+      client: 10s
+      request: 10s
+```
+
+The operator renders each entry as `name=url`, so `spec.mcp.servers[].name` is the alias that namespaces that server's tools. Servers picked up through `spec.mcp.serviceDiscovery` use the `MCP` CR's `metadata.name` as their alias. `status.mcpServers` on the `Gateway` mirrors the resulting `MCP_SERVERS` value.
+
+Without the operator, set the same settings as environment variables on the pod:
 
 ```yaml
 env:
@@ -189,6 +208,8 @@ Rules:
 - **Format** - aliases must match `^[a-z0-9_-]+$`, so the resulting tool name stays valid across all LLM providers.
 - **Uniqueness** - an invalid or duplicate alias fails startup with an actionable error rather than silently shadowing a server.
 - **Reserved names** - `mcp_tools_get` and `mcp_tools_execute` belong to the gateway's selector meta-tools, so an alias of `tools` is rejected.
+
+On Kubernetes the aliases come from the `Gateway` resource instead of a hand-written string: `spec.mcp.servers[].name` for static servers, and the discovered `MCP` CR's `metadata.name` for `spec.mcp.serviceDiscovery`. A name that breaks the rules above is rendered as a bare URL rather than failing the reconcile, so the gateway falls back to the host-derived alias - see [MCP Servers (`spec.mcp`)](/operator/#mcp-servers-spec-mcp).
 
 Namespacing is what makes two servers exposing the same tool name both work: tool calls are routed by alias instead of scanning every server for a matching name.
 

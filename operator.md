@@ -57,7 +57,8 @@ Deploys the gateway proxy. Source: [`api/v1alpha1/gateway_types.go`](https://git
 | `auth.enabled` / `auth.provider` / `auth.oidc`                   | Authentication. `provider` is `oidc`, `jwt`, or `basic`. See [Authentication (OIDC)](#authentication-oidc).                                                                                |
 | `providers[]`                                                    | Each item: `name`, `enabled`, and an `env` list of `corev1.EnvVar`. Provider keys are passed through unchanged.                                                                            |
 | `telemetry.enabled` / `telemetry.metrics.{enabled,port}`         | OpenTelemetry metrics. There is no `telemetry.tracing` block - tracing is configured through standard OTEL env vars on the gateway pod.                                                    |
-| `mcp.enabled` / `mcp.servers[]` / `mcp.timeouts`                 | MCP client configuration with per-server health checks.                                                                                                                                    |
+| `mcp.enabled` / `mcp.expose` / `mcp.toolMode` / `mcp.timeouts`   | MCP client configuration. See [MCP Servers (`spec.mcp`)](#mcp-servers-spec-mcp).                                                                                                           |
+| `mcp.servers[]` / `mcp.serviceDiscovery`                         | Static MCP servers (`name`, `url`, `healthCheck`) and discovery of `MCP` CRs by label selector. Both feed `MCP_SERVERS`.                                                                   |
 | `service.{type,port,annotations}`                                | Kubernetes Service for the gateway.                                                                                                                                                        |
 | `routing.{enabled,config,configMapRef}`                          | Gateway-native round-robin model routing (`ROUTING_ENABLED` / `ROUTING_CONFIG_PATH`). Distinct from `gatewayAPI`. See [Model Routing](#model-routing).                                     |
 | `gatewayAPI.{enabled,gateway,httpRoute}`                         | North-south traffic via the Kubernetes Gateway API (`gateway.networking.k8s.io`). Successor to the removed `ingress` field. See [Routing (Gateway API)](#routing-gateway-api).             |
@@ -100,6 +101,8 @@ Deploys a Model Context Protocol server. Source: [`api/v1alpha1/mcp_types.go`](h
 | `server.timeout`                  | Request timeout (default `30s`).                                      |
 | `server.tls.{enabled,secretName}` | TLS cert from a Secret. `secretName` is required when TLS is enabled. |
 | `hpa.{enabled,config}`            | Same shape as `Gateway.hpa`.                                          |
+
+`metadata.name` doubles as the server's alias when a `Gateway` picks the CR up through [`spec.mcp.serviceDiscovery`](#mcp-servers-spec-mcp), so keep it short and matching `^[a-z0-9_-]+$` - an `MCP` named `time` exposes its tools as <code v-pre>mcp_time_&lt;tool&gt;</code>.
 
 ### Orchestrator
 
@@ -335,6 +338,85 @@ spec:
 `name` is matched case-insensitively against the schema `Provider` enum, so `Llamacpp` resolves to the `llamacpp` provider. `LLAMACPP_API_URL` defaults to `http://llamacpp:8080/v1`; override it (as above) to reach your own `llama-server` Service. Address models with the `llamacpp/` prefix, for example `llamacpp/llama-3.2-3b-instruct`. Ollama follows the same keyless shape with `OLLAMA_API_URL`.
 
 The `llamacpp` provider requires operator `>= v0.19.0` - earlier releases do not recognize it, so pin at least that version when installing (see [Installation](#installation)). The gateway's hybrid example ([`examples/kubernetes/hybrid`](https://github.com/inference-gateway/inference-gateway/tree/main/examples/kubernetes/hybrid)) pins `v0.19.1` and ships the `Llamacpp` block already enabled, so `task deploy-llamacpp` brings up the local llama.cpp path with no manual edit to `gateway.yaml`.
+
+## MCP Servers (`spec.mcp`)
+
+`spec.mcp` wires the gateway's MCP client. The controller renders every configured server into the gateway pod's `MCP_SERVERS` env var as a comma-separated list of `name=url` entries - the `name` is the server's **alias**, and the gateway namespaces that server's tools as <code v-pre>mcp_&lt;alias&gt;_&lt;tool&gt;</code>. See [Server Aliases and Tool Namespacing](/mcp/#server-aliases-and-tool-namespacing) for how aliases reach the model.
+
+| Field                                                                       | Description                                                                                                                 |
+| --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `enabled`                                                                   | Toggle the gateway's MCP client (`MCP_ENABLED`, default `false`).                                                           |
+| `expose`                                                                    | Expose the gateway itself as an MCP server on `POST /mcp` (`MCP_EXPOSE`, default `false`).                                  |
+| `toolMode`                                                                  | `selector` (default) or `direct` (`MCP_TOOL_MODE`). See [Tool Exposure Mode](/mcp/#tool-exposure-mode).                     |
+| `servers[].name`                                                            | Required. Becomes the server's alias, and therefore its tool namespace.                                                     |
+| `servers[].url`                                                             | Required server URL.                                                                                                        |
+| `servers[].healthCheck.{enabled,path,interval}`                             | Per-server health check (defaults `true`, `/health`, `30s`).                                                                |
+| `serviceDiscovery.{enabled,namespace,selector}`                             | Discover `MCP` CRs by label selector. `namespace` defaults to the `Gateway`'s own namespace; an empty selector matches all. |
+| `timeouts.{client,dial,tlsHandshake,responseHeader,expectContinue,request}` | MCP client timeouts, emitted as the matching `MCP_*_TIMEOUT` variables.                                                     |
+
+Statically declared servers and discovered `MCP` CRs are unioned, deduplicated on URL, and sorted for determinism. Discovered servers use the `MCP` CR's `metadata.name` as their alias, so an `MCP` named `time` yields `mcp_time_get_current_time` rather than a long host-derived name like `mcp_time-service_inference-gateway_svc_cluster_local_get_current_time` - which matters in `direct` tool mode, where names over 64 characters are rejected by providers.
+
+### Alias rules
+
+A `name` (static) or `metadata.name` (discovered) is used as the alias only when it:
+
+- matches `^[a-z0-9_-]+$`,
+- is unique across static and discovered servers, and
+- is not the reserved alias `tools` (which belongs to the gateway's selector meta-tools).
+
+A name failing any of these is rendered as a **bare URL** instead, and the gateway derives the alias from the URL host.
+
+### Example: static servers plus discovery
+
+```yaml
+apiVersion: core.inference-gateway.com/v1alpha1
+kind: Gateway
+metadata:
+  name: my-gateway
+  namespace: inference-gateway
+spec:
+  mcp:
+    enabled: true
+    expose: true
+    toolMode: selector
+    servers:
+      - name: deepwiki
+        url: https://mcp.deepwiki.com/mcp
+      - name: search
+        url: http://mcp-search-server:8082/mcp
+        healthCheck:
+          enabled: true
+          path: /health
+          interval: 30s
+    serviceDiscovery:
+      enabled: true
+      selector:
+        matchLabels:
+          app.kubernetes.io/part-of: inference-gateway
+    timeouts:
+      client: 10s
+      request: 10s
+```
+
+With an `MCP` CR named `time` in the same namespace matching the selector, the gateway pod receives:
+
+```bash
+MCP_SERVERS=deepwiki=https://mcp.deepwiki.com/mcp,search=http://mcp-search-server:8082/mcp,time=http://time.inference-gateway.svc.cluster.local:8080/mcp
+```
+
+The `Gateway` status mirrors that value in `status.mcpServers`, so `kubectl` shows the same `name=url` entries:
+
+```bash
+kubectl get gateway my-gateway -n inference-gateway -o jsonpath='{.status.mcpServers}'
+```
+
+```json
+[
+  "deepwiki=https://mcp.deepwiki.com/mcp",
+  "search=http://mcp-search-server:8082/mcp",
+  "time=http://time.inference-gateway.svc.cluster.local:8080/mcp"
+]
+```
 
 ## Model Routing
 
@@ -580,6 +662,7 @@ The `Gateway` status surfaces:
 - `readyReplicas` / `availableReplicas`.
 - `url` - the resolved access URL (the routing hostname when `spec.gatewayAPI` is enabled, otherwise the cluster service URL).
 - `providerSummary` - comma-separated list of enabled providers.
+- `mcpServers[]` / `mcpServerCount` - the sorted `name=url` entries (static plus discovered) the pod is configured with, mirroring `MCP_SERVERS`, and their count (`0` when MCP is disabled). See [MCP Servers (`spec.mcp`)](#mcp-servers-spec-mcp).
 - `conditions[]` - standard `Available` / `Progressing` / `ReplicaFailure` conditions.
 
 `Agent`, `MCP`, and `Orchestrator` expose the standard `metav1.Condition` slice plus a boolean `ready`. `Orchestrator` additionally exposes `discoveredAgents[]` and `discoveredAgentCount` when service discovery is enabled. See [Observability](/observability/) for end-to-end metrics and tracing setup.
