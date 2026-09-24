@@ -1175,6 +1175,47 @@ Content-Type: application/json
 }
 ```
 
+### MCP Server (JSON-RPC)
+
+Expose the gateway itself as an MCP server. Available when both `MCP_ENABLED=true` and `MCP_EXPOSE=true`; otherwise the gateway answers `403`. The endpoint lives at the **root**, not under `/v1` - `/v1/*` is the OpenAI-compatible surface, while MCP is its own protocol.
+
+```http
+POST /mcp
+```
+
+The request body is a single JSON-RPC 2.0 request (or a notification, sent without `id`):
+
+| Method                      | Params                                          | Result                                                   |
+| --------------------------- | ----------------------------------------------- | -------------------------------------------------------- |
+| `initialize`                | `protocolVersion`, `capabilities`, `clientInfo` | `protocolVersion`, `capabilities`, `serverInfo`          |
+| `notifications/initialized` | none                                            | none - answered with `202` and an empty body             |
+| `tools/list`                | optional `cursor`                               | Aggregated, namespaced tools of every healthy MCP server |
+| `tools/call`                | `name`, `arguments`                             | The tool result                                          |
+
+Tool names are namespaced <code v-pre>mcp_&lt;server alias&gt;_&lt;tool name&gt;</code>, for example `mcp_deepwiki_ask_question`. Aliases come from the `alias=url` syntax in `MCP_SERVERS`.
+
+```http
+POST /mcp
+Content-Type: application/json
+
+{
+  "jsonrpc": "2.0",
+  "id": 3,
+  "method": "tools/call",
+  "params": {
+    "name": "mcp_deepwiki_ask_question",
+    "arguments": {
+      "repoName": "inference-gateway/inference-gateway",
+      "question": "How is MCP wired up?"
+    }
+  }
+}
+```
+
+Protocol errors are returned with HTTP `200` and a JSON-RPC error envelope: `-32700` parse error, `-32600` invalid request, `-32601` method not found, `-32602` invalid params (unknown tool name or bad arguments), `-32603` internal error (upstream MCP server failure or unavailability). Transport-level failures use HTTP status codes - `401` when auth is enabled and the token is missing or invalid, `403` when the MCP surface is not exposed.
+
+The endpoint is covered by the gateway's global auth, so with `AUTH_ENABLED=true` it requires a bearer token like every route except `/health`. See the [MCP guide](/mcp/#gateway-as-an-mcp-server) for a walkthrough and client configuration.
+
 ### Health Check
 
 Check if the Inference Gateway service is running.
@@ -1913,7 +1954,7 @@ Additional metadata that may be attached to a tool call response (e.g., extended
 
 #### `ListToolsResponse`
 
-Returned by `GET /v1/mcp/tools` when `MCP_EXPOSE=true`. Lists all tools discovered from connected MCP servers.
+Returned by `GET /v1/mcp/tools` when `MCP_EXPOSE=true`. Lists all tools discovered from connected MCP servers. This listing is superseded by the `tools/list` method of [`POST /mcp`](#mcp-server-json-rpc) and is being removed.
 
 | Field   | Type        | Description                               |
 | ------- | ----------- | ----------------------------------------- |
@@ -1925,9 +1966,9 @@ Describes a single tool exposed by an MCP server.
 
 | Field         | Type     | Description                                        |
 | ------------- | -------- | -------------------------------------------------- |
-| `name`        | `string` | Unique tool name                                   |
+| `name`        | `string` | Namespaced tool name, `mcp_<alias>_<tool name>`    |
 | `description` | `string` | Human-readable description of what the tool does   |
-| `server`      | `string` | URL of the MCP server that provides this tool      |
+| `server`      | `string` | Alias of the MCP server that provides this tool    |
 | `inputSchema` | `object` | JSON Schema describing the tool's input parameters |
 
 ## OpenAPI Specification
