@@ -1177,7 +1177,7 @@ Content-Type: application/json
 
 ### MCP Server (JSON-RPC)
 
-Expose the gateway itself as an MCP server. Available when both `MCP_ENABLED=true` and `MCP_EXPOSE=true`; otherwise the gateway answers `403`. The endpoint lives at the **root**, not under `/v1` - `/v1/*` is the OpenAI-compatible surface, while MCP is its own protocol.
+Expose the gateway itself as an MCP server. Available when both `MCP_ENABLED=true` and `MCP_EXPOSE=true`. Otherwise the gateway answers `403`. The endpoint lives at the **root**, not under `/v1` - `/v1/*` is the OpenAI-compatible surface, while MCP is its own protocol.
 
 ```http
 POST /mcp
