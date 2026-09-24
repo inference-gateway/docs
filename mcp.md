@@ -231,6 +231,34 @@ Tool names match those reported by the [`tools/list`](#listing-tools) method of 
 
 In selector mode, `MCP_INCLUDE_TOOLS` and `MCP_EXCLUDE_TOOLS` control which tools the model can discover through `mcp_tools_get` and execute through `mcp_tools_execute`.
 
+A catalog returned by `mcp_tools_get` reports the namespaced name and the server alias:
+
+```json
+{
+  "tools": [
+    {
+      "name": "mcp_deepwiki_ask_question",
+      "description": "Ask a question about a GitHub repository",
+      "server": "deepwiki"
+    },
+    {
+      "name": "mcp_time_get_time",
+      "description": "Get the current time in a given timezone",
+      "server": "time"
+    }
+  ]
+}
+```
+
+`mcp_tools_execute` takes that same namespaced name, which is what routes the call to the right server:
+
+```json
+{
+  "name": "mcp_time_get_time",
+  "arguments": { "timezone": "UTC" }
+}
+```
+
 ## Usage Examples
 
 ### Basic Usage
