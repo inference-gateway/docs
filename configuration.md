@@ -235,9 +235,7 @@ These settings control telemetry and metrics exposure:
 
 When `TELEMETRY_ENABLED` is set to `true`, Inference Gateway exposes a `/metrics` endpoint for Prometheus scraping. Distributed tracing is a separate opt-in: set `TELEMETRY_TRACING_ENABLED=true` (alongside `TELEMETRY_ENABLED=true`) to emit spans, and point `TELEMETRY_TRACING_OTLP_ENDPOINT` at your OTLP/HTTP collector (default `http://localhost:4318`). Sampling and exporter tuning use the standard `OTEL_TRACES_SAMPLER` / `OTEL_EXPORTER_OTLP_*` variables. See the [Distributed Tracing](/observability/#distributed-tracing) section for span coverage and context propagation.
 
-When `TELEMETRY_METRICS_PUSH_ENABLED` is also set to `true` (alongside `TELEMETRY_ENABLED=true`), the gateway exposes an OTLP/HTTP metrics push endpoint at `POST /metrics` on the main API port. This allows subscription clients that bypass the gateway's inference path to push their usage metrics. See the [Observability](/observability/#pushing-metrics-otlp) page for details.
-
-> **Breaking change:** the push endpoint moved from `POST /v1/metrics` to `POST /metrics`, with no fallback. Push clients must set the full per-signal URL - `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=http://gateway:8080/metrics` - because standard OTLP exporters append `/v1/metrics` to a bare `OTEL_EXPORTER_OTLP_ENDPOINT`.
+When `TELEMETRY_METRICS_PUSH_ENABLED` is also set to `true` (alongside `TELEMETRY_ENABLED=true`), the gateway exposes an OTLP/HTTP metrics push endpoint at `POST /metrics` on the main API port. This allows subscription clients that bypass the gateway's inference path to push their usage metrics. Push clients must set the full per-signal URL - `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=http://gateway:8080/metrics` - because standard OTLP exporters append `/v1/metrics` to a bare `OTEL_EXPORTER_OTLP_ENDPOINT`. See the [Observability](/observability/#pushing-metrics-otlp) page for details.
 
 ### OpenID Connect
 

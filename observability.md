@@ -224,18 +224,13 @@ When disabled, the endpoint returns `403 Forbidden`. When enabled, it sits behin
 POST /metrics
 ```
 
-::: warning Breaking change
-The push endpoint moved from `POST /v1/metrics` to `POST /metrics`, with no fallback. Existing push clients must be updated or their exports will start failing.
+This is the gateway's main API port. The Prometheus scrape endpoint is separate - it serves `GET /metrics` on the telemetry port (`TELEMETRY_METRICS_PORT`, default `9464`).
 
-Standard OTLP exporters append `/v1/metrics` to a bare `OTEL_EXPORTER_OTLP_ENDPOINT`, so pointing that variable at the gateway no longer works. Set the full per-signal URL instead:
+Standard OTLP exporters append `/v1/metrics` to a bare `OTEL_EXPORTER_OTLP_ENDPOINT`, so set the full per-signal URL instead:
 
 ```bash
 OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=http://gateway:8080/metrics
 ```
-
-:::
-
-This is the gateway's main API port. The Prometheus scrape endpoint is unaffected - it still serves `GET /metrics` on the separate telemetry port (`TELEMETRY_METRICS_PORT`, default `9464`).
 
 Accepts an OTLP `ExportMetricsServiceRequest` encoded as:
 
