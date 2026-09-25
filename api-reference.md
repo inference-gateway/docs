@@ -1183,22 +1183,34 @@ Expose the gateway itself as an MCP server. Available when both `MCP_ENABLED=tru
 POST /mcp
 ```
 
-The request body is a single JSON-RPC 2.0 request (or a notification, sent without `id`):
+The endpoint speaks MCP protocol version `2026-07-28` **only**, over the stateless Streamable HTTP transport. There is no `initialize` handshake and no session. The request body is a single JSON-RPC 2.0 request (or a notification, sent without `id`, acknowledged with `202`):
 
-| Method                      | Params                                          | Result                                                   |
-| --------------------------- | ----------------------------------------------- | -------------------------------------------------------- |
-| `initialize`                | `protocolVersion`, `capabilities`, `clientInfo` | `protocolVersion`, `capabilities`, `serverInfo`          |
-| `notifications/initialized` | none                                            | none - answered with `202` and an empty body             |
-| `tools/list`                | optional `cursor`                               | Aggregated, namespaced tools of every healthy MCP server |
-| `tools/call`                | `name`, `arguments`                             | The tool result                                          |
+| Method            | Params                       | Result                                                              |
+| ----------------- | ---------------------------- | ------------------------------------------------------------------- |
+| `server/discover` | `_meta` only                 | `supportedVersions` (`["2026-07-28"]`) and `capabilities` (`tools`) |
+| `tools/list`      | `_meta`, optional `cursor`   | Aggregated, namespaced tools of every healthy MCP server            |
+| `tools/call`      | `_meta`, `name`, `arguments` | The tool result                                                     |
 
-Requests and responses are plain JSON - one JSON-RPC message per `POST`, one JSON body back. The streamable HTTP/SSE server transport is not implemented.
+Every request's `params._meta` carries `io.modelcontextprotocol/protocolVersion`, `io.modelcontextprotocol/clientInfo` and `io.modelcontextprotocol/clientCapabilities`, mirrored in required headers:
+
+| Header                 | Required         | Must equal                                                |
+| ---------------------- | ---------------- | --------------------------------------------------------- |
+| `MCP-Protocol-Version` | always           | `params._meta["io.modelcontextprotocol/protocolVersion"]` |
+| `Mcp-Method`           | always           | The JSON-RPC `method`                                     |
+| `Mcp-Name`             | for `tools/call` | `params.name`; non-ASCII values use `=?base64?<value>?=`  |
+
+Proxies and ingresses must forward these three headers unchanged - stripping or rewriting one answers `400` with `-32020`.
+
+Requests and responses are plain JSON - one JSON-RPC message per `POST`, one JSON body back. There is no SSE response stream; `GET /mcp` and `DELETE /mcp` answer `405`, and a request carrying an `Origin` header is refused with `403` (MCP clients are not browsers - this blocks DNS rebinding). With no `Mcp-Session-Id`, the endpoint needs no session affinity and load-balances freely across replicas. Do not point a probe or ingress health check at it; use `GET /health`.
 
 Tool names are namespaced <code v-pre>mcp_&lt;server alias&gt;_&lt;tool name&gt;</code>, for example `mcp_deepwiki_ask_question`. Aliases come from the `alias=url` syntax in `MCP_SERVERS`. `MCP_INCLUDE_TOOLS` and `MCP_EXCLUDE_TOOLS` apply to this endpoint too: a filtered tool is neither listed nor callable. `tools/list` returns the tools of the healthy servers and skips unreachable ones instead of failing; a `tools/call` routed to an unavailable server returns `-32603`.
 
 ```http
 POST /mcp
 Content-Type: application/json
+MCP-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: mcp_deepwiki_ask_question
 
 {
   "jsonrpc": "2.0",
@@ -1209,12 +1221,17 @@ Content-Type: application/json
     "arguments": {
       "repoName": "inference-gateway/inference-gateway",
       "question": "How is MCP wired up?"
+    },
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientInfo": { "name": "my-client", "version": "1.0.0" },
+      "io.modelcontextprotocol/clientCapabilities": {}
     }
   }
 }
 ```
 
-Protocol errors are returned with HTTP `200` and a JSON-RPC error envelope: `-32700` parse error, `-32600` invalid request, `-32601` method not found, `-32602` invalid params (unknown tool name or bad arguments), `-32603` internal error (upstream MCP server failure or unavailability). A [guardrails](/configuration/#guardrails) block is the exception: it answers HTTP `403` with the server-defined code `-32001` and the policy's message, for a block at any phase - `pre_call` on the request body, or `tool_args` / `tool_output` around a `tools/call`. Transport-level failures use HTTP status codes - `401` when auth is enabled and the token is missing or invalid, `403` when the MCP surface is not exposed.
+Protocol errors are returned with HTTP `200` and a JSON-RPC error envelope: `-32700` parse error, `-32600` invalid request, `-32602` invalid params (unknown tool name or bad arguments), `-32603` internal error (upstream MCP server failure or unavailability); `-32601` method not found answers `404`. Header and version failures answer HTTP `400` - `-32020` when a required header is missing, malformed, or disagrees with the body (a legacy `initialize` request lands here too), `-32022` for an unsupported protocol version, whose `data` carries `requested` and `supported`. A [guardrails](/configuration/#guardrails) block answers HTTP `403` with the server-defined code `-32001` and the policy's message, for a block at any phase - `pre_call` on the request body, or `tool_args` / `tool_output` around a `tools/call`. Transport-level failures use HTTP status codes - `401` when auth is enabled and the token is missing or invalid, `403` when the MCP surface is not exposed.
 
 The endpoint is covered by the gateway's global auth, so with `AUTH_ENABLED=true` it requires a bearer token like every route except `/health` and the metadata document below. See the [MCP guide](/mcp/#gateway-as-an-mcp-server) for a walkthrough and client configuration.
 

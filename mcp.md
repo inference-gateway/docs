@@ -343,7 +343,7 @@ curl -X POST http://localhost:8080/v1/chat/completions \
 
 ## Gateway as an MCP Server
 
-Besides injecting tools into chat completions, the gateway can act as an **MCP server itself**. When `MCP_ENABLED=true` and `MCP_EXPOSE=true`, it serves a JSON-RPC 2.0 endpoint at:
+Besides injecting tools into chat completions, the gateway can act as an **MCP server itself**. When `MCP_ENABLED=true` and `MCP_EXPOSE=true`, it serves a stateless JSON-RPC 2.0 endpoint speaking MCP `2026-07-28` at:
 
 ```bash
 POST /mcp
@@ -353,32 +353,52 @@ Every server in `MCP_SERVERS` is aggregated behind that single URL, so an MCP cl
 
 The endpoint lives at the **root**, not under `/v1`: `/v1/*` is the OpenAI-compatible surface, while MCP is its own protocol and clients expect a plain `/mcp`.
 
+### Protocol Version and Headers
+
+The endpoint speaks MCP `2026-07-28` **only**, over the stateless Streamable HTTP transport with `application/json` responses. There is no `initialize` handshake and no session: every request stands alone and carries its own context.
+
+Each request repeats that context in both the body and the headers:
+
+- `params._meta` is a `RequestMetaObject` carrying `io.modelcontextprotocol/protocolVersion`, `io.modelcontextprotocol/clientInfo` and `io.modelcontextprotocol/clientCapabilities`.
+- `MCP-Protocol-Version` (required) must equal `params._meta["io.modelcontextprotocol/protocolVersion"]`.
+- `Mcp-Method` (required) must equal the JSON-RPC `method`.
+- `Mcp-Name` (required for `tools/call`) must equal `params.name`. Non-ASCII values use the `=?base64?<value>?=` encoding.
+
+A missing, malformed, or disagreeing header answers `400` with JSON-RPC code `-32020` - so any proxy in front of the gateway must forward these headers unchanged. A legacy `initialize` request lands in the same error.
+
+Every result carries `resultType: "complete"` and identifies the gateway in `_meta["io.modelcontextprotocol/serverInfo"]`.
+
 ### Supported Methods
 
-| Method                      | Params                                          | Result                                                                 |
-| --------------------------- | ----------------------------------------------- | ---------------------------------------------------------------------- |
-| `initialize`                | `protocolVersion`, `capabilities`, `clientInfo` | `protocolVersion`, `capabilities`, `serverInfo`                        |
-| `notifications/initialized` | none                                            | none - a notification (no `id`), answered with `202` and an empty body |
-| `tools/list`                | optional `cursor`                               | The aggregated, namespaced tools of every healthy MCP server           |
-| `tools/call`                | `name` (namespaced), `arguments`                | The tool result                                                        |
+| Method            | Params                                    | Result                                                                       |
+| ----------------- | ----------------------------------------- | ---------------------------------------------------------------------------- |
+| `server/discover` | `_meta` only                              | `supportedVersions` (`["2026-07-28"]`) and `capabilities` (`tools`)          |
+| `tools/list`      | `_meta`, optional `cursor`                | `ListToolsResult` - the aggregated, namespaced tools of every healthy server |
+| `tools/call`      | `_meta`, `name` (namespaced), `arguments` | `CallToolResult`                                                             |
 
 Param and result shapes are the [MCP specification](https://modelcontextprotocol.io/specification) types; the gateway only wraps them in JSON-RPC envelopes.
 
-Transport is plain JSON request/response: one JSON-RPC message per `POST`, one JSON body back. The streamable HTTP/SSE server transport is not implemented, so a client that insists on an SSE response stream cannot talk to this endpoint.
+Transport is plain JSON request/response: one JSON-RPC message per `POST`, one JSON body back. There is no SSE response stream, no standalone `GET` stream and no session to delete - `GET /mcp` and `DELETE /mcp` answer `405`.
 
-### Initializing a Session
+### Discovering the Server
+
+`server/discover` replaces the old handshake. It takes nothing but `_meta` and reports which protocol versions and capabilities the gateway supports:
 
 ```bash
 curl -X POST http://localhost:8080/mcp \
   -H "Content-Type: application/json" \
+  -H "MCP-Protocol-Version: 2026-07-28" \
+  -H "Mcp-Method: server/discover" \
   -d '{
     "jsonrpc": "2.0",
     "id": 1,
-    "method": "initialize",
+    "method": "server/discover",
     "params": {
-      "protocolVersion": "2025-06-18",
-      "capabilities": {},
-      "clientInfo": { "name": "my-client", "version": "1.0.0" }
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientInfo": { "name": "my-client", "version": "1.0.0" },
+        "io.modelcontextprotocol/clientCapabilities": {}
+      }
     }
   }'
 ```
@@ -388,27 +408,37 @@ curl -X POST http://localhost:8080/mcp \
   "jsonrpc": "2.0",
   "id": 1,
   "result": {
-    "protocolVersion": "2025-06-18",
+    "resultType": "complete",
+    "supportedVersions": ["2026-07-28"],
     "capabilities": { "tools": { "listChanged": true } },
-    "serverInfo": { "name": "inference-gateway", "version": "1.0.0" }
+    "_meta": {
+      "io.modelcontextprotocol/serverInfo": { "name": "inference-gateway", "version": "1.0.0" }
+    }
   }
 }
 ```
 
-Follow it with the `notifications/initialized` notification - sent **without** an `id`, answered with `202` and no body:
-
-```bash
-curl -X POST http://localhost:8080/mcp \
-  -H "Content-Type: application/json" \
-  -d '{ "jsonrpc": "2.0", "method": "notifications/initialized" }'
-```
+A request naming any other protocol version is rejected with `400` and code `-32022`, whose `data` carries `requested` and `supported`.
 
 ### Listing Tools
 
 ```bash
 curl -X POST http://localhost:8080/mcp \
   -H "Content-Type: application/json" \
-  -d '{ "jsonrpc": "2.0", "id": 2, "method": "tools/list" }'
+  -H "MCP-Protocol-Version: 2026-07-28" \
+  -H "Mcp-Method: tools/list" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 2,
+    "method": "tools/list",
+    "params": {
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientInfo": { "name": "my-client", "version": "1.0.0" },
+        "io.modelcontextprotocol/clientCapabilities": {}
+      }
+    }
+  }'
 ```
 
 ```json
@@ -455,6 +485,9 @@ Use the namespaced name - the gateway routes the call to the server that owns th
 ```bash
 curl -X POST http://localhost:8080/mcp \
   -H "Content-Type: application/json" \
+  -H "MCP-Protocol-Version: 2026-07-28" \
+  -H "Mcp-Method: tools/call" \
+  -H "Mcp-Name: mcp_deepwiki_ask_question" \
   -d '{
     "jsonrpc": "2.0",
     "id": 3,
@@ -464,6 +497,11 @@ curl -X POST http://localhost:8080/mcp \
       "arguments": {
         "repoName": "inference-gateway/inference-gateway",
         "question": "How is MCP wired up?"
+      },
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientInfo": { "name": "my-client", "version": "1.0.0" },
+        "io.modelcontextprotocol/clientCapabilities": {}
       }
     }
   }'
@@ -485,7 +523,9 @@ Gateway auth is global, so `/mcp` is protected by the same `AUTH_*` settings as 
 curl -X POST http://localhost:8080/mcp \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{ "jsonrpc": "2.0", "id": 1, "method": "tools/list" }'
+  -H "MCP-Protocol-Version: 2026-07-28" \
+  -H "Mcp-Method: tools/list" \
+  -d '{ "jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": { "_meta": { ... } } }'
 ```
 
 See the [Authentication guide](/authentication/) for configuring the OIDC provider.
@@ -521,16 +561,18 @@ Tokens must then be requested **for that resource** ([RFC 8707](https://datatrac
 
 ### Errors
 
-Protocol errors come back as JSON-RPC error envelopes with HTTP `200`; transport-level failures use HTTP status codes:
+Errors come back as JSON-RPC error envelopes; most use HTTP `200`, the transport-level ones carry a status of their own:
 
-| Code     | Meaning                                                                        |
-| -------- | ------------------------------------------------------------------------------ |
-| `-32700` | Parse error - malformed JSON                                                   |
-| `-32600` | Invalid request - missing or wrong `jsonrpc` version                           |
-| `-32601` | Method not found - unknown method                                              |
-| `-32602` | Invalid params - unknown tool name or bad arguments                            |
-| `-32603` | Internal error - upstream MCP server failed or unavailable                     |
-| `-32001` | Blocked by guardrails - a policy refused the request, answered with HTTP `403` |
+| Code     | Meaning                                                                               | HTTP  |
+| -------- | ------------------------------------------------------------------------------------- | ----- |
+| `-32700` | Parse error - malformed JSON                                                          | `200` |
+| `-32600` | Invalid request - missing or wrong `jsonrpc` version                                  | `200` |
+| `-32601` | Method not found - unknown method                                                     | `404` |
+| `-32602` | Invalid params - unknown tool name or bad arguments                                   | `200` |
+| `-32603` | Internal error - upstream MCP server failed or unavailable                            | `200` |
+| `-32020` | Header mismatch - a required header is missing, malformed, or disagrees with the body | `400` |
+| `-32022` | Unsupported protocol version - `data` carries `requested` and `supported`             | `400` |
+| `-32001` | Blocked by guardrails - a policy refused the request                                  | `403` |
 
 `-32001` is a server-defined code (the JSON-RPC `-32000..-32099` range), so a client can tell a policy refusal from an upstream failure (`-32603`). It is returned for a block at any phase that touches `/mcp` - `pre_call` on the request body, or `tool_args` / `tool_output` around a `tools/call` - and the envelope echoes the request `id` with the policy's message:
 
@@ -544,14 +586,26 @@ Protocol errors come back as JSON-RPC error envelopes with HTTP `200`; transport
 
 A policy that returns no message, and a fail-closed evaluation error, use `request blocked by guardrails` and `guardrail evaluation failed` respectively. The underlying evaluator error stays in the gateway log.
 
-| HTTP  | Meaning                                                                             |
-| ----- | ----------------------------------------------------------------------------------- |
-| `401` | Auth is enabled and the token is missing or invalid                                 |
-| `403` | The MCP surface is not exposed (`MCP_EXPOSE=false`), or guardrails blocked the call |
+| HTTP  | Meaning                                                                                                                     |
+| ----- | --------------------------------------------------------------------------------------------------------------------------- |
+| `401` | Auth is enabled and the token is missing or invalid                                                                         |
+| `403` | The MCP surface is not exposed (`MCP_EXPOSE=false`), guardrails blocked the call, or the request carried an `Origin` header |
+| `405` | `GET` or `DELETE` on `/mcp` - the endpoint is POST only                                                                     |
+
+An `Origin` header is rejected outright: MCP clients are not browsers, and refusing them blocks DNS-rebinding attacks. `/mcp` cannot be called from browser JavaScript.
+
+### Deploying Behind a Proxy
+
+The endpoint is stateless, which keeps the deployment story short:
+
+- **Forward the MCP headers unchanged.** `MCP-Protocol-Version`, `Mcp-Method` and `Mcp-Name` are part of the contract; an ingress, Gateway API filter, or reverse proxy that strips or rewrites them breaks every request with `400` / `-32020`. NGINX passes unknown headers through by default, but an explicit allowlist must include all three.
+- **No session affinity.** There is no `Mcp-Session-Id`, so consecutive requests from one client can land on different replicas. `/mcp` load-balances freely; no sticky sessions, no `sessionAffinity: ClientIP`.
+- **Never probe `/mcp`.** It answers `405` to `GET` and `403` to an unauthenticated or `Origin`-bearing request, so a liveness, readiness, or ingress health check pointed at it always fails. Use `/health`.
+- **Set `MCP_RESOURCE_URL`** when the proxy rewrites the scheme, host, or path, so the discovery document advertises a URL clients can reach.
 
 ### Using It from an Agent Client
 
-Point your client's MCP configuration at the gateway. One entry replaces one entry per backend server, and adding or removing a server in `MCP_SERVERS` needs no client change.
+Point your client's MCP configuration at the gateway. One entry replaces one entry per backend server, and adding or removing a server in `MCP_SERVERS` needs no client change. The client must speak MCP `2026-07-28`; one that only implements an earlier version fails its handshake with `-32020` or `-32022`.
 
 For [opencode](https://opencode.ai/), in `opencode.json`:
 
@@ -791,16 +845,18 @@ MCP_CLIENT_TIMEOUT=30s
 Monitor MCP integration health:
 
 ```bash
-# Check gateway health
+# Check gateway health - the only route to point a probe at
 curl http://localhost:8080/health
 
 # Check MCP-specific health (if MCP_EXPOSE=true)
 curl http://localhost:8080/v1/mcp/health
 
-# List available tools
+# List available tools (POST only - a GET on /mcp answers 405)
 curl -X POST http://localhost:8080/mcp \
   -H "Content-Type: application/json" \
-  -d '{ "jsonrpc": "2.0", "id": 1, "method": "tools/list" }'
+  -H "MCP-Protocol-Version: 2026-07-28" \
+  -H "Mcp-Method: tools/list" \
+  -d '{ "jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": { "_meta": { ... } } }'
 ```
 
 ## Best Practices
