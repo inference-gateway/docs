@@ -657,16 +657,6 @@ The two compose cleanly:
 
 Without the bypass header, the MCP middleware manages tools for the chat-completions path as usual - see [Tool Exposure Mode](#tool-exposure-mode).
 
-### Check MCP Server Health
-
-```bash
-GET /v1/mcp/health
-```
-
-Returns the health status of all connected MCP servers.
-
-> The legacy `GET /v1/mcp/tools` listing is superseded by `tools/list` over `POST /mcp` and is being removed. Its entries now report namespaced tool names and the server alias while it remains available.
-
 ## Common MCP Server Types
 
 ### Filesystem Server
@@ -763,12 +753,12 @@ This will log:
 
 ### Metrics
 
-MCP middleware exposes metrics through OpenTelemetry:
+MCP tool calls are recorded through OpenTelemetry as part of the gateway's tool metrics:
 
-- `mcp_requests_total`: Total MCP requests
-- `mcp_request_duration`: Request duration
-- `mcp_tool_calls_total`: Total tool calls
-- `mcp_errors_total`: Total errors
+- `inference_gateway_tool_calls_total`: tool calls, with `gen_ai_tool_type=mcp` and the namespaced <code v-pre>mcp_&lt;alias&gt;_&lt;tool&gt;</code> name in `gen_ai_tool_name`
+- `gen_ai_execute_tool_duration_seconds`: tool execution duration, whose `_count` splits success from failure on `error_type`
+
+See [Observability](/observability/#metrics) for the full metric and label reference.
 
 ## Examples and Tutorials
 
@@ -848,9 +838,6 @@ Monitor MCP integration health:
 ```bash
 # Check gateway health - the only route to point a probe at
 curl http://localhost:8080/health
-
-# Check MCP-specific health (if MCP_EXPOSE=true)
-curl http://localhost:8080/v1/mcp/health
 
 # List available tools (POST only - a GET on /mcp answers 405)
 curl -X POST http://localhost:8080/mcp \
