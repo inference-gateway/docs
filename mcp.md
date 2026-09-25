@@ -490,6 +490,35 @@ curl -X POST http://localhost:8080/mcp \
 
 See the [Authentication guide](/authentication/) for configuring the OIDC provider.
 
+#### Protected Resource Metadata (RFC 9728)
+
+MCP `2026-07-28` requires every protected MCP server to publish [OAuth 2.0 Protected Resource Metadata](https://datatracker.ietf.org/doc/html/rfc9728) so a client can discover the authorization server itself instead of being handed a pre-configured token:
+
+```bash
+curl http://localhost:8080/.well-known/oauth-protected-resource/mcp
+```
+
+```json
+{
+  "resource": "https://gateway.example.com/mcp",
+  "authorization_servers": ["https://keycloak.example.com/realms/inference-gateway-realm"],
+  "bearer_methods_supported": ["header"]
+}
+```
+
+The document is served **without** a token - besides `/health` it is the one route that skips gateway auth, since a client fetches it precisely because it has no credentials yet. It returns `404` unless `AUTH_ENABLED=true` **and** the MCP endpoint is exposed (`MCP_ENABLED=true` and `MCP_EXPOSE=true`): with no authorization server there is nothing to advertise.
+
+`resource` is `MCP_RESOURCE_URL` when set, and otherwise the request scheme (honouring `X-Forwarded-Proto`) and `Host` with `/mcp` appended. Behind an ingress that rewrites either, set `MCP_RESOURCE_URL` to the canonical public URL clients use.
+
+Every `401` from `POST /mcp` points a client at that document through the `resource_metadata` parameter of its `WWW-Authenticate` challenge:
+
+```http
+HTTP/1.1 401 Unauthorized
+WWW-Authenticate: Bearer realm="inference-gateway", error="invalid_token", resource_metadata="https://gateway.example.com/.well-known/oauth-protected-resource/mcp"
+```
+
+Tokens must then be requested **for that resource** ([RFC 8707](https://datatracker.ietf.org/doc/html/rfc8707)) - the client sends the `resource` value as the `resource` parameter at the token endpoint. When the IdP stamps that indicator into the token's `aud`, list the same value in `AUTH_OIDC_AUDIENCE`; see [Audience validation](/authentication/#audience-validation).
+
 ### Errors
 
 Protocol errors come back as JSON-RPC error envelopes with HTTP `200`; transport-level failures use HTTP status codes:
