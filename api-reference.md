@@ -1292,7 +1292,6 @@ Push usage metrics to the gateway via the OTLP/HTTP protocol. This endpoint is i
 POST /metrics
 ```
 
-
 **Opt-in**: This endpoint requires both `TELEMETRY_ENABLED=true` and `TELEMETRY_METRICS_PUSH_ENABLED=true`. Returns `403 Forbidden` when disabled.
 
 **Authentication**: When OIDC auth is enabled (`AUTH_ENABLED=true`), this endpoint requires a valid bearer token.
