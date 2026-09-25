@@ -565,14 +565,16 @@ The bundled `OidcJwtVerifier`:
 
 1. Performs OIDC discovery at `<A2A_AUTH_ISSUER_URL>/.well-known/openid-configuration`.
 2. Fetches and caches the JWKS advertised by the discovery document.
-3. Validates the JWT signature, `iss`, `exp`, and - when `A2A_AUTH_CLIENT_ID` is set - the `aud` claim.
+3. Validates the JWT signature, `iss`, `exp`, and the `aud` claim - always checked against `A2A_AUTH_CLIENT_ID`.
 
-| Variable                 | Default | Purpose                                                                                             |
-| ------------------------ | ------- | --------------------------------------------------------------------------------------------------- |
-| `A2A_AUTH_ENABLED`       | `false` | When `true`, `POST /a2a` requires a valid bearer token.                                             |
-| `A2A_AUTH_ISSUER_URL`    | (empty) | OIDC issuer; the server performs discovery + JWKS lookup against it. Required when auth is enabled. |
-| `A2A_AUTH_CLIENT_ID`     | (empty) | Validated as the JWT audience (`aud`) when set.                                                     |
-| `A2A_AUTH_CLIENT_SECRET` | (empty) | Reserved for client-side OAuth2 flows; currently unused server-side.                                |
+| Variable                 | Default | Purpose                                                                                                             |
+| ------------------------ | ------- | ------------------------------------------------------------------------------------------------------------------- |
+| `A2A_AUTH_ENABLED`       | `false` | When `true`, `POST /a2a` requires a valid bearer token.                                                             |
+| `A2A_AUTH_ISSUER_URL`    | (empty) | OIDC issuer; the server performs discovery + JWKS lookup against it. Required when auth is enabled.                 |
+| `A2A_AUTH_CLIENT_ID`     | (empty) | Validated as the JWT audience (`aud`). Required when auth is enabled.                                               |
+| `A2A_AUTH_CLIENT_SECRET` | (empty) | Required when auth is enabled, even though token verification never uses it. Reserved for client-side OAuth2 flows. |
+
+All three of `A2A_AUTH_ISSUER_URL`, `A2A_AUTH_CLIENT_ID`, and `A2A_AUTH_CLIENT_SECRET` must be non-empty when `A2A_AUTH_ENABLED=true`. If any is missing, building the verifier fails with `AUTH_ISSUER_URL, AUTH_CLIENT_ID, and AUTH_CLIENT_SECRET are required when AUTH_ENABLED=true` and `build()` returns that error instead of starting the server.
 
 On success the verifier produces an `AuthenticatedPrincipal` - `subject` (`sub`), `tenant` (first of `tenant`/`tid`/`organization`), `issuer`, and the full `claims` map - and attaches it to the request as an Axum extension so the JSON-RPC dispatcher can scope behaviour by tenant.
 
@@ -1216,12 +1218,12 @@ The library never reads the environment itself. You pick a loader - typically [`
 
 **Authentication** - see [Authentication](#authentication) for the full flow.
 
-| Variable                 | Default   | Purpose                                       |
-| ------------------------ | --------- | --------------------------------------------- |
-| `A2A_AUTH_ENABLED`       | `false`   | Enable OIDC bearer-token auth on `POST /a2a`. |
-| `A2A_AUTH_ISSUER_URL`    | _(empty)_ | OIDC issuer used for discovery + JWKS.        |
-| `A2A_AUTH_CLIENT_ID`     | _(empty)_ | Expected `aud` claim on incoming tokens.      |
-| `A2A_AUTH_CLIENT_SECRET` | _(empty)_ | Client secret, for flows that require it.     |
+| Variable                 | Default   | Purpose                                                                                        |
+| ------------------------ | --------- | ---------------------------------------------------------------------------------------------- |
+| `A2A_AUTH_ENABLED`       | `false`   | Enable OIDC bearer-token auth on `POST /a2a`.                                                  |
+| `A2A_AUTH_ISSUER_URL`    | _(empty)_ | OIDC issuer used for discovery + JWKS. Required when auth is enabled.                          |
+| `A2A_AUTH_CLIENT_ID`     | _(empty)_ | Expected `aud` claim on incoming tokens. Required when auth is enabled.                        |
+| `A2A_AUTH_CLIENT_SECRET` | _(empty)_ | Required when auth is enabled; `build()` fails without it, though verification never reads it. |
 
 **TLS and mTLS** - see [TLS and mTLS](#tls-and-mtls).
 

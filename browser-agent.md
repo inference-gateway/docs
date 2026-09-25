@@ -138,7 +138,7 @@ services:
       A2A_AUTH_ENABLED: 'true'
       A2A_AUTH_ISSUER_URL: https://keycloak.example.com/realms/inference-gateway
       A2A_AUTH_CLIENT_ID: browser-agent
-      A2A_AUTH_CLIENT_SECRET: ${BROWSER_AGENT_CLIENT_SECRET}
+      A2A_AUTH_AUDIENCE: browser-agent-api
       A2A_ARTIFACTS_ENABLED: 'true'
       A2A_AGENT_CLIENT_BASE_URL: http://inference-gateway:8080/v1
 ```
@@ -225,29 +225,29 @@ docker run --rm -it --network host \
 
 The agent reads the standard ADK environment variables plus a set of custom `BROWSER_*` and `TOOLS_*` ones. The most relevant are below; the defaults come from `spec.config` in `agent.yaml` and the env vars override them at runtime.
 
-| Category   | Variable                      | Description                                                            | Default                                       |
-| ---------- | ----------------------------- | ---------------------------------------------------------------------- | --------------------------------------------- |
-| Server     | `A2A_PORT`                    | Server port                                                            | `8080`                                        |
-| Server     | `A2A_DEBUG`                   | Enable debug logging                                                   | `false`                                       |
-| LLM Client | `A2A_AGENT_CLIENT_PROVIDER`   | LLM provider (`openai`, `anthropic`, `deepseek`, ...)                  | -                                             |
-| LLM Client | `A2A_AGENT_CLIENT_MODEL`      | Model to use                                                           | -                                             |
-| LLM Client | `A2A_AGENT_CLIENT_BASE_URL`   | OpenAI-compatible endpoint (e.g. the Inference Gateway)                | -                                             |
-| Artifacts  | `A2A_ARTIFACTS_ENABLED`       | Enable artifacts (required to return screenshots/data)                 | `false`                                       |
-| Tools      | `TOOLS_READ_ENABLED`          | Enable the `read` tool (loads skill bodies on demand)                  | `true`                                        |
-| Tools      | `TOOLS_WRITE_ENABLED`         | Enable the `write` tool (persists scraped data/reports)                | `true`                                        |
-| Tools      | `TOOLS_FETCH_ENABLED`         | Enable the `fetch` tool (HTTP fetch without a browser)                 | `true`                                        |
-| Tools      | `TOOLS_FETCH_DOWNLOAD_DIR`    | Directory for `fetch` downloads                                        | `/tmp/playwright/artifacts`                   |
-| Sandbox    | `TOOLS_READ_ALLOWED_ROOTS`    | Comma-separated roots the `read` tool may read from                    | `/tmp/playwright/artifacts`, `.agents/skills` |
-| Sandbox    | `TOOLS_WRITE_ALLOWED_ROOTS`   | Comma-separated roots the `write` tool may write to                    | `/tmp/playwright/artifacts`                   |
-| Sandbox    | `TOOLS_EDIT_ALLOWED_ROOTS`    | Comma-separated roots the `edit` tool may modify                       | `/tmp/playwright/artifacts`                   |
-| Sandbox    | `TOOLS_FETCH_ALLOWED_DOMAINS` | Comma-separated domain allowlist for `fetch`                           | unset (any domain)                            |
-| Sandbox    | `TOOLS_FETCH_MAX_BYTES`       | Maximum `fetch` response size in bytes                                 | `10485760` (10 MiB)                           |
-| Sandbox    | `TOOLS_FETCH_TIMEOUT_SECONDS` | `fetch` request timeout in seconds                                     | `30`                                          |
-| Sandbox    | `BROWSER_ALLOW_INTERNAL_URLS` | Allow `navigate_to_url` to reach loopback/private/link-local addresses | `false`                                       |
-| Auth       | `A2A_AUTH_ENABLED`            | Require an OIDC bearer token on `POST /a2a`                            | `false`                                       |
-| Auth       | `A2A_AUTH_ISSUER_URL`         | OIDC issuer used for discovery and JWKS lookup                         | -                                             |
-| Auth       | `A2A_AUTH_CLIENT_ID`          | Expected `aud` claim on incoming tokens                                | -                                             |
-| Auth       | `A2A_AUTH_CLIENT_SECRET`      | Client secret for flows that require it                                | -                                             |
+| Category   | Variable                      | Description                                                             | Default                                       |
+| ---------- | ----------------------------- | ----------------------------------------------------------------------- | --------------------------------------------- |
+| Server     | `A2A_PORT`                    | Server port                                                             | `8080`                                        |
+| Server     | `A2A_DEBUG`                   | Enable debug logging                                                    | `false`                                       |
+| LLM Client | `A2A_AGENT_CLIENT_PROVIDER`   | LLM provider (`openai`, `anthropic`, `deepseek`, ...)                   | -                                             |
+| LLM Client | `A2A_AGENT_CLIENT_MODEL`      | Model to use                                                            | -                                             |
+| LLM Client | `A2A_AGENT_CLIENT_BASE_URL`   | OpenAI-compatible endpoint (e.g. the Inference Gateway)                 | -                                             |
+| Artifacts  | `A2A_ARTIFACTS_ENABLED`       | Enable artifacts (required to return screenshots/data)                  | `false`                                       |
+| Tools      | `TOOLS_READ_ENABLED`          | Enable the `read` tool (loads skill bodies on demand)                   | `true`                                        |
+| Tools      | `TOOLS_WRITE_ENABLED`         | Enable the `write` tool (persists scraped data/reports)                 | `true`                                        |
+| Tools      | `TOOLS_FETCH_ENABLED`         | Enable the `fetch` tool (HTTP fetch without a browser)                  | `true`                                        |
+| Tools      | `TOOLS_FETCH_DOWNLOAD_DIR`    | Directory for `fetch` downloads                                         | `/tmp/playwright/artifacts`                   |
+| Sandbox    | `TOOLS_READ_ALLOWED_ROOTS`    | Comma-separated roots the `read` tool may read from                     | `/tmp/playwright/artifacts`, `.agents/skills` |
+| Sandbox    | `TOOLS_WRITE_ALLOWED_ROOTS`   | Comma-separated roots the `write` tool may write to                     | `/tmp/playwright/artifacts`                   |
+| Sandbox    | `TOOLS_EDIT_ALLOWED_ROOTS`    | Comma-separated roots the `edit` tool may modify                        | `/tmp/playwright/artifacts`                   |
+| Sandbox    | `TOOLS_FETCH_ALLOWED_DOMAINS` | Comma-separated domain allowlist for `fetch`                            | unset (any domain)                            |
+| Sandbox    | `TOOLS_FETCH_MAX_BYTES`       | Maximum `fetch` response size in bytes                                  | `10485760` (10 MiB)                           |
+| Sandbox    | `TOOLS_FETCH_TIMEOUT_SECONDS` | `fetch` request timeout in seconds                                      | `30`                                          |
+| Sandbox    | `BROWSER_ALLOW_INTERNAL_URLS` | Allow `navigate_to_url` to reach loopback/private/link-local addresses  | `false`                                       |
+| Auth       | `A2A_AUTH_ENABLED`            | Require an OIDC bearer token on `POST /a2a`                             | `false`                                       |
+| Auth       | `A2A_AUTH_ISSUER_URL`         | OIDC issuer used for discovery and JWKS lookup                          | -                                             |
+| Auth       | `A2A_AUTH_CLIENT_ID`          | OIDC client ID; the fallback `aud` when `A2A_AUTH_AUDIENCE` is empty    | `inference-gateway-client`                    |
+| Auth       | `A2A_AUTH_AUDIENCE`           | Comma-separated accepted `aud` values; empty means `A2A_AUTH_CLIENT_ID` | -                                             |
 
 ### Browser configuration
 
