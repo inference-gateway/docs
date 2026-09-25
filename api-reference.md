@@ -1214,7 +1214,7 @@ Content-Type: application/json
 }
 ```
 
-Protocol errors are returned with HTTP `200` and a JSON-RPC error envelope: `-32700` parse error, `-32600` invalid request, `-32601` method not found, `-32602` invalid params (unknown tool name or bad arguments), `-32603` internal error (upstream MCP server failure or unavailability). Transport-level failures use HTTP status codes - `401` when auth is enabled and the token is missing or invalid, `403` when the MCP surface is not exposed.
+Protocol errors are returned with HTTP `200` and a JSON-RPC error envelope: `-32700` parse error, `-32600` invalid request, `-32601` method not found, `-32602` invalid params (unknown tool name or bad arguments), `-32603` internal error (upstream MCP server failure or unavailability). A [guardrails](/configuration/#guardrails) block is the exception: it answers HTTP `403` with the server-defined code `-32001` and the policy's message, for a block at any phase - `pre_call` on the request body, or `tool_args` / `tool_output` around a `tools/call`. Transport-level failures use HTTP status codes - `401` when auth is enabled and the token is missing or invalid, `403` when the MCP surface is not exposed.
 
 The endpoint is covered by the gateway's global auth, so with `AUTH_ENABLED=true` it requires a bearer token like every route except `/health`. See the [MCP guide](/mcp/#gateway-as-an-mcp-server) for a walkthrough and client configuration.
 
