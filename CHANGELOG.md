@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.16](https://github.com/inference-gateway/docs/compare/0.9.15...0.9.16) (2026-09-25)
+
+### 👷 CI
+
+* **claude:** centralize claude.yml via reusable workflow ([#744](https://github.com/inference-gateway/docs/issues/744)) ([fdcc9b3](https://github.com/inference-gateway/docs/commit/fdcc9b3fab50c1d3b109732e2096a08587107aa2))
+
+### 📚 Documentation
+
+* add selector meta-tool payload examples ([#751](https://github.com/inference-gateway/docs/issues/751)) ([8888cc0](https://github.com/inference-gateway/docs/commit/8888cc0ec48c6840343da3009be23ded4e71abcb))
+* complete POST /mcp endpoint coverage ([#752](https://github.com/inference-gateway/docs/issues/752)) ([c71e3e4](https://github.com/inference-gateway/docs/commit/c71e3e410d158e7530d6aa8d85ec0311193c9bea))
+* document gateway MCP server surface ([#749](https://github.com/inference-gateway/docs/issues/749)) ([d54bde7](https://github.com/inference-gateway/docs/commit/d54bde73655aaf18f3c322108e5f013cc011c79a))
+* document gateway spec.mcp.resourceUrl ([#767](https://github.com/inference-gateway/docs/issues/767)) ([b85748d](https://github.com/inference-gateway/docs/commit/b85748d847f9f5b0ccaaf5fb9db585266beee6cf))
+* document MCP_SERVERS name=url aliases ([#755](https://github.com/inference-gateway/docs/issues/755)) ([eb951bd](https://github.com/inference-gateway/docs/commit/eb951bd2f4889fdf30bd3af162bc24605c26d31c))
+* move metrics push endpoint to POST /metrics ([#769](https://github.com/inference-gateway/docs/issues/769)) ([894a42a](https://github.com/inference-gateway/docs/commit/894a42a8648ac7368ab4eddf192bc89fbd3e097a))
+* note -32001 guardrails code on POST /mcp ([#761](https://github.com/inference-gateway/docs/issues/761)) ([bfd8fbd](https://github.com/inference-gateway/docs/commit/bfd8fbd2468a970eabb84829ed37328b3aceac47))
+* note gitops tag pins the operator image ([#766](https://github.com/inference-gateway/docs/issues/766)) ([bb21e9e](https://github.com/inference-gateway/docs/commit/bb21e9ea310b85e274fff515e57363eb6f999369))
+* rfc 9728 mcp metadata and MCP_RESOURCE_URL ([#762](https://github.com/inference-gateway/docs/issues/762)) ([e2569c4](https://github.com/inference-gateway/docs/commit/e2569c438932e23c2198c17f7fff02b89d42f04f))
+* stateless mcp 2026-07-28 contract for POST /mcp ([#763](https://github.com/inference-gateway/docs/issues/763)) ([1459f46](https://github.com/inference-gateway/docs/commit/1459f46911b5eb4588d1682d4609179d12a409d7))
+* tool guardrails and metrics on POST /mcp ([#756](https://github.com/inference-gateway/docs/issues/756)) ([caabf48](https://github.com/inference-gateway/docs/commit/caabf48a91edf37752afe17d620e8f775b6aa9b7))
+
 ## [0.9.15](https://github.com/inference-gateway/docs/compare/0.9.14...0.9.15) (2026-09-23)
 
 ### 📚 Documentation
