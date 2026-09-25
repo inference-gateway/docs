@@ -548,7 +548,7 @@ curl http://localhost:8080/.well-known/oauth-protected-resource/mcp
 
 The document is served **without** a token - besides `/health` it is the one route that skips gateway auth, since a client fetches it precisely because it has no credentials yet. It returns `404` unless `AUTH_ENABLED=true` **and** the MCP endpoint is exposed (`MCP_ENABLED=true` and `MCP_EXPOSE=true`): with no authorization server there is nothing to advertise.
 
-`resource` is `MCP_RESOURCE_URL` when set, and otherwise the request scheme (honouring `X-Forwarded-Proto`) and `Host` with `/mcp` appended. Behind an ingress that rewrites either, set `MCP_RESOURCE_URL` to the canonical public URL clients use.
+`resource` is `MCP_RESOURCE_URL` when set, and otherwise the request scheme (honouring `X-Forwarded-Proto`) and `Host` with `/mcp` appended. Behind an ingress that rewrites either, set `MCP_RESOURCE_URL` to the canonical public URL clients use. On Kubernetes, set the `Gateway` CRD's [`spec.mcp.resourceUrl`](/operator/#protected-resource-url-mcp-resourceurl) and the operator emits the variable for you.
 
 Every `401` from `POST /mcp` points a client at that document through the `resource_metadata` parameter of its `WWW-Authenticate` challenge:
 
@@ -601,7 +601,8 @@ The endpoint is stateless, which keeps the deployment story short:
 - **Forward the MCP headers unchanged.** `MCP-Protocol-Version`, `Mcp-Method` and `Mcp-Name` are part of the contract; an ingress, Gateway API filter, or reverse proxy that strips or rewrites them breaks every request with `400` / `-32020`. NGINX passes unknown headers through by default, but an explicit allowlist must include all three.
 - **No session affinity.** There is no `Mcp-Session-Id`, so consecutive requests from one client can land on different replicas. `/mcp` load-balances freely; no sticky sessions, no `sessionAffinity: ClientIP`.
 - **Never probe `/mcp`.** It answers `405` to `GET` and `403` to an unauthenticated or `Origin`-bearing request, so a liveness, readiness, or ingress health check pointed at it always fails. Use `/health`.
-- **Set `MCP_RESOURCE_URL`** when the proxy rewrites the scheme, host, or path, so the discovery document advertises a URL clients can reach.
+- **Set `MCP_RESOURCE_URL`** when the proxy rewrites the scheme, host, or path, so the discovery document advertises a URL clients can reach. On Kubernetes this is the `Gateway` CRD's [`spec.mcp.resourceUrl`](/operator/#protected-resource-url-mcp-resourceurl), which the operator defaults to the first `gatewayAPI.httpRoute` hostname.
+- **Route the discovery path too.** `/.well-known/oauth-protected-resource/mcp` must reach the gateway alongside `/mcp`; the operator-managed `HTTPRoute` already covers it with its `/` prefix match.
 
 ### Using It from an Agent Client
 
