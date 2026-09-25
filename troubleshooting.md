@@ -19,24 +19,26 @@ If you do not find your issue here, check:
 
 **Symptom.** With `AUTH_ENABLED=true`, every request - including ones carrying what looks like a valid bearer token - fails with `401 Unauthorized`.
 
-**Likely cause.** The OIDC issuer URL, client ID, or client secret do not match the identity provider that minted the token. The gateway validates JWTs against the configured `AUTH_OIDC_ISSUER`'s JWKS endpoint; any mismatch (trailing slash, wrong realm, http vs https, internal vs external hostname) makes signature verification fail.
+**Likely cause.** The OIDC issuer URL does not match the identity provider that minted the token, or the token's `aud` claim is not one of the accepted audiences. The gateway validates JWTs against the configured `AUTH_OIDC_ISSUER`'s JWKS endpoint; any mismatch (trailing slash, wrong realm, http vs https, internal vs external hostname) makes signature verification fail. The gateway only verifies tokens and never requests one, so it has no client secret setting.
 
 **Fix.**
 
-1. Verify the three OIDC variables are set and point at the same realm the client uses:
+1. Verify the OIDC variables are set and point at the same realm the client uses:
 
    ```bash
    AUTH_ENABLED=true
    AUTH_OIDC_ISSUER=https://keycloak.example.com/realms/inference-gateway-realm
    AUTH_OIDC_CLIENT_ID=inference-gateway-client
-   AUTH_OIDC_CLIENT_SECRET=<your-secret>
+   AUTH_OIDC_AUDIENCE=                # optional; empty means AUTH_OIDC_CLIENT_ID
    ```
 
-2. Confirm the JWT's `iss` claim matches `AUTH_OIDC_ISSUER` byte-for-byte. Decode the token:
+2. Confirm the JWT's `iss` claim matches `AUTH_OIDC_ISSUER` byte-for-byte, and that its `aud` claim is one of the accepted audiences. Decode the token:
 
    ```bash
    echo "$TOKEN" | cut -d. -f2 | base64 -d 2>/dev/null | jq .
    ```
+
+   An `aud` mismatch is the most common 401 after the issuer is correct: with `AUTH_OIDC_AUDIENCE` empty the gateway expects `aud` to equal `AUTH_OIDC_CLIENT_ID`. If your identity provider mints tokens for an API identifier instead, list it in `AUTH_OIDC_AUDIENCE` (comma-separated when more than one value is accepted).
 
 3. Confirm the gateway can reach the issuer's discovery document from inside its pod/container:
 
@@ -118,7 +120,7 @@ Restart the gateway after changing it, then retry the request.
 
    Logs will then include the outbound provider request body (with content truncated per `DEBUG_CONTENT_TRUNCATE_WORDS` and `DEBUG_MAX_MESSAGES`) and the raw upstream response.
 
-2. Bypass the gateway's normalization layer and hit the provider directly using the proxy endpoint. This skips all middleware (auth, MCP, telemetry) and forwards the request unchanged:
+2. Bypass the gateway's normalization layer and hit the provider directly using the proxy endpoint. This skips the MCP and telemetry middlewares - which only run on chat completions - and forwards the request unchanged. Authentication and the guardrails `pre_call` check still apply, so send the same bearer token you would send to `/v1/...`:
 
    ```bash
    curl -sS -X POST \
@@ -132,10 +134,10 @@ Restart the gateway after changing it, then retry the request.
 3. Inspect the metrics:
 
    ```promql
-   sum by (status_code, request_path) (rate(llm_responses_total{provider="<provider>"}[5m]))
+   sum by (error_type) (rate(gen_ai_server_request_duration_seconds_count{gen_ai_provider_name="<provider>"}[5m]))
    ```
 
-   to see which endpoints are 4xx'ing and at what rate.
+   to see which errors the provider is returning and at what rate. Drop the `error_type` grouping for total request rate; an empty `error_type` label marks successful requests.
 
 4. Double-check provider credentials. Each provider reads its API key from a dedicated env var (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GROQ_API_KEY`, etc.) - see [Configuration](/configuration/) for the full list.
 
@@ -153,15 +155,15 @@ curl -sS -X POST \
   http://inference-gateway:8080/v1/chat/completions
 ```
 
-The MCP middleware will inspect the header and short-circuit; auth and telemetry still run. The gateway itself uses this header internally when it re-invokes the upstream provider with tool results, so toggling it client-side is a supported escape hatch.
+The MCP middleware will inspect the header and short-circuit; auth and telemetry still run. This is a client-side escape hatch only - the gateway never sets the header itself. Its own follow-up calls after a tool result are in-process provider calls that do not re-enter the middleware chain.
 
-To bypass **all** middleware (auth, telemetry, MCP), use the proxy endpoint instead:
+To also skip the MCP and telemetry middlewares, use the proxy endpoint instead:
 
 ```text
 ANY /proxy/{provider}/{path}
 ```
 
-`/proxy/...` skips the entire middleware chain and forwards the request unchanged. Use it for debugging only; treat it as an untrusted endpoint in production deployments.
+`/proxy/...` forwards the request unchanged, but it is not an unauthenticated back door: the OIDC middleware skips only `/health` and the RFC 9728 protected-resource metadata path, and the guardrails `pre_call` check runs on every path. Only the MCP and telemetry middlewares are limited to chat completions. Use it for debugging only.
 
 ## Configuration
 
@@ -183,7 +185,7 @@ ANY /proxy/{provider}/{path}
    kubectl exec deploy/inference-gateway -- env | grep -E 'AUTH_|MCP_|VISION_ENABLED|TELEMETRY_'
    ```
 
-2. Boolean variables are case-sensitive strings: use `"true"` / `"false"` (not `True`, `yes`, `1`). Quoting matters in YAML where `true` can be parsed as a boolean and rejected by the env-var loader.
+2. Booleans are parsed with Go's `strconv.ParseBool`, so `true`, `True`, `TRUE`, `1`, `t` (and their false counterparts) all work, while a value such as `yes` is rejected. Prefer `"true"` / `"false"`, and quote them in YAML so the value reaches the gateway as a string.
 
 3. After updating a ConfigMap, restart the deployment so the new values are picked up:
 
