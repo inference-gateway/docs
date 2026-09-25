@@ -41,7 +41,7 @@ All four SDKs target the same gateway, so they share a single provider set. Rout
 
 <!-- GENERATED:sdks-provider-list END (do not edit - run: task generate) -->
 
-The newest addition, `nvidia`, reaches the Nvidia Nim catalog at `https://integrate.api.nvidia.com/v1` (Nemotron, Llama, DeepSeek, Mistral, and Qwen) with bearer-token auth. See [Supported Providers](/supported-providers/) for auth modes, default URLs, and vision-capable models, and [Configuration](/configuration/) for the matching `*_API_KEY` and `*_API_URL` variables.
+The `nvidia` provider reaches the Nvidia Nim catalog at `https://integrate.api.nvidia.com/v1` (Nemotron, Llama, DeepSeek, Mistral, and Qwen) with bearer-token auth. See [Supported Providers](/supported-providers/) for auth modes, default URLs, and vision-capable models, and [Configuration](/configuration/) for the matching `*_API_KEY` and `*_API_URL` variables.
 
 ## Python
 
