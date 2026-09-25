@@ -21,6 +21,12 @@ The API is `v1alpha1` and breaking changes can land between releases.
 
 The operator is distributed as pre-rendered manifests on each GitHub release. The `install.yaml` artifact bundles the namespace, CRDs, RBAC, and controller deployment.
 
+The operator also requires the Kubernetes Gateway API standard-channel CRDs - even when Gateway API routing is never used. It watches `gateway.networking.k8s.io/v1` `Gateway` and `HTTPRoute` resources, so without those CRDs the manager fails its cache sync and the pod CrashLoopBackOffs. `install.yaml` does not bundle them; install separately:
+
+```bash
+kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.5.1/standard-install.yaml
+```
+
 ```bash
 kubectl apply -f https://github.com/inference-gateway/operator/releases/latest/download/install.yaml
 ```
@@ -94,9 +100,41 @@ At a release tag, `manifests/install.yaml` references that release's operator im
 ```bash
 kubectl get pods -n inference-gateway-system
 kubectl get crd | grep inference-gateway.com
+
+# View operator logs
+kubectl logs -n inference-gateway-system deployment/operator-inference-gateway -f
 ```
 
-You should see five CRDs: `gateways`, `agents`, `mcps`, `orchestrators`, and `gpus`.
+Expected output - the operator pod `Running` with a single `operator` container (`1/1`) and all five CRDs:
+
+```bash
+NAME                                          READY   STATUS    RESTARTS   AGE
+operator-inference-gateway-74c9c5f5b-x4d2k    1/1     Running   0          2m
+
+agents.core.inference-gateway.com          2025-06-21T17:30:00Z
+gateways.core.inference-gateway.com        2025-06-21T17:30:00Z
+gpus.core.inference-gateway.com            2025-06-21T17:30:00Z
+mcps.core.inference-gateway.com            2025-06-21T17:30:00Z
+orchestrators.core.inference-gateway.com   2025-06-21T17:30:00Z
+```
+
+## Namespace scoping
+
+The shipped operator Deployment sets `WATCH_NAMESPACE_SELECTOR=inference-gateway.com/managed=true`, so **`Gateway`, `Agent`, `MCP` and `GPU` resources are only reconciled in namespaces carrying that label**. In an unlabeled namespace the operator just logs `skipping gateway, namespace does not match WATCH_NAMESPACE_SELECTOR` and creates nothing. `Orchestrator` resources are not namespace-filtered.
+
+Label every namespace you deploy resources into:
+
+```bash
+kubectl label namespace <namespace> inference-gateway.com/managed=true
+```
+
+To change the scope, edit `WATCH_NAMESPACE_SELECTOR` on the operator Deployment - any valid label selector works, and an empty value makes the operator watch **all** namespaces:
+
+```bash
+kubectl set env -n inference-gateway-system deployment/operator-inference-gateway WATCH_NAMESPACE_SELECTOR=
+```
+
+The `Gateway`, `Agent`, `MCP` and `GPU` examples on this page assume their namespace is labeled accordingly.
 
 ## Custom Resources
 
