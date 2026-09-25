@@ -48,23 +48,23 @@ You should see five CRDs: `gateways`, `agents`, `mcps`, `orchestrators`, and `gp
 
 Deploys the gateway proxy. Source: [`api/v1alpha1/gateway_types.go`](https://github.com/inference-gateway/operator/blob/main/api/v1alpha1/gateway_types.go).
 
-| Field                                                            | Description                                                                                                                                                                                |
-| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `replicas`                                                       | Pod count (1-100, default `1`).                                                                                                                                                            |
-| `image`                                                          | Container image, default `ghcr.io/inference-gateway/inference-gateway:latest`.                                                                                                             |
-| `environment`                                                    | One of `development`, `staging`, `production` (default `production`).                                                                                                                      |
-| `server.port` / `server.host` / `server.timeouts` / `server.tls` | HTTP server settings.                                                                                                                                                                      |
-| `auth.enabled` / `auth.provider` / `auth.oidc`                   | Authentication. `provider` is `oidc`, `jwt`, or `basic`. See [Authentication (OIDC)](#authentication-oidc).                                                                                |
-| `providers[]`                                                    | Each item: `name`, `enabled`, and an `env` list of `corev1.EnvVar`. Provider keys are passed through unchanged.                                                                            |
-| `telemetry.enabled` / `telemetry.metrics.{enabled,port}`         | OpenTelemetry metrics. There is no `telemetry.tracing` block - tracing is configured through standard OTEL env vars on the gateway pod.                                                    |
-| `mcp.enabled` / `mcp.expose` / `mcp.toolMode` / `mcp.timeouts`   | MCP client configuration. See [MCP Servers (`spec.mcp`)](#mcp-servers-spec-mcp).                                                                                                           |
-| `mcp.servers[]` / `mcp.serviceDiscovery`                         | Static MCP servers (`name`, `url`, `healthCheck`) and discovery of `MCP` CRs by label selector. Both feed `MCP_SERVERS`.                                                                   |
-| `service.{type,port,annotations}`                                | Kubernetes Service for the gateway.                                                                                                                                                        |
-| `routing.{enabled,config,configMapRef}`                          | Gateway-native round-robin model routing (`ROUTING_ENABLED` / `ROUTING_CONFIG_PATH`). Distinct from `gatewayAPI`. See [Model Routing](#model-routing).                                     |
-| `gatewayAPI.{enabled,gateway,httpRoute}`                         | North-south traffic via the Kubernetes Gateway API (`gateway.networking.k8s.io`). Successor to the removed `ingress` field. See [Routing (Gateway API)](#routing-gateway-api).             |
-| `hpa.{enabled,config}`                                           | Wraps a `HorizontalPodAutoscalerSpec`. See the [Kubernetes HPA docs](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/) for the `metrics[]` and `behavior` shape. |
-| `serviceAccount.{create,name}`                                   | Pod service account.                                                                                                                                                                       |
-| `resources.requests` / `resources.limits`                        | CPU and memory.                                                                                                                                                                            |
+| Field                                                                              | Description                                                                                                                                                                                |
+| ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `replicas`                                                                         | Pod count (1-100, default `1`).                                                                                                                                                            |
+| `image`                                                                            | Container image, default `ghcr.io/inference-gateway/inference-gateway:latest`.                                                                                                             |
+| `environment`                                                                      | One of `development`, `staging`, `production` (default `production`).                                                                                                                      |
+| `server.port` / `server.host` / `server.timeouts` / `server.tls`                   | HTTP server settings.                                                                                                                                                                      |
+| `auth.enabled` / `auth.provider` / `auth.oidc`                                     | Authentication. `provider` is `oidc`, `jwt`, or `basic`. See [Authentication (OIDC)](#authentication-oidc).                                                                                |
+| `providers[]`                                                                      | Each item: `name`, `enabled`, and an `env` list of `corev1.EnvVar`. Provider keys are passed through unchanged.                                                                            |
+| `telemetry.enabled` / `telemetry.metrics.{enabled,port}`                           | OpenTelemetry metrics. There is no `telemetry.tracing` block - tracing is configured through standard OTEL env vars on the gateway pod.                                                    |
+| `mcp.enabled` / `mcp.expose` / `mcp.resourceUrl` / `mcp.toolMode` / `mcp.timeouts` | MCP client configuration. See [MCP Servers (`spec.mcp`)](#mcp-servers-spec-mcp).                                                                                                           |
+| `mcp.servers[]` / `mcp.serviceDiscovery`                                           | Static MCP servers (`name`, `url`, `healthCheck`) and discovery of `MCP` CRs by label selector. Both feed `MCP_SERVERS`.                                                                   |
+| `service.{type,port,annotations}`                                                  | Kubernetes Service for the gateway.                                                                                                                                                        |
+| `routing.{enabled,config,configMapRef}`                                            | Gateway-native round-robin model routing (`ROUTING_ENABLED` / `ROUTING_CONFIG_PATH`). Distinct from `gatewayAPI`. See [Model Routing](#model-routing).                                     |
+| `gatewayAPI.{enabled,gateway,httpRoute}`                                           | North-south traffic via the Kubernetes Gateway API (`gateway.networking.k8s.io`). Successor to the removed `ingress` field. See [Routing (Gateway API)](#routing-gateway-api).             |
+| `hpa.{enabled,config}`                                                             | Wraps a `HorizontalPodAutoscalerSpec`. See the [Kubernetes HPA docs](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/) for the `metrics[]` and `behavior` shape. |
+| `serviceAccount.{create,name}`                                                     | Pod service account.                                                                                                                                                                       |
+| `resources.requests` / `resources.limits`                                          | CPU and memory.                                                                                                                                                                            |
 
 Provider env vars referenced via Secrets follow the standard `valueFrom.secretKeyRef` pattern - see [Configuration](/configuration/) for the full list of variables each provider accepts.
 
@@ -347,6 +347,7 @@ The `llamacpp` provider requires operator `>= v0.19.0` - earlier releases do not
 | --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
 | `enabled`                                                                   | Toggle the gateway's MCP client (`MCP_ENABLED`, default `false`).                                                           |
 | `expose`                                                                    | Expose the gateway itself as an MCP server on root-level `POST /mcp`, MCP `2026-07-28` (`MCP_EXPOSE`, default `false`).     |
+| `resourceUrl`                                                               | Canonical public URL of `POST /mcp` (`MCP_RESOURCE_URL`). Defaults to the first `gatewayAPI.httpRoute` hostname.            |
 | `toolMode`                                                                  | `selector` (default) or `direct` (`MCP_TOOL_MODE`). See [Tool Exposure Mode](/mcp/#tool-exposure-mode).                     |
 | `servers[].name`                                                            | Required. Becomes the server's alias, and therefore its tool namespace.                                                     |
 | `servers[].url`                                                             | Required server URL.                                                                                                        |
@@ -355,6 +356,32 @@ The `llamacpp` provider requires operator `>= v0.19.0` - earlier releases do not
 | `timeouts.{client,dial,tlsHandshake,responseHeader,expectContinue,request}` | MCP client timeouts, emitted as the matching `MCP_*_TIMEOUT` variables.                                                     |
 
 With `expose: true`, route `POST /mcp` at the root of the gateway Service - it deliberately does not sit under `/v1`. The endpoint is stateless, so it needs no session affinity and load-balances freely across replicas, but the `HTTPRoute` (and any proxy in front of it) must pass the `MCP-Protocol-Version`, `Mcp-Method` and `Mcp-Name` headers through unchanged; stripping or rewriting one answers `400` with `-32020`. Do not aim a probe or gateway health check at `/mcp` - it is POST only and answers `405` to `GET`; use `/health`. See [Deploying Behind a Proxy](/mcp/#deploying-behind-a-proxy).
+
+### Protected resource URL (`mcp.resourceUrl`)
+
+`mcp.resourceUrl` pins the canonical public URL of `POST /mcp` and reaches the pod as `MCP_RESOURCE_URL`. The gateway publishes it as the `resource` of the [RFC 9728](https://datatracker.ietf.org/doc/html/rfc9728) Protected Resource Metadata document served at `GET /.well-known/oauth-protected-resource/mcp`, and in the `resource_metadata` parameter of every `401` challenge on `/mcp` - so it is what clients use as their [RFC 8707](https://datatracker.ietf.org/doc/html/rfc8707) resource indicator when requesting a token. See [Protected Resource Metadata](/mcp/#protected-resource-metadata-rfc-9728).
+
+Left unset, the operator derives it as <code v-pre>&lt;scheme&gt;://&lt;first gatewayAPI.httpRoute hostname&gt;/mcp</code>, where the scheme is `https` when `gatewayAPI.gateway.tls.enabled` is `true` and `http` otherwise:
+
+```yaml
+spec:
+  mcp:
+    enabled: true
+    expose: true
+    resourceUrl: https://api.inference-gateway.local/mcp # optional - derived from the hostname below
+  gatewayAPI:
+    enabled: true
+    gateway:
+      tls:
+        enabled: true
+    httpRoute:
+      hostnames:
+        - api.inference-gateway.local
+```
+
+Nothing is emitted when [`spec.gatewayAPI`](#routing-gateway-api) is disabled or the first hostname is a wildcard (`*.example.com`) - there is no single public URL to derive. The gateway then falls back to building the URL from the request scheme (honouring `X-Forwarded-Proto`) and `Host`, which is wrong behind a proxy that rewrites either. **Set `resourceUrl` explicitly** in that case, or clients discover a URL they cannot reach.
+
+The operator-managed `HTTPRoute` matches on the `/` prefix, so `/.well-known/oauth-protected-resource/mcp` is already routed alongside `/mcp` - no extra route or path match is needed for discovery to work.
 
 Statically declared servers and discovered `MCP` CRs are unioned, deduplicated on URL, and sorted for determinism. Discovered servers use the `MCP` CR's `metadata.name` as their alias, so an `MCP` named `time` yields `mcp_time_get_current_time` rather than a long host-derived name like `mcp_time-service_inference-gateway_svc_cluster_local_get_current_time` - which matters in `direct` tool mode, where names over 64 characters are rejected by providers.
 
