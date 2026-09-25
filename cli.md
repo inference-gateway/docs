@@ -178,7 +178,7 @@ USAGE
   infer [command] [--flags]
 
 COMMANDS
-  init           Initialize project configuration
+  init           Initialize user configuration
   status         Check gateway health and resource usage
   chat           Interactive chat session (TUI)
   headless       Headless task execution
@@ -223,17 +223,17 @@ infer version
 
 ## Core Commands
 
-| Command              | Description                      | Key Features                                         |
-| -------------------- | -------------------------------- | ---------------------------------------------------- |
-| `infer init`         | Initialize project configuration | Creates `.infer/config.yaml` with defaults           |
-| `infer status`       | Check gateway health             | Shows resource usage and connectivity                |
-| `infer chat`         | Interactive chat TUI             | Streaming, scrolling, tool expansion, mode switching |
-| `infer chat --web`   | Web-based terminal               | Browser interface, tabbed sessions, remote access    |
-| `infer agent <task>` | Autonomous task execution        | Background operation, task planning, validation      |
-| `infer config <cmd>` | Configuration management         | Generic `get`/`set` for any config key               |
-| `infer tools <cmd>`  | Run agent tools directly         | Execute a tool or validate a bash command            |
-| `infer stats`        | Summarize local telemetry        | Token usage, tool outcomes, and cost across sessions |
-| `infer traces`       | View a session's trace span tree | Offline span-tree viewer, `--list` and JSON output   |
+| Command                 | Description                      | Key Features                                                 |
+| ----------------------- | -------------------------------- | ------------------------------------------------------------ |
+| `infer init`            | Seed the userspace baseline      | Creates `~/.infer/` defaults - writes nothing to the project |
+| `infer status`          | Check gateway health             | Shows resource usage and connectivity                        |
+| `infer chat`            | Interactive chat TUI             | Streaming, scrolling, tool expansion, mode switching         |
+| `infer chat --web`      | Web-based terminal               | Browser interface, tabbed sessions, remote access            |
+| `infer headless <task>` | Autonomous task execution        | Background operation, task planning, validation              |
+| `infer config <cmd>`    | Configuration management         | Generic `get`/`set` for any config key                       |
+| `infer tools <cmd>`     | Run agent tools directly         | Execute a tool or validate a bash command                    |
+| `infer stats`           | Summarize local telemetry        | Token usage, tool outcomes, and cost across sessions         |
+| `infer traces`          | View a session's trace span tree | Offline span-tree viewer, `--list` and JSON output           |
 
 ### Chat Interface Features
 
@@ -285,7 +285,7 @@ infer chat --session-id abc-123-def
 - A literal **UUID** is used as-is.
 - Any **non-UUID** value is treated as a **session group key** and resolved through the session rollover chain to the latest session in that group.
 
-**Fallback:** If the session cannot be loaded (e.g. the ID does not exist or storage is disabled), the CLI prints a visible notice and starts a new session under the requested ID — the same semantics as [`infer agent --session-id`](#session-id-agent).
+**Fallback:** If the session cannot be loaded (e.g. the ID does not exist or storage is disabled), the CLI prints a visible notice and starts a new session under the requested ID — the same semantics as [`infer headless --session-id`](#resuming-a-session-session-id).
 
 **Ignored in non-interactive modes:** The flag is ignored (with a printed notice) in `--web` mode and when input is piped (non-interactive).
 
@@ -688,7 +688,7 @@ The same stats object is also streamed as a `CUSTOM` event named `token_usage` a
 
 #### Writing the result to a file (`--result-file`)
 
-`infer agent` accepts a `--result-file <path>` flag that **atomically** writes the final assistant message and the run outcome as JSON to `<path>` on exit. The [Agent tool](#local-subagents-agent-tool) uses it to harvest the result of a detached (tmux pane) subagent, but it is useful on its own whenever a script needs the final answer as a file rather than by parsing the stdout stream.
+`infer headless` accepts a `--result-file <path>` flag that **atomically** writes the final assistant message and the run outcome as JSON to `<path>` on exit. The [Agent tool](#local-subagents-agent-tool) uses it to harvest the result of a detached (tmux pane) subagent, but it is useful on its own whenever a script needs the final answer as a file rather than by parsing the stdout stream.
 
 ```bash
 infer headless "Summarize the open PRs" --result-file /tmp/result.json
@@ -696,7 +696,7 @@ infer headless "Summarize the open PRs" --result-file /tmp/result.json
 
 #### Resuming a session (`--session-id`)
 
-`infer agent --session-id <id>` loads a persisted conversation before the agent starts, letting you resume a previous session. The session must have been persisted by a [storage backend](#conversation-management) (`storage.enabled: true`).
+`infer headless --session-id <id>` loads a persisted conversation before the agent starts, letting you resume a previous session. The session must have been persisted by a [storage backend](#conversation-management) (`storage.enabled: true`).
 
 ```bash
 # Find session IDs from saved conversations
@@ -1034,7 +1034,7 @@ Powerful regex search across files. Uses `ripgrep` when available, otherwise a b
 
 #### Bash
 
-Execute a bash command that matches the active mode's **allowed-list**. Matching is **default-deny**: a command auto-runs only when it matches the allowed-list for the current [agent mode](#agent-modes). Anything unmatched falls through to an approval prompt in chat, or is rejected with an actionable hint in headless [`infer agent`](#headless-agent-stream-output). There is no separate deny list.
+Execute a bash command that matches the active mode's **allowed-list**. Matching is **default-deny**: a command auto-runs only when it matches the allowed-list for the current [agent mode](#agent-modes). Anything unmatched falls through to an approval prompt in chat, or is rejected with an actionable hint in [headless mode](#headless-agent-stream-output). There is no separate deny list.
 
 - **Parameters**: `command` (required), `format` (`text` or `json`)
 - **Approval**: configurable via `tools.bash.require_approval`
@@ -1472,7 +1472,7 @@ GitHub operations run through Bash, so they obey the [Bash allowed-list](#comman
 | Search                   | `gh search issues kind:bug`, `gh search code "func main"`                           |
 | Read-only project boards | `gh project list`, `gh project view 3`, `gh project item-list 3`                    |
 
-**GitHub writes and destructive operations are deliberately left off the defaults.** They are **not** auto-approved - they fall through to the standard approval prompt (in chat) or are blocked (in headless `infer agent`) until you add them to an allowed-list:
+**GitHub writes and destructive operations are deliberately left off the defaults.** They are **not** auto-approved - they fall through to the standard approval prompt (in chat) or are blocked (in headless mode) until you add them to an allowed-list:
 
 - **Issue / PR writes** - `gh issue create|edit|comment`, `gh pr create`.
 - **Project writes** - `gh project item-add|item-edit`.
@@ -1591,14 +1591,14 @@ See [Escalating a rejection](/cli-judge-mode/#escalating-a-rejection-requestappr
 
 ### Local Subagents (Agent tool)
 
-The **Agent** tool lets the main agent - in chat or headless [`infer agent`](#headless-agent-stream-output) - spawn one or more **local subagents** that run work in parallel and fold their results back into the main conversation. A subagent is just an `infer agent` subprocess with its own isolated session, so it is cheap, isolated, and session-persisted. The tool is **enabled by default** and gated by the [`tools.agent.*` config block](#agent-tool-configuration).
+The **Agent** tool lets the main agent - in chat or [headless mode](#headless-agent-stream-output) - spawn one or more **local subagents** that run work in parallel and fold their results back into the main conversation. A subagent is just an `infer headless` subprocess with its own isolated session, so it is cheap, isolated, and session-persisted. The tool is **enabled by default** and gated by the [`tools.agent.*` config block](#agent-tool-configuration).
 
 This is the lightweight, **local** complement to the [A2A tools](/a2a/) (`A2A_SubmitTask` / `A2A_QueryTask` / `A2A_QueryAgent`), which target external A2A servers:
 
-| Reach for...                          | When                                                                                                                                                               |
-| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Agent** (local subagents)           | Short-lived helpers for the task at hand - parallel exploration, fan-out edits, scoped research - with no server to run. Each is a local `infer agent` subprocess. |
-| **A2A tools** (`A2A_SubmitTask`, ...) | Delegating to **external**, long-running, specialized A2A servers (calendar, docs, ...) discovered over the network. See [A2A](/a2a/).                             |
+| Reach for...                          | When                                                                                                                                                                  |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Agent** (local subagents)           | Short-lived helpers for the task at hand - parallel exploration, fan-out edits, scoped research - with no server to run. Each is a local `infer headless` subprocess. |
+| **A2A tools** (`A2A_SubmitTask`, ...) | Delegating to **external**, long-running, specialized A2A servers (calendar, docs, ...) discovered over the network. See [A2A](/a2a/).                                |
 
 #### Tool parameters
 
@@ -1643,7 +1643,7 @@ tools:
     mode: interactive # headless | interactive (default when a call omits it)
     wait: true # block and return aggregated results by default
     max_parallel: 4 # cap on concurrent subagents per call
-    max_depth: 1 # recursion guard; a subagent is itself an `infer agent`
+    max_depth: 1 # recursion guard; a subagent is itself an `infer headless`
     model: '' # default subagent model (inherits parent if blank)
     inherit_mock: true # when gateway.mock is on, spawn subagents against the embedded mock too
     interactive:
@@ -1764,13 +1764,13 @@ Two-layer configuration system with precedence from highest to lowest:
 
 ### Configuration Files
 
-`infer init` scaffolds the project configuration directory (`.infer/`) and `~/.infer/` holds user-global defaults. Configuration is split across purpose-specific YAML files rather than one giant file:
+`infer init` seeds the userspace baseline in `~/.infer/` (`config.yaml`, `mcp.yaml`, `prompts.yaml`, `agents.yaml`, `shortcuts/`, `skills/` and so on) and writes nothing into the project. Project-level overrides are created on demand with `infer config set --project <key> <value>`, or with `--project` on `infer mcp` / `infer agents`. Configuration is split across purpose-specific YAML files rather than one giant file:
 
 | File               | Scope        | Purpose                                                                                                                                                                    | Where it is documented                                      |
 | ------------------ | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
 | `config.yaml`      | Project/user | Main config - agent, tools, storage, pricing, and everything `config get`/`set` touches.                                                                                   | [Configuration](#configuration-commands)                    |
 | `prompts.yaml`     | Project/user | System prompts (`prompts.agent.system_prompt`), per-mode adjustments, and tool descriptions (`prompts.tools.<Tool>.description`) - edited, not `set`.                      | [Configuration Commands](#configuration-commands)           |
-| `mcp.yaml`         | Project      | MCP server definitions and connection settings.                                                                                                                            | [MCP Integration](#mcp-integration)                         |
+| `mcp.yaml`         | Project/user | MCP server definitions and connection settings.                                                                                                                            | [MCP Integration](#mcp-integration)                         |
 | `keybindings.yaml` | Project/user | Keybindings for the TUI and diff viewer (category `diff_viewer`).                                                                                                          | [Diff viewer and git staging](#diff-viewer-and-git-staging) |
 | `hooks.yaml`       | Project/user | User-defined shell commands run at agent-loop hook points (feature-flagged off by default).                                                                                | [Command Hooks](/cli-hooks/)                                |
 | `reminders.yaml`   | Project/user | System reminders injected into the conversation on a schedule.                                                                                                             | [System Reminders](#system-reminders)                       |
@@ -1911,10 +1911,10 @@ The built-in system prompt includes a `Current date:` line (date-only, no time) 
 
 **Storage Backends:**
 
-- SQLite (default) - local file storage
+- JSONL (default) - append-only files for portable, inspectable history
 - PostgreSQL - shared database for teams
 - Redis - high-performance caching
-- JSONL - append-only files for portable, inspectable history
+- SQLite - local file storage
 - Cloudflare D1 - external SQLite-compatible store over HTTP (for ephemeral CI runners)
 - In-memory - temporary sessions
 
@@ -2059,7 +2059,7 @@ export GITHUB_TOKEN="your-github-token"  # used by the gh CLI credential chain f
 # Append a few commands onto the bash allowed-list baseline (comma- or newline-separated)
 export INFER_TOOLS_BASH_ALLOW_APPEND="git commit,git push"
 
-# How a needed approval is delivered: prompt | ipc | block
+# How a needed approval is delivered: prompt | ipc | judge | block
 export INFER_TOOLS_SAFETY_APPROVAL_BEHAVIOUR="prompt"
 
 # Inline reminders YAML (replaces file-loaded reminders)
@@ -2140,7 +2140,7 @@ The per-setting subcommands were removed in favor of `config get`/`config set` a
 | `config tools exec <tool>`             | `tools execute <tool>`                           |
 | `config tools validate <cmd>`          | `tools validate <cmd>`                           |
 
-See the [full configuration reference](https://github.com/inference-gateway/cli/blob/main/docs/configuration.md) for detailed options.
+See the [full configuration reference](https://github.com/inference-gateway/cli/blob/main/docs/configuration-reference.md) for detailed options.
 
 ## Telemetry
 
@@ -2274,7 +2274,7 @@ Then run the CLI with the endpoint set:
 
 ```bash
 export OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
-infer agent "Analyze the codebase"
+infer headless "Analyze the codebase"
 ```
 
 ### Trace context propagation to subprocesses
@@ -2319,7 +2319,7 @@ The same holds for a program instrumented with an OpenTelemetry SDK: as long as 
 
 #### Subagents: one cross-process trace
 
-`infer agent` honors an inherited `TRACEPARENT`, so a headless subagent's own `session` span nests under the caller's `execute_tool Agent` span - a single trace that spans both processes:
+`infer headless` honors an inherited `TRACEPARENT`, so a headless subagent's own `session` span nests under the caller's `execute_tool Agent` span - a single trace that spans both processes:
 
 ```text
 session (standard, success)            152ms
@@ -2944,13 +2944,13 @@ such a store only ever lists itself.
 
 - `--include-hidden`: Include entries persisted as hidden - system reminders, plan-approval
   prompts, drained background-task results, and the synthetic verify message injected by
-  `infer agent`. Off by default.
+  `infer headless`. Off by default.
 - `--format text|json`: `text` (default) is human-readable; `json` emits one JSON object per
-  line (NDJSON), matching the `infer agent` stdout shape for piping into `jq` or log scrapers.
+  line (NDJSON), matching the `infer headless` stdout shape for piping into `jq` or log scrapers.
 
 **Session id resolution:**
 
-`<session-id>` is resolved the same way as [`infer headless --session-id`](#session-id-headless) and
+`<session-id>` is resolved the same way as [`infer headless --session-id`](#resuming-a-session-session-id) and
 [`infer chat --session-id`](#resuming-a-session---session-id): a literal UUID is used
 as-is, while any other value is treated as a session group key and resolved to that group's
 current session id (registering the group if it is new). This means you can show a conversation
@@ -2986,7 +2986,7 @@ infer conversations delete channel-telegram-12345
 
 #### Cloudflare D1 backend
 
-[Cloudflare D1](https://developers.cloudflare.com/d1/) is an external, SQLite-compatible store the CLI writes to over D1's HTTP query API. It is built for **ephemeral CI runners** (for example a headless [`infer headless`](#headless-agent-stream-output) on GitHub Actions): unlike `sqlite`, `jsonl`, and `memory` - which live on the runner's disk and are wiped on recycle - D1 persists off-runner and stays readable by the gateway through its native binding. Unlike `postgres` and `redis`, it needs no wire-protocol connection, just HTTPS.
+[Cloudflare D1](https://developers.cloudflare.com/d1/) is an external, SQLite-compatible store the CLI writes to over D1's HTTP query API. It is built for **ephemeral CI runners** (for example a headless [`infer headless`](#headless-agent-stream-output) run on GitHub Actions): unlike `sqlite`, `jsonl`, and `memory` - which live on the runner's disk and are wiped on recycle - D1 persists off-runner and stays readable by the gateway through its native binding. Unlike `postgres` and `redis`, it needs no wire-protocol connection, just HTTPS.
 
 Set `storage.type: d1` and configure the `storage.d1` block:
 
@@ -3149,7 +3149,7 @@ backend:
 
 - **On run start (SyncIn).** Clones the repo when the memory dir is missing, otherwise fast-forward / rebase pulls. An `ls-remote` probe decides clone vs. init-in-place - an empty remote, or a pre-existing local memory dir, is initialized in place instead of cloned.
 - **On change (SyncOut).** Commits and pushes **only when `git status --porcelain` reports changes**, through a bounded **push -> pull-rebase -> retry** loop. A per-host `flock` serializes concurrent runs (channels / scheduler / heartbeat) so they do not clobber each other.
-- **Where the push happens.** In **chat**, the `Memory` tool pushes on each write / delete - not a post-session hook, which would commit-storm once per message. In headless [`infer agent`](#headless-agent-stream-output), it pulls on start and pushes once at run finish. Either way it works across channel, scheduler, and heartbeat subprocess runs.
+- **Where the push happens.** In **chat**, the `Memory` tool pushes on each write / delete - not a post-session hook, which would commit-storm once per message. In [headless mode](#headless-agent-stream-output), it pulls on start and pushes once at run finish. Either way it works across channel, scheduler, and heartbeat subprocess runs.
 - **Best-effort, never fatal.** A failed clone / pull / push is logged and the run continues - sync never aborts the agent run.
 
 ##### Authentication
@@ -3185,13 +3185,13 @@ Connect to Model Context Protocol servers for extended capabilities. MCP provide
 
 **Setup:**
 
-Initialize project to create `.infer/mcp.yaml`:
+Seed the userspace baseline, which includes `~/.infer/mcp.yaml`:
 
 ```bash
 infer init
 ```
 
-Configure MCP servers in `.infer/mcp.yaml`:
+Configure MCP servers in `~/.infer/mcp.yaml` (or add `--project` to the `infer mcp` commands below to write a project-level `.infer/mcp.yaml` instead):
 
 ```yaml
 enabled: true
@@ -3208,14 +3208,20 @@ servers:
     oci: 'mcp-demo-server:latest'
     description: 'Demo MCP server'
 
-  # Connect to external MCP server
+  # Connect to external MCP server - the endpoint is spelled out field by field,
+  # there is no `url` key (an entry without them resolves to http://localhost/mcp)
   - name: 'filesystem'
-    url: 'http://localhost:3000/sse'
+    scheme: 'http'
+    host: 'localhost'
+    port: 3000
+    path: '/sse'
     enabled: true
     description: 'File system operations'
     exclude_tools:
       - 'delete_file'
 ```
+
+`infer mcp add <name> <url>` splits a URL into those fields for you, so you rarely need to write them by hand.
 
 **CLI Commands:**
 
@@ -3223,15 +3229,27 @@ servers:
 # Add auto-start MCP server
 infer mcp add my-server --run --oci=my-mcp:latest
 
-# List MCP servers
+# Add an external MCP server by URL (split into scheme/host/port/path)
+infer mcp add filesystem http://localhost:3000/sse
+
+# List MCP servers, or show connection status
 infer mcp list
+infer mcp status
 
-# Toggle server
-infer mcp toggle my-server
+# Enable or disable a server
+infer mcp enable my-server
+infer mcp disable my-server
 
-# Remove server
+# Start or stop an auto-start (OCI) server
+infer mcp start my-server
+infer mcp stop my-server
+
+# Update a server definition, or remove it
+infer mcp update my-server --oci=my-mcp:2.0.0
 infer mcp remove my-server
 ```
+
+`infer mcp enable-global` / `disable-global` toggle MCP support as a whole rather than a single server.
 
 **Using MCP Tools:**
 
@@ -3464,7 +3482,7 @@ infer chat
 ### GitHub Issue Resolution
 
 ```bash
-infer agent "Fix the bug described in GitHub issue #456"
+infer headless "Fix the bug described in GitHub issue #456"
 
 # Agent autonomously:
 # 1. Fetches issue details
@@ -3628,7 +3646,7 @@ infer tools validate "git status"
 
 # Enable debug logging
 export INFER_LOGGING_DEBUG=true
-infer agent "your task"
+infer headless "your task"
 ```
 
 ### Computer Use Issues
@@ -3667,11 +3685,11 @@ If completions still do not appear, the shell rc is usually not sourcing the com
 
 | Command                            | Description                                                                                |
 | ---------------------------------- | ------------------------------------------------------------------------------------------ |
-| `infer init`                       | Initialize project configuration                                                           |
+| `infer init`                       | Seed the userspace baseline in `~/.infer/`                                                 |
 | `infer status`                     | Check gateway health and resource usage                                                    |
 | `infer chat`                       | Interactive chat session (TUI)                                                             |
 | `infer chat --web`                 | Web-based terminal interface                                                               |
-| `infer agent <task>`               | Autonomous task execution                                                                  |
+| `infer headless <task>`            | Autonomous task execution                                                                  |
 | `infer skills <subcommand>`        | Manage Agent Skills (list, install, uninstall)                                             |
 | `infer daemon`                     | Start the daemon - scheduler, channel listener, and heartbeat ([Channels](/cli-channels/)) |
 | `infer config <subcommand>`        | Configuration management (`init`, `get`, `set`)                                            |
@@ -3689,7 +3707,7 @@ If completions still do not appear, the shell rc is usually not sourcing the com
 - **Repository**: [github.com/inference-gateway/cli](https://github.com/inference-gateway/cli)
 - **Issues**: [GitHub Issues](https://github.com/inference-gateway/cli/issues)
 - **Releases**: [GitHub Releases](https://github.com/inference-gateway/cli/releases)
-- **Documentation**: [Full Configuration Reference](https://github.com/inference-gateway/cli/blob/main/docs/configuration.md)
+- **Documentation**: [Full Configuration Reference](https://github.com/inference-gateway/cli/blob/main/docs/configuration-reference.md)
 
 The CLI is actively developed with regular updates and new features. Check the repository for the latest releases and announcements.
 s.

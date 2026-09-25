@@ -172,7 +172,7 @@ CLI -> extension, the resumed conversation's history:
 - `messages` are the gateway SDK message objects of the resumed conversation.
 - An unknown or empty `id` is ignored and no snapshot is sent.
 
-After the snapshot the CLI streams live chat activity for the active conversation, one frame per [AG-UI](https://docs.ag-ui.com/) event (the same encoding as `infer headless --output ag-ui`):
+After the snapshot the CLI streams live chat activity for the active conversation, one frame per [AG-UI](https://docs.ag-ui.com/) event (the same encoding as `infer headless --format ag-ui`):
 
 ```json
 { "type": "chat_event", "event": { "type": "TEXT_MESSAGE_CONTENT", "delta": "..." } }
