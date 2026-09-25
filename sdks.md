@@ -539,7 +539,7 @@ See the [sound effects](/api-reference/#sound-effects) and [music](/api-referenc
 
 ### Models, tools, and health
 
-`list_models` returns every model across configured providers, or a single provider's catalog when you pass `provider=`. `mcp_jsonrpc(method, params=None, request_id=1, client_info=None)` calls the gateway's MCP endpoint (`POST /mcp`) - use `tools/list` to discover tools and `tools/call` to run one; it requires MCP to be exposed (`MCP_ENABLED=true` and `MCP_EXPOSE=true`), otherwise the call raises `InferenceGatewayAPIError`. The endpoint lives at the root, so a `/v1` suffix on the base URL is stripped for you, and the `params._meta` block and MCP headers the protocol requires are filled in automatically. `get_mcp_protected_resource_metadata` fetches the [RFC 9728](https://datatracker.ietf.org/doc/html/rfc9728) document for that endpoint. `health_check` probes the gateway and returns a `bool` - it swallows transport errors and returns `False` rather than raising.
+`list_models` returns every model across configured providers, or a single provider's catalog when you pass `provider=`. `mcp_jsonrpc(method, params=None, request_id=1, client_info=None)` calls the gateway's MCP endpoint (`POST /mcp`) - use `tools/list` to discover tools and `tools/call` to run one; it requires MCP to be exposed (`MCP_ENABLED=true` and `MCP_EXPOSE=true`), otherwise the call raises `InferenceGatewayAPIError`. The endpoint lives at the root, so a `/v1` suffix on the base URL is stripped for you, and the `params._meta` block and MCP headers the protocol requires are filled in automatically. `get_mcp_protected_resource_metadata` fetches the [RFC 9728](https://datatracker.ietf.org/doc/html/rfc9728) document for that endpoint. `health_check` probes the gateway's root `/health` endpoint (a root-level route, so the `/v1` suffix on the base URL is stripped) and returns a `bool` - it swallows transport errors and returns `False` rather than raising.
 
 ```python
 from inference_gateway import InferenceGatewayClient
@@ -586,7 +586,7 @@ print('authorization servers:', metadata.authorization_servers)
 
 ### Proxy passthrough
 
-`proxy_request` forwards a raw request to a provider through the gateway's `/proxy/{provider}/{path}` route and returns the parsed JSON body as a `dict`, letting you reach provider endpoints the typed surface doesn't wrap (for example embeddings). Pass `method='POST'` with a `json_data` dict for write calls.
+`proxy_request` forwards a raw request to a provider through the gateway's `/proxy/{provider}/{path}` route and returns the parsed JSON body as a `dict`, letting you reach provider endpoints the typed surface doesn't wrap (for example embeddings). The proxy route lives at the gateway root rather than under `/v1`, so the suffix is stripped from the base URL. Pass `method='POST'` with a `json_data` dict for write calls.
 
 ```python
 from inference_gateway import InferenceGatewayClient
