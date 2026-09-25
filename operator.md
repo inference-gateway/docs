@@ -112,13 +112,15 @@ Deploys the gateway proxy. Source: [`api/v1alpha1/gateway_types.go`](https://git
 | `server.port` / `server.host` / `server.timeouts` / `server.tls`                   | HTTP server settings.                                                                                                                                                                      |
 | `auth.enabled` / `auth.provider` / `auth.oidc`                                     | Authentication. `provider` is `oidc`, `jwt`, or `basic`. See [Authentication (OIDC)](#authentication-oidc).                                                                                |
 | `providers[]`                                                                      | Each item: `name`, `enabled`, and an `env` list of `corev1.EnvVar`. Provider keys are passed through unchanged.                                                                            |
-| `telemetry.enabled` / `telemetry.metrics.{enabled,port}`                           | OpenTelemetry metrics. There is no `telemetry.tracing` block - tracing is configured through standard OTEL env vars on the gateway pod.                                                    |
+| `telemetry.enabled` / `telemetry.metrics.{enabled,port}`                           | OpenTelemetry metrics.                                                                                                                                                                     |
+| `telemetry.traces.exporter.otlp.endpoint`                                          | Tracing. With `telemetry.enabled: true`, it sets `TELEMETRY_TRACING_ENABLED=true` and `TELEMETRY_TRACING_OTLP_ENDPOINT` on the gateway container.                                          |
 | `mcp.enabled` / `mcp.expose` / `mcp.resourceUrl` / `mcp.toolMode` / `mcp.timeouts` | MCP client configuration. See [MCP Servers (`spec.mcp`)](#mcp-servers-spec-mcp).                                                                                                           |
 | `mcp.servers[]` / `mcp.serviceDiscovery`                                           | Static MCP servers (`name`, `url`, `healthCheck`) and discovery of `MCP` CRs by label selector. Both feed `MCP_SERVERS`.                                                                   |
 | `service.{type,port,annotations}`                                                  | Kubernetes Service for the gateway.                                                                                                                                                        |
 | `routing.{enabled,config,configMapRef}`                                            | Gateway-native round-robin model routing (`ROUTING_ENABLED` / `ROUTING_CONFIG_PATH`). Distinct from `gatewayAPI`. See [Model Routing](#model-routing).                                     |
 | `gatewayAPI.{enabled,gateway,httpRoute}`                                           | North-south traffic via the Kubernetes Gateway API (`gateway.networking.k8s.io`). Successor to the removed `ingress` field. See [Routing (Gateway API)](#routing-gateway-api).             |
 | `hpa.{enabled,config}`                                                             | Wraps a `HorizontalPodAutoscalerSpec`. See the [Kubernetes HPA docs](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/) for the `metrics[]` and `behavior` shape. |
+| `guardrails.{enabled,failMode,externalUrl,externalTimeout,configMapRef}`           | OPA/Rego policy enforcement. See [Guardrails (`spec.guardrails`)](#guardrails-spec-guardrails).                                                                                            |
 | `serviceAccount.{create,name}`                                                     | Pod service account.                                                                                                                                                                       |
 | `resources.requests` / `resources.limits`                                          | CPU and memory.                                                                                                                                                                            |
 
@@ -182,6 +184,9 @@ The Deployment is forced to a singleton (`replicas: 1`, `strategy: Recreate`) be
 | `a2a.enabled`                                                                  | Toggle A2A fan-out. **A2A lives on `Orchestrator`, not on `Gateway`.**                                                                                      |
 | `a2a.agents[]`                                                                 | Static agent URLs.                                                                                                                                          |
 | `a2a.serviceDiscovery.{enabled,namespace,selector}`                            | Discover `Agent` CRs by label selector. The pod is rolled when the discovered set changes.                                                                  |
+| `mcp.enabled`                                                                  | Toggle MCP integration (`OrchestratorMCPSpec`).                                                                                                             |
+| `mcp.servers[]`                                                                | Static MCP server URLs, for externally hosted servers with no `MCP` CR in the cluster.                                                                      |
+| `mcp.serviceDiscovery.{enabled,namespace,selector}`                            | Discover `MCP` CRs by label selector. Static and discovered servers are written into the pod's `~/.infer/mcp.yaml`; the pod is rolled when the set changes. |
 | `telemetry.enabled` / `telemetry.traces` / `telemetry.metrics`                 | OpenTelemetry telemetry. The daemon consumes only a master switch and a single shared OTLP endpoint. See [Orchestrator Telemetry](#orchestrator-telemetry). |
 | `resources` / `env[]`                                                          | Standard pod knobs.                                                                                                                                         |
 
@@ -258,12 +263,13 @@ For a complete runnable example, see [`examples/gpu/`](https://github.com/infere
 | ----------------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `issuerUrl`       | `AUTH_OIDC_ISSUER`        | OIDC issuer URL (default `http://keycloak:8080/realms/inference-gateway-realm`).                                                                                                                                                                                                                                            |
 | `clientId`        | `AUTH_OIDC_CLIENT_ID`     | OAuth2 client id, used as the expected `aud` (default `inference-gateway-client`).                                                                                                                                                                                                                                          |
+| `audiences`       | `AUTH_OIDC_AUDIENCE`      | `[]string` of token `aud` values the gateway accepts, for example a separate API identifier. Emitted comma-separated when non-empty; when empty, the gateway expects `clientId`. See [Audience validation](/authentication/#audience-validation).                                                                           |
 | `clientSecretRef` | `AUTH_OIDC_CLIENT_SECRET` | `SecretKeySelector` (`name` + `key`) for the client secret. The operator wires it through as a `valueFrom.secretKeyRef`, so the secret value never lands in the CR.                                                                                                                                                         |
 | `caCertRef`       | `SSL_CERT_FILE`           | `ConfigMapKeySelector` (`name` + `key`) holding a PEM-encoded CA certificate. The operator mounts it into the gateway pod at `/usr/local/share/ca-certificates/oidc-ca.crt` and points `SSL_CERT_FILE` at it, so the Go runtime trusts a self-signed issuer (for example a Keycloak with its own CA) during OIDC discovery. |
 
-The OIDC variables are emitted only when `enabled: true` and an `oidc` block is present. `AUTH_OIDC_CLIENT_SECRET` is added only when `clientSecretRef` is set, and `SSL_CERT_FILE` only when `caCertRef` is set. The variables themselves are documented on the gateway side in [Configuration](/configuration/#openid-connect).
+The OIDC variables are emitted only when `enabled: true` and an `oidc` block is present. `AUTH_OIDC_AUDIENCE` is added only when `audiences` is non-empty, `AUTH_OIDC_CLIENT_SECRET` only when `clientSecretRef` is set, and `SSL_CERT_FILE` only when `caCertRef` is set. The variables themselves are documented on the gateway side in [Configuration](/configuration/#openid-connect).
 
-> Two gaps against the current gateway: `clientSecretRef` still emits `AUTH_OIDC_CLIENT_SECRET`, which the gateway no longer reads (it only verifies tokens, never requests them), and the CRD has no field for [`AUTH_OIDC_AUDIENCE`](/authentication/#audience-validation) yet. Until that lands, operator-managed gateways accept only the audience that equals `clientId`, which covers Keycloak but not providers whose tokens carry a separate API identifier.
+> One gap against the current gateway: `clientSecretRef` still emits `AUTH_OIDC_CLIENT_SECRET`, which the gateway no longer reads (it only verifies tokens, never requests them).
 
 ### Example: Gateway with OIDC
 
@@ -572,6 +578,32 @@ spec:
 ```
 
 For a runnable manifest, see [`gateway-with-model-routing`](https://github.com/inference-gateway/operator/tree/main/examples/gateway-with-model-routing) in the operator repository.
+
+## Guardrails (`spec.guardrails`)
+
+`spec.guardrails` turns on the gateway's OPA/Rego policy enforcement. The controller maps the block onto the gateway's `GUARDRAILS_*` environment variables, which are documented on the gateway side in [Configuration](/configuration/#guardrails).
+
+| Field             | Maps to                       | Description                                                                                                                                                                                   |
+| ----------------- | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `enabled`         | `GUARDRAILS_ENABLED`          | Toggle policy enforcement (default `false`). When `true`, the operator sets `GUARDRAILS_ENABLED=true` and `GUARDRAILS_POLICY_DIR=/etc/inference-gateway/guardrails` on the gateway container. |
+| `failMode`        | `GUARDRAILS_FAIL_MODE`        | `deny` (default) or `allow`, for what happens when a policy evaluation fails. The operator translates `deny` to `closed` and `allow` to `open`, the values the gateway reads.                 |
+| `externalUrl`     | `GUARDRAILS_EXTERNAL_URL`     | URL of an external OPA policy evaluation endpoint, instead of evaluating local policies.                                                                                                      |
+| `externalTimeout` | `GUARDRAILS_EXTERNAL_TIMEOUT` | Timeout for the external endpoint (default `5s`). Emitted only alongside `externalUrl`.                                                                                                       |
+| `configMapRef`    | -                             | `LocalObjectReference` (`name`) to a ConfigMap holding Rego policy files. The operator mounts it at `/etc/inference-gateway/guardrails`, the policy directory.                                |
+
+```yaml
+apiVersion: core.inference-gateway.com/v1alpha1
+kind: Gateway
+metadata:
+  name: my-gateway
+  namespace: inference-gateway
+spec:
+  guardrails:
+    enabled: true
+    failMode: deny
+    configMapRef:
+      name: guardrails-policies
+```
 
 ## Routing (Gateway API)
 
