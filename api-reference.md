@@ -1292,14 +1292,6 @@ Push usage metrics to the gateway via the OTLP/HTTP protocol. This endpoint is i
 POST /metrics
 ```
 
-::: warning Breaking change
-The push endpoint moved from `POST /v1/metrics` to `POST /metrics`, with no fallback. Existing push clients must be updated. Because standard OTLP exporters append `/v1/metrics` to a bare `OTEL_EXPORTER_OTLP_ENDPOINT`, clients must set the full per-signal URL instead:
-
-```bash
-OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=http://gateway:8080/metrics
-```
-
-:::
 
 **Opt-in**: This endpoint requires both `TELEMETRY_ENABLED=true` and `TELEMETRY_METRICS_PUSH_ENABLED=true`. Returns `403 Forbidden` when disabled.
 
