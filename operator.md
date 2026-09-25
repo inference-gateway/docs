@@ -154,7 +154,7 @@ Deploys the gateway proxy. Source: [`api/v1alpha1/gateway_types.go`](https://git
 | `telemetry.traces.exporter.otlp.endpoint`                                          | Tracing. With `telemetry.enabled: true`, it sets `TELEMETRY_TRACING_ENABLED=true` and `TELEMETRY_TRACING_OTLP_ENDPOINT` on the gateway container.                                          |
 | `mcp.enabled` / `mcp.expose` / `mcp.resourceUrl` / `mcp.toolMode` / `mcp.timeouts` | MCP client configuration. See [MCP Servers (`spec.mcp`)](#mcp-servers-spec-mcp).                                                                                                           |
 | `mcp.servers[]` / `mcp.serviceDiscovery`                                           | Static MCP servers (`name`, `url`, `healthCheck`) and discovery of `MCP` CRs by label selector. Both feed `MCP_SERVERS`.                                                                   |
-| `service.{type,port,annotations}`                                                  | Kubernetes Service for the gateway.                                                                                                                                                        |
+| `service.{type,port,annotations}`                                                  | Kubernetes Service for the gateway. See [Gateway Service (`spec.service`)](#gateway-service-spec-service).                                                                                 |
 | `routing.{enabled,config,configMapRef}`                                            | Gateway-native round-robin model routing (`ROUTING_ENABLED` / `ROUTING_CONFIG_PATH`). Distinct from `gatewayAPI`. See [Model Routing](#model-routing).                                     |
 | `gatewayAPI.{enabled,gateway,httpRoute}`                                           | North-south traffic via the Kubernetes Gateway API (`gateway.networking.k8s.io`). Successor to the removed `ingress` field. See [Routing (Gateway API)](#routing-gateway-api).             |
 | `hpa.{enabled,config}`                                                             | Wraps a `HorizontalPodAutoscalerSpec`. See the [Kubernetes HPA docs](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/) for the `metrics[]` and `behavior` shape. |
@@ -163,6 +163,28 @@ Deploys the gateway proxy. Source: [`api/v1alpha1/gateway_types.go`](https://git
 | `resources.requests` / `resources.limits`                                          | CPU and memory.                                                                                                                                                                            |
 
 Provider env vars referenced via Secrets follow the standard `valueFrom.secretKeyRef` pattern - see [Configuration](/configuration/) for the full list of variables each provider accepts.
+
+### Gateway Service (`spec.service`)
+
+The operator creates a Service for each Gateway. `type` defaults to `ClusterIP`; use `LoadBalancer` (or `NodePort`) to expose the gateway outside the cluster, passing cloud load balancer options via `annotations`:
+
+```yaml
+apiVersion: core.inference-gateway.com/v1alpha1
+kind: Gateway
+metadata:
+  name: my-gateway
+  namespace: inference-gateway
+spec:
+  service:
+    type: LoadBalancer
+    annotations:
+      service.beta.kubernetes.io/aws-load-balancer-type: nlb
+      service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+```
+
+These fields require operator v0.26.1 or later - older operators silently ignore `type` and `annotations` and create the Service as the API server default (`ClusterIP`, no annotations).
+
+`annotations` are authoritative on the operator-owned Service: the reconcile loop matches the Service's annotations to `spec.service.annotations` exactly, so removing a key from the spec removes it from the Service.
 
 ### Agent
 
