@@ -1289,7 +1289,7 @@ Status: 200 OK
 Push usage metrics to the gateway via the OTLP/HTTP protocol. This endpoint is intended for subscription clients that bypass the gateway's inference path.
 
 ```http
-POST /v1/metrics
+POST /metrics
 ```
 
 **Opt-in**: This endpoint requires both `TELEMETRY_ENABLED=true` and `TELEMETRY_METRICS_PUSH_ENABLED=true`. Returns `403 Forbidden` when disabled.
@@ -1306,7 +1306,7 @@ The request body is an OTLP `ExportMetricsServiceRequest` encoded as either:
 Gzip compression is supported via the `Content-Encoding: gzip` header. The maximum decoded payload size is 4 MiB.
 
 ```bash
-curl -X POST http://localhost:8080/v1/metrics \
+curl -X POST http://localhost:8080/metrics \
   -H 'Content-Type: application/json' \
   -d '{
     "resourceMetrics": [{
