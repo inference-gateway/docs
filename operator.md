@@ -25,13 +25,69 @@ The operator is distributed as pre-rendered manifests on each GitHub release. Th
 kubectl apply -f https://github.com/inference-gateway/operator/releases/latest/download/install.yaml
 ```
 
-For production, pin to a release rather than `latest` (the current release is `v0.19.1`):
+For production, pin to a release rather than `latest` (the current release is `v0.26.0`):
 
 ```bash
-kubectl apply -f https://github.com/inference-gateway/operator/releases/download/v0.19.1/install.yaml
+kubectl apply -f https://github.com/inference-gateway/operator/releases/download/v0.26.0/install.yaml
 ```
 
+### GitOps
+
 For GitOps (ArgoCD, Flux), point your source at the operator repository's `manifests/` directory at a tagged ref - it contains the same `install.yaml` and a CRD-only `crds.yaml` for split installs.
+
+```yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: inference-gateway-operator
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/inference-gateway/operator
+    targetRevision: v0.26.0
+    path: manifests
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: inference-gateway-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+```
+
+The equivalent Flux source:
+
+```yaml
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: inference-gateway-operator
+  namespace: flux-system
+spec:
+  interval: 1h
+  url: https://github.com/inference-gateway/operator
+  ref:
+    tag: v0.26.0
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: inference-gateway-operator
+  namespace: flux-system
+spec:
+  interval: 10m
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: inference-gateway-operator
+  path: ./manifests
+  targetNamespace: inference-gateway-system
+```
+
+At a release tag, `manifests/install.yaml` references that release's operator image, so pinning `targetRevision` (ArgoCD) or `ref.tag` (Flux) pins the operator version as well - no need to fall back to the release asset for a pinned install. On `main` the manifest tracks the most recent release.
 
 ## Verification
 
@@ -337,7 +393,7 @@ spec:
 
 `name` is matched case-insensitively against the schema `Provider` enum, so `Llamacpp` resolves to the `llamacpp` provider. `LLAMACPP_API_URL` defaults to `http://llamacpp:8080/v1`; override it (as above) to reach your own `llama-server` Service. Address models with the `llamacpp/` prefix, for example `llamacpp/llama-3.2-3b-instruct`. Ollama follows the same keyless shape with `OLLAMA_API_URL`.
 
-The `llamacpp` provider requires operator `>= v0.19.0` - earlier releases do not recognize it, so pin at least that version when installing (see [Installation](#installation)). The gateway's hybrid example ([`examples/kubernetes/hybrid`](https://github.com/inference-gateway/inference-gateway/tree/main/examples/kubernetes/hybrid)) pins `v0.19.1` and ships the `Llamacpp` block already enabled, so `task deploy-llamacpp` brings up the local llama.cpp path with no manual edit to `gateway.yaml`.
+The `llamacpp` provider requires operator `>= v0.19.0` - earlier releases do not recognize it, so pin at least that version when installing (see [Installation](#installation)). The gateway's hybrid example ([`examples/kubernetes/hybrid`](https://github.com/inference-gateway/inference-gateway/tree/main/examples/kubernetes/hybrid)) pins `v0.25.1` and ships the `Llamacpp` block already enabled, so `task deploy-llamacpp` brings up the local llama.cpp path with no manual edit to `gateway.yaml`.
 
 ## MCP Servers (`spec.mcp`)
 
