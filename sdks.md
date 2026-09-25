@@ -1772,15 +1772,15 @@ client = client.
 
 Retries are on by default: every request method runs through an exponential-backoff loop that retries transient transport errors plus the retryable status codes `408`, `429`, `500`, `502`, `503`, and `504`. On a `429` the client honors the response's `Retry-After` header (seconds or an HTTP-date) instead of its computed backoff. Tune or disable all of this through `ClientOptions.RetryConfig`.
 
-| Field                  | Type                                                | Default                        | Purpose                                                            |
-| ---------------------- | --------------------------------------------------- | ------------------------------ | ------------------------------------------------------------------ |
-| `Enabled`              | `bool`                                              | `true`                         | Master switch; set `false` to issue each request exactly once.     |
-| `MaxAttempts`          | `int`                                               | `3`                            | Total attempts, including the initial request.                     |
-| `InitialBackoffSec`    | `int`                                               | `2`                            | Delay before the first retry, in seconds.                          |
-| `MaxBackoffSec`        | `int`                                               | `30`                           | Ceiling for the computed backoff, in seconds.                      |
-| `BackoffMultiplier`    | `int`                                               | `2`                            | Factor the delay grows by on each attempt.                         |
-| `RetryableStatusCodes` | `[]int`                                             | `408, 429, 500, 502, 503, 504` | Status codes that trigger a retry; replaces the defaults when set. |
-| `OnRetry`              | `func(attempt int, err error, delay time.Duration)` | `nil`                          | Callback fired before each retry - handy for logging.              |
+| Field                  | Type                                                | Default                        | Purpose                                                                                                                        |
+| ---------------------- | --------------------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| `Enabled`              | `bool`                                              | `true`                         | Master switch; set `false` to issue each request exactly once.                                                                 |
+| `MaxAttempts`          | `int`                                               | `3`                            | Total attempts, including the initial request; a value below `1` sends the request exactly once, the same as `Enabled: false`. |
+| `InitialBackoffSec`    | `int`                                               | `2`                            | Delay before the first retry, in seconds.                                                                                      |
+| `MaxBackoffSec`        | `int`                                               | `30`                           | Ceiling for the computed backoff, in seconds.                                                                                  |
+| `BackoffMultiplier`    | `int`                                               | `2`                            | Factor the delay grows by on each attempt.                                                                                     |
+| `RetryableStatusCodes` | `[]int`                                             | `408, 429, 500, 502, 503, 504` | Status codes that trigger a retry; replaces the defaults when set.                                                             |
+| `OnRetry`              | `func(attempt int, err error, delay time.Duration)` | `nil`                          | Callback fired before each retry - handy for logging.                                                                          |
 
 ```go
 client := sdk.NewClient(&sdk.ClientOptions{
