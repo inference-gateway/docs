@@ -161,6 +161,12 @@ const mcpSettings = [
     defaultValue: 'false',
   },
   {
+    variable: 'MCP_RESOURCE_URL',
+    description:
+      'Canonical public URL of POST /mcp, e.g. https://gateway.example.com/mcp. Published as the resource of the OAuth 2.0 Protected Resource Metadata (RFC 9728) document served at /.well-known/oauth-protected-resource/mcp, and pointed at by the resource_metadata of every 401 challenge on /mcp. Defaults to the request scheme (honouring X-Forwarded-Proto) and Host with /mcp appended; set it behind an ingress that rewrites either',
+    defaultValue: '""',
+  },
+  {
     variable: 'MCP_SERVERS',
     description:
       'Comma-separated list of MCP servers as alias=url. Without alias= the alias is derived from the URL host. Aliases must match ^[a-z0-9_-]+$ and namespace the tools as mcp_<alias>_<tool>',
@@ -409,6 +415,8 @@ On Kubernetes the [Operator](/operator/#mcp-servers-spec-mcp) renders this varia
 
 `MCP_EXPOSE=true` (together with `MCP_ENABLED=true`) serves the gateway's own JSON-RPC MCP endpoint at `POST /mcp`, which aggregates every configured server behind one URL. It is covered by the gateway's `AUTH_*` settings like any other route, so with `AUTH_ENABLED=true` clients must send a bearer token. Left at the default `false`, `POST /mcp` answers `403`. See the [MCP guide](/mcp/#gateway-as-an-mcp-server).
 
+`MCP_RESOURCE_URL` is the canonical public URL of `POST /mcp` (`https://gateway.example.com/mcp`). It is published as the `resource` of the [OAuth 2.0 Protected Resource Metadata](/mcp/#protected-resource-metadata-rfc-9728) document at `GET /.well-known/oauth-protected-resource/mcp` and referenced by the `resource_metadata` parameter of every `401` challenge on `/mcp`. Left empty it defaults to the request scheme (honouring `X-Forwarded-Proto`) and `Host` with `/mcp` appended - set it explicitly behind an ingress that rewrites either, otherwise clients discover a URL they cannot reach.
+
 Use `MCP_INCLUDE_TOOLS` and `MCP_EXCLUDE_TOOLS` to control exactly which discovered tools are injected into LLM requests. Both accept a comma-separated list of tool names and default to empty:
 
 - `MCP_INCLUDE_TOOLS` is an allowlist. When empty (the default), all discovered tools are injected. When set, only the listed tools are injected.
@@ -497,6 +505,7 @@ OTEL_EXPORTER_PROMETHEUS_PORT=9464
 # Model Context Protocol (MCP)
 MCP_ENABLED=false
 MCP_EXPOSE=false
+MCP_RESOURCE_URL=
 MCP_SERVERS=
 MCP_INCLUDE_TOOLS=
 MCP_EXCLUDE_TOOLS=

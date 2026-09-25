@@ -103,7 +103,22 @@ WWW-Authenticate: Bearer realm="inference-gateway", error="invalid_token"
 
 `error="invalid_token"` means a token was presented but failed verification: expired, malformed, signed by another issuer, or carrying the wrong audience.
 
-The `Bearer` scheme is matched case-insensitively (`bearer <token>` works), but the scheme is required - a bare JWT with no scheme is rejected. `/health` stays public; every other endpoint requires a token when `AUTH_ENABLED=true`.
+The `Bearer` scheme is matched case-insensitively (`bearer <token>` works), but the scheme is required - a bare JWT with no scheme is rejected. `/health` stays public; so does the MCP metadata document below. Every other endpoint requires a token when `AUTH_ENABLED=true`.
+
+## MCP resource discovery (RFC 9728)
+
+MCP `2026-07-28` requires a protected MCP server to let a client discover the authorization server on its own. With `AUTH_ENABLED=true` and the MCP endpoint exposed (`MCP_ENABLED=true` and `MCP_EXPOSE=true`), the gateway therefore serves an [RFC 9728](https://datatracker.ietf.org/doc/html/rfc9728) Protected Resource Metadata document, unauthenticated, at `GET /.well-known/oauth-protected-resource/mcp`. It returns `404` when either condition is unmet - with no authorization server there is nothing to advertise. The flow:
+
+1. The client calls `POST /mcp` with no token and gets `401` with a `resource_metadata` parameter in the `WWW-Authenticate` challenge, pointing at `/.well-known/oauth-protected-resource/mcp`.
+2. It fetches that document and reads `resource` (the canonical URL of `POST /mcp`) and `authorization_servers` (the issuer identifiers that mint tokens for it - `AUTH_OIDC_ISSUER`).
+3. It discovers the issuer's endpoints from `{issuer}/.well-known/openid-configuration` and requests a token, passing the `resource` value as the [RFC 8707](https://datatracker.ietf.org/doc/html/rfc8707) `resource` parameter so the token is bound to this gateway rather than usable anywhere the client has credentials.
+4. It retries `POST /mcp` with `Authorization: Bearer <token>` (`bearer_methods_supported` is `["header"]` - the gateway reads no other location).
+
+`resource` is `MCP_RESOURCE_URL` when set, and otherwise the request scheme (honouring `X-Forwarded-Proto`) and `Host` with `/mcp` appended. Behind an ingress that rewrites either, set `MCP_RESOURCE_URL` to the canonical public URL clients use, or they discover a URL they cannot reach.
+
+Step 3 is where `AUTH_OIDC_AUDIENCE` comes in: many IdPs stamp the resource indicator into the token's `aud`, and the gateway rejects a token whose `aud` is not in its accepted list. When your IdP does that, add the resource URL to `AUTH_OIDC_AUDIENCE` - it is a comma-separated list, so it can hold both the client id and the resource indicator while other routes keep using client-id-audienced tokens. Providers that ignore the `resource` parameter and keep issuing client-id-audienced tokens need no change.
+
+See the [MCP guide](/mcp/#protected-resource-metadata-rfc-9728) for the document and challenge in full.
 
 ## Keycloak Integration
 

@@ -1216,7 +1216,31 @@ Content-Type: application/json
 
 Protocol errors are returned with HTTP `200` and a JSON-RPC error envelope: `-32700` parse error, `-32600` invalid request, `-32601` method not found, `-32602` invalid params (unknown tool name or bad arguments), `-32603` internal error (upstream MCP server failure or unavailability). Transport-level failures use HTTP status codes - `401` when auth is enabled and the token is missing or invalid, `403` when the MCP surface is not exposed.
 
-The endpoint is covered by the gateway's global auth, so with `AUTH_ENABLED=true` it requires a bearer token like every route except `/health`. See the [MCP guide](/mcp/#gateway-as-an-mcp-server) for a walkthrough and client configuration.
+The endpoint is covered by the gateway's global auth, so with `AUTH_ENABLED=true` it requires a bearer token like every route except `/health` and the metadata document below. See the [MCP guide](/mcp/#gateway-as-an-mcp-server) for a walkthrough and client configuration.
+
+#### MCP Protected Resource Metadata
+
+```http
+GET /.well-known/oauth-protected-resource/mcp
+```
+
+The [RFC 9728](https://datatracker.ietf.org/doc/html/rfc9728) Protected Resource Metadata document for `POST /mcp`, which MCP `2026-07-28` requires every protected MCP server to publish. Served without a token, and referenced by the `resource_metadata` parameter of every `401` challenge on `POST /mcp`.
+
+```json
+{
+  "resource": "https://gateway.example.com/mcp",
+  "authorization_servers": ["https://keycloak.example.com/realms/inference-gateway-realm"],
+  "bearer_methods_supported": ["header"]
+}
+```
+
+| Field                      | Type       | Description                                                           |
+| -------------------------- | ---------- | --------------------------------------------------------------------- |
+| `resource`                 | `string`   | Canonical public URL of the protected resource (`POST /mcp`)          |
+| `authorization_servers`    | `string[]` | Issuer identifiers of the authorization servers minting tokens for it |
+| `bearer_methods_supported` | `string[]` | How a bearer token may be sent; the gateway reads the header only     |
+
+Returns `404` unless `AUTH_ENABLED=true` and the MCP endpoint is exposed (`MCP_ENABLED=true` and `MCP_EXPOSE=true`). `resource` is `MCP_RESOURCE_URL` when set, otherwise the request scheme (honouring `X-Forwarded-Proto`) and `Host` with `/mcp` appended. Tokens must be issued for that resource ([RFC 8707](https://datatracker.ietf.org/doc/html/rfc8707)); see [MCP resource discovery](/authentication/#mcp-resource-discovery-rfc-9728).
 
 #### MCP status endpoints
 
