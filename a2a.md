@@ -91,7 +91,7 @@ First, install and initialize the CLI:
 # Install the CLI
 curl -fsSL https://raw.githubusercontent.com/inference-gateway/cli/main/install.sh | bash
 
-# Initialize your project
+# Seed the userspace baseline in ~/.infer/
 infer init
 
 # Start interactive chat
@@ -154,7 +154,7 @@ infer chat
 For autonomous task execution with A2A agents:
 
 ```bash
-infer agent "Analyze my calendar and suggest optimal meeting times for the team"
+infer headless "Analyze my calendar and suggest optimal meeting times for the team"
 ```
 
 ### A2A Tools
