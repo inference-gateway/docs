@@ -221,15 +221,7 @@ When disabled, the endpoint returns `403 Forbidden`. When enabled, it sits behin
 ### Endpoint
 
 ```
-POST /metrics
-```
-
-This is the gateway's main API port. The Prometheus scrape endpoint is separate - it serves `GET /metrics` on the telemetry port (`TELEMETRY_METRICS_PORT`, default `9464`).
-
-Standard OTLP exporters append `/v1/metrics` to a bare `OTEL_EXPORTER_OTLP_ENDPOINT`, so set the full per-signal URL instead:
-
-```bash
-OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=http://gateway:8080/metrics
+POST /v1/metrics
 ```
 
 Accepts an OTLP `ExportMetricsServiceRequest` encoded as:
@@ -263,7 +255,7 @@ Returns `200 OK` with an OTLP `ExportMetricsServiceResponse`. If any data points
 ### Example
 
 ```bash
-curl -X POST http://localhost:8080/metrics \
+curl -X POST http://localhost:8080/v1/metrics \
   -H 'Content-Type: application/json' \
   -d '{
     "resourceMetrics": [{
@@ -374,7 +366,7 @@ OTEL_RESOURCE_ATTRIBUTES=deployment.environment=production
 
 ### Span coverage
 
-- **Root spans** are created for every inbound request **except** `/health` and `/metrics`, which are excluded to keep health checks and the metrics push endpoint out of your traces.
+- **Root spans** are created for every inbound request **except** `/health` and `/v1/metrics`, which are excluded to keep health checks and the metrics push endpoint out of your traces.
 - **GenAI attributes** (`gen_ai` provider and model span attributes) are attached on the inference routes `/v1/chat/completions`, `/v1/messages`, and `/v1/responses`, so a span records which provider and model served the request.
 - **MCP tool execution** produces one child span per tool call - `execute_tool <namespaced name>`, carrying the resolved `mcp.server.alias` - nested under the request's root span. A `tools/call` on `POST /mcp` is traced the same way as a tool call made inside the chat-completions agent loop.
 
