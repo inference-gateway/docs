@@ -43,7 +43,7 @@ const guardrailsSettings = [
 ];
 
 const serverSettings = [
-  { variable: 'SERVER_HOST', description: 'Server bind address. Loopback by default; the published container images set SERVER_HOST=0.0.0.0', defaultValue: '127.0.0.1' },
+  { variable: 'SERVER_HOST', description: 'Server bind address. Loopback by default; containers must use 0.0.0.0, which the published images set for you unless an env_file or ConfigMap overrides it', defaultValue: '127.0.0.1' },
   { variable: 'SERVER_PORT', description: 'Server port', defaultValue: '8080' },
   { variable: 'SERVER_MAX_REQUEST_BODY_SIZE', description: 'Maximum request body size in bytes (10 MiB)', defaultValue: '10485760' },
   { variable: 'SERVER_READ_TIMEOUT', description: 'Read timeout', defaultValue: '30s' },
@@ -298,6 +298,8 @@ These settings control the core HTTP server behavior:
 
 `SERVER_HOST` defaults to `127.0.0.1`, so a gateway started from a release binary listens on loopback only. Set `SERVER_HOST=0.0.0.0` to accept connections from other hosts or from inside a container network. The published container images already set `SERVER_HOST=0.0.0.0` for you.
 
+Containerized deployments - Docker, Docker Compose, Kubernetes - must end up with `SERVER_HOST=0.0.0.0`. Bound to loopback, the gateway answers only inside the container's own network namespace, so a published port or a Service in front of it refuses the connection. The image default already covers this, but any explicitly supplied value wins over it: a Compose `env_file` or `environment:` entry, a Kubernetes ConfigMap key, or a Helm value carrying `SERVER_HOST=127.0.0.1` puts the gateway back on loopback. Either set `0.0.0.0` there too or leave `SERVER_HOST` out of the container's environment entirely. The process default stays `127.0.0.1` - it only applies when you run the binary directly.
+
 For production deployments, it's strongly recommended to configure TLS:
 
 ```bash
@@ -532,7 +534,8 @@ AUTH_OIDC_ISSUER=
 AUTH_OIDC_CLIENT_ID=
 AUTH_OIDC_AUDIENCE=
 # Server settings
-# 127.0.0.1 is the gateway default; the published container images set 0.0.0.0
+# 127.0.0.1 is the gateway default; containers need 0.0.0.0, and a value passed
+# in through an env_file or ConfigMap overrides the image default
 SERVER_HOST=0.0.0.0
 SERVER_PORT=8080
 SERVER_MAX_REQUEST_BODY_SIZE=10485760

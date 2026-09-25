@@ -193,4 +193,20 @@ ANY /proxy/{provider}/{path}
    kubectl rollout restart deploy/inference-gateway
    ```
 
+### The container starts and looks healthy, but the published port refuses connections
+
+**Symptom.** `docker compose up` reports the gateway as running, the logs show it listening, yet `curl http://localhost:8080/health` from the host fails with a connection reset or refused. In Kubernetes the pod is ready but the Service never answers.
+
+**Likely cause.** `SERVER_HOST` is `127.0.0.1`, so the gateway is bound to the container's own loopback interface and nothing outside the network namespace can reach it. The published images default to `0.0.0.0`, but an explicit value wins over the image default - a Compose `env_file` (an older `.env.example` copy), an `environment:` entry, or a ConfigMap key carrying `127.0.0.1`.
+
+**Fix.** Set `SERVER_HOST=0.0.0.0` wherever that value comes from, or drop `SERVER_HOST` from the container's environment so the image default applies:
+
+```bash
+# Docker
+docker exec inference-gateway env | grep SERVER_HOST
+
+# Kubernetes
+kubectl exec deploy/inference-gateway -- env | grep SERVER_HOST
+```
+
 See [Configuration](/configuration/) for the canonical list of variables and their defaults.
