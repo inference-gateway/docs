@@ -31,7 +31,63 @@ For production, pin to a release rather than `latest` (the current release is `v
 kubectl apply -f https://github.com/inference-gateway/operator/releases/download/v0.19.1/install.yaml
 ```
 
+### GitOps
+
 For GitOps (ArgoCD, Flux), point your source at the operator repository's `manifests/` directory at a tagged ref - it contains the same `install.yaml` and a CRD-only `crds.yaml` for split installs.
+
+```yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: inference-gateway-operator
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/inference-gateway/operator
+    targetRevision: v0.19.1
+    path: manifests
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: inference-gateway-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+```
+
+The equivalent Flux source:
+
+```yaml
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: inference-gateway-operator
+  namespace: flux-system
+spec:
+  interval: 1h
+  url: https://github.com/inference-gateway/operator
+  ref:
+    tag: v0.19.1
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: inference-gateway-operator
+  namespace: flux-system
+spec:
+  interval: 10m
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: inference-gateway-operator
+  path: ./manifests
+  targetNamespace: inference-gateway-system
+```
+
+At a release tag, `manifests/install.yaml` references that release's operator image, so pinning `targetRevision` (ArgoCD) or `ref.tag` (Flux) pins the operator version as well - no need to fall back to the release asset for a pinned install. On `main` the manifest tracks the most recent release.
 
 ## Verification
 
