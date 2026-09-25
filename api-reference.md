@@ -1261,14 +1261,7 @@ Returns `404` unless `AUTH_ENABLED=true` and the MCP endpoint is exposed (`MCP_E
 
 #### MCP status endpoints
 
-Two REST endpoints sit alongside the JSON-RPC surface, both requiring `MCP_ENABLED=true` and `MCP_EXPOSE=true`:
-
-```http
-GET /v1/mcp/tools
-GET /v1/mcp/health
-```
-
-`GET /v1/mcp/tools` returns a [`ListToolsResponse`](#listtoolsresponse) listing the discovered tools with their namespaced names and owning server alias. It is superseded by the `tools/list` method above and is being removed - use `POST /mcp` for new clients. `GET /v1/mcp/health` reports the health of each connected MCP server.
+There are none. The gateway registers no `/v1/mcp/*` routes, so a request there falls through to the `404` handler. Discover tools with the `tools/list` method of [`POST /mcp`](#mcp-server-json-rpc) - it returns the tools of the healthy servers and skips unreachable ones - and point probes at [`GET /health`](#health-check).
 
 ### Health Check
 
@@ -2003,27 +1996,6 @@ Additional metadata that may be attached to a tool call response (e.g., extended
 | --------- | -------- | ---------------------------------------- |
 | `type`    | `string` | Content type identifier                  |
 | `content` | `string` | The extra content (e.g., thinking trace) |
-
-### MCP Tool Schemas
-
-#### `ListToolsResponse`
-
-Returned by `GET /v1/mcp/tools` when `MCP_EXPOSE=true`. Lists all tools discovered from connected MCP servers. This listing is superseded by the `tools/list` method of [`POST /mcp`](#mcp-server-json-rpc) and is being removed.
-
-| Field   | Type        | Description                               |
-| ------- | ----------- | ----------------------------------------- |
-| `tools` | `MCPTool[]` | Array of tools available from MCP servers |
-
-#### `MCPTool`
-
-Describes a single tool exposed by an MCP server.
-
-| Field         | Type     | Description                                        |
-| ------------- | -------- | -------------------------------------------------- |
-| `name`        | `string` | Namespaced tool name, `mcp_<alias>_<tool name>`    |
-| `description` | `string` | Human-readable description of what the tool does   |
-| `server`      | `string` | Alias of the MCP server that provides this tool    |
-| `inputSchema` | `object` | JSON Schema describing the tool's input parameters |
 
 ## OpenAPI Specification
 

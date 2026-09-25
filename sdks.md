@@ -19,7 +19,7 @@ All four SDKs target the same gateway endpoints, so the choice is driven by your
 | Streaming (SSE)        | Yes    | Yes        | Yes | Yes  |
 | Tool / function calls  | Yes    | Yes        | Yes | Yes  |
 | Vision (image input)   | Yes    | Yes        | Yes | Yes  |
-| MCP tools (list)       | Yes    | Yes        | Yes | Yes  |
+| MCP JSON-RPC client    | Yes    | Yes        | Yes | Yes  |
 | Reasoning content      | Yes    | Yes        | Yes | Yes  |
 | Proxy passthrough      | Yes    | Yes        | No  | No   |
 | Built-in retry/backoff | No     | No         | Yes | No   |
@@ -27,7 +27,7 @@ All four SDKs target the same gateway endpoints, so the choice is driven by your
 
 A2A is a gateway-side capability today and is consumed via raw HTTP / JSON-RPC against the gateway's `/a2a/*` endpoints rather than a typed SDK surface; see the [A2A page](/a2a/) for the wire format.
 
-MCP tools are managed server-side. The SDKs expose `list_tools` for discovery and surface tool-call deltas during streaming; you do not need to ship per-tool client glue. Set `MCP_ENABLED=true` and `MCP_EXPOSE=true` on the gateway to enable the listing endpoint.
+MCP tools are managed server-side. The SDKs surface tool-call deltas during streaming, so you do not need to ship per-tool client glue, and they wrap the gateway's own MCP endpoint - discovery is the `tools/list` method of [`POST /mcp`](/api-reference/#mcp-server-json-rpc), not a REST listing. Set `MCP_ENABLED=true` and `MCP_EXPOSE=true` on the gateway to expose that endpoint.
 
 Reasoning content is emitted by reasoning-capable models rather than toggled by a dedicated flag: every SDK surfaces `reasoning` and `reasoning_content` on the streaming delta, and the TypeScript SDK adds an `onReasoning` callback. The shared `reasoning_format` request field (`raw` or `parsed`) controls whether think-tags stay inline or are split into `reasoning_content`.
 
@@ -539,7 +539,7 @@ See the [sound effects](/api-reference/#sound-effects) and [music](/api-referenc
 
 ### Models, tools, and health
 
-`list_models` returns every model across configured providers, or a single provider's catalog when you pass `provider=`. `list_tools` enumerates gateway-managed MCP tools and requires MCP to be exposed (`MCP_ENABLED=true` and `MCP_EXPOSE=true`); otherwise the call raises `InferenceGatewayAPIError`. `health_check` probes the gateway and returns a `bool` - it swallows transport errors and returns `False` rather than raising.
+`list_models` returns every model across configured providers, or a single provider's catalog when you pass `provider=`. `mcp_jsonrpc(method, params=None, request_id=1, client_info=None)` calls the gateway's MCP endpoint (`POST /mcp`) - use `tools/list` to discover tools and `tools/call` to run one; it requires MCP to be exposed (`MCP_ENABLED=true` and `MCP_EXPOSE=true`), otherwise the call raises `InferenceGatewayAPIError`. The endpoint lives at the root, so a `/v1` suffix on the base URL is stripped for you, and the `params._meta` block and MCP headers the protocol requires are filled in automatically. `get_mcp_protected_resource_metadata` fetches the [RFC 9728](https://datatracker.ietf.org/doc/html/rfc9728) document for that endpoint. `health_check` probes the gateway and returns a `bool` - it swallows transport errors and returns `False` rather than raising.
 
 ```python
 from inference_gateway import InferenceGatewayClient
@@ -560,9 +560,26 @@ openai_models = client.list_models(provider='openai')
 nvidia_models = client.list_models(provider='nvidia')
 
 # MCP tools (requires MCP exposed on the gateway).
-tools = client.list_tools()
-for tool in tools.data:
-    print(f'tool: {tool.name} (server: {tool.server})')
+response = client.mcp_jsonrpc('tools/list')
+for tool in response.result['tools']:
+    print('tool:', tool['name'])
+
+# Run one of them.
+call = client.mcp_jsonrpc(
+    'tools/call',
+    params={
+        'name': 'mcp_deepwiki_ask_question',
+        'arguments': {
+            'repoName': 'inference-gateway/inference-gateway',
+            'question': 'How is MCP wired up?',
+        },
+    },
+)
+print('content:', call.result['content'] if call.error is None else call.error)
+
+# Who mints tokens for POST /mcp (needs AUTH_ENABLED=true).
+metadata = client.get_mcp_protected_resource_metadata()
+print('authorization servers:', metadata.authorization_servers)
 ```
 
 `list_models` accepts a `Provider` or a plain string; `model.served_by` is a `Provider`, so read its string via `.root`.
@@ -1057,7 +1074,7 @@ The request bodies are `SchemaCreateSfxRequest` and `SchemaCreateMusicRequest`; 
 
 ### Models, tools, and health
 
-`listModels(provider?, include?)` returns every model across configured providers, or a single provider's catalog when you pass a `Provider`. The optional `include` array requests additional per-model metadata - pass `'context_window'` to populate `model.context_window`, `'pricing'` for pricing data, or both. `listTools` enumerates MCP tools and only resolves when MCP is exposed on the gateway - an un-exposed gateway answers `403 Forbidden`. `healthCheck` probes the gateway's root `/health` endpoint and resolves to a boolean rather than throwing.
+`listModels(provider?, include?)` returns every model across configured providers, or a single provider's catalog when you pass a `Provider`. The optional `include` array requests additional per-model metadata - pass `'context_window'` to populate `model.context_window`, `'pricing'` for pricing data, or both. `mcpJsonRpc(request)` calls the gateway's MCP endpoint (`POST /mcp`) with a `SchemaMcpjsonrpcRequest` - `tools/list` to discover tools, `tools/call` to run one - and only resolves when MCP is exposed on the gateway; an un-exposed gateway answers `403 Forbidden`. The endpoint lives at the root, so the `/v1` suffix is stripped from the base URL for you, and the `params._meta` entries and MCP headers the protocol requires are derived from the request. JSON-RPC-level failures come back as an `error` envelope rather than throwing. `getMCPProtectedResourceMetadata` fetches the [RFC 9728](https://datatracker.ietf.org/doc/html/rfc9728) document for that endpoint. `healthCheck` probes the gateway's root `/health` endpoint and resolves to a boolean rather than throwing.
 
 ```typescript
 import { InferenceGatewayClient, Provider } from '@inference-gateway/sdk';
@@ -1102,10 +1119,35 @@ for (const model of groqModels.data) {
 }
 
 // MCP tools (requires MCP exposed on the gateway).
-const tools = await client.listTools();
-for (const tool of tools.data) {
-  console.log(`tool: ${tool.name} (server: ${tool.server})`);
+const listed = await client.mcpJsonRpc({
+  jsonrpc: '2.0',
+  id: 1,
+  method: 'tools/list',
+});
+// `result` is an untyped JSON object, so narrow it to the shape you need.
+const tools = (listed.result?.tools ?? []) as { name: string }[];
+for (const tool of tools) {
+  console.log('tool:', tool.name);
 }
+
+// Run one of them.
+const called = await client.mcpJsonRpc({
+  jsonrpc: '2.0',
+  id: 2,
+  method: 'tools/call',
+  params: {
+    name: 'mcp_deepwiki_ask_question',
+    arguments: {
+      repoName: 'inference-gateway/inference-gateway',
+      question: 'How is MCP wired up?',
+    },
+  },
+});
+console.log(called.error ?? called.result);
+
+// Who mints tokens for POST /mcp (needs AUTH_ENABLED=true).
+const metadata = await client.getMCPProtectedResourceMetadata();
+console.log('authorization servers:', metadata.authorization_servers);
 ```
 
 ### Proxy passthrough
@@ -1542,7 +1584,7 @@ See the [Audio API reference](/api-reference/#audio-api) for the endpoint-level 
 
 ### Models, tools, and health
 
-`ListModels` returns every model across all configured providers, while `ListProviderModels` scopes the listing to a single `Provider`. `ListTools` enumerates gateway-managed MCP tools from the `/mcp/tools` endpoint and requires MCP to be exposed (`MCP_ENABLED=true` and `MCP_EXPOSE=true`); otherwise it returns an error. Unlike the other SDKs, Go's `HealthCheck` returns an `error` rather than a `bool` - it probes the gateway's root `/health` endpoint and returns `nil` when the gateway is healthy.
+`ListModels` returns every model across all configured providers, while `ListProviderModels` scopes the listing to a single `Provider`. `MCPJSONRPC` calls the gateway's MCP endpoint (`POST /mcp`) - build the request with `sdk.NewMCPJSONRPCRequest(id, method, params)` using `sdk.ToolsList` to discover tools or `sdk.ToolsCall` to run one - and requires MCP to be exposed (`MCP_ENABLED=true` and `MCP_EXPOSE=true`); otherwise it returns an error. JSON-RPC-level failures arrive in the envelope's `Error` field rather than as a Go error, and the `_meta` block and MCP headers the protocol requires are derived from the request. `GetMCPProtectedResourceMetadata` fetches the [RFC 9728](https://datatracker.ietf.org/doc/html/rfc9728) document for that endpoint. Unlike the other SDKs, Go's `HealthCheck` returns an `error` rather than a `bool` - it probes the gateway's root `/health` endpoint and returns `nil` when the gateway is healthy.
 
 ```go
 client := sdk.NewClient(&sdk.ClientOptions{
@@ -1579,13 +1621,46 @@ if err != nil {
 fmt.Printf("provider: %s\n", *nvidiaModels.Provider)
 
 // MCP tools (requires MCP exposed on the gateway).
-tools, err := client.ListTools(ctx)
+listReq, err := sdk.NewMCPJSONRPCRequest(1, sdk.ToolsList, nil)
 if err != nil {
-    log.Fatalf("list tools: %v", err)
+    log.Fatalf("build tools/list: %v", err)
 }
-for _, tool := range tools.Data {
-    fmt.Printf("tool: %s (server: %s)\n", tool.Name, tool.Server)
+listed, err := client.MCPJSONRPC(ctx, listReq)
+if err != nil {
+    log.Fatalf("tools/list: %v", err)
 }
+// Result is an untyped JSON object, so assert the shape you need.
+if tools, ok := (*listed.Result)["tools"].([]any); ok {
+    for _, tool := range tools {
+        fmt.Printf("tool: %v\n", tool.(map[string]any)["name"])
+    }
+}
+
+// Run one of them.
+callReq, err := sdk.NewMCPJSONRPCRequest(2, sdk.ToolsCall, map[string]any{
+    "name": "mcp_deepwiki_ask_question",
+    "arguments": map[string]any{
+        "repoName": "inference-gateway/inference-gateway",
+        "question": "How is MCP wired up?",
+    },
+})
+if err != nil {
+    log.Fatalf("build tools/call: %v", err)
+}
+called, err := client.MCPJSONRPC(ctx, callReq)
+if err != nil {
+    log.Fatalf("tools/call: %v", err)
+}
+if called.Error != nil {
+    log.Fatalf("tool call failed: %s", called.Error.Message)
+}
+
+// Who mints tokens for POST /mcp (needs AUTH_ENABLED=true).
+metadata, err := client.GetMCPProtectedResourceMetadata(ctx)
+if err != nil {
+    log.Fatalf("protected resource metadata: %v", err)
+}
+fmt.Printf("authorization servers: %v\n", metadata.AuthorizationServers)
 ```
 
 `ListModelsResponse.Provider` is a `*Provider`, so dereference it (`*groqModels.Provider`) when you read the scoped listing's provider back.
@@ -2241,13 +2316,14 @@ async fn main() -> Result<(), GatewayError> {
 
 ### Models, tools, and health
 
-The `InferenceGatewayAPI` trait also exposes discovery and health probes. `list_models` returns every model across all configured providers, while `list_models_by_provider` scopes the listing to one `Provider`. `list_tools` enumerates MCP tools and requires MCP to be exposed on the gateway - an un-exposed gateway answers `403 Forbidden`. `health_check` resolves to a `bool` and probes the gateway's root `/health` endpoint rather than the versioned API path.
+The `InferenceGatewayAPI` trait also exposes discovery and health probes. `list_models` returns every model across all configured providers, while `list_models_by_provider` scopes the listing to one `Provider`. `mcp_json_rpc` calls the gateway's MCP endpoint (`POST /mcp`) - build the envelope with `McpjsonrpcRequest::tools_list`, `McpjsonrpcRequest::tools_call` or `McpjsonrpcRequest::server_discover`, which fill in the `_meta` block, and the MCP headers are derived from it. It requires MCP to be exposed on the gateway - an un-exposed gateway answers `403 Forbidden` (`GatewayError::Forbidden`) - and JSON-RPC-level failures come back with `McpjsonrpcResponse::error` set rather than as a `GatewayError`. `mcp_protected_resource_metadata` fetches the [RFC 9728](https://datatracker.ietf.org/doc/html/rfc9728) document for that endpoint. `health_check` resolves to a `bool` and probes the gateway's root `/health` endpoint rather than the versioned API path.
 
 ```rust
 use inference_gateway_sdk::{
     GatewayError, InferenceGatewayAPI, InferenceGatewayClient, ListModelsResponse,
-    ListToolsResponse, Provider,
+    McpjsonrpcRequest, Provider,
 };
+use serde_json::json;
 
 #[tokio::main]
 async fn main() -> Result<(), GatewayError> {
@@ -2270,10 +2346,33 @@ async fn main() -> Result<(), GatewayError> {
     println!("provider: {:?}", groq.provider);
 
     // MCP tools (requires MCP exposed on the gateway).
-    let tools: ListToolsResponse = client.list_tools().await?;
-    for tool in tools.data {
-        println!("tool: {} (server: {})", tool.name, tool.server);
+    let listed = client
+        .mcp_json_rpc(McpjsonrpcRequest::tools_list(None))
+        .await?;
+    // `result` is an untyped JSON object, so pull out the shape you need.
+    if let Some(tools) = listed.result.get("tools").and_then(|t| t.as_array()) {
+        for tool in tools {
+            println!("tool: {}", tool["name"]);
+        }
     }
+
+    // Run one of them.
+    let called = client
+        .mcp_json_rpc(McpjsonrpcRequest::tools_call(
+            "mcp_deepwiki_ask_question",
+            json!({
+                "repoName": "inference-gateway/inference-gateway",
+                "question": "How is MCP wired up?",
+            }),
+        ))
+        .await?;
+    if let Some(error) = called.error {
+        eprintln!("tool call failed: {}", error.message);
+    }
+
+    // Who mints tokens for POST /mcp (needs AUTH_ENABLED=true).
+    let metadata = client.mcp_protected_resource_metadata().await?;
+    println!("authorization servers: {:?}", metadata.authorization_servers);
 
     Ok(())
 }
