@@ -11,6 +11,7 @@ const generalSettings = [
   { variable: 'VISION_ENABLED', description: 'Enable vision/multimodal handling for all providers. When enabled, image content is stripped from requests to models known to accept only non-image input; unknown models are passed through. When disabled, image content is forwarded to the provider untouched', defaultValue: 'false' },
   { variable: 'IMAGES_ENABLED', description: 'Enable the Images API (POST /v1/images/generations and /v1/images/edits). When disabled, the endpoints return a 404', defaultValue: 'false' },
   { variable: 'AUDIO_ENABLED', description: 'Enable the Audio API (POST /v1/audio/speech, /v1/audio/sfx and /v1/audio/music). When disabled, the endpoints return a 404. Speech is served by the openai and elevenlabs providers and by the local llama-tts engine (local/qwen3-tts); sound effects and music are served by elevenlabs only; llamacpp speech is a work in progress and not supported yet', defaultValue: 'false' },
+  { variable: 'VIDEOS_ENABLED', description: 'Enable the Videos API (POST /v1/videos, GET /v1/videos/{video_id} and GET /v1/videos/{video_id}/content). When disabled, the endpoints return a 404', defaultValue: 'false' },
   { variable: 'AUDIO_LOCAL_AUTO_DOWNLOAD', description: 'Allow the local speech engine to download the llama-tts binary and Qwen3-TTS GGUF weights on demand', defaultValue: 'true' },
   { variable: 'AUDIO_LOCAL_MAX_CONCURRENCY', description: 'Maximum concurrent local syntheses; requests beyond the limit queue rather than fail', defaultValue: '2' },
   { variable: 'AUDIO_LOCAL_TIMEOUT', description: 'Timeout in seconds for a single local synthesis, surfaced as a 504', defaultValue: '300' },
@@ -25,9 +26,6 @@ const telemetrySettings = [
   { variable: 'TELEMETRY_METRICS_PORT', description: 'Port for telemetry metrics server', defaultValue: '9464' },
   { variable: 'TELEMETRY_TRACING_ENABLED', description: 'Emit OpenTelemetry tracing spans (requires TELEMETRY_ENABLED)', defaultValue: 'false' },
   { variable: 'TELEMETRY_TRACING_OTLP_ENDPOINT', description: 'OTLP/HTTP endpoint for trace export', defaultValue: 'http://localhost:4318' },
-  { variable: 'OTEL_METRICS_EXPORTER', description: 'Metrics exporter mode: otlp (push), prometheus (pull), or none', defaultValue: 'otlp' },
-  { variable: 'OTEL_EXPORTER_PROMETHEUS_HOST', description: 'Prometheus pull endpoint bind host', defaultValue: '0.0.0.0' },
-  { variable: 'OTEL_EXPORTER_PROMETHEUS_PORT', description: 'Prometheus pull endpoint port', defaultValue: '9464' },
 ];
 
 const oidcSettings = [
@@ -45,8 +43,9 @@ const guardrailsSettings = [
 ];
 
 const serverSettings = [
-  { variable: 'SERVER_HOST', description: 'Server host', defaultValue: '0.0.0.0' },
+  { variable: 'SERVER_HOST', description: 'Server bind address. Loopback by default; the published container images set SERVER_HOST=0.0.0.0', defaultValue: '127.0.0.1' },
   { variable: 'SERVER_PORT', description: 'Server port', defaultValue: '8080' },
+  { variable: 'SERVER_MAX_REQUEST_BODY_SIZE', description: 'Maximum request body size in bytes (10 MiB)', defaultValue: '10485760' },
   { variable: 'SERVER_READ_TIMEOUT', description: 'Read timeout', defaultValue: '30s' },
   { variable: 'SERVER_WRITE_TIMEOUT', description: 'Write timeout', defaultValue: '30s' },
   { variable: 'SERVER_IDLE_TIMEOUT', description: 'Idle timeout', defaultValue: '120s' },
@@ -193,7 +192,7 @@ const mcpSettings = [
 ];
 
 const loggingSettings = [
-  { variable: 'LOG_LEVEL', description: 'Set logging level (debug, info, warn, error)', defaultValue: 'info' },
+  { variable: 'ENVIRONMENT', description: 'Log verbosity is derived from the deployment environment: development selects zap\'s development config (debug level and human-readable output), any other value selects the JSON production config (info level)', defaultValue: 'production' },
 ];
 </script>
 
@@ -223,7 +222,7 @@ Environment variables are the primary method for configuring Inference Gateway. 
 
 `VISION_ENABLED` controls whether the gateway inspects image content in chat completion requests. When disabled (the default), the gateway does not look at image content at all - image parts are forwarded to the provider untouched. When set to `true`, the gateway checks each request's model against the community modalities table: image parts are stripped only for models the table lists as accepting non-image input only (the request continues with the text parts only). Models the table does not cover are treated as image-capable and passed through. Either way, the gateway never rejects a request because it contains an image.
 
-`IMAGES_ENABLED` and `AUDIO_ENABLED` are separate opt-ins for the [Images API](/api-reference/#images-api) and the [Audio API](/api-reference/#audio-api). While they are `false`, those endpoints return `404`. Only providers that implement the corresponding API can serve them (currently `openai`, plus the built-in `local/qwen3-tts` engine for speech); other providers return `400`. The `llamacpp` provider has a speech endpoint wired in the gateway registry, but that path is a work in progress and is not supported yet.
+`IMAGES_ENABLED`, `AUDIO_ENABLED` and `VIDEOS_ENABLED` are separate opt-ins for the [Images API](/api-reference/#images-api), the [Audio API](/api-reference/#audio-api) and the Videos API. While they are `false`, those endpoints return `404`. Only providers that implement the corresponding API can serve them; other providers return `400`. Audio is served by `openai` (speech) and `elevenlabs` (speech, sound effects and music), plus the built-in `local/qwen3-tts` engine for speech. The `llamacpp` provider has a speech endpoint wired in the gateway registry, but that path is a work in progress and is not supported yet.
 
 The `AUDIO_LOCAL_*` variables tune the built-in [local speech engine](/api-reference/#local-speech-engine-local-qwen3-tts) that serves the reserved model id `local/qwen3-tts` without any provider. They are ignored when the request routes to a provider.
 
@@ -233,7 +232,7 @@ These settings control telemetry and metrics exposure:
 
 <ConfigTable :rows="telemetrySettings" />
 
-When `TELEMETRY_ENABLED` is set to `true`, Inference Gateway exposes a `/metrics` endpoint for Prometheus scraping. Distributed tracing is a separate opt-in: set `TELEMETRY_TRACING_ENABLED=true` (alongside `TELEMETRY_ENABLED=true`) to emit spans, and point `TELEMETRY_TRACING_OTLP_ENDPOINT` at your OTLP/HTTP collector (default `http://localhost:4318`). Sampling and exporter tuning use the standard `OTEL_TRACES_SAMPLER` / `OTEL_EXPORTER_OTLP_*` variables. See the [Distributed Tracing](/observability/#distributed-tracing) section for span coverage and context propagation.
+When `TELEMETRY_ENABLED` is set to `true`, the gateway always installs the Prometheus exporter and serves pull metrics at `/metrics` on `TELEMETRY_METRICS_PORT`. There is no exporter selection to make: the `OTEL_METRICS_EXPORTER` and `OTEL_EXPORTER_PROMETHEUS_*` variables are read by the [Go](/adk/) and [TypeScript](/typescript-adk/) ADKs, not by the gateway. Distributed tracing is a separate opt-in: set `TELEMETRY_TRACING_ENABLED=true` (alongside `TELEMETRY_ENABLED=true`) to emit spans, and point `TELEMETRY_TRACING_OTLP_ENDPOINT` at your OTLP/HTTP collector (default `http://localhost:4318`). Sampling and exporter tuning use the standard `OTEL_TRACES_SAMPLER` / `OTEL_EXPORTER_OTLP_*` variables. See the [Distributed Tracing](/observability/#distributed-tracing) section for span coverage and context propagation.
 
 When `TELEMETRY_METRICS_PUSH_ENABLED` is also set to `true` (alongside `TELEMETRY_ENABLED=true`), the gateway exposes an OTLP/HTTP metrics push endpoint at `POST /v1/metrics`. This allows subscription clients that bypass the gateway's inference path to push their usage metrics. See the [Observability](/observability/#pushing-metrics-otlp) page for details.
 
@@ -296,6 +295,8 @@ main := {"action": "block", "message": "that tool is off limits"} if {
 These settings control the core HTTP server behavior:
 
 <ConfigTable :rows="serverSettings" />
+
+`SERVER_HOST` defaults to `127.0.0.1`, so a gateway started from a release binary listens on loopback only. Set `SERVER_HOST=0.0.0.0` to accept connections from other hosts or from inside a container network. The published container images already set `SERVER_HOST=0.0.0.0` for you.
 
 For production deployments, it's strongly recommended to configure TLS:
 
@@ -491,6 +492,9 @@ Here's a comprehensive example for configuring Inference Gateway in a production
 ENVIRONMENT=production
 ALLOWED_MODELS=
 VISION_ENABLED=false
+IMAGES_ENABLED=false
+AUDIO_ENABLED=false
+VIDEOS_ENABLED=false
 DEBUG_CONTENT_TRUNCATE_WORDS=10
 DEBUG_MAX_MESSAGES=100
 # Telemetry
@@ -499,9 +503,6 @@ TELEMETRY_METRICS_PUSH_ENABLED=false
 TELEMETRY_METRICS_PORT=9464
 TELEMETRY_TRACING_ENABLED=false
 TELEMETRY_TRACING_OTLP_ENDPOINT=http://localhost:4318
-OTEL_METRICS_EXPORTER=otlp
-OTEL_EXPORTER_PROMETHEUS_HOST=0.0.0.0
-OTEL_EXPORTER_PROMETHEUS_PORT=9464
 # Model Context Protocol (MCP)
 MCP_ENABLED=false
 MCP_EXPOSE=false
@@ -531,8 +532,10 @@ AUTH_OIDC_ISSUER=
 AUTH_OIDC_CLIENT_ID=
 AUTH_OIDC_AUDIENCE=
 # Server settings
+# 127.0.0.1 is the gateway default; the published container images set 0.0.0.0
 SERVER_HOST=0.0.0.0
 SERVER_PORT=8080
+SERVER_MAX_REQUEST_BODY_SIZE=10485760
 SERVER_READ_TIMEOUT=30s
 SERVER_WRITE_TIMEOUT=30s
 SERVER_IDLE_TIMEOUT=120s

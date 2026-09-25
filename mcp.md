@@ -751,8 +751,10 @@ The inspector provides:
 Enable debug logging for MCP operations:
 
 ```bash
-LOG_LEVEL=debug
+ENVIRONMENT=development
 ```
+
+The gateway derives log verbosity from `ENVIRONMENT`: `development` turns on debug-level logging, any other value logs at info level in JSON.
 
 This will log:
 

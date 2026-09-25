@@ -32,7 +32,7 @@ The metrics port is separate from the main API port. Do not expose `9464` to the
 
 ### Metrics Exporter Selection
 
-The `OTEL_METRICS_EXPORTER` environment variable controls how metrics are exported. It accepts the same values as the standard OpenTelemetry SDK and is supported by the Go ADK, TypeScript ADK, and the gateway itself:
+The `OTEL_METRICS_EXPORTER` environment variable controls how metrics are exported. It accepts the same values as the standard OpenTelemetry SDK and is read by the Go ADK and the TypeScript ADK. The gateway itself does not read it: it always installs the Prometheus exporter and serves pull metrics on `TELEMETRY_METRICS_PORT`.
 
 | Value        | Behaviour                                                                                                                    |
 | ------------ | ---------------------------------------------------------------------------------------------------------------------------- |
