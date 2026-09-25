@@ -572,6 +572,8 @@ CLOUDFLARE_API_KEY=
 OLLAMA_API_URL=http://ollama:8080/v1
 OLLAMA_CLOUD_API_URL=https://ollama.com/v1
 OLLAMA_CLOUD_API_KEY=
+LLAMACPP_API_URL=http://llamacpp:8080/v1
+LLAMACPP_API_KEY=
 GOOGLE_API_URL=https://generativelanguage.googleapis.com/v1beta/openai
 GOOGLE_API_KEY=
 MISTRAL_API_URL=https://api.mistral.ai/v1
@@ -584,6 +586,8 @@ NVIDIA_API_URL=https://integrate.api.nvidia.com/v1
 NVIDIA_API_KEY=
 ZAI_API_URL=https://api.z.ai/api/paas/v4
 ZAI_API_KEY=
+ELEVENLABS_API_URL=https://api.elevenlabs.io/v1
+ELEVENLABS_API_KEY=
 ```
 
 ## Configuration Best Practices
