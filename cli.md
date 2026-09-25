@@ -2458,7 +2458,7 @@ The CLI provides built-in shortcuts and supports custom user-defined shortcuts.
 | `/init`               | Generate AGENTS.md documentation                                                                   | `/init`                                   |
 | `/init-github-action` | Setup GitHub Action integration                                                                    | `/init-github-action`                     |
 | `/git <cmd>`          | Git operations                                                                                     | `/git status`, `/git commit`, `/git push` |
-| `/scm <cmd>`          | GitHub operations                                                                                  | `/scm pr-create`, `/scm issue view 123`   |
+| `/scm <cmd>`          | GitHub operations                                                                                  | `/scm pr-create`, `/scm issue 123`        |
 | `/model [name] [msg]` | Switch the active model, or run one message with another model (replaces `/switch`)                | `/model deepseek/deepseek-v4-flash`       |
 | `/a2a`                | View registered A2A agents and their connection state                                              | `/a2a`                                    |
 | `/tasks`              | View background work (A2A tasks, shells, subagents) with live status and captured output           | `/tasks`                                  |
@@ -2488,9 +2488,11 @@ The CLI provides built-in shortcuts and supports custom user-defined shortcuts.
 
 ```bash
 # List GitHub issues
+# Runs: gh issue list --json ... --limit 20
 /scm issues
 
 # View issue details
+# Runs: gh issue view 123 --json ...
 /scm issue 123
 
 # Create pull request with AI-powered plan
@@ -2733,16 +2735,20 @@ shortcuts:
     subcommands:
       - name: test
         description: 'Run all tests'
+        command: bash
         args:
           - -c
           - 'go test ./...'
 
       - name: build
         description: 'Build the project'
+        command: bash
         args:
           - -c
           - 'go build -o app .'
 ```
+
+A subcommand that declares its own `command:` runs that command with its `args` verbatim - `/dev test` runs `bash -c 'go test ./...'`. A subcommand without its own `command:` reuses the parent's `command` and gets its `name` (then its `args`) appended to the parent's `args`, so spell out the full invocation in every subcommand.
 
 Usage: `/dev test`, `/dev build`
 
