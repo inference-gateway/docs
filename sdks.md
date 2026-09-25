@@ -1074,7 +1074,7 @@ The request bodies are `SchemaCreateSfxRequest` and `SchemaCreateMusicRequest`; 
 
 ### Models, tools, and health
 
-`listModels(provider?, include?)` returns every model across configured providers, or a single provider's catalog when you pass a `Provider`. The optional `include` array requests additional per-model metadata - pass `'context_window'` to populate `model.context_window`, `'pricing'` for pricing data, or both. `mcpJsonRpc(request)` calls the gateway's MCP endpoint (`POST /mcp`) with a `SchemaMcpjsonrpcRequest` - `tools/list` to discover tools, `tools/call` to run one - and only resolves when MCP is exposed on the gateway; an un-exposed gateway answers `403 Forbidden`. The endpoint lives at the root, so the `/v1` suffix is stripped from the base URL for you, and the `params._meta` entries and MCP headers the protocol requires are derived from the request. JSON-RPC-level failures come back as an `error` envelope rather than throwing. `getMCPProtectedResourceMetadata` fetches the [RFC 9728](https://datatracker.ietf.org/doc/html/rfc9728) document for that endpoint. `healthCheck` probes the gateway's root `/health` endpoint and resolves to a boolean rather than throwing.
+`listModels(provider?, include?)` returns every model across configured providers, or a single provider's catalog when you pass a `Provider`. The optional `include` array requests additional per-model metadata - pass `'context_window'` to populate `model.context_window`, `'pricing'` for pricing data, or both. `mcpJsonRpc(request)` calls the gateway's MCP endpoint (`POST /mcp`) with a `SchemaMcpjsonrpcRequest` - `tools/list` to discover tools, `tools/call` to run one - and only resolves when MCP is exposed on the gateway; an un-exposed gateway answers `403 Forbidden`. The endpoint lives at the root, so the `/v1` suffix is stripped from the base URL for you, and the `params._meta` entries and MCP headers the protocol requires are derived from the request. JSON-RPC-level failures come back as an `error` envelope rather than throwing. `getMCPProtectedResourceMetadata` fetches the [RFC 9728](https://datatracker.ietf.org/doc/html/rfc9728) document for that endpoint. `healthCheck` probes the gateway's root `/health` endpoint and resolves to a boolean rather than throwing: `true` on a 2xx response, `false` for any non-2xx status - a 502 or 503 from an ingress in front of a stopped gateway, or a 404 from a misconfigured baseURL - or when the request fails at the network level.
 
 ```typescript
 import { InferenceGatewayClient, Provider } from '@inference-gateway/sdk';
@@ -1083,7 +1083,7 @@ const client = new InferenceGatewayClient({
   baseURL: 'http://localhost:8080/v1',
 });
 
-// Liveness probe - true on success, false on any error.
+// Liveness probe - true only on a 2xx response; false on non-2xx or network failure.
 if (!(await client.healthCheck())) {
   throw new Error('gateway is not healthy');
 }
