@@ -573,12 +573,12 @@ See the [`queue-storage`](https://github.com/inference-gateway/adk/tree/main/exa
 
 Enable OIDC/OAuth2 bearer-token authentication with the `AUTH_*` variables. When enabled, the server validates tokens against the configured issuer before dispatching JSON-RPC calls.
 
-| Variable             | Default                                               | Purpose                         |
-| -------------------- | ----------------------------------------------------- | ------------------------------- |
-| `AUTH_ENABLED`       | `false`                                               | Enable OIDC authentication.     |
-| `AUTH_ISSUER_URL`    | `http://keycloak:8080/realms/inference-gateway-realm` | OIDC issuer for discovery/JWKS. |
-| `AUTH_CLIENT_ID`     | `inference-gateway-client`                            | Expected client/audience.       |
-| `AUTH_CLIENT_SECRET` | _(empty)_                                             | Client secret, when required.   |
+| Variable          | Default                                               | Purpose                                                                                                     |
+| ----------------- | ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `AUTH_ENABLED`    | `false`                                               | Enable OIDC authentication.                                                                                 |
+| `AUTH_ISSUER_URL` | `http://keycloak:8080/realms/inference-gateway-realm` | OIDC issuer for discovery/JWKS.                                                                             |
+| `AUTH_CLIENT_ID`  | `inference-gateway-client`                            | OIDC client ID; used as the expected token audience when `AUTH_AUDIENCE` is empty.                          |
+| `AUTH_AUDIENCE`   | _(empty)_                                             | Comma-separated list of accepted `aud` values, for example an API identifier. Empty means `AUTH_CLIENT_ID`. |
 
 ### Card-driven authentication flow
 
