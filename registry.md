@@ -125,7 +125,7 @@ infer agents add my-agent http://localhost:8080 \
   --environment GOOGLE_API_KEY=...
 ```
 
-Every catalog agent needs an explicit URL like this. The shorter bare-name form (`infer agents add <agent-name>`) is accepted only for the five agents the CLI has built-in defaults for - `browser-agent`, `mock-agent`, `google-calendar-agent`, `documentation-agent`, and `n8n-agent`. Each agent card's "Add to CLI" command already reflects the correct form for that agent.
+You can also skip the URL entirely: `infer agents add <agent-name>` resolves any agent published in this catalog by name, deriving the URL from the entry's `spec.server` and the OCI image from its `spec.deployment` (falling back to `ghcr.io/inference-gateway/<agent-name>:<version>` for entries sourced from the `inference-gateway` GitHub org), and enabling `--run` only when an image is derivable. The five agents with built-in CLI defaults - `browser-agent`, `mock-agent`, `google-calendar-agent`, `documentation-agent`, and `n8n-agent` - take precedence over the catalog and keep working when the catalog is unreachable. A name that is in neither place still needs an explicit URL. Anything you pass explicitly, as above, overrides the derived values.
 
 See the [A2A Integration guide](/a2a/#using-a2a-with-the-inference-gateway-cli) for the full CLI workflow, including [built-in agents vs other catalog agents](/a2a/#built-in-agents-vs-other-catalog-agents).
 

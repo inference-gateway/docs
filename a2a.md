@@ -116,6 +116,9 @@ infer agents add <agent-name> <agent-url> \
   --oci <oci-image> \
   --run
 
+# Add any catalog agent by name only (URL and image derived from its catalog entry)
+infer agents add grafana-agent
+
 # Add a built-in agent by name only (browser-agent ships one tag per browser engine)
 infer agents add browser-agent --tag lightpanda
 
@@ -138,15 +141,26 @@ infer agents remove <agent-name>
 
 #### Built-in agents vs other catalog agents
 
-The bare-name form (`infer agents add <agent-name>`, with no URL) works only for the agents the CLI ships built-in defaults for:
+The bare-name form (`infer agents add <agent-name>`, with no URL) resolves any agent published in the [A2A Registry](/registry/) catalog, not just the ones the CLI ships defaults for. Resolution happens in two steps:
 
-- `browser-agent`
-- `mock-agent`
-- `google-calendar-agent`
-- `documentation-agent`
-- `n8n-agent`
+1. **Built-in defaults win.** Five agents have defaults compiled into the CLI - `browser-agent`, `mock-agent`, `google-calendar-agent`, `documentation-agent`, and `n8n-agent`. If the name matches one of these, those defaults are used and no catalog lookup is needed.
+2. **Otherwise the catalog is consulted.** The CLI fetches the published catalog and looks the name up there.
 
-Every other agent - including the rest of the [A2A Registry](/registry/) catalog - needs an explicit URL, and an `--oci` image if you want the CLI to run it for you:
+```bash
+# Built-in agent, resolved from compiled-in defaults
+infer agents add browser-agent --tag lightpanda
+
+# Any other catalog agent, resolved by name from the catalog
+infer agents add grafana-agent
+```
+
+For a catalog agent, the entry is derived from its published metadata the same way the registry site renders its "Add to CLI" command:
+
+- **URL** comes from the entry's `spec.server` - scheme and port, registered as `<scheme>://localhost:<port>` with the next free port at or above the declared one.
+- **OCI image** comes from the entry's `spec.deployment`. When no image is declared there, the CLI falls back to `ghcr.io/inference-gateway/<agent-name>:<version>` - but only for agents sourced from the `github.com/inference-gateway` org; entries from anywhere else without a declared image get none.
+- **`--run`** is enabled only when an image can be derived. A catalog entry with no derivable image is registered as a remote agent, and you start it yourself.
+
+Anything you pass explicitly still wins over the derived values, so you can point a catalog agent at a different URL, swap in a different image with `--oci`, or add environment variables:
 
 ```bash
 infer agents add grafana-agent http://localhost:8080 \
@@ -154,7 +168,7 @@ infer agents add grafana-agent http://localhost:8080 \
   --run
 ```
 
-Registry agent cards show whichever of the two forms applies to that agent, so copying the card's "Add to CLI" command always gives you a valid invocation.
+**Offline and unknown names:** catalog resolution needs network access. If the catalog is unreachable, the five built-in agents keep working, because their defaults never leave the binary. A name that is in neither the built-in defaults nor the catalog still requires an explicit URL argument - the CLI cannot invent one.
 
 Agents can be configured at two levels:
 
