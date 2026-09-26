@@ -102,7 +102,7 @@ The bare name is enough - the CLI resolves `grafana-agent` from the [registry ca
 infer agents add grafana-agent
 ```
 
-Spell the URL and image out when you want to override those derived values - for example to point at an agent you already run, or to pin a tag:
+Spell the URL and image out when you want to override those derived values - for example to point at an agent you already run, or to pin an image version with `--oci`:
 
 ```bash
 infer agents add grafana-agent http://localhost:8080 \

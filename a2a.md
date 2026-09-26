@@ -156,11 +156,11 @@ infer agents add grafana-agent
 
 For a catalog agent, the entry is derived from its published metadata the same way the registry site renders its "Add to CLI" command:
 
-- **URL** comes from the entry's `spec.server` - the agent's declared URL.
-- **OCI image** comes from the entry's `spec.deployment`. When the metadata does not name an image explicitly, the CLI falls back to `ghcr.io/inference-gateway/<agent-name>`.
+- **URL** comes from the entry's `spec.server` - scheme and port, registered as `<scheme>://localhost:<port>` with the next free port at or above the declared one.
+- **OCI image** comes from the entry's `spec.deployment`. When no image is declared there, the CLI falls back to `ghcr.io/inference-gateway/<agent-name>:<version>` - but only for agents sourced from the `github.com/inference-gateway` org; entries from anywhere else without a declared image get none.
 - **`--run`** is enabled only when an image can be derived. A catalog entry with no derivable image is registered as a remote agent, and you start it yourself.
 
-Anything you pass explicitly still wins over the derived values, so you can point a catalog agent at a different URL, pin a tag, or add environment variables:
+Anything you pass explicitly still wins over the derived values, so you can point a catalog agent at a different URL, swap in a different image with `--oci`, or add environment variables:
 
 ```bash
 infer agents add grafana-agent http://localhost:8080 \
