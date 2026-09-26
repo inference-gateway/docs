@@ -2,6 +2,37 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.17](https://github.com/inference-gateway/docs/compare/0.9.16...0.9.17) (2026-09-26)
+
+### 📚 Documentation
+
+* add CLI screen recording page ([#774](https://github.com/inference-gateway/docs/issues/774)) ([4fab34a](https://github.com/inference-gateway/docs/commit/4fab34a8a897fd3ed4300fe2519bd4a789809d1b))
+* add missing llamacpp and elevenlabs env keys ([#797](https://github.com/inference-gateway/docs/issues/797)) ([2e33a97](https://github.com/inference-gateway/docs/commit/2e33a978157d7ac6c6f9d79e416c9f575fc31e5b))
+* **adk:** document image input for vision models ([#811](https://github.com/inference-gateway/docs/issues/811)) ([040c269](https://github.com/inference-gateway/docs/commit/040c269cbcdbcfa165bff8179bcf1495d8b00d63))
+* **adk:** document task retention, deprecate queue cleanup ([#805](https://github.com/inference-gateway/docs/issues/805)) ([a36a69b](https://github.com/inference-gateway/docs/commit/a36a69bbeb5e7a8f5b9ccc4f292186ba4c930ff3))
+* clarify infer agents add needs a URL ([#814](https://github.com/inference-gateway/docs/issues/814)) ([beee8bd](https://github.com/inference-gateway/docs/commit/beee8bd5b2e8d703bb08794e6417bc1ee357cdf0))
+* **cli-skills:** document built-in bug skill ([#806](https://github.com/inference-gateway/docs/issues/806)) ([74c6d8e](https://github.com/inference-gateway/docs/commit/74c6d8e3a04ce2de754cf4f0ff1b1b3fac0ade0e))
+* **cli:** sweep shortcut subcommand examples after seeded /scm fix ([#796](https://github.com/inference-gateway/docs/issues/796)) ([a896c8d](https://github.com/inference-gateway/docs/commit/a896c8deb212a3b5bcf7a6a3cc843fd2dc1186f7))
+* correct ADK OIDC env vars for Go and Rust ([#786](https://github.com/inference-gateway/docs/issues/786)) ([e6290de](https://github.com/inference-gateway/docs/commit/e6290de401f81dd276f0918b428ab1fc84801071))
+* correct CLI command and config drift ([#781](https://github.com/inference-gateway/docs/issues/781)) ([7a52596](https://github.com/inference-gateway/docs/commit/7a52596c19a1e42fbc52acaf53cbb63b3f2c091d))
+* correct gateway config, otel and troubleshooting drift ([#782](https://github.com/inference-gateway/docs/issues/782)) ([e80aa96](https://github.com/inference-gateway/docs/commit/e80aa96b560bef9e392d9f31dd10f8e0faf84e01))
+* document non-positive MaxAttempts as a single request in Go SDK retry docs ([#795](https://github.com/inference-gateway/docs/issues/795)) ([9e5780d](https://github.com/inference-gateway/docs/commit/9e5780d3a06cc21714c9b19ee78b2b1bbebff659))
+* drop removed MCP REST listing and SDK methods ([#783](https://github.com/inference-gateway/docs/issues/783)) ([36b8718](https://github.com/inference-gateway/docs/commit/36b8718f01e464185568278db18faf66e4802b60))
+* fix operator CRD drift in operator.md ([#788](https://github.com/inference-gateway/docs/issues/788)) ([270bf6e](https://github.com/inference-gateway/docs/commit/270bf6e79001268a9f05f6e2f26623652c8e14e0))
+* note SERVER_HOST=0.0.0.0 for containers ([#785](https://github.com/inference-gateway/docs/issues/785)) ([bbda7d0](https://github.com/inference-gateway/docs/commit/bbda7d09283a89c9283376721aa6010484a10e57))
+* **operator:** document gateway api crd prerequisite and namespace scoping ([#798](https://github.com/inference-gateway/docs/issues/798)) ([30bf83b](https://github.com/inference-gateway/docs/commit/30bf83bda357430886b787b880fc302b992a1a7b))
+* **operator:** document gateway service type and annotations as functional ([#799](https://github.com/inference-gateway/docs/issues/799)) ([b8792f3](https://github.com/inference-gateway/docs/commit/b8792f34ec93e889346f7b982bae6122b6161d15))
+* **rust-adk:** drop inert AGENT_* and A2A_CAPABILITIES_* config ([#807](https://github.com/inference-gateway/docs/issues/807)) ([f5a6247](https://github.com/inference-gateway/docs/commit/f5a6247cd9746b3d356b90598149aeb7dff59e48))
+* **rust-adk:** drop temperature, mark llm settings live ([#809](https://github.com/inference-gateway/docs/issues/809)) ([0767bc8](https://github.com/inference-gateway/docs/commit/0767bc8d288c1df7ae7b86ca8d8e88d1a02332b7))
+* **rust-sdk:** document with_temperature and with_timeout ([#815](https://github.com/inference-gateway/docs/issues/815)) ([921bebb](https://github.com/inference-gateway/docs/commit/921bebbde97256a098e94e5a95632c4112e438f9))
+* **sdks:** note healthCheck() resolves false on non-2xx and network failures ([#800](https://github.com/inference-gateway/docs/issues/800)) ([7760c3a](https://github.com/inference-gateway/docs/commit/7760c3a8f0d493f1f5b831f05c44c0e8fd328103))
+* **sdks:** note Python health_check and proxy_request target root-level routes ([#801](https://github.com/inference-gateway/docs/issues/801)) ([ced3f54](https://github.com/inference-gateway/docs/commit/ced3f54303ff7b1e7ed451e193fdaea5436e1147))
+
+### 🔧 Miscellaneous
+
+* **deps:** bump claude-code 2.1.278 -> 2.1.280 ([#772](https://github.com/inference-gateway/docs/issues/772)) ([dda9302](https://github.com/inference-gateway/docs/commit/dda9302c8d14897659fa9641090acbba11331ee9))
+* **deps:** bump infer CLI v0.205.3 -> v0.208.0 ([#773](https://github.com/inference-gateway/docs/issues/773)) ([f96bf8e](https://github.com/inference-gateway/docs/commit/f96bf8e7ee89297e3a9ce24aae537e39d0c72b01))
+
 ## [0.9.16](https://github.com/inference-gateway/docs/compare/0.9.15...0.9.16) (2026-09-25)
 
 ### 👷 CI
