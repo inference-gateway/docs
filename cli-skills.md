@@ -1,6 +1,6 @@
 ---
 title: Agent Skills
-description: Install, enable, and invoke Agent Skills in the Inference Gateway CLI - the on-disk SKILL.md layout, the three discovery scopes (project .infer/skills, the .agents/skills open standard, and user-global ~/.infer/skills), the built-in tmux skill seeded into ~/.infer/skills on infer init (seed-if-absent), infer skills install/list/uninstall, deterministic slash-name activation with metadata-only injection, and the Read-sandbox carve-out for ~/.infer/skills.
+description: Install, enable, and invoke Agent Skills in the Inference Gateway CLI - the on-disk SKILL.md layout, the three discovery scopes (project .infer/skills, the .agents/skills open standard, and user-global ~/.infer/skills), the built-in tmux and bug skills seeded into ~/.infer/skills on infer init (seed-if-absent), infer skills install/list/uninstall, deterministic slash-name activation with metadata-only injection, and the Read-sandbox carve-out for ~/.infer/skills.
 ---
 
 # Agent Skills
@@ -73,11 +73,35 @@ Unknown frontmatter keys (for example Anthropic's `allowed-tools:` or Gemini's `
 
 The CLI ships a small set of **built-in skills** embedded in the binary. On `infer init` they are seeded into the user-global `~/.infer/skills/` - the same directory the [skills loader scans](#on-disk-layout) - **only if absent** ("seed-if-absent"). Once on disk they are ordinary user-scope skills: discovered, shown by `infer skills list`, and injected as lightweight metadata exactly like a skill you authored there yourself. Because seeding never overwrites an existing folder, **your edits survive** every later `infer init`.
 
-The first built-in is the **`tmux`** starter skill:
+Two built-ins ship today:
 
 | Skill  | What it teaches the agent                                                                                                                                                                                                                                                                                                                                                                                                  |
 | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `tmux` | Drive interactive terminal programs - TUIs, REPLs, pagers, a debugger, or another CLI's chat UI - that the plain [Bash tool](/cli/#bash) cannot script, by running them inside tmux and scripting them with `send-keys` / `capture-pane`. It prefers to **add a pane to the tmux session you already have open** so the work stays visible, and only falls back to a **detached session** in a headless, CI, or piped run. |
+| `bug`  | Turn a rough bug description into a reproduced, well-formed GitHub issue - see [The `bug` skill](#the-bug-skill) below.                                                                                                                                                                                                                                                                                                    |
+
+Built-ins are seeded rather than published: `bug` is **not** in the [Skills Catalog](/skills/), because it composes CLI-only tools (`AskUserQuestion`, the Computer tools, `RecordStart` / `RecordStop`) that no other agent runtime provides.
+
+### The `bug` skill
+
+Invoke it with `/bug <context>`, where `<context>` is a one-line description of what went wrong:
+
+```text
+> /bug the chat UI opens a blank window on startup
+```
+
+The skill runs four phases, and **nothing is ever posted without your explicit approval**:
+
+1. **Gather.** It asks up to four follow-up questions in a single `AskUserQuestion` round (the trigger, expected vs actual, frequency, and your OS / terminal / `infer version`). Every question offers a **`Just reproduce it`** option that ends questioning immediately. In a non-interactive run ([headless](/cli/#headless-mode), [channels](/cli-channels/), [scheduled](/cli/#schedule)) there is nobody to ask, so it skips straight to reproducing.
+2. **Reproduce.** It works in a `mktemp -d` scratch directory so your project is never modified, drives terminal and TUI bugs through the `tmux` built-in (using `INFER_GATEWAY_MOCK=true` to exercise the CLI's own chat UI without a real LLM) and GUI bugs through the Computer tools, and reproduces the bug twice before trusting the recipe. The minimal step list it keeps becomes the issue's "Steps to Reproduce". If it genuinely cannot reproduce the bug, it says so rather than inventing steps.
+3. **Record (opt-in).** Only after the bug reproduces, and only with your consent, it records a short clip and converts it to a GIF with `ffmpeg`, kept under GitHub's 10 MB image limit. Recording is **off by default** - it needs `computer_use.recording.enabled` in `~/.infer/computer_use.yaml` (see [Screen recording](/cli/#screen-recording)); the skill never edits that config for you. It records **window** or **region** only, never the whole screen, screenshots the target window first to check for secrets, and prints the GIF's local path for you to review - it never uploads anything itself.
+4. **File.** It searches for duplicates with `gh issue list`, drafts the issue on the org `bug_report.md` template (a `[BUG]`-prefixed title, the `bug` label, and the Summary / Steps to Reproduce / Expected Behavior / Actual Behavior sections) with tokens, emails, hostnames and home-directory paths redacted, then asks for consent. On approval it hands off to `gh issue create --web`, which opens the prefilled form in your browser so you can drag the GIF in and submit it yourself - GitHub has no issue-attachment API, so the browser step doubles as the final review.
+
+The target repository defaults to `inference-gateway/cli`; the skill uses another repo only when you name one or the working directory clearly belongs to it, and it tells you which it picked.
+
+**Degradation, not failure.** Recording disabled, a missing `ffmpeg`, a failed capture, an unreproducible bug, or a declined consent all degrade to a **text-only report** - the skill hands you the draft and the exact `gh issue create --web` command instead of aborting.
+
+> **Approval prompts.** `ffmpeg` and `gh` are not auto-approved, so each call goes through the normal [approval gate](/cli/#approval-workflow) unless you allow-list them under `tools.bash.mode.<mode>.allow`. In headless runs those calls are blocked rather than prompted.
 
 ### Customizing a built-in
 
