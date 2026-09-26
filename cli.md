@@ -520,6 +520,14 @@ Every line in the `json` (or `json-pretty`) stream is a JSON object with a `type
 | `session_stats`        | Once at end                   | Token usage and cost summary (detailed below)                                                                                                                                                                                                                                 |
 | `agent_error`          | Before stream starts          | Machine-readable error when the run fails before any turn (gateway unavailable, unknown model). For `ag-ui` format this is emitted as `RUN_ERROR`.                                                                                                                            |
 
+##### One assistant line per LLM turn
+
+Each LLM turn emits **exactly one** `assistant` line, in turn order. That holds for a text-only turn the agent continued past because a `post_stream` **continuation nudge** fired (todo continuation, truncation continuation, empty-response continuation): the nudged turn keeps its own `assistant` line instead of being merged into the next turn's line. Consumers that walk the stream by turn can therefore treat `assistant` lines as the turn count, and read the final answer from the `content` of the last `assistant` line.
+
+The hidden system reminder a continuation nudge appends is **not** emitted to the stream. It exists only in the model-facing message history, so it never shows up as an `assistant` or `tool` line. Reminder text visible in a trace or under `logging.debug` is log output, not a stream line.
+
+In the `ag-ui` format the same contract holds one level up: one `TEXT_MESSAGE_START` / `CONTENT` / `END` triple with a fresh message id per LLM turn, nudge-continued turns included.
+
 **Exit codes:**
 
 | Code | Meaning                     |
