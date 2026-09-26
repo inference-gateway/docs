@@ -1847,9 +1847,11 @@ cargo add inference-gateway-sdk
 
 ### Client setup
 
-`InferenceGatewayClient::new(base_url)` targets an explicit gateway URL. `new_default()` instead reads the `INFERENCE_GATEWAY_URL` environment variable, falling back to `http://localhost:8080/v1` when it is unset. Both return an owned client; the `with_token` and `with_max_tokens` builders consume and return `self`, so chain them before issuing a request.
+`InferenceGatewayClient::new(base_url)` targets an explicit gateway URL. `new_default()` instead reads the `INFERENCE_GATEWAY_URL` environment variable, falling back to `http://localhost:8080/v1` when it is unset. Both return an owned client; the builders below consume and return `self`, so chain them before issuing a request.
 
 ```rust
+use std::time::Duration;
+
 use inference_gateway_sdk::InferenceGatewayClient;
 
 // Explicit base URL.
@@ -1858,10 +1860,26 @@ let client = InferenceGatewayClient::new("http://localhost:8080/v1");
 // Or read INFERENCE_GATEWAY_URL (falls back to http://localhost:8080/v1).
 let client = InferenceGatewayClient::new_default()
     .with_token("my-api-token") // Bearer token sent on every request.
-    .with_max_tokens(Some(1024)); // Cap tokens generated per request.
+    .with_max_tokens(Some(1024)) // Cap tokens generated per request.
+    .with_temperature(Some(0.2)) // Sampling temperature for chat completions.
+    .with_timeout(Duration::from_secs(30)); // Total per-request timeout.
 ```
 
-`with_token` accepts anything that is `Into<String>`; `with_max_tokens` takes an `Option<i64>`, so pass `None` to clear a previously set cap.
+| Builder                         | Argument                          | Purpose                                                                                           |
+| ------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `with_token(token)`             | `impl Into<String>`               | Bearer token sent on every request.                                                               |
+| `with_max_tokens(max_tokens)`   | `Option<i64>`                     | Upper bound on tokens generated per request; `None` clears a previously set cap.                  |
+| `with_temperature(temperature)` | `Option<f64>`                     | Sampling temperature (`0.0` - `2.0`) for chat completions; `None` keeps the API default of `1.0`. |
+| `with_timeout(timeout)`         | `std::time::Duration`             | Total timeout for every request made by this client; unset means no client-side timeout.          |
+| `with_tools(tools)`             | `Option<Vec<ChatCompletionTool>>` | Default tools attached to non-streaming requests (see Tool calls).                                |
+
+`with_temperature` applies to both streaming and non-streaming chat completions. Because `temperature` is not optional in the schema, the value is only sent when you configure it; otherwise the gateway's default stands.
+
+::: warning `with_timeout` also bounds streaming
+
+The timeout covers reading the response body, not just establishing the request, so a streaming call is cut off once it elapses. Do not set a short timeout on a client you use for `generate_content_stream` - size it for the full length of the stream, or keep a separate client for streaming.
+
+:::
 
 ### Chat completion
 
