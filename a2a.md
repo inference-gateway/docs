@@ -116,10 +116,10 @@ infer agents add <agent-name> <agent-url> \
   --oci <oci-image> \
   --run
 
-# Add a known agent on a specific image tag (browser-agent ships one tag per browser engine)
+# Add a built-in agent by name only (browser-agent ships one tag per browser engine)
 infer agents add browser-agent --tag lightpanda
 
-# Pin a known agent to a released version
+# Pin a built-in agent to a released version
 infer agents add browser-agent --tag chromium-0.8.0
 
 # Add an agent with environment variables
@@ -135,6 +135,26 @@ infer agents show <agent-name>
 # Remove an agent
 infer agents remove <agent-name>
 ```
+
+#### Built-in agents vs other catalog agents
+
+The bare-name form (`infer agents add <agent-name>`, with no URL) works only for the agents the CLI ships built-in defaults for:
+
+- `browser-agent`
+- `mock-agent`
+- `google-calendar-agent`
+- `documentation-agent`
+- `n8n-agent`
+
+Every other agent - including the rest of the [A2A Registry](/registry/) catalog - needs an explicit URL, and an `--oci` image if you want the CLI to run it for you:
+
+```bash
+infer agents add grafana-agent http://localhost:8080 \
+  --oci ghcr.io/inference-gateway/grafana-agent:0.3.9 \
+  --run
+```
+
+Registry agent cards show whichever of the two forms applies to that agent, so copying the card's "Add to CLI" command always gives you a valid invocation.
 
 Agents can be configured at two levels:
 
