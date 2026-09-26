@@ -1790,6 +1790,7 @@ Two-layer configuration system with precedence from highest to lowest:
 | `artifacts/`       | Project/user | Agent deliverables, grouped per session.                                                                                                                                   | [Artifacts directory](#artifacts-directory)                 |
 | `logs/`            | User         | CLI and gateway log files (`~/.infer/logs`, overridable via `logging.dir`).                                                                                                | [Key Configuration Areas](#key-configuration-areas)         |
 | `bin/`             | User         | Downloaded binaries - the gateway server, plus optional helpers like `ffmpeg`.                                                                                             | [Key Configuration Areas](#key-configuration-areas)         |
+| `insights/`        | User         | Saved `infer insights` reports. Written with secrets redacted, and kept by `/reset`.                                                                                       | [Insights Shortcut](#insights-shortcut)                     |
 | `avatars/`         | User         | Avatar portrait folders (`avatars/<name>/*.png`) used by `TextToVideo` lip-sync renders. Kept by `/reset`.                                                                 | [Text-to-Video](/cli-text-to-video/#the-avatar-library)     |
 | `auth.yaml`        | User         | Fallback provider API keys, used when a key is not in the environment or the project `.env`.                                                                               | [Provider API keys](#provider-api-keys)                     |
 | `tmp/`             | User         | Userspace scratch - generated speech (`tmp/tts`), retained recordings (`tmp/voice`), screen recordings (`tmp/recordings`), channel media (`tmp/media`). Wiped by `/reset`. | [Userspace tmp tree](#userspace-tmp-tree)                   |
@@ -2395,6 +2396,7 @@ See the [example README](https://github.com/inference-gateway/cli/tree/main/exam
 
 - **`infer stats`** - aggregates metrics from local files into a summary of tool outcomes, token usage, and sessions. Trace and log files are excluded from the aggregate. The per-tool **Avg** column renders microseconds (for example `432us`) when the mean duration is below 1ms and milliseconds otherwise, so fast tools no longer collapse to `0ms`. In `infer stats --format json` the matching `avg_ms` field can be fractional (for example `0.432`) rather than an integer. The same applies to `infer insights` and the [`/stats`](#telemetry-shortcuts) shortcut.
 - **`infer traces`** - renders the span tree of a session from its local trace file. See [Viewing traces](#viewing-traces).
+- **`infer insights`** - analyzes past sessions for repeatable workflows and recurring tool failures. The verbatim error and log samples it collects are **redacted before the model call** - PEM private-key blocks, GitHub token shapes, and the values of provider-secret env vars (plain and JSON-escaped) are replaced with `[redacted]`, in the digest and in the saved report alike. See [Insights Shortcut](#insights-shortcut).
 - **Remote backend** - when OTLP export is configured, data appears in your collector's configured backend (Jaeger for traces, your metrics store, your log aggregator).
 
 ### Viewing traces
@@ -2461,22 +2463,22 @@ The CLI provides built-in shortcuts and supports custom user-defined shortcuts.
 
 ### Built-in Shortcuts
 
-| Shortcut              | Description                                                                                        | Example                                   |
-| --------------------- | -------------------------------------------------------------------------------------------------- | ----------------------------------------- |
-| `/init`               | Generate AGENTS.md documentation                                                                   | `/init`                                   |
-| `/init-github-action` | Setup GitHub Action integration                                                                    | `/init-github-action`                     |
-| `/git <cmd>`          | Git operations                                                                                     | `/git status`, `/git commit`, `/git push` |
-| `/scm <cmd>`          | GitHub operations                                                                                  | `/scm pr-create`, `/scm issue 123`        |
-| `/model [name] [msg]` | Switch the active model, or run one message with another model (replaces `/switch`)                | `/model deepseek/deepseek-v4-flash`       |
-| `/a2a`                | View registered A2A agents and their connection state                                              | `/a2a`                                    |
-| `/tasks`              | View background work (A2A tasks, shells, subagents) with live status and captured output           | `/tasks`                                  |
-| `/tools`              | View a filterable list of tools available in the current agent mode, including MCP tools           | `/tools`                                  |
-| `/stats`              | Summarize the session's token usage, tool outcomes, and cost (mirrors `infer stats`)               | `/stats`                                  |
-| `/traces [id]`        | Render a session's trace span tree offline (mirrors `infer traces`)                                | `/traces`, `/traces abc-123-def`          |
-| `/skills <cmd>`       | Manage Agent Skills                                                                                | `/skills list`, `/skills install <url>`   |
-| `/voice [seconds]`    | Record the mic and transcribe to the input field (requires [speech-to-text](/cli-speech-to-text/)) | `/voice`, `/voice 8`                      |
-| `/insights [since]`   | Analyze past sessions for repeatable workflows and recurring tool failures                         | `/insights`, `/insights 7d`               |
-| `/reset [arg]`        | Wipe all local runtime state on this machine and start a fresh session                             | `/reset`, `/reset confirm`                |
+| Shortcut              | Description                                                                                                                                                              | Example                                   |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------- |
+| `/init`               | Generate AGENTS.md documentation                                                                                                                                         | `/init`                                   |
+| `/init-github-action` | Setup GitHub Action integration                                                                                                                                          | `/init-github-action`                     |
+| `/git <cmd>`          | Git operations                                                                                                                                                           | `/git status`, `/git commit`, `/git push` |
+| `/scm <cmd>`          | GitHub operations                                                                                                                                                        | `/scm pr-create`, `/scm issue 123`        |
+| `/model [name] [msg]` | Switch the active model, or run one message with another model (replaces `/switch`)                                                                                      | `/model deepseek/deepseek-v4-flash`       |
+| `/a2a`                | View registered A2A agents and their connection state                                                                                                                    | `/a2a`                                    |
+| `/tasks`              | View background work (A2A tasks, shells, subagents) with live status and captured output                                                                                 | `/tasks`                                  |
+| `/tools`              | View a filterable list of tools available in the current agent mode, including MCP tools                                                                                 | `/tools`                                  |
+| `/stats`              | Summarize the session's token usage, tool outcomes, and cost (mirrors `infer stats`)                                                                                     | `/stats`                                  |
+| `/traces [id]`        | Render a session's trace span tree offline (mirrors `infer traces`)                                                                                                      | `/traces`, `/traces abc-123-def`          |
+| `/skills <cmd>`       | Manage Agent Skills                                                                                                                                                      | `/skills list`, `/skills install <url>`   |
+| `/voice [seconds]`    | Record the mic and transcribe to the input field (requires [speech-to-text](/cli-speech-to-text/))                                                                       | `/voice`, `/voice 8`                      |
+| `/insights [since]`   | Analyze past sessions for repeatable workflows and recurring tool failures (secrets [redacted](#insights-shortcut) before the model call and before the report is saved) | `/insights`, `/insights 7d`               |
+| `/reset [arg]`        | Wipe all local runtime state on this machine and start a fresh session                                                                                                   | `/reset`, `/reset confirm`                |
 
 ### Git Shortcuts
 
@@ -2523,6 +2525,20 @@ session (standard, success)                38.8s
 
 Both read the local files under `~/.infer/telemetry/`, so they work fully offline. See [Viewing traces](#viewing-traces) for the `infer traces` command, its `--list` and `--format json` flags, and how error spans are marked.
 
+### Insights Shortcut
+
+`/insights [since]` (and the equivalent `infer insights`) analyzes past sessions for repeatable workflows worth turning into a [skill](#agent-skills) and for recurring tool failures. The optional `since` argument limits the window (for example `/insights 7d`). It reads local sessions and telemetry, builds a digest, sends that digest to the configured model, and writes the report to `~/.infer/insights/`.
+
+**Secrets are redacted locally before any network call.** The digest is masked before it reaches the analysis model, and the saved report is masked before it is written to disk. Redaction covers:
+
+- PEM private-key blocks (always on).
+- GitHub token shapes: `ghp_`, `gho_`, `ghu_`, `ghs_`, `ghr_`, and `github_pat_`.
+- The values of provider-secret environment variables set in the environment, both plain and JSON-escaped (so a key quoted inside a captured JSON payload is masked too).
+
+Each match is replaced with `[redacted]`. Because the masking runs before the model call and before the file write, pointing insights at collected sessions does not ship verbatim API keys or private keys to the provider, and the report you keep or share carries the same guarantee. Redaction targets known secret shapes and configured provider-secret values - it is not a substitute for keeping unrelated sensitive data out of session transcripts.
+
+If conversation storage is disabled or no model is configured, the analysis is skipped with a notice.
+
 ### Reset Shortcut
 
 `/reset` wipes the CLI's **local runtime state on the whole machine** - not just the current project - and starts a fresh session. It is a two-step shortcut: a bare `/reset` only previews, and `/reset confirm` performs the wipe.
@@ -2544,11 +2560,11 @@ Both steps end with a disk-space total: the preview ends with `Total reclaimable
 
 **Deleted**, for every project under `~/.infer/projects/`: conversations, plans, scratch dirs, artifacts, history, backups, exports, logs, telemetry, schedules, pid/lock files, and the userspace tmp tree (generated speech, retained recordings, channel media). With the SQLite backend the conversation database and its WAL sidecars go too.
 
-**Preserved**: configuration (`config.yaml`, custom shortcuts, skills, `projects.yaml`), the [avatar library](/cli-text-to-video/#the-avatar-library) under `~/.infer/avatars/`, and saved insights reports under `~/.infer/insights/`. Directories you pointed outside `~/.infer` (for example a `text_to_speech.output_dir` of `/data/tts`) are left alone.
+**Preserved**: configuration (`config.yaml`, custom shortcuts, skills, `projects.yaml`), the [avatar library](/cli-text-to-video/#the-avatar-library) under `~/.infer/avatars/`, and saved [insights reports](#insights-shortcut) under `~/.infer/insights/` (written redacted). Directories you pointed outside `~/.infer` (for example a `text_to_speech.output_dir` of `/data/tts`) are left alone.
 
 **Remote conversation stores are skipped.** If [`storage.type`](#conversation-management) is `postgres`, `redis`, or `d1`, `/reset` clears local state only and prints a notice that the remote store was left untouched - it is not an error.
 
-`/reset insights` runs the [`/insights`](#built-in-shortcuts) analysis (repeatable workflows worth turning into a skill, recurring tool failures) before the preview, so you can capture what past sessions were worth learning from before deleting them. The report is written to `~/.infer/insights/` and survives the reset. If conversation storage is disabled or no model is configured, the analysis is skipped with a notice and the preview is still shown.
+`/reset insights` runs the [`/insights`](#insights-shortcut) analysis (repeatable workflows worth turning into a skill, recurring tool failures) before the preview, so you can capture what past sessions were worth learning from before deleting them. The report is written to `~/.infer/insights/` - with secrets redacted, as for any insights run - and survives the reset. If conversation storage is disabled or no model is configured, the analysis is skipped with a notice and the preview is still shown.
 
 ### Voice Shortcut
 
