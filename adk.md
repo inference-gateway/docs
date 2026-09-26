@@ -569,6 +569,20 @@ export QUEUE_URL=rediss://username:password@redis.example.com:6380/0
 
 See the [`queue-storage`](https://github.com/inference-gateway/adk/tree/main/examples/queue-storage) example for in-memory and Redis variants side by side.
 
+### Task retention
+
+Finished tasks (completed, failed, cancelled) are kept after they terminate, bounded by per-state caps:
+
+| Variable                             | Default | Purpose                                         |
+| ------------------------------------ | ------- | ----------------------------------------------- |
+| `TASK_RETENTION_MAX_COMPLETED_TASKS` | `100`   | Completed tasks retained; `0` disables the cap. |
+| `TASK_RETENTION_MAX_FAILED_TASKS`    | `50`    | Failed/cancelled tasks retained; `0` disables.  |
+| `TASK_RETENTION_CLEANUP_INTERVAL`    | `5m`    | How often retention trims tasks over the caps.  |
+
+Every `TASK_RETENTION_CLEANUP_INTERVAL` tick the oldest finished tasks beyond each cap are deleted; everything within the caps stays queryable via `tasks/get` and `tasks/list`. Raise the caps to keep more history, and remember that the in-memory provider still loses everything on restart - use `QUEUE_PROVIDER=redis` for retention that survives restarts.
+
+`QUEUE_CLEANUP_INTERVAL` is deprecated and unused. It previously purged **every** finished task on each tick (default `120s`), ignoring the retention caps; setting it now has no effect and it can be removed from your configuration.
+
 ## Authentication
 
 Enable OIDC/OAuth2 bearer-token authentication with the `AUTH_*` variables. When enabled, the server validates tokens against the configured issuer before dispatching JSON-RPC calls.
@@ -846,7 +860,7 @@ Reference them in code as `server.BuildAgentName`, etc., when constructing the `
 | `MCP_RETRY_INTERVAL`     | `2s`      | Initial backoff between connection/refresh retries (doubles).     |
 | `MCP_RETRY_MAX_INTERVAL` | `30s`     | Maximum backoff between retries.                                  |
 
-**Queue / storage, retention, auth, telemetry, artifacts** are documented in [Storage backends](#storage-backends), [Authentication](#authentication), [Telemetry](#telemetry), and [Artifacts](#artifacts). Task retention is controlled by `TASK_RETENTION_MAX_COMPLETED_TASKS` (default `100`), `TASK_RETENTION_MAX_FAILED_TASKS` (default `50`), and `TASK_RETENTION_CLEANUP_INTERVAL` (default `5m`).
+**Queue / storage, retention, auth, telemetry, artifacts** are documented in [Storage backends](#storage-backends), [Task retention](#task-retention), [Authentication](#authentication), [Telemetry](#telemetry), and [Artifacts](#artifacts). `QUEUE_CLEANUP_INTERVAL` is deprecated and unused - see [Task retention](#task-retention).
 
 ## Examples
 
