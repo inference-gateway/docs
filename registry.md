@@ -48,7 +48,7 @@ The `schedule-meeting` skill is backed by a set of calendar tools the agent call
 
 **Configuration:**
 
-Pass these as environment variables when you register or run the agent (e.g. `infer agents add google-calendar http://localhost:8080 --oci ghcr.io/inference-gateway/google-calendar-agent:<tag> --run --environment KEY=value`):
+Pass these as environment variables when you register or run the agent (e.g. `infer agents add google-calendar-agent --environment KEY=value`, or with an explicit URL and image to override the resolved defaults):
 
 - `GOOGLE_CALENDAR_MOCK_MODE` (default `false`): serve in-memory mock data instead of calling the Google Calendar API - useful for demos and testing without credentials
 - `GOOGLE_CALENDAR_TIMEZONE` (default `UTC`): default IANA timezone applied when a request does not specify one
@@ -110,6 +110,9 @@ Open [registry.inference-gateway.com](https://registry.inference-gateway.com) an
 Use the [Inference Gateway CLI](/cli/)'s `infer agents` commands to register the agent with your gateway. The CLI can pull and run the image locally, or just point at an already-running URL:
 
 ```bash
+# Register any catalog agent by name - URL and image come from its catalog entry
+infer agents add google-calendar-agent
+
 # Register a remote agent already running somewhere
 infer agents add my-agent https://my-agent.example.com
 

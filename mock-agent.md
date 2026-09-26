@@ -84,7 +84,13 @@ The five mock tools are implemented in Go in the agent itself; `read` is provide
 
 ### Register with the Inference Gateway CLI
 
-Pull and run the image, then register it with your gateway in one step - no API key needed:
+The bare name is enough - the CLI resolves `mock-agent`, then pulls, runs, and registers it, with no API key needed:
+
+```bash
+infer agents add mock-agent
+```
+
+Spell the URL and image out when you want to override those resolved values - for example to point at an agent you already run, or to pin an image version with `--oci`:
 
 ```bash
 infer agents add mock-agent http://localhost:8080 \

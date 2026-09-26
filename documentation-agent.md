@@ -75,7 +75,13 @@ The two documentation tools are implemented in Go in the agent itself; `read` is
 
 ### Register with the Inference Gateway CLI
 
-Pull and run the image, then register it with your gateway in one step:
+The bare name is enough - the CLI resolves `documentation-agent`, then pulls, runs, and registers it:
+
+```bash
+infer agents add documentation-agent
+```
+
+Spell the URL and image out when you want to override those resolved values - for example to point at an agent you already run, or to pin an image version with `--oci`:
 
 ```bash
 infer agents add documentation-agent http://localhost:8080 \
