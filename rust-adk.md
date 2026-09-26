@@ -168,6 +168,8 @@ Set `A2A_AGENT_CLIENT_API_KEY` to override the per-provider lookup, and `A2A_AGE
 
 NVIDIA serves the [build.nvidia.com](https://build.nvidia.com) NIM catalog (Nemotron, Llama, DeepSeek, Mistral, Qwen) with bearer-token auth at `https://integrate.api.nvidia.com/v1`. See [Supported Providers](/supported-providers) for the full matrix, auth modes, default URLs, and vision support.
 
+If your agent is going to receive images, `A2A_AGENT_CLIENT_MODEL` has to name a vision-capable model - see [Sending images to an agent](#sending-images-to-an-agent).
+
 ## The server and its builder
 
 `A2AServer` is the runtime that terminates the A2A JSON-RPC protocol. You never construct it directly - `A2AServerBuilder` assembles one with a fluent interface, and `A2AServer::serve(addr)` binds the listener (plaintext, or TLS when `Config.tls_config` is enabled) and - when artifacts are enabled - spawns the artifacts server and retention loop alongside it.
@@ -482,6 +484,59 @@ let response = client
 
 let task = response.task.expect("server returned a task");
 ```
+
+### Sending images to an agent
+
+A user message can carry image file parts alongside its text. The agent forwards them to the configured LLM as OpenAI-compatible `image_url` content parts, so a vision-capable model can read a screenshot, a diagram, or a captcha:
+
+```rust
+use base64::{Engine as _, engine::general_purpose::STANDARD};
+use inference_gateway_adk::a2a_types::{FilePart, Message, Part, Role, SendMessageRequest};
+
+let encoded = STANDARD.encode(std::fs::read("captcha.png")?);
+
+let message = Message {
+    context_id: None,
+    extensions: vec![],
+    message_id: uuid::Uuid::new_v4().to_string(),
+    metadata: None,
+    parts: vec![
+        Part {
+            text: Some("What characters are in this captcha?".to_string()),
+            ..Default::default()
+        },
+        Part {
+            file: Some(FilePart {
+                file_with_bytes: Some(encoded.parse()?),
+                file_with_uri: None,
+                media_type: "image/png".to_string(),
+                name: "captcha.png".to_string(),
+            }),
+            ..Default::default()
+        },
+    ],
+    reference_task_ids: vec![],
+    role: Role::RoleUser,
+    task_id: None,
+};
+
+let response = client
+    .send_message(SendMessageRequest {
+        configuration: None,
+        message: Some(message),
+        metadata: None,
+        tenant: "example".to_string(),
+    })
+    .await?;
+```
+
+- **Bytes vs URI.** `fileWithBytes` is inlined as a `data:<mediaType>;base64,<bytes>` URL. `fileWithUri` is passed through unchanged, so the **provider** has to fetch it. Artifact-server URLs that only resolve inside your cluster are typically unreachable from a hosted provider; send bytes in that case. When both are set, the bytes win.
+- **Ordering.** Text and image parts reach the model in the order they appear in the A2A message. Text-only messages are unchanged - they keep plain string content.
+- **What is forwarded.** Only `image/*` parts on **user**-role messages. Other media types (PDF, audio) are skipped, and file parts on agent-role messages are never converted, because OpenAI-compatible assistant messages cannot carry images. A message whose only part is a skipped file is dropped from the history entirely.
+- **Model.** There is no config flag for this. The operator picks the model with `A2A_AGENT_CLIENT_MODEL`, and a model without vision support rejects the request - the task ends as `failed` carrying the provider error. That is the expected outcome, not a bug.
+- **Agent card.** An agent that accepts images should advertise it in its card JSON, e.g. `"defaultInputModes": ["text/plain", "image/png"]`, so clients can discover the capability.
+
+No extra wiring is needed: this works with the default task handlers and with custom handlers that run the agent's LLM client over the task history.
 
 ### Health monitoring
 
