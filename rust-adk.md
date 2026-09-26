@@ -519,16 +519,7 @@ client
 
 ## Agent card and metadata
 
-The agent card served at `/.well-known/agent.json` is the discovery document for your agent. There are two complementary ways to set its metadata.
-
-**Build-time metadata** is embedded into the binary at compile time via env vars read by `env!` macros - immutable and ideal for production:
-
-```bash
-AGENT_NAME="Weather Assistant" \
-AGENT_DESCRIPTION="Specialized weather analysis agent" \
-AGENT_VERSION="2.0.0" \
-cargo build --release
-```
+The agent card served at `/.well-known/agent.json` is the discovery document for your agent. Its `name`, `description`, `version`, `url`, and `capabilities` come from the card JSON you hand the builder - either inline via `with_agent_card(...)` or from disk via `with_agent_card_from_file(path, overrides)`. There are no environment variables for card fields: the card is the single source of truth, and the path is the `path` argument, not a configured value.
 
 **Runtime overrides** layer on top of whatever was loaded from disk. Pass `AgentCardOverrides` to `with_agent_card_from_file(...)`; the file supplies the baseline and each explicitly-set override wins:
 
@@ -1155,7 +1146,9 @@ The [`examples/`](https://github.com/inference-gateway/rust-adk/tree/main/exampl
 
 The library never reads the environment itself. You pick a loader - typically [`envy::prefixed("A2A_").from_env::<Config>()`](https://docs.rs/envy/latest/envy/fn.prefixed.html) - and hand the resulting `Config` to [`A2AServerBuilder::with_config`](#the-server-and-its-builder). Every variable below is optional and falls back to the default shown; switch prefixes by changing the loader, not the code.
 
-`*_SECS` variables are plain integer seconds. The Go-style duration grammar (`30s`, `15m`, `2h`, `7d`) applies to the `MCP_` durations below and to the `ARTIFACTS_` durations in the [artifacts configuration reference](#artifacts-configuration-reference). The artifacts subsystem loads under its own `ARTIFACTS_` prefix and is **not** part of the `A2A_` surface. The agent card's identity fields are read from build-time `AGENT_*` variables (see [Agent card and metadata](#agent-card-and-metadata)), separate from the runtime `A2A_` config here.
+`*_SECS` variables are plain integer seconds. The Go-style duration grammar (`30s`, `15m`, `2h`, `7d`) applies to the `MCP_` durations below and to the `ARTIFACTS_` durations in the [artifacts configuration reference](#artifacts-configuration-reference). The artifacts subsystem loads under its own `ARTIFACTS_` prefix and is **not** part of the `A2A_` surface. The agent card's identity fields and advertised capabilities are **not** configurable through the environment - they come from the card JSON (see [Agent card and metadata](#agent-card-and-metadata)).
+
+Log verbosity is controlled by [`RUST_LOG`](https://docs.rs/tracing-subscriber/latest/tracing_subscriber/struct.EnvFilter.html), which `telemetry::init` reads through `EnvFilter::try_from_default_env()` - for example `RUST_LOG=inference_gateway_adk=debug`.
 
 **Server and core** - the listener and top-level toggles.
 
@@ -1164,7 +1157,6 @@ The library never reads the environment itself. You pick a loader - typically [`
 | `A2A_SERVER_HOST`                           | `0.0.0.0`                      | Bind address for the A2A JSON-RPC server.                    |
 | `A2A_SERVER_PORT`                           | `8080`                         | Listener port.                                               |
 | `A2A_AGENT_URL`                             | `http://helloworld-agent:8080` | Public URL advertised for this agent.                        |
-| `A2A_DEBUG`                                 | `false`                        | Verbose logging.                                             |
 | `A2A_STREAMING_STATUS_UPDATE_INTERVAL_SECS` | `1`                            | Seconds between `TaskStatusUpdateEvent`s on a streamed task. |
 
 **Agent (LLM client)** - these mirror the [`AgentBuilder`](#agentbuilder) setters; an explicit setter overrides the env value.
@@ -1183,13 +1175,7 @@ The library never reads the environment itself. You pick a loader - typically [`
 | `A2A_AGENT_CLIENT_SYSTEM_PROMPT`                  | _(unset)_ | System prompt prepended to conversations.                       |
 | `A2A_AGENT_CLIENT_ENABLE_USAGE_METADATA`          | `true`    | Attach token usage + execution stats to terminal task metadata. |
 
-**Capabilities** - what the agent card advertises.
-
-| Variable                                    | Default | Purpose                                     |
-| ------------------------------------------- | ------- | ------------------------------------------- |
-| `A2A_CAPABILITIES_STREAMING`                | `true`  | Advertise `message/stream` support.         |
-| `A2A_CAPABILITIES_PUSH_NOTIFICATIONS`       | `true`  | Advertise push-notification config support. |
-| `A2A_CAPABILITIES_STATE_TRANSITION_HISTORY` | `false` | Record task state-transition history.       |
+**Capabilities** are not environment-configurable. The served card and the [builder's streaming-handler validation](#the-server-and-its-builder) read the `capabilities` object of your agent card JSON, so set `streaming`, `pushNotifications`, and `stateTransitionHistory` there.
 
 **MCP client** (`MCP_` prefix) - connect the agent to [MCP servers](#mcp-client); disabled by default. Loaded under its own `MCP_` prefix (like `ARTIFACTS_`), separate from the `A2A_` `Config`.
 
