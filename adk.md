@@ -494,6 +494,37 @@ The interface covers the entire A2A JSON-RPC surface:
 
 Configuration helpers (`SetTimeout`, `SetHTTPClient`, `GetBaseURL`, `SetLogger`, `GetLogger`) and `GetArtifactHelper()` round out the interface.
 
+### Sending images to an agent
+
+A user message can carry image file parts alongside its text. The agent forwards them to the configured LLM as OpenAI-compatible `image_url` content parts, so a vision-capable model can read a screenshot, a diagram, or a captcha:
+
+```go
+image, err := os.ReadFile("captcha.png")
+if err != nil {
+	log.Fatal(err)
+}
+encoded := base64.StdEncoding.EncodeToString(image)
+
+resp, err := a2a.SendTask(ctx, types.MessageSendParams{
+	Message: types.Message{
+		MessageID: uuid.New().String(),
+		Role:      types.RoleUser,
+		Parts: []types.Part{
+			types.CreateTextPart("What characters are in this captcha?"),
+			types.CreateFilePart("captcha.png", "image/png", &encoded, nil),
+		},
+	},
+})
+```
+
+- **Bytes vs URI.** `fileWithBytes` (the `&encoded` argument above) is inlined as a `data:<mediaType>;base64,<bytes>` URL. `fileWithUri` - the fourth argument - is passed through unchanged, so the **provider** has to fetch it. Artifact-server URLs that only resolve inside your cluster are typically unreachable from a hosted provider; send bytes in that case.
+- **Ordering.** Text and image parts reach the model in the order they appear in the A2A message.
+- **What is forwarded.** Only `image/*` parts on **user**-role messages. Other media types (PDF, audio) are skipped, and file parts on agent-role messages are never sent, because OpenAI-compatible assistant messages cannot carry images.
+- **Model.** The operator picks the model with `AGENT_CLIENT_MODEL`. A model without vision support rejects the request, and the task ends as `failed` carrying the provider error.
+- **Agent card.** An agent that accepts images should advertise it, e.g. `DefaultInputModes: []string{"text/plain", "image/png"}`, so clients can discover the capability.
+
+No extra configuration is needed: this works with `WithDefaultTaskHandlers()` and with custom handlers that call `RunWithStream`.
+
 ### Streaming a task
 
 `SendTaskStreaming` returns a channel of success responses, one per server-sent event:
