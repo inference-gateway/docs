@@ -3367,10 +3367,10 @@ infer agents add calendar-agent http://calendar.example.com
 # Add local agent with Docker
 infer agents add my-agent http://localhost:8081 --oci ghcr.io/myorg/agent:latest --run
 
-# Add a known agent on a specific image tag (browser-agent ships one tag per browser engine)
+# Add a built-in agent by name only (browser-agent ships one tag per browser engine)
 infer agents add browser-agent --tag lightpanda
 
-# Pin a known agent to a released version
+# Pin a built-in agent to a released version
 infer agents add browser-agent --tag chromium-0.8.0
 
 # List agents
@@ -3382,6 +3382,8 @@ infer agents show calendar-agent
 # Update an agent's image tag
 infer agents update browser-agent --tag firefox
 ```
+
+Only the five agents with built-in defaults (`browser-agent`, `mock-agent`, `google-calendar-agent`, `documentation-agent`, `n8n-agent`) can be added by bare name. Any other agent needs an explicit URL - see [built-in agents vs other catalog agents](/a2a/#built-in-agents-vs-other-catalog-agents).
 
 **Usage:**
 
