@@ -471,7 +471,7 @@ use inference_gateway_adk::a2a_types::{Message, Part, Role, SendMessageRequest};
 let response = client
     .send_message(SendMessageRequest {
         configuration: None,
-        message: Some(Message {
+        message: Message {
             context_id: None,
             extensions: vec![],
             message_id: uuid::Uuid::new_v4().to_string(),
@@ -485,14 +485,16 @@ let response = client
             reference_task_ids: vec![],
             role: Role::RoleUser,
             task_id: None,
-        }),
+        },
         metadata: None,
-        tenant: "example".to_string(),
+        tenant: Some("example".to_string()),
     })
     .await?;
 
 let task = response.task.expect("server returned a task");
 ```
+
+`SendMessageRequest.message` is a required value-typed `Message` - pass it directly, not wrapped in `Some(..)`. Every `tenant` field is optional (`Option<String>`), as are the resource identifiers and filters on the other request types: `name` on `CancelTaskRequest` / `SubscribeToTaskRequest` / the `pushNotificationConfig` `get`, `list` and `delete` requests, `parent` and the `page_size` / `page_token` paging fields on `ListTaskPushNotificationConfigRequest`, and `context_id`, `status` and `last_updated_after` on `ListTasksRequest`. `GetTaskRequest.name`, `SetTaskPushNotificationConfigRequest.parent` / `config_id`, and `TaskPushNotificationConfig.name` stay plain `String`.
 
 ### Sending images to an agent
 
@@ -518,8 +520,8 @@ let message = Message {
             file: Some(FilePart {
                 file_with_bytes: Some(encoded.parse()?),
                 file_with_uri: None,
-                media_type: "image/png".to_string(),
-                name: "captcha.png".to_string(),
+                media_type: Some("image/png".to_string()),
+                name: Some("captcha.png".to_string()),
             }),
             ..Default::default()
         },
@@ -532,13 +534,14 @@ let message = Message {
 let response = client
     .send_message(SendMessageRequest {
         configuration: None,
-        message: Some(message),
+        message,
         metadata: None,
-        tenant: "example".to_string(),
+        tenant: Some("example".to_string()),
     })
     .await?;
 ```
 
+- **Optional metadata.** `FilePart::media_type` and `FilePart::name` are `Option<String>`, so a literal takes `Some(..)` and reading one back means matching on the `Option`. Set `media_type` on image parts - it is what the agent uses to build the `data:` URL it forwards to the model.
 - **Bytes vs URI.** `fileWithBytes` is inlined as a `data:<mediaType>;base64,<bytes>` URL. `fileWithUri` is passed through unchanged, so the **provider** has to fetch it. Artifact-server URLs that only resolve inside your cluster are typically unreachable from a hosted provider; send bytes in that case. When both are set, the bytes win.
 - **Ordering.** Text and image parts reach the model in the order they appear in the A2A message. Text-only messages are unchanged - they keep plain string content.
 - **What is forwarded.** Only `image/*` parts on **user**-role messages. Other media types (PDF, audio) are skipped, and file parts on agent-role messages are never converted, because OpenAI-compatible assistant messages cannot carry images. A message whose only part is a skipped file is dropped from the history entirely.
