@@ -522,7 +522,7 @@ Every line in the `json` (or `json-pretty`) stream is a JSON object with a `type
 
 ##### One assistant line per LLM turn
 
-Each LLM turn emits **exactly one** `assistant` line, in turn order. That holds for a text-only turn the agent continued past because a `post_stream` **continuation nudge** fired (todo continuation, truncation continuation, empty-response continuation): the nudged turn keeps its own `assistant` line instead of being merged into the next turn's line. Consumers that walk the stream by turn can therefore treat `assistant` lines as the turn count, and read the final answer from the `content` of the last `assistant` line.
+Each completed LLM turn emits **exactly one** `assistant` line, in turn order - an empty turn (no content, no reasoning, no tool calls) emits none. That holds for a text-only turn the agent continued past because a `post_stream` **continuation nudge** fired (todo continuation, truncation continuation, empty-response continuation): the nudged turn keeps its own `assistant` line instead of being merged into the next turn's line. Consumers that walk the stream by turn can therefore treat `assistant` lines as the sequence of turns that produced output, and read the final answer from the `content` of the last `assistant` line.
 
 The hidden system reminder a continuation nudge appends is **not** emitted to the stream. It exists only in the model-facing message history, so it never shows up as an `assistant` or `tool` line. Reminder text visible in a trace or under `logging.debug` is log output, not a stream line.
 
