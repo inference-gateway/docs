@@ -21,6 +21,15 @@ Use Bun (>= 1.3, pinned in `.bun-version`). Every `bun run <name>` has a `task <
 - For Vue-sensitive placeholders or GitHub Actions expressions, use `<code v-pre>...</code>` instead of backticks.
 - Do not reference GitHub issues or pull requests in doc content: no tracker numbers or links (the `repo#<number>` shorthand, or URLs to `/issues/` or `/pull/` pages). Describe the behavior or change itself; provenance belongs in the generated `CHANGELOG.md`.
 
+## Code Readability
+
+- Write self-explanatory code: clear names and small, single-purpose functions carry the intent.
+  If a block needs a comment to be understood, extract it into a well-named function or variable.
+- No inline comments inside function bodies.
+- Doc comments on functions, types, and modules are at most 5 lines: what it does and why, not how.
+- Tool directives are not comments and stay where the tool needs them (lint suppressions, build
+  tags, compiler pragmas, code generation markers).
+
 ## Generated content — do not hand-edit
 
 Sections between `GENERATED:*` markers in `supported-providers.md`, `configuration.md`, `rust-adk.md`, `typescript-adk.md`, and `sdks.md` are generated from the canonical `inference-gateway/schemas` OpenAPI schema. Edit `scripts/generate-provider-docs.mjs` or `scripts/provider-overrides.json` instead, then run `task generate`.
