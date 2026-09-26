@@ -417,7 +417,7 @@ The agent reports missing prerequisites and stops - it never installs them. Set 
 | ------------------------------ | ---------------------------------------------------------------------------------------------------- |
 | The `hyperframes` skill        | [`infer skills install hyperframes motion-graphics --user`](/cli-skills/), or **Settings -> Skills** |
 | Node.js 22 or newer            | `node --version` must print `v22` or higher                                                          |
-| An `ffmpeg` that encodes H.264 | Installed with the Content project type; see the export troubleshooting below                        |
+| An `ffmpeg` that encodes H.264 | Bundled - only Intel Macs need their own. See the export troubleshooting below                       |
 | A Chromium for HyperFrames     | Run `npx hyperframes browser ensure` once in a terminal if a render fails                            |
 
 #### Card kinds
@@ -575,8 +575,16 @@ If the render then fails because HyperFrames or its browser is missing, run
 #### The app says no ffmpeg that can mix audio and encode H.264 was found
 
 The export needs an `ffmpeg` that lists the `adelay`, `amix`, and `apad` filters and the `libx264`
-and `aac` encoders; the desktop's own copy in `~/.infer/bin/tools/ffmpeg` is audio-only for now, so
-it falls back to a full `ffmpeg` on your `PATH`. Install one (`brew install ffmpeg`) and check it:
+and `aac` encoders. On a fresh install the desktop's own copy in `~/.infer/bin/tools/ffmpeg` covers
+all of that - it ships with `libx264` and screen capture on macOS (Apple Silicon), Linux and
+Windows - so export works with nothing else installed. Two cases still fall back to a full `ffmpeg`
+on your `PATH`:
+
+- An install carrying an older bundled copy, from before the bundled tools gained `libx264`.
+  Updating the app replaces it.
+- **Intel Macs**, which get no prebuilt bundled tools at all.
+
+For those, install a full `ffmpeg` (`brew install ffmpeg`) and check it:
 
 ```sh
 ffmpeg -hide_banner -filters | grep -E ' (adelay|amix|apad) '
@@ -682,6 +690,8 @@ On first use a one-time prompt asks to download voice support (~75 MB). On appro
 These are shared with the CLI - if you have already used speech-to-text there, the desktop app reuses them. You can also point at your own build: `WHISPER_BIN` wins if set, otherwise a `whisper-cli` or `whisper-cpp` on `PATH` is used as-is, and only failing both does the download run.
 
 Voice input works on every supported platform except Windows arm64, where clicking the microphone shows **"Voice input isn't available on this platform"**.
+
+**Intel Macs** are the exception to the automatic setup: no prebuilt `whisper-cli` is published for them, so the download has nothing to fetch. Install one yourself (`brew install whisper-cpp`) and make sure `whisper-cli` or `whisper-cpp` is on your `PATH` - the app uses it as-is. The same machines need a full [`ffmpeg` on `PATH`](#the-app-says-no-ffmpeg-that-can-mix-audio-and-encode-h-264-was-found) for timeline export.
 
 ## Text to speech
 
