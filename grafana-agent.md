@@ -96,7 +96,13 @@ Both example stacks in the repo wire these together for you: the [`examples/dock
 
 ### Register with the Inference Gateway CLI
 
-Pull and run the image, then register it with your gateway in one step:
+The bare name is enough - the CLI resolves `grafana-agent` from the [registry catalog](/registry/), deriving its URL and OCI image from the published entry, then pulls, runs, and registers it:
+
+```bash
+infer agents add grafana-agent
+```
+
+Spell the URL and image out when you want to override those derived values - for example to point at an agent you already run, or to pin a tag:
 
 ```bash
 infer agents add grafana-agent http://localhost:8080 \

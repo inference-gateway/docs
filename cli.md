@@ -3367,6 +3367,9 @@ infer agents add calendar-agent http://calendar.example.com
 # Add local agent with Docker
 infer agents add my-agent http://localhost:8081 --oci ghcr.io/myorg/agent:latest --run
 
+# Add any catalog agent by name only (URL and image derived from its catalog entry)
+infer agents add grafana-agent
+
 # Add a built-in agent by name only (browser-agent ships one tag per browser engine)
 infer agents add browser-agent --tag lightpanda
 
@@ -3383,7 +3386,7 @@ infer agents show calendar-agent
 infer agents update browser-agent --tag firefox
 ```
 
-Only the five agents with built-in defaults (`browser-agent`, `mock-agent`, `google-calendar-agent`, `documentation-agent`, `n8n-agent`) can be added by bare name. Any other agent needs an explicit URL - see [built-in agents vs other catalog agents](/a2a/#built-in-agents-vs-other-catalog-agents).
+Bare names resolve any agent published in the [A2A Registry](/registry/) catalog. The five agents with built-in defaults (`browser-agent`, `mock-agent`, `google-calendar-agent`, `documentation-agent`, `n8n-agent`) take precedence and work offline; every other name is looked up in the catalog, with the URL and OCI image derived from its published metadata. A name in neither place needs an explicit URL - see [built-in agents vs other catalog agents](/a2a/#built-in-agents-vs-other-catalog-agents).
 
 **Usage:**
 
