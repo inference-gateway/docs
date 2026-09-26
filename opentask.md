@@ -1,6 +1,6 @@
 ---
 title: OpenTask
-description: A browser extension that makes repo skills and bot directives discoverable inside GitHub's issue and PR comment box, and bridges the Inference Gateway CLI to your real browser. Chrome-first, portable to Edge, Firefox, and Safari.
+description: A browser extension that makes repo skills and bot directives discoverable inside GitHub's issue and PR comment box, records a tab so the agent can distill the flow into a skill, and bridges the Inference Gateway CLI to your real browser. Chrome-first, portable to Edge, Firefox, and Safari.
 ---
 
 # OpenTask
@@ -25,6 +25,23 @@ Download the `browser-extension.zip` from the [latest release](https://github.co
 - **Manage skills**: the **Skills** tab shows a searchable, multi-select list of the [skills registry](https://github.com/inference-gateway/skills). Check skills to install and uncheck to remove, then click **Apply** to open a PR.
 - **Select agents**: the **Agents** tab lists available A2A agents from the [agents registry](https://github.com/inference-gateway/agents). Check the ones to include in the workflow, then re-install to bake them in.
 - **Init a project**: the **Init** tab dispatches the workflow to scaffold an `AGENTS.md` for the repo and open a PR.
+- **Record a workflow to turn into a skill**: click **Record tab** in the popup or side panel (Chrome and Edge only), perform the flow in the tab, then stop - or let it hard-stop at the cap. The file lands in Downloads as `opentask-recording-*.mp4`; attach it to a task or issue and the agent inspects the frames and proposes the skill via PR. See [Tab recording](#tab-recording).
+
+## Tab recording
+
+Instead of writing a skill by hand, you can **demonstrate** it. The **Record tab** control captures the active tab at 10 fps into an `opentask-recording-*.mp4` file (webm fallback where mp4 muxing is unavailable), saved through the browser's download flow. Chrome shows its own recording indicator on the captured tab, and the control shows elapsed and remaining time while recording.
+
+The loop:
+
+1. **Record** the flow you want to teach.
+2. **Attach** the saved file to a task or issue. The capture bitrate is derived from the cap so the file stays under GitHub's 10 MB attachment limit.
+3. **Review the PR**: the agent inspects the frames and proposes the skill under [`.agents/skills/<name>/`](/cli-skills/#on-disk-layout) via a pull request.
+
+Settings live under **Options -> Orchestrator -> Tab recording**:
+
+- **Recording cap (seconds)** - the hard stop for a recording (default 60, bounded to 5-300).
+
+Audio capture and automatic upload of the recording are deliberately out of scope. Recording needs the `tabCapture`, `offscreen`, and `downloads` permissions, which only the Chrome and Edge builds request; on Firefox and Safari the control hides itself. Nothing on the gateway, CLI, or SDK side is involved - the capture never leaves your machine until you attach it yourself. Full details are in the extension's [Tab recording](https://github.com/inference-gateway/opentask#tab-recording) README section.
 
 ## Configuration
 
@@ -36,6 +53,7 @@ Right-click the extension icon and select **Options** (or navigate to the extens
 - **Permissions** - control what the agent may do at runtime (create PRs, issues, comments).
 - **Workflow** - set the per-run job timeout (default 25 minutes).
 - **Plugins** - toggle optional [infer-action](https://github.com/inference-gateway/infer-action) plugins.
+- **Tab recording** - set the recording cap under the **Orchestrator** tab (see [Tab recording](#tab-recording)).
 - **Self-hosted GPU models** - provision a [RunPod](https://runpod.io) GPU running llama.cpp from the extension popup.
 
 ## CLI bridge protocol

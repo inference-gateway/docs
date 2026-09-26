@@ -44,6 +44,10 @@ The same `<name>/SKILL.md` folder layout applies under every root. The CLI scans
 
 When the same `name` exists in more than one scope, the higher-precedence copy wins: a project `.infer/skills/` skill overrides an `.agents/skills/` skill, which in turn overrides a user-global `~/.infer/skills/` skill - useful for overriding a shared or personal default with a per-project variant.
 
+### Authoring by demonstration
+
+A skill folder does not have to be written by hand. The [OpenTask extension](/opentask/#tab-recording) records the current browser tab, you attach the capture to a task or issue, and the agent watches the frames and proposes the skill under `.agents/skills/<name>/` via a pull request - show the flow rather than describing it. Review the PR as you would any other skill contribution against [the SKILL.md contract](#the-skillmd-contract).
+
 ## The SKILL.md contract
 
 `SKILL.md` is a markdown file with a YAML frontmatter block at the top:
@@ -310,3 +314,4 @@ A catalog skill (one from [`agent.skills.repository`](#the-skills-catalog-and-ag
 - [CLI](/cli/) - overview of the `infer` command-line tool, modes, tools, and shortcuts.
 - [Configuration](/configuration/) - the full configuration system across the gateway and CLI.
 - [ADL CLI - Skills](/adl-cli/#skills) - declare skills inside an A2A agent project so they scaffold into `.agents/skills/<id>/SKILL.md`.
+- [OpenTask - Tab recording](/opentask/#tab-recording) - record a browser flow and let the agent distill it into a skill PR.
