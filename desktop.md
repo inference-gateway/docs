@@ -417,7 +417,7 @@ The agent reports missing prerequisites and stops - it never installs them. Set 
 | ------------------------------ | ---------------------------------------------------------------------------------------------------- |
 | The `hyperframes` skill        | [`infer skills install hyperframes motion-graphics --user`](/cli-skills/), or **Settings -> Skills** |
 | Node.js 22 or newer            | `node --version` must print `v22` or higher                                                          |
-| An `ffmpeg` that encodes H.264 | Bundled - only Intel Macs need their own; see the export troubleshooting below                       |
+| An `ffmpeg` that encodes H.264 | Bundled - only Intel Macs need their own. See the export troubleshooting below                       |
 | A Chromium for HyperFrames     | Run `npx hyperframes browser ensure` once in a terminal if a render fails                            |
 
 #### Card kinds
