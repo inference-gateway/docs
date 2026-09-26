@@ -217,25 +217,31 @@ let agent = AgentBuilder::new()
     .await?;
 ```
 
-| Method                                             | Purpose                                                                                                                 |
-| -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `with_config(&AgentConfig)`                        | Seed the builder from an `AgentConfig`. Later setters win per field.                                                    |
-| `with_provider(s)` / `with_model(s)`               | LLM provider and model id. Both are required - `build()` fails fast if either is unset.                                 |
-| `with_api_key(s)`                                  | Provider API key.                                                                                                       |
-| `with_base_url(s)`                                 | Override the LLM gateway base URL for the default client.                                                               |
-| `with_timeout(Duration)` / `with_max_retries(u32)` | Per-request timeout and retry budget.                                                                                   |
-| `with_max_chat_completion_iterations(u32)`         | Cap on chat-completion round trips in the agent loop (`A2A_AGENT_CLIENT_MAX_CHAT_COMPLETION_ITERATIONS`, default `10`). |
-| `with_max_tokens(u32)` / `with_temperature(f32)`   | Generation parameters.                                                                                                  |
-| `with_system_prompt(s)`                            | System prompt prepended to every conversation.                                                                          |
-| `with_enable_usage_metadata(bool)`                 | Override whether terminal tasks carry token usage + execution stats (default from config, `true`).                      |
-| `with_max_conversation_history(u32)`               | Max conversation-history messages retained (default `20`).                                                              |
-| `with_toolbox(Vec<ChatCompletionTool>)`            | Declare the tool schema advertised to the model.                                                                        |
-| `with_tool_handler(name, h)`                       | Register a `ToolHandler` for a named tool.                                                                              |
-| `with_function_tool(name, closure)`                | Register a synchronous closure tool handler.                                                                            |
-| `with_async_function_tool(name, closure)`          | Register an async closure tool handler.                                                                                 |
-| `with_llm_client(C: LLMClient)`                    | Replace the default `OpenAICompatibleLLMClient` with a custom transport.                                                |
+| Method                                             | Purpose                                                                                                                                                              |
+| -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `with_config(&AgentConfig)`                        | Seed the builder from an `AgentConfig`. Later setters win per field.                                                                                                 |
+| `with_provider(s)` / `with_model(s)`               | LLM provider and model id. Both are required - `build()` fails fast if either is unset.                                                                              |
+| `with_api_key(s)`                                  | Provider API key.                                                                                                                                                    |
+| `with_base_url(s)`                                 | Override the LLM gateway base URL for the default client.                                                                                                            |
+| `with_timeout(Duration)` / `with_max_retries(u32)` | Bounds every LLM request and each wait for a streamed event, plus the retry budget. `Duration::ZERO` disables the bound.                                             |
+| `with_max_chat_completion_iterations(u32)`         | Cap on chat-completion round trips in the agent tool loop (`A2A_AGENT_CLIENT_MAX_CHAT_COMPLETION_ITERATIONS`, default `10`). `with_max_chat_completion` is an alias. |
+| `with_max_tokens(u32)`                             | Token ceiling per completion. Applies to non-streaming completions only - the gateway SDK omits `max_tokens` from streaming requests.                                |
+| `with_system_prompt(s)`                            | System prompt prepended to every conversation.                                                                                                                       |
+| `with_enable_usage_metadata(bool)`                 | Override whether terminal tasks carry token usage + execution stats (default from config, `true`).                                                                   |
+| `with_max_conversation_history(u32)`               | Max conversation-history messages retained (default `20`).                                                                                                           |
+| `with_toolbox(Vec<ChatCompletionTool>)`            | Declare the tool schema advertised to the model.                                                                                                                     |
+| `with_tool_handler(name, h)`                       | Register a `ToolHandler` for a named tool.                                                                                                                           |
+| `with_function_tool(name, closure)`                | Register a synchronous closure tool handler.                                                                                                                         |
+| `with_async_function_tool(name, closure)`          | Register an async closure tool handler.                                                                                                                              |
+| `with_llm_client(C: LLMClient)`                    | Replace the default `OpenAICompatibleLLMClient` with a custom transport.                                                                                             |
 
 > `AgentBuilder::build()` fails fast when `provider` or `model` are unset (or the provider is unsupported), so a misconfigured server errors out at startup instead of on the first chat request.
+
+### Temperature removed
+
+**Breaking change, first release after `0.12.1`.** `AgentConfig::temperature`, `AgentBuilder::with_temperature` and `A2A_AGENT_CLIENT_TEMPERATURE` are removed. The Rust gateway SDK exposes no temperature knob, so the setting was accepted and then silently dropped - pin the sampling temperature on the gateway or provider side instead.
+
+The same release makes four previously inert settings effective: `A2A_AGENT_CLIENT_API_KEY` (sent as a bearer token), `MAX_TOKENS`, `TIMEOUT_SECS` and `MAX_CHAT_COMPLETION_ITERATIONS`. An agent that carried unused values for these will now behave according to them, so review them before upgrading.
 
 ### Custom LLM clients
 
@@ -1161,19 +1167,20 @@ Log verbosity is controlled by [`RUST_LOG`](https://docs.rs/tracing-subscriber/l
 
 **Agent (LLM client)** - these mirror the [`AgentBuilder`](#agentbuilder) setters; an explicit setter overrides the env value.
 
-| Variable                                          | Default   | Purpose                                                         |
-| ------------------------------------------------- | --------- | --------------------------------------------------------------- |
-| `A2A_AGENT_CLIENT_PROVIDER`                       | _(empty)_ | LLM provider id (e.g. `openai`, `nvidia`, `ollama`, `groq`).    |
-| `A2A_AGENT_CLIENT_MODEL`                          | _(empty)_ | Model name.                                                     |
-| `A2A_AGENT_CLIENT_BASE_URL`                       | _(unset)_ | Override the gateway/provider base URL.                         |
-| `A2A_AGENT_CLIENT_API_KEY`                        | _(unset)_ | Provider API key.                                               |
-| `A2A_AGENT_CLIENT_TIMEOUT_SECS`                   | `30`      | Per-request timeout.                                            |
-| `A2A_AGENT_CLIENT_MAX_RETRIES`                    | `3`       | Retry budget for failed LLM calls.                              |
-| `A2A_AGENT_CLIENT_MAX_CHAT_COMPLETION_ITERATIONS` | `10`      | Max tool-call/completion loop iterations per turn.              |
-| `A2A_AGENT_CLIENT_MAX_TOKENS`                     | `4096`    | Max tokens per completion.                                      |
-| `A2A_AGENT_CLIENT_TEMPERATURE`                    | `0.7`     | Sampling temperature.                                           |
-| `A2A_AGENT_CLIENT_SYSTEM_PROMPT`                  | _(unset)_ | System prompt prepended to conversations.                       |
-| `A2A_AGENT_CLIENT_ENABLE_USAGE_METADATA`          | `true`    | Attach token usage + execution stats to terminal task metadata. |
+| Variable                                          | Default   | Purpose                                                                                                                 |
+| ------------------------------------------------- | --------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `A2A_AGENT_CLIENT_PROVIDER`                       | _(empty)_ | LLM provider id (e.g. `openai`, `nvidia`, `ollama`, `groq`).                                                            |
+| `A2A_AGENT_CLIENT_MODEL`                          | _(empty)_ | Model name.                                                                                                             |
+| `A2A_AGENT_CLIENT_BASE_URL`                       | _(unset)_ | Override the gateway/provider base URL.                                                                                 |
+| `A2A_AGENT_CLIENT_API_KEY`                        | _(unset)_ | Provider API key, sent to the gateway as a bearer token.                                                                |
+| `A2A_AGENT_CLIENT_TIMEOUT_SECS`                   | `30`      | Bounds each LLM request and each wait for a streamed event. `0` disables the bound.                                     |
+| `A2A_AGENT_CLIENT_MAX_RETRIES`                    | `3`       | Retry budget for failed LLM calls.                                                                                      |
+| `A2A_AGENT_CLIENT_MAX_CHAT_COMPLETION_ITERATIONS` | `10`      | Cap on the agent tool loop - chat-completion round trips per turn.                                                      |
+| `A2A_AGENT_CLIENT_MAX_TOKENS`                     | `4096`    | Max tokens per completion. Non-streaming completions only - the gateway SDK omits `max_tokens` from streaming requests. |
+| `A2A_AGENT_CLIENT_SYSTEM_PROMPT`                  | _(unset)_ | System prompt prepended to conversations.                                                                               |
+| `A2A_AGENT_CLIENT_ENABLE_USAGE_METADATA`          | `true`    | Attach token usage + execution stats to terminal task metadata.                                                         |
+
+> `A2A_AGENT_CLIENT_TEMPERATURE` was removed in the first release after `0.12.1` - see [Temperature removed](#temperature-removed).
 
 **Capabilities** are not environment-configurable. The served card and the [builder's streaming-handler validation](#the-server-and-its-builder) read the `capabilities` object of your agent card JSON, so set `streaming`, `pushNotifications`, and `stateTransitionHistory` there.
 
