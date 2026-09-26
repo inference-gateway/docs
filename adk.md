@@ -517,6 +517,7 @@ resp, err := a2a.SendTask(ctx, types.MessageSendParams{
 })
 ```
 
+- **Helper vs. literal.** `types.CreateFilePart` takes plain `string` name and media type, but the generated `types.FilePart` it builds has optional `Name` and `MediaType` (`*string`). Reading a part back means dereferencing them; building a literal means taking addresses. `types.MessageSendParams.Message` is a required value-typed `types.Message`, as above.
 - **Bytes vs URI.** `fileWithBytes` (the `&encoded` argument above) is inlined as a `data:<mediaType>;base64,<bytes>` URL. `fileWithUri` - the fourth argument - is passed through unchanged, so the **provider** has to fetch it. Artifact-server URLs that only resolve inside your cluster are typically unreachable from a hosted provider; send bytes in that case.
 - **Ordering.** Text and image parts reach the model in the order they appear in the A2A message.
 - **What is forwarded.** Only `image/*` parts on **user**-role messages. Other media types (PDF, audio) are skipped, and file parts on agent-role messages are never sent, because OpenAI-compatible assistant messages cannot carry images.
@@ -550,7 +551,8 @@ _, _ = a2a.CancelTask(ctx, types.TaskIdParams{ID: taskID})
 resp, _ := a2a.ListTasks(ctx, types.TaskListParams{Limit: 20, Offset: 0})
 
 // tasks/resubscribe - re-attach to a streaming task after the SSE connection dropped.
-events, _ := a2a.ResubscribeTask(ctx, types.TaskResubscriptionParams{Name: taskID})
+// Name is a *string on the generated request types.
+events, _ := a2a.ResubscribeTask(ctx, types.TaskResubscriptionParams{Name: &taskID})
 for evt := range events {
 	// server re-emits current state, then forwards further events
 }
@@ -572,10 +574,12 @@ _, _ = a2a.SetTaskPushNotificationConfig(ctx, types.TaskPushNotificationConfig{
 		Token: &token,
 	},
 })
-_, _ = a2a.GetTaskPushNotificationConfig(ctx, types.GetTaskPushNotificationConfigParams{Name: taskID})
-_, _ = a2a.ListTaskPushNotificationConfig(ctx, types.ListTaskPushNotificationConfigParams{Parent: taskID})
-_, _ = a2a.DeleteTaskPushNotificationConfig(ctx, types.DeleteTaskPushNotificationConfigParams{Name: taskID})
+_, _ = a2a.GetTaskPushNotificationConfig(ctx, types.GetTaskPushNotificationConfigParams{Name: &taskID})
+_, _ = a2a.ListTaskPushNotificationConfig(ctx, types.ListTaskPushNotificationConfigParams{Parent: &taskID})
+_, _ = a2a.DeleteTaskPushNotificationConfig(ctx, types.DeleteTaskPushNotificationConfigParams{Name: &taskID})
 ```
+
+`TaskPushNotificationConfig.Name` (the `set` payload) is a plain `string`, but the `get` / `list` / `delete` params are aliases for the generated request types, where `Name` and `Parent` are `*string` - pass an address, as above. The same holds for `TaskResubscriptionParams.Name` and `CancelTaskRequest.Name`; `types.TaskIdParams.ID`, used by `CancelTask`, stays a `string`.
 
 ### Authenticated extended card
 
