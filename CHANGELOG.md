@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.18](https://github.com/inference-gateway/docs/compare/0.9.17...0.9.18) (2026-09-26)
+
+### 📚 Documentation
+
+* document agents add bare-name catalog resolution ([#821](https://github.com/inference-gateway/docs/issues/821)) ([810c00e](https://github.com/inference-gateway/docs/commit/810c00e96e404d33506f8067fed433dc57609659))
+* document per-turn assistant lines in headless json ([#824](https://github.com/inference-gateway/docs/issues/824)) ([a1b4784](https://github.com/inference-gateway/docs/commit/a1b47849ac6859c4ed53a81576eb8da60bf77796))
+* document rust adk image file part forwarding ([#818](https://github.com/inference-gateway/docs/issues/818)) ([9fd4ab0](https://github.com/inference-gateway/docs/commit/9fd4ab051a325415d4b16242eb280004a20ffe36))
+* note empty headless turns emit no assistant line ([#828](https://github.com/inference-gateway/docs/issues/828)) ([264424f](https://github.com/inference-gateway/docs/commit/264424fb372c16bfe23fa5d03c1f6d0bd36bff03))
+* **rust-adk:** restore A2A_AGENT_CLIENT_TEMPERATURE ([#820](https://github.com/inference-gateway/docs/issues/820)) ([b978a53](https://github.com/inference-gateway/docs/commit/b978a535db5234fbe460dbb52dfcf93a68c037b0))
+* update go adk snippets for pointer a2a fields ([#825](https://github.com/inference-gateway/docs/issues/825)) ([f0b5dfa](https://github.com/inference-gateway/docs/commit/f0b5dfa6230455d25f429dfc43cf4ec9c3b98d0d))
+* update rust adk a2a request snippets for optionality ([#829](https://github.com/inference-gateway/docs/issues/829)) ([7e81665](https://github.com/inference-gateway/docs/commit/7e81665654386a5236eb26f5e305a96f70c0be8b))
+
 ## [0.9.17](https://github.com/inference-gateway/docs/compare/0.9.16...0.9.17) (2026-09-26)
 
 ### 📚 Documentation
