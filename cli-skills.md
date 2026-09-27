@@ -1,6 +1,6 @@
 ---
 title: Agent Skills
-description: Install, enable, and invoke Agent Skills in the Inference Gateway CLI - the on-disk SKILL.md layout, the three discovery scopes (project .infer/skills, the .agents/skills open standard, and user-global ~/.infer/skills), the built-in tmux and bug skills seeded into ~/.infer/skills on infer init (seed-if-absent), infer skills install/list/uninstall, deterministic slash-name activation with metadata-only injection, and the Read-sandbox carve-out for ~/.infer/skills.
+description: Install, enable, and invoke Agent Skills in the Inference Gateway CLI - the on-disk SKILL.md layout, the three discovery scopes (project .infer/skills, the .agents/skills open standard, and user-global ~/.infer/skills), the built-in tmux, bug, and demo skills seeded into ~/.infer/skills on infer init (seed-if-absent), infer skills install/list/uninstall, deterministic slash-name activation with metadata-only injection, and the Read-sandbox carve-out for ~/.infer/skills.
 ---
 
 # Agent Skills
@@ -77,14 +77,15 @@ Unknown frontmatter keys (for example Anthropic's `allowed-tools:` or Gemini's `
 
 The CLI ships a small set of **built-in skills** embedded in the binary. On `infer init` they are seeded into the user-global `~/.infer/skills/` - the same directory the [skills loader scans](#on-disk-layout) - **only if absent** ("seed-if-absent"). Once on disk they are ordinary user-scope skills: discovered, shown by `infer skills list`, and injected as lightweight metadata exactly like a skill you authored there yourself. Because seeding never overwrites an existing folder, **your edits survive** every later `infer init`.
 
-Two built-ins ship today:
+Three built-ins ship today:
 
 | Skill  | What it teaches the agent                                                                                                                                                                                                                                                                                                                                                                                                  |
 | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `tmux` | Drive interactive terminal programs - TUIs, REPLs, pagers, a debugger, or another CLI's chat UI - that the plain [Bash tool](/cli/#bash) cannot script, by running them inside tmux and scripting them with `send-keys` / `capture-pane`. It prefers to **add a pane to the tmux session you already have open** so the work stays visible, and only falls back to a **detached session** in a headless, CI, or piped run. |
 | `bug`  | Turn a rough bug description into a reproduced, well-formed GitHub issue - see [The `bug` skill](#the-bug-skill) below.                                                                                                                                                                                                                                                                                                    |
+| `demo` | Record a short demo GIF of any project - a CLI, TUI or desktop GUI app: plan it up front, rehearse it unrecorded, record one take and convert it to a single `~/.infer/artifacts/demo.gif` - see [The `demo` skill](#the-demo-skill) below.                                                                                                                                                                                |
 
-Built-ins are seeded rather than published: `bug` is **not** in the [Skills Catalog](/skills/), because it composes CLI-only tools (`AskUserQuestion`, the Computer tools, `RecordStart` / `RecordStop`) that no other agent runtime provides.
+Built-ins are seeded rather than published: `bug` and `demo` are **not** in the [Skills Catalog](/skills/), because they compose CLI-only tools (`AskUserQuestion`, the Computer tools, `RecordStart` / `RecordStop`) that no other agent runtime provides.
 
 ### The `bug` skill
 
@@ -106,6 +107,30 @@ The target repository defaults to `inference-gateway/cli`; the skill uses anothe
 **Degradation, not failure.** Recording disabled, a missing `ffmpeg`, a failed capture, an unreproducible bug, or a declined consent all degrade to a **text-only report** - the skill hands you the draft and the exact `gh issue create --web` command instead of aborting.
 
 > **Approval prompts.** `ffmpeg` and `gh` are not auto-approved, so each call goes through the normal [approval gate](/cli/#approval-workflow) unless you allow-list them under `tools.bash.mode.<mode>.allow`. In headless runs those calls are blocked rather than prompted.
+
+### The `demo` skill
+
+Invoke it with `/demo` (or ask in prose to demo, show or demonstrate a change - including as the tail of a bigger ask, "implement X and demo it") and the agent records a short GIF of the change working, for a CLI, TUI or desktop GUI app alike:
+
+```text
+> /demo
+```
+
+The deliverable is exactly **one GIF, `~/.infer/artifacts/demo.gif`**, recorded in a single take **after** the work is committed and pushed - recordings never enter the repository. On a pull request, `/demo` means demo that PR as it is, without changing code. When nothing would show up on screen (a refactor, CI config, internal types), the skill does not record and says why instead.
+
+The flow is always plan, rehearse, record one take, convert:
+
+1. **Plan.** The recording becomes the last todo, and the demo picks one to three steps a user would actually do - run the new flag, open the view that changed, trigger the message that now reads better. Passing tests are not a demo.
+2. **Rehearse unrecorded.** Every `RecordStart` / `RecordStop` pair makes a video, so all trial and error happens through `tmux capture-pane` or screenshots instead: build with the repo's own command, run the steps exactly as the take will run them, and reset to a clean start.
+3. **Record one take.** A single 20-45 second take, start to finish. A capped, off-target or broken take is thrown away - the rehearsal is fixed and a new take recorded; unconverted takes never reach anything user-visible.
+4. **Convert.** `ffmpeg` turns the good take into the fixed `demo.gif` name - converting again replaces the GIF rather than adding a second one. Locally the agent prints the GIF's path for you to review; in CI it is embedded in the [result comment](/github-action/#result-comment).
+
+Where it records depends on where it runs:
+
+- **Locally** it records **window** or **region** only, never the whole screen, so nothing else you have open is captured. Terminal programs are driven through the `tmux` built-in and GUI apps with the Computer tools. Recording is **off by default** - it needs `computer_use.recording.enabled` (see [Screen recording](/cli/#screen-recording)), which the skill never edits for you.
+- **In CI** ([`record-demo` on the GitHub Action](/github-action/#demo-recordings)) the action provides a virtual display whose only window is the demo terminal, so screen mode captures exactly what the demo puts on it - and `~/.infer/artifacts` is the delivery channel: everything in it is embedded in the result comment, which is why a recording never needs to enter the repository.
+
+**Recording off? Degradation, not failure.** When recording is unavailable - locally the config knob above, in CI a request that did not ask for a demo - the skill says so once, never edits config, and shows the steps as commands plus captured output or screenshots instead. It is not for reproducing bugs; that is [the `bug` skill](#the-bug-skill).
 
 ### Customizing a built-in
 
