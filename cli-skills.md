@@ -253,6 +253,8 @@ Two triggers activate a skill, in **any** run mode (chat, `infer headless`, chan
 
 Typing `/pdf-helper` for a known installed skill is now routed to the agent and flags the skill active, rather than dead-ending as an "Unknown shortcut".
 
+Skills appear in the `/` autocomplete list alongside commands and shortcuts, labelled by kind: an installed skill shows as `skill`, and a catalog skill that is not on disk yet shows as `remote skill`. See [Autocomplete kinds](/cli/#autocomplete-kinds) for all four labels.
+
 Activation behavior:
 
 - **Only metadata is injected.** The pointer carries the skill's description and path - never the full body. The `SKILL.md` body stays progressive-disclosure and is read on demand with the [Read tool](/cli/#read), reachable thanks to the [sandbox carve-out](#skills-sandbox-carve-out).
@@ -300,7 +302,7 @@ A skill can instruct the model to run shell commands, read files, or call extern
 
 ### On-demand catalog downloads
 
-A catalog skill (one from [`agent.skills.repository`](#the-skills-catalog-and-agentskillsrepository) that is not yet on disk) can be **fetched and installed the moment a prompt names it** - so anyone writing a prompt that reaches a profile, not just whoever installed the skills, decides what gets downloaded. If you run a CI or Telegram profile, know that a prompt containing `/some-skill` can trigger a download. The trust model:
+A catalog skill (one from [`agent.skills.repository`](#the-skills-catalog-and-agentskillsrepository) that is not yet on disk - shown as `remote skill` in `/` autocomplete, against `skill` for one already installed) can be **fetched and installed the moment a prompt names it** - so anyone writing a prompt that reaches a profile, not just whoever installed the skills, decides what gets downloaded. If you run a CI or Telegram profile, know that a prompt containing `/some-skill` can trigger a download. The trust model:
 
 - **Only an explicit name triggers it.** A catalog skill downloads when a prompt explicitly names it (`/rust`, or "use the rust skill"). The **model cannot trigger this on its own** - catalog entries are listed to it without a path, so it has no way to reach an un-downloaded body.
 - **Chat asks first.** In interactive chat the install is **confirmed by the user** before it happens.
