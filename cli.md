@@ -2544,7 +2544,7 @@ These show as `command` in autocomplete:
 | --------------- | -------------------------------- | ----------------------------------------- |
 | `/init`         | Generate AGENTS.md documentation | `/init`                                   |
 | `/git <cmd>`    | Git operations                   | `/git status`, `/git commit`, `/git push` |
-| `/scm <cmd>`    | GitHub operations                | `/scm pr-create`, `/scm issue 123`        |
+| `/scm <cmd>`    | GitHub operations                | `/scm issues`, `/scm issue 123`           |
 | `/mcp <cmd>`    | Manage MCP servers               | `/mcp list`, `/mcp add`                   |
 | `/skills <cmd>` | Manage Agent Skills              | `/skills list`, `/skills install <url>`   |
 
@@ -2572,10 +2572,9 @@ These show as `command` in autocomplete:
 # View issue details
 # Runs: gh issue view 123 --json ...
 /scm issue 123
-
-# Create pull request with AI-powered plan
-/scm pr-create
 ```
+
+The seeded `scm.yaml` defines only these two subcommands. For pull-request work, ask the agent directly - `gh pr create` is a write, so it falls through to [approval](#default-gh-allowed-list) - or add your own subcommand to the shortcut file.
 
 ### Telemetry Shortcuts
 
