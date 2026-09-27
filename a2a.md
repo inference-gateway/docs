@@ -201,22 +201,22 @@ The CLI provides four A2A tools that LLMs can use to interact with agents:
 
 ### Viewing Connected Agents
 
-During a chat session, you can use the `/a2a` shortcut to view all connected A2A agents and their capabilities:
+During a chat session, the `/agents` shortcut opens the [Agents view](/cli/#agents-view) - one list of every agent the chat can delegate to, where each row carries an `a2a` chip for remote agents or a `local` chip for Markdown subagent presets:
 
 ```bash
 infer chat
-> /a2a
+> /agents
 ```
 
-This displays information about each configured agent, including their available skills and status.
+The `a2a` rows show each configured agent's URL and connection state. Filter the list with `/` and type `a2a` to narrow it to remote agents.
 
 ### A2A Liveness Probes
 
-When A2A agents are configured, the CLI periodically re-probes them for the lifetime of the session instead of checking them only once at startup. This keeps the `A2A: X/Y` status bar indicator and the `/a2a` view live throughout the session:
+When A2A agents are configured, the CLI periodically re-probes them for the lifetime of the session instead of checking them only once at startup. This keeps the `A2A: X/Y` status bar indicator and the a2a rows of the [`/agents` view](/cli/#agents-view) live throughout the session:
 
 - An agent that was down at startup turns green automatically when it becomes reachable.
-- An agent that goes down mid-session turns the `A2A: X/Y` indicator red and shows the failure detail in the `/a2a` view.
-- A recovered agent counts back up in the indicator and shows a **"Recovered"** status in the `/a2a` view.
+- An agent that goes down mid-session turns the `A2A: X/Y` indicator red and shows the failure detail in its row.
+- A recovered agent counts back up in the indicator and shows a **"Recovered"** status.
 
 **How probes work:**
 

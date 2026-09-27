@@ -304,12 +304,12 @@ The selected indicator is highlighted as an **accent-colored pill**.
 
 **Indicator labels:**
 
-| Indicator | Label format                             | Description                                                                                                                                                                                                                                                                                                     |
-| --------- | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Tools     | `Tools: N (mode)`                        | `N` is the number of tools available in the current [agent mode](#agent-modes). `mode` is the active mode name (Standard, Plan, Auto-Accept, or Auto+Judge - the latter shown as `AUTO+JUDGE - <model>`). Opens the [`/tools` view](#tools-view).                                                               |
-| A2A       | `A2A: X/Y`                               | `X` is the number of connected A2A agents, `Y` is the total number of configured agents. Opens the [`/a2a` view](#a2a-view). When [liveness probes](#a2a-liveness-probes) are enabled, `X` counts down as agents fail and counts back up when they recover - the indicator stays live for the session lifetime. |
-| Theme     | `Theme`                                  | Opens the theme selector to change the TUI color scheme.                                                                                                                                                                                                                                                        |
-| Reconnect | `Reconnecting...` / `Reconnecting (N/M)` | Shown in red when the stream has stalled and the CLI is reconnecting. `N` is the current attempt, `M` is `client.retry.max_attempts`. Input is blocked until the stream recovers or all attempts are exhausted.                                                                                                 |
+| Indicator | Label format                             | Description                                                                                                                                                                                                                                                                                                           |
+| --------- | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tools     | `Tools: N (mode)`                        | `N` is the number of tools available in the current [agent mode](#agent-modes). `mode` is the active mode name (Standard, Plan, Auto-Accept, or Auto+Judge - the latter shown as `AUTO+JUDGE - <model>`). Opens the [`/tools` view](#tools-view).                                                                     |
+| A2A       | `A2A: X/Y`                               | `X` is the number of connected A2A agents, `Y` is the total number of configured agents. Opens the [`/agents` view](#agents-view). When [liveness probes](#a2a-liveness-probes) are enabled, `X` counts down as agents fail and counts back up when they recover - the indicator stays live for the session lifetime. |
+| Theme     | `Theme`                                  | Opens the theme selector to change the TUI color scheme.                                                                                                                                                                                                                                                              |
+| Reconnect | `Reconnecting...` / `Reconnecting (N/M)` | Shown in red when the stream has stalled and the CLI is reconnecting. `N` is the current attempt, `M` is `client.retry.max_attempts`. Input is blocked until the stream recovers or all attempts are exhausted.                                                                                                       |
 
 #### Switching models (`/model`)
 
@@ -1617,10 +1617,55 @@ The model calls the tool with either a batch of `tasks` or a single `description
   - `label` (optional) - short label shown in progress output / tmux panes
   - `model` (optional) - per-subagent model override
   - `system_prompt` (optional) - gives that subagent a specialized role/persona
+  - `agent` (optional) - name of a [Markdown subagent preset](#markdown-subagent-presets) that supplies the system prompt, model, and tool allowlist
 - `description` (optional) - shorthand for a **single-task** call (an alternative to `tasks`)
 - `system_prompt` (optional) - system prompt for the single-`description` form
+- `agent` (optional) - preset name for the single-`description` form
 
 Each subagent runs in its own isolated session id of the form `subagent-<parentSession>-<uuid>`. Parallel fan-out is capped by `max_parallel` (default `4`) concurrent subagents per call.
+
+#### Markdown subagent presets
+
+Instead of spelling out a system prompt on every call, a subagent can be defined once as a **Markdown file with YAML frontmatter** and delegated to by name through the `agent` parameter. The format is the same one Claude Code (`.claude/agents/*.md`) and Gemini CLI (`.gemini/agents/*.md`) use, so an existing agent file from either tool loads unchanged once copied in. Every preset shows up as a `local` row in the [`/agents` view](#agents-view).
+
+```markdown
+---
+name: code-reviewer
+description: Reviews a diff for correctness bugs. Use after making code changes.
+model: deepseek/deepseek-v4-pro
+tools: Read, Grep, Tree
+---
+
+You are a senior reviewer. Read the changed files and report findings as a
+numbered list ordered by severity.
+```
+
+The Markdown body is the subagent's system prompt. Frontmatter keys:
+
+| Key               | Required | Meaning                                                                                             |
+| ----------------- | -------- | --------------------------------------------------------------------------------------------------- |
+| `name`            | yes      | Identifier passed as the `agent` argument. Lowercase letters, digits, `-`, `_`; up to 64 characters |
+| `description`     | yes      | Shown to the main agent so it knows when to delegate                                                |
+| `model`           | no       | `provider/model`, or `inherit` to use the parent turn's model                                       |
+| `tools`           | no       | Tools the subagent may use - a YAML list or a comma-separated string. Omitted means inherit all     |
+| `disallowedTools` | no       | Tools removed from the resolved list. Same format as `tools`                                        |
+
+Any other key (`color`, `temperature`, `max_turns`, `mcpServers`, `permissionMode`, ...) is accepted and ignored, so files written for other orchestrators load as-is. These are presets for the Agent tool, entirely separate from `.infer/agents.yaml`, the [A2A](#a2a-integration) agent registry.
+
+**Locations and precedence.** Definitions are looked up in this order, first match wins on a name collision:
+
+1. **Project**: `.infer/agents/<name>.md` - commit it to share the agent with the repository
+2. **User-global**: `~/.infer/agents/<name>.md` - stays personal
+
+A project preset therefore overrides a personal one of the same name, exactly like [skills](/cli-skills/).
+
+**Tool allowlist.** The resolved allowlist is enforced inside the spawned subagent in one place: a disallowed tool is neither offered to the model nor executable by naming it. Unknown tool names (for example Claude's `Glob`) log a warning and are dropped, `disallowedTools` entries are always honored, and a restriction that resolves to no known tool skips the file rather than silently falling back to all tools. The preset's capability follows from the allowlist - **read-only** when every allowed tool is read-only, otherwise **read-write** (mutations still go through approval). Listing `Agent` itself lets a preset spawn subagents, still bounded by `max_depth`.
+
+**Model resolution.** The file's `model` wins over a per-task `model` argument. A value without a provider prefix - a Claude alias such as `sonnet`, or a bare model ID - logs a warning and falls back to `inherit`. When the file sets no model, the normal order applies: per-task `model`, then `tools.agent.model`, then the parent turn's model.
+
+Files are scanned **once per session**. A file with broken frontmatter, a missing or invalid `name`/`description`, or an unusable `tools` list is skipped with a warning naming the file and the reason - an invalid preset never fails startup.
+
+> **v1 limits.** `.claude/agents/` and `.gemini/agents/` are not read in place (copy or symlink the files into `.infer/agents/`), there is no hot reload, and per-agent `mcpServers`, `temperature`, `max_turns`, `permissionMode`, and tool wildcards such as `mcp_*` are not honored. MCP tools register after session start, so MCP tool names in a `tools` list are dropped as unknown.
 
 #### Result modes: async and wait-all
 
@@ -1703,7 +1748,7 @@ session (standard, success)            152ms
 
 Interactive (tmux-pane) subagents are **not** stitched into the caller's trace; use `mode: headless` when you need the subagent's spans in the same trace. See [Trace context propagation to subprocesses](#trace-context-propagation-to-subprocesses) for the full contract.
 
-> **v1 scope.** Subagents do not nest (depth capped at 1), a subagent's tool-approval prompt is not routed back to the main chat TUI, only tmux is supported (no screen/zellij), and there is no `/agent` chat shortcut yet.
+> **v1 scope.** Subagents do not nest (depth capped at 1), a subagent's tool-approval prompt is not routed back to the main chat TUI, only tmux is supported (no screen/zellij), and there is no CLI command to list or create Markdown presets (the [`/agents` view](#agents-view) lists them read-only).
 
 ### Security Features
 
@@ -2470,7 +2515,7 @@ The CLI provides built-in shortcuts and supports custom user-defined shortcuts.
 | `/git <cmd>`          | Git operations                                                                                                                                                           | `/git status`, `/git commit`, `/git push` |
 | `/scm <cmd>`          | GitHub operations                                                                                                                                                        | `/scm pr-create`, `/scm issue 123`        |
 | `/model [name] [msg]` | Switch the active model, or run one message with another model (replaces `/switch`)                                                                                      | `/model deepseek/deepseek-v4-flash`       |
-| `/a2a`                | View registered A2A agents and their connection state                                                                                                                    | `/a2a`                                    |
+| `/agents`             | View every configured agent - local Markdown presets and remote A2A agents - with their state                                                                            | `/agents`                                 |
 | `/tasks`              | View background work (A2A tasks, shells, subagents) with live status and captured output                                                                                 | `/tasks`                                  |
 | `/tools`              | View a filterable list of tools available in the current agent mode, including MCP tools                                                                                 | `/tools`                                  |
 | `/stats`              | Summarize the session's token usage, tool outcomes, and cost (mirrors `infer stats`)                                                                                     | `/stats`                                  |
@@ -2797,6 +2842,10 @@ shortcuts:
 ```
 
 The command must output JSON. Fields are accessible in the prompt template via `{fieldName}` syntax. The LLM response is accessible via `{llm}` in the template.
+
+#### Name collisions with built-ins
+
+A [built-in shortcut](#built-in-shortcuts) always wins over a custom YAML shortcut of the same name - the custom one is skipped with a warning naming the file, so a stale shortcut file can never shadow a built-in view such as [`/agents`](#agents-view). Rename the custom shortcut to reach it again.
 
 ## Advanced Features
 
@@ -3331,21 +3380,29 @@ infer chat
 > /tools
 ```
 
-### `/a2a` view
+### `/agents` view
 
-The `/a2a` shortcut opens a **list of registered A2A agents** showing their connection state. Each entry displays whether the agent is connected or disconnected, alongside its name and URL.
+The `/agents` shortcut opens the **Agents view** - the single, filterable list of every agent the chat can delegate to, local and remote alike. There is no separate A2A-only view: each row carries a **type chip** that says where it comes from.
 
-When [liveness probes](#a2a-liveness-probes) are enabled, the view stays **live for the session lifetime**:
+| Chip    | Row                                                                                                                                                  | State column                | Detail line                                               |
+| ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- | --------------------------------------------------------- |
+| `local` | A [Markdown subagent preset](#markdown-subagent-presets) (`.infer/agents/*.md`) that the [Agent tool](#local-subagents-agent-tool) spawns in-process | `read-only` or `read-write` | Tool allowlist, model (or `inherit`), and the source file |
+| `a2a`   | A remote [A2A agent](#a2a-integration) from `agents.yaml`                                                                                            | Its readiness state         | The agent URL, or the failure/progress detail             |
 
+Rows are sorted by name, and typing `/` filters on the chip as well as the name - `local` narrows the list to presets, `a2a` to remote agents.
+
+The a2a rows stay **live for the session lifetime** when [liveness probes](#a2a-liveness-probes) are enabled:
+
+- An agent still pulling its image shows pull progress (`<done>/<total> layers`).
 - An agent that was down at startup turns green automatically when it becomes reachable.
 - An agent that goes down mid-session shows the failure detail inline.
 - A recovered agent shows a **"Recovered"** status.
 
-The status bar `A2A: X/Y` indicator reflects the same live state - `X` counts down on failures and counts back up on recovery.
+The status bar `A2A: X/Y` indicator reflects the same live state and opens this view - `X` counts down on failures and counts back up on recovery.
 
 ```bash
 infer chat
-> /a2a  # View connected agents
+> /agents  # View local presets and remote A2A agents
 ```
 
 ### `/tasks` view
@@ -3417,14 +3474,14 @@ Bare names resolve any agent published in the [A2A Registry](/registry/) catalog
 ```bash
 infer chat
 > "Schedule a meeting tomorrow at 2 PM using the calendar agent"
-> /a2a  # View connected agents
+> /agents  # View connected agents
 ```
 
 See [A2A documentation](/a2a/) for creating custom agents, or use the [ADL CLI](/adl-cli/) to scaffold new A2A agents from YAML definitions.
 
 #### A2A Liveness Probes
 
-When A2A agents are configured, the CLI periodically re-probes them for the lifetime of the session instead of checking them only once at startup. This means an agent that was down at startup turns green automatically when it becomes reachable, and an agent that goes down mid-session is reflected in the `A2A: X/Y` indicator and the `/a2a` view.
+When A2A agents are configured, the CLI periodically re-probes them for the lifetime of the session instead of checking them only once at startup. This means an agent that was down at startup turns green automatically when it becomes reachable, and an agent that goes down mid-session is reflected in the `A2A: X/Y` indicator and the a2a rows of the [`/agents` view](#agents-view).
 
 **How probes work:**
 
