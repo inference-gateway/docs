@@ -59,7 +59,7 @@ scheduler:
 ### Setup
 
 1. **Authenticate `gh`.** All GitHub access goes through the `gh` CLI, so run `gh auth login` once.
-2. **Create a GitHub App** for the bot identity the workflows run as (see [GitHub Action Setup](/cli/#github-action-setup) for the same App flow used by `infer-action`).
+2. **Create a GitHub App** for the bot identity the workflows run as (the same App identity `infer-action` uses - see [Secrets and least-privilege](/github-action/#secrets-and-least-privilege)).
 3. **Add the repository Actions secrets** listed below. The CLI never writes secrets.
 4. **Create a job** as usual - the first save creates the repository if it does not exist yet.
 

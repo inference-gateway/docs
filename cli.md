@@ -313,7 +313,7 @@ The selected indicator is highlighted as an **accent-colored pill**.
 
 #### Switching models (`/model`)
 
-`/model` is the unified model command - it replaces the deprecated `/switch`:
+`/model` is the unified model command:
 
 - `/model <name>` - **permanently** switch the active model for the rest of the session.
 - `/model <name> <prompt...>` - run a **single** message with `<name>`, then restore the session model afterward. Handy for sending one hard question to a stronger model without changing your default.
@@ -324,8 +324,6 @@ infer chat
 > /model deepseek/deepseek-v4-flash                              # switch the session model
 > /model anthropic/claude-opus-4-8 Explain this stack trace    # one-off, then restore
 ```
-
-> `/switch` is **deprecated** - use `/model <name>`.
 
 ##### Model picker labels
 
@@ -2523,30 +2521,33 @@ A `command` always wins over a YAML `shortcut` of the same name, so a stale shor
 
 These show as `command` in autocomplete:
 
-| Shortcut              | Description                                                                                                                                                              | Example                             |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------- |
-| `/init-github-action` | Setup GitHub Action integration                                                                                                                                          | `/init-github-action`               |
-| `/model [name] [msg]` | Switch the active model, or run one message with another model (replaces `/switch`)                                                                                      | `/model deepseek/deepseek-v4-flash` |
-| `/agents`             | View every configured agent - local Markdown presets and remote A2A agents - with their state                                                                            | `/agents`                           |
-| `/tasks`              | View background work (A2A tasks, shells, subagents) with live status and captured output                                                                                 | `/tasks`                            |
-| `/tools`              | View a filterable list of tools available in the current agent mode, including MCP tools                                                                                 | `/tools`                            |
-| `/stats`              | Summarize the session's token usage, tool outcomes, and cost (mirrors `infer stats`)                                                                                     | `/stats`                            |
-| `/traces [id]`        | Render a session's trace span tree offline (mirrors `infer traces`)                                                                                                      | `/traces`, `/traces abc-123-def`    |
-| `/voice [seconds]`    | Record the mic and transcribe to the input field (requires [speech-to-text](/cli-speech-to-text/))                                                                       | `/voice`, `/voice 8`                |
-| `/insights [since]`   | Analyze past sessions for repeatable workflows and recurring tool failures (secrets [redacted](#insights-shortcut) before the model call and before the report is saved) | `/insights`, `/insights 7d`         |
-| `/reset [arg]`        | Wipe all local runtime state on this machine and start a fresh session                                                                                                   | `/reset`, `/reset confirm`          |
+| Shortcut              | Description                                                                                          | Example                             |
+| --------------------- | ---------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| `/model [name] [msg]` | Switch the active model, or run one message with another model                                       | `/model deepseek/deepseek-v4-flash` |
+| `/init`               | Fill the input with the AGENTS.md project-analysis prompt                                            | `/init`                             |
+| `/install-opentask`   | Ask the agent to install or update the [`infer-action` workflow](#github-action-setup) and open a PR | `/install-opentask`                 |
+| `/agents`             | View every configured agent - local Markdown presets and remote A2A agents - with their state        | `/agents`                           |
+| `/tasks`              | View background work (A2A tasks, shells, subagents) with live status and captured output             | `/tasks`                            |
+| `/tools`              | View a filterable list of tools available in the current agent mode, including MCP tools             | `/tools`                            |
+| `/stats`              | Summarize the session's token usage, tool outcomes, and cost (mirrors `infer stats`)                 | `/stats`                            |
+| `/traces [id]`        | Render a session's trace span tree offline (mirrors `infer traces`)                                  | `/traces`, `/traces abc-123-def`    |
+| `/voice [seconds]`    | Record the mic and transcribe to the input field (requires [speech-to-text](/cli-speech-to-text/))   | `/voice`, `/voice 8`                |
 
 ### YAML Shortcuts
 
 `infer init` seeds these into `~/.infer/shortcuts/`, so they show as `shortcut` in autocomplete. They are ordinary [custom shortcuts](#custom-shortcuts) - editable, removable, and replaceable with your own:
 
-| Shortcut        | Description                      | Example                                   |
-| --------------- | -------------------------------- | ----------------------------------------- |
-| `/init`         | Generate AGENTS.md documentation | `/init`                                   |
-| `/git <cmd>`    | Git operations                   | `/git status`, `/git commit`, `/git push` |
-| `/scm <cmd>`    | GitHub operations                | `/scm issues`, `/scm issue 123`           |
-| `/mcp <cmd>`    | Manage MCP servers               | `/mcp list`, `/mcp add`                   |
-| `/skills <cmd>` | Manage Agent Skills              | `/skills list`, `/skills install <url>`   |
+| Shortcut            | Description                                                                                                                                                              | Example                                   |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------- |
+| `/git <cmd>`        | Git operations                                                                                                                                                           | `/git status`, `/git commit`, `/git push` |
+| `/scm <cmd>`        | GitHub operations                                                                                                                                                        | `/scm issues`, `/scm issue 123`           |
+| `/mcp <cmd>`        | Manage MCP servers                                                                                                                                                       | `/mcp list`, `/mcp add`                   |
+| `/skills <cmd>`     | Manage Agent Skills                                                                                                                                                      | `/skills list`, `/skills install <url>`   |
+| `/shells`           | List running and recent background shells                                                                                                                                | `/shells`                                 |
+| `/export`           | Export the current conversation to Markdown                                                                                                                              | `/export`                                 |
+| `/env`              | Generate a `.env.example` with the provider API keys                                                                                                                     | `/env`                                    |
+| `/insights [since]` | Analyze past sessions for repeatable workflows and recurring tool failures (secrets [redacted](#insights-shortcut) before the model call and before the report is saved) | `/insights`, `/insights 7d`               |
+| `/reset [arg]`      | Wipe all local runtime state on this machine and start a fresh session                                                                                                   | `/reset`, `/reset confirm`                |
 
 ### Git Shortcuts
 
@@ -2649,145 +2650,39 @@ Recording stops automatically a couple of seconds after you stop speaking (`spee
 
 ### GitHub Action Setup
 
-The `/init-github-action` shortcut launches an interactive wizard for setting up AI-powered issue automation using GitHub Apps and the [`infer-action` GitHub Action](/github-action/). This wizard streamlines the process of creating GitHub Apps, managing credentials, configuring repository secrets, and generating workflows that respond to issue mentions with `@infer`.
+`/install-opentask [owner/repo] [extra context...]` asks the agent to install or update the [`infer-action` GitHub Action](/github-action/) workflow in a repository and open a pull request with it. It is not a wizard - the shortcut submits a task into the conversation, so the run streams like any other turn and every write goes through normal tool approval.
 
 > For a full reference of `infer-action` inputs, outputs, and workflow recipes (PR review, scheduled summaries, release notes), see the [GitHub Action documentation](/github-action/).
 
-**Key Features:**
-
-- Interactive wizard for creating or configuring GitHub Apps
-- Supports both personal and organization repositories
-- Automatic workflow file generation in `.github/workflows/`
-- Private key management with interactive file picker
-- GitHub App reusability across multiple repositories
-- Auto-opens browser with pre-filled app creation forms
-- Multi-step guided setup process
-
-**Prerequisites:**
-
-- GitHub account with repository access
-- Admin permissions for creating GitHub Apps (required for organization repositories)
-- Downloaded private key file (`.pem`) from GitHub (after app creation)
-
-**Usage:**
+With no argument it targets the repository of the current checkout; pass `owner/repo` to target another one. Anything after the repository is handed to the agent as workflow configuration, for example a model or a timeout to use.
 
 ```bash
 infer chat
-> /init-github-action
+> /install-opentask
+> /install-opentask my-org/my-service model: deepseek/deepseek-v4-flash
 ```
 
-**Wizard Flow:**
+**What the agent does:**
 
-1. **Check Existing Configuration**: Detects if a GitHub App is already configured
-2. **App ID Input**: Enter existing App ID or create a new GitHub App
-3. **Private Key Selection**: Interactive file picker to select your `.pem` private key file
-4. **Repository Configuration**: Configure repository secrets and permissions
-5. **Workflow Creation**: Automatically generates GitHub Action workflow files
+1. Reads the `opentask` catalog skill, which carries the canonical `infer-action` workflow and its example workflows - it works from the skill rather than fetching docs over the network.
+2. Adds a git worktree under `/tmp` when the target is the current checkout, or shallow-clones the target repository, so your working branch is never touched.
+3. Checks out the fixed branch `infer/install-github-action`, on top of the remote branch if one already exists.
+4. Creates or updates `.github/workflows/tasks.yml`, following both the skill's canonical workflow and the repository's existing CI conventions.
+5. Summarizes the diff, then commits, pushes, and opens or updates the pull request - asking for your approval on the push and on the PR.
 
-**Creating a New GitHub App:**
+Re-running the shortcut updates that same branch and pull request instead of opening a duplicate.
 
-When creating a new app, the wizard opens GitHub with pre-configured settings:
+**Prerequisites:** the [GitHub CLI](https://cli.github.com) installed and authenticated (`gh auth login`), with write access to the target repository.
 
-- **App Name**: `infer-bot` (customizable)
-- **Required Permissions**:
-  - Contents: Write access
-  - Pull Requests: Write access
-  - Issues: Write access
-  - Metadata: Read access
-- **Webhooks**: Disabled by default (can be enabled later if needed)
+**Repository secrets:** the generated workflow expects these in the target repository, or in its organization:
 
-**Steps for First-Time Setup:**
+- `INFER_APP_ID` - GitHub App ID, when authenticating as a GitHub App instead of with the default `GITHUB_TOKEN`
+- `INFER_APP_PRIVATE_KEY` - the App's private key (`.pem` contents)
+- Provider API keys (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `DEEPSEEK_API_KEY`, and so on)
 
-1. Run `/init-github-action` in chat mode
-2. Choose to create a new GitHub App
-3. Browser opens with pre-filled GitHub App creation form
-4. Complete the app creation on GitHub
-5. Download the private key (`.pem` file) from GitHub
-6. Return to CLI and enter the App ID shown on GitHub
-7. Use the file picker to select your downloaded `.pem` file
-8. Wizard creates workflow files in `.github/workflows/`
+For organization repositories the CLI checks whether the `INFER_APP_*` org secrets already exist, so an App registered once can be reused across repositories. See [Secrets and least-privilege](/github-action/#secrets-and-least-privilege) for why an App token beats `GITHUB_TOKEN`.
 
-**Reusing GitHub Apps:**
-
-The same GitHub App can be reused across multiple repositories:
-
-```bash
-cd another-project
-infer chat
-> /init-github-action
-# Enter the same App ID and use the same private key file
-```
-
-**Generated Workflow Files:**
-
-The wizard creates GitHub Action workflows in `.github/workflows/infer.yml` that:
-
-- Trigger on issue events (opened, edited) and issue comments
-- Generate GitHub App tokens for authentication
-- Execute AI-powered agents via the `@infer` mention trigger
-- Support multiple LLM providers (OpenAI, Anthropic, DeepSeek, etc.)
-- Provide full repository access (issues, contents, pull requests)
-
-**Example Generated Workflow:**
-
-```yaml
-name: Infer
-
-on:
-  issues:
-    types:
-      - opened
-      - edited
-  issue_comment:
-    types:
-      - created
-
-permissions:
-  issues: write
-  contents: write
-  pull-requests: write
-
-jobs:
-  infer:
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Generate GitHub App Token
-        id: generate-token
-        uses: actions/create-github-app-token@v2.2.0
-        with:
-          app-id: ${{ secrets.INFER_APP_ID }}
-          private-key: ${{ secrets.INFER_APP_PRIVATE_KEY }}
-          owner: ${{ github.repository_owner }}
-
-      - name: Checkout Repository
-        uses: actions/checkout@v7.0.0
-        with:
-          token: ${{ steps.generate-token.outputs.token }}
-
-      - name: Run Infer Agent
-        uses: inference-gateway/infer-action@main
-        with:
-          github-token: ${{ steps.generate-token.outputs.token }}
-          trigger-phrase: '@infer'
-          model: 'deepseek/deepseek-v4-flash'
-          max-turns: 50
-          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
-          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
-          google-api-key: ${{ secrets.GOOGLE_API_KEY }}
-          deepseek-api-key: ${{ secrets.DEEPSEEK_API_KEY }}
-```
-
-**Repository Secrets Configuration:**
-
-After running the wizard, configure these secrets in your GitHub repository settings:
-
-- `INFER_APP_ID` - Your GitHub App ID
-- `INFER_APP_PRIVATE_KEY` - Your GitHub App private key (.pem file contents)
-- Provider API keys (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, etc.)
-
-**Usage in Issues:**
-
-Once configured, mention `@infer` in any issue or issue comment to activate the agent:
+**Usage in issues:** once the workflow is merged, mention `@infer` in any issue or issue comment to activate the agent:
 
 ```text
 @infer Please analyze this bug and suggest a fix

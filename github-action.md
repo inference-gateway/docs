@@ -777,7 +777,7 @@ Three principles to follow:
      contents: read
    ```
 
-3. **Prefer a GitHub App over the default `GITHUB_TOKEN` for cross-repo or higher-trust workflows.** The CLI's `/init-github-action` wizard automates the GitHub App setup (see the [CLI docs](/cli/#github-action-setup)). Using an App token lets PRs created by the agent trigger downstream CI - PRs opened with the default `GITHUB_TOKEN` do not, by GitHub design.
+3. **Prefer a GitHub App over the default `GITHUB_TOKEN` for cross-repo or higher-trust workflows.** The CLI's `/install-opentask` shortcut wires the workflow up for you (see the [CLI docs](/cli/#github-action-setup)). Using an App token lets PRs created by the agent trigger downstream CI - PRs opened with the default `GITHUB_TOKEN` do not, by GitHub design.
 
 Additional hardening:
 
@@ -786,9 +786,9 @@ Additional hardening:
 - Keep the bash allow-list narrow - only add commands you trust the agent to invoke.
 - Reference `inference-gateway/infer-action@main` so every run uses the latest action; if you need reproducible runs, pin to a tagged release from the [releases page](https://github.com/inference-gateway/infer-action/releases).
 
-## CLI wizard integration
+## CLI integration
 
-The CLI ships an interactive wizard, [`/init-github-action`](/cli/#github-action-setup), that automates everything in this page: creating a GitHub App, registering its credentials as secrets, and writing a workflow file under `.github/workflows/infer.yml`. Use the wizard for first-time setup; come back to this page when you need to customise inputs, write recipes by hand, or harden secrets handling beyond the defaults.
+The CLI ships the [`/install-opentask`](/cli/#github-action-setup) shortcut, which hands the install to the agent: it writes `.github/workflows/tasks.yml` from the `opentask` skill's canonical workflow on a dedicated branch and opens a pull request for review. Use it for first-time setup; come back to this page when you need to customise inputs, write recipes by hand, or harden secrets handling beyond the defaults.
 
 ## Related
 
