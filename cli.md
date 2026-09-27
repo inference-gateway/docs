@@ -2504,26 +2504,49 @@ The same view is available inside a chat session with the [`/traces`](#telemetry
 
 ## Shortcuts
 
-The CLI provides built-in shortcuts and supports custom user-defined shortcuts.
+The CLI provides built-in commands, YAML shortcuts, and Agent Skills - all reachable by typing `/` in chat.
 
-### Built-in Shortcuts
+### Autocomplete kinds
 
-| Shortcut              | Description                                                                                                                                                              | Example                                   |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------- |
-| `/init`               | Generate AGENTS.md documentation                                                                                                                                         | `/init`                                   |
-| `/init-github-action` | Setup GitHub Action integration                                                                                                                                          | `/init-github-action`                     |
-| `/git <cmd>`          | Git operations                                                                                                                                                           | `/git status`, `/git commit`, `/git push` |
-| `/scm <cmd>`          | GitHub operations                                                                                                                                                        | `/scm pr-create`, `/scm issue 123`        |
-| `/model [name] [msg]` | Switch the active model, or run one message with another model (replaces `/switch`)                                                                                      | `/model deepseek/deepseek-v4-flash`       |
-| `/agents`             | View every configured agent - local Markdown presets and remote A2A agents - with their state                                                                            | `/agents`                                 |
-| `/tasks`              | View background work (A2A tasks, shells, subagents) with live status and captured output                                                                                 | `/tasks`                                  |
-| `/tools`              | View a filterable list of tools available in the current agent mode, including MCP tools                                                                                 | `/tools`                                  |
-| `/stats`              | Summarize the session's token usage, tool outcomes, and cost (mirrors `infer stats`)                                                                                     | `/stats`                                  |
-| `/traces [id]`        | Render a session's trace span tree offline (mirrors `infer traces`)                                                                                                      | `/traces`, `/traces abc-123-def`          |
-| `/skills <cmd>`       | Manage Agent Skills                                                                                                                                                      | `/skills list`, `/skills install <url>`   |
-| `/voice [seconds]`    | Record the mic and transcribe to the input field (requires [speech-to-text](/cli-speech-to-text/))                                                                       | `/voice`, `/voice 8`                      |
-| `/insights [since]`   | Analyze past sessions for repeatable workflows and recurring tool failures (secrets [redacted](#insights-shortcut) before the model call and before the report is saved) | `/insights`, `/insights 7d`               |
-| `/reset [arg]`        | Wipe all local runtime state on this machine and start a fresh session                                                                                                   | `/reset`, `/reset confirm`                |
+Typing `/` opens the autocomplete list, and every row carries a **kind label** telling you what it is and where it comes from (the same labels the [desktop composer](/desktop/) uses):
+
+| Label          | What it is                                                                         | Where it lives                                                                  |
+| -------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `command`      | Built-in shortcut compiled into the CLI - views and wizards it implements itself   | The binary - see [Built-in Commands](#built-in-commands)                        |
+| `shortcut`     | YAML shortcut, including the ones `infer init` seeds                               | `.infer/shortcuts/*.yaml` - see [YAML Shortcuts](#yaml-shortcuts)               |
+| `skill`        | Installed [Agent Skill](/cli-skills/) - `/<name>` activates it for the turn        | `./.infer/skills/` or `~/.infer/skills/`                                        |
+| `remote skill` | Catalog skill not installed yet - `/<name>` downloads it first (confirmed in chat) | The [skills catalog](/cli-skills/#the-skills-catalog-and-agentskillsrepository) |
+
+A `command` always wins over a YAML `shortcut` of the same name, so a stale shortcut file can never shadow a built-in view. See [Shortcut precedence](#custom-shortcuts).
+
+### Built-in Commands
+
+These show as `command` in autocomplete:
+
+| Shortcut              | Description                                                                                                                                                              | Example                             |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------- |
+| `/init-github-action` | Setup GitHub Action integration                                                                                                                                          | `/init-github-action`               |
+| `/model [name] [msg]` | Switch the active model, or run one message with another model (replaces `/switch`)                                                                                      | `/model deepseek/deepseek-v4-flash` |
+| `/agents`             | View every configured agent - local Markdown presets and remote A2A agents - with their state                                                                            | `/agents`                           |
+| `/tasks`              | View background work (A2A tasks, shells, subagents) with live status and captured output                                                                                 | `/tasks`                            |
+| `/tools`              | View a filterable list of tools available in the current agent mode, including MCP tools                                                                                 | `/tools`                            |
+| `/stats`              | Summarize the session's token usage, tool outcomes, and cost (mirrors `infer stats`)                                                                                     | `/stats`                            |
+| `/traces [id]`        | Render a session's trace span tree offline (mirrors `infer traces`)                                                                                                      | `/traces`, `/traces abc-123-def`    |
+| `/voice [seconds]`    | Record the mic and transcribe to the input field (requires [speech-to-text](/cli-speech-to-text/))                                                                       | `/voice`, `/voice 8`                |
+| `/insights [since]`   | Analyze past sessions for repeatable workflows and recurring tool failures (secrets [redacted](#insights-shortcut) before the model call and before the report is saved) | `/insights`, `/insights 7d`         |
+| `/reset [arg]`        | Wipe all local runtime state on this machine and start a fresh session                                                                                                   | `/reset`, `/reset confirm`          |
+
+### YAML Shortcuts
+
+`infer init` seeds these into `~/.infer/shortcuts/`, so they show as `shortcut` in autocomplete. They are ordinary [custom shortcuts](#custom-shortcuts) - editable, removable, and replaceable with your own:
+
+| Shortcut        | Description                      | Example                                   |
+| --------------- | -------------------------------- | ----------------------------------------- |
+| `/init`         | Generate AGENTS.md documentation | `/init`                                   |
+| `/git <cmd>`    | Git operations                   | `/git status`, `/git commit`, `/git push` |
+| `/scm <cmd>`    | GitHub operations                | `/scm pr-create`, `/scm issue 123`        |
+| `/mcp <cmd>`    | Manage MCP servers               | `/mcp list`, `/mcp add`                   |
+| `/skills <cmd>` | Manage Agent Skills              | `/skills list`, `/skills install <url>`   |
 
 ### Git Shortcuts
 
@@ -2845,7 +2868,7 @@ The command must output JSON. Fields are accessible in the prompt template via `
 
 #### Name collisions with built-ins
 
-A [built-in shortcut](#built-in-shortcuts) always wins over a custom YAML shortcut of the same name - the custom one is skipped with a warning naming the file, so a stale shortcut file can never shadow a built-in view such as [`/agents`](#agents-view). Rename the custom shortcut to reach it again.
+A [built-in command](#built-in-commands) always wins over a custom YAML shortcut of the same name - the custom one is skipped with a warning naming the file, so a stale shortcut file can never shadow a built-in view such as [`/agents`](#agents-view). Rename the custom shortcut to reach it again.
 
 ## Advanced Features
 

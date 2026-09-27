@@ -113,6 +113,17 @@ When the agent wants to perform a tool action (read a file, execute a command, f
 
 You click **Approve** to allow the action or **Deny** to reject it. This keeps the agent sandboxed to your intent - no silent file access, no unapproved side effects.
 
+### The slash menu
+
+Typing `/` in the composer opens the slash menu. Every row is labelled with its kind, using the same wording as the [CLI autocomplete](/cli/#autocomplete-kinds):
+
+| Label          | What `/<name>` does                                                             |
+| -------------- | ------------------------------------------------------------------------------- |
+| `command`      | Runs a built-in shortcut compiled into the CLI (`/model`, `/tools`, `/agents`)  |
+| `shortcut`     | Runs a YAML shortcut from `.infer/shortcuts/*.yaml` (`/git`, `/mcp`, `/skills`) |
+| `skill`        | Activates an installed [Agent Skill](/cli-skills/) for the turn                 |
+| `remote skill` | Downloads a catalog skill first, after you confirm, then activates it           |
+
 ## Reasoning and thinking view
 
 Models that emit reasoning show it in the transcript in a collapsible **Thought process** block, rendered above the answer for that turn. It is collapsed by default - click the summary to expand it and read the reasoning. Reasoning is streamed live, so an expanded block fills in as the model thinks rather than appearing all at once when the turn ends.
