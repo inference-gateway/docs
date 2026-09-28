@@ -22,9 +22,13 @@ The Inference Gateway CLI (`infer`) is a powerful Go-based command-line tool pro
 - **Remote Messaging Channels** - Control the agent from Telegram and other platforms ([Learn more](/cli-channels/))
 - **Agent Skills** - Reusable, model-readable instruction folders loaded on demand, portable across vendors ([Learn more](/cli-skills/))
 - **Custom Tools** - Add tools written in any language with one YAML manifest per tool ([Learn more](#custom-tools))
-- **Cost Tracking** - Real-time token usage and cost calculation
+- **Plugins** - Claude Code-format skill bundles plus an always-on ruleset, managed with `infer plugins`
+- **Frame Sources and Vision Annotation** - Let text-only models read screen and camera frames ([Learn more](#frame-sources-and-vision-annotation))
+- **Cost Tracking** - Real-time token usage and cost calculation ([Learn more](#cost-tracking))
 
 ## Installation
+
+> The CLI repository's [Installation guide](https://github.com/inference-gateway/cli/blob/main/docs/installation.md) is the canonical reference for every install channel; this section mirrors it.
 
 ### npm / npx (Recommended)
 
@@ -42,30 +46,60 @@ npm install -g @inference-gateway/cli
 infer --help
 ```
 
-Not recommended for production - prefer the install script or building from source. Prebuilt binaries cover Linux and macOS on amd64/arm64 (on Windows, use WSL).
+Not recommended for production - prefer the install script, the Nix flake, the container image, or a source build. Prebuilt binaries cover Linux, macOS, and Windows on amd64/arm64.
 
 ### Install Script (Recommended)
+
+Linux/macOS:
 
 ```bash
 # Latest version
 curl -fsSL https://raw.githubusercontent.com/inference-gateway/cli/main/install.sh | bash
 
 # Specific version
-curl -fsSL https://raw.githubusercontent.com/inference-gateway/cli/main/install.sh | bash -s -- --version v0.97.0
+curl -fsSL https://raw.githubusercontent.com/inference-gateway/cli/main/install.sh | bash -s -- --version v0.217.0
 
 # Custom directory
 curl -fsSL https://raw.githubusercontent.com/inference-gateway/cli/main/install.sh | bash -s -- --install-dir $HOME/.local/bin
 ```
 
+Windows (PowerShell 5.1+ / pwsh) uses `install.ps1`, with `-Version` and an `INSTALL_DIR` environment variable for the same two options.
+
 ### Go Install
 
 ```bash
-go install github.com/inference-gateway/cli@latest
+go install github.com/inference-gateway/cli/cmd/infer@latest
+```
+
+### Nix Flake / Flox
+
+```bash
+# Run without installing
+nix run github:inference-gateway/cli
+
+# Pin a release
+nix run github:inference-gateway/cli/v0.217.0
+
+# Install into your profile
+nix profile install github:inference-gateway/cli
+```
+
+With [Flox](https://flox.dev), pin it in `.flox/env/manifest.toml` under `[install]` as `infer.flake = "github:inference-gateway/cli"`, then `flox activate`.
+
+### Container Image
+
+```bash
+docker network create inference-gateway
+docker run -d --name inference-gateway --network inference-gateway \
+  --env-file .env \
+  ghcr.io/inference-gateway/inference-gateway:latest
+
+docker run -it --rm --network inference-gateway ghcr.io/inference-gateway/cli:latest chat
 ```
 
 ### Manual Download
 
-Download binaries from the [GitHub releases page](https://github.com/inference-gateway/cli/releases). Binaries are signed with Cosign for verification.
+Download binaries from the [GitHub releases page](https://github.com/inference-gateway/cli/releases) - `infer-<os>-<arch>` for Linux, macOS, and Windows on amd64/arm64 (rename the Windows binary to `infer.exe`). Verify the download against `checksums.txt` or its Cosign signature using the [Binary Verification guide](https://github.com/inference-gateway/cli/blob/main/docs/binary-verification.md), then make it executable and move it onto your `PATH` as `infer`.
 
 ### Build from Source
 
@@ -984,6 +1018,38 @@ infer chat
 > "Switch to the Terminal app and run ls command"
 > "Find the Save button and click it"
 ```
+
+## Frame Sources and Vision Annotation
+
+Frame sources feed images to the agent, and a pluggable annotator turns each frame into text so that cheap or text-only models (DeepSeek, small local models) can still work from what is on screen or in front of a camera.
+
+- The built-in `screen` source is computer-use screenshot streaming, registered whenever screenshot streaming is on.
+- **Directory sources** watch a folder and serve the newest image file by modification time - whatever your camera or capture process writes there.
+- `GetLatestFrame` reads the current frame from a source; `ImageDecode` handles arbitrary images.
+
+The annotator produces a scene summary plus a numbered element list with bounding boxes: a vision model gets the image, a text-only model gets the text. Annotation is a side-call through the gateway, so any vision model the gateway serves works - including a fully local one through Ollama, which keeps annotation offline.
+
+```yaml
+# .infer/config.yaml
+vision:
+  annotator:
+    enabled: true # default: false
+    model: anthropic/claude-haiku-4-5-20251001 # any vision model your gateway serves
+    max_tokens: 4096
+    timeout: 120
+  sources:
+    camera-front:
+      type: directory
+      path: .infer/frames/front # wherever your camera process writes frames
+      prompt: 'Describe the workbench and any visible part numbers.' # optional per-source override
+      retention:
+        max_files: 100
+        max_age: 24h
+```
+
+With `vision.annotator.enabled: true`, `GetLatestFrame` defaults to annotated text output and `ImageDecode` adds a text description to the image it returns - no per-model configuration. `ImageDecode` itself is always available; vision-capable models receive the image directly (see [Vision-capable models and ImageDecode](#vision-capable-models-and-imagedecode)). `retention` prunes the source directory after reads.
+
+Not to be confused with the gateway-side `gateway.vision_enabled` flag, which is unrelated.
 
 ## Tools & Capabilities
 
@@ -3949,31 +4015,69 @@ If completions still do not appear, the shell rc is usually not sourcing the com
 
 ## Command Reference
 
-| Command                            | Description                                                                                |
-| ---------------------------------- | ------------------------------------------------------------------------------------------ |
-| `infer init`                       | Seed the userspace baseline in `~/.infer/`                                                 |
-| `infer status`                     | Check gateway health and resource usage                                                    |
-| `infer chat`                       | Interactive chat session (TUI)                                                             |
-| `infer chat --web`                 | Web-based terminal interface                                                               |
-| `infer headless <task>`            | Autonomous task execution                                                                  |
-| `infer skills <subcommand>`        | Manage Agent Skills (list, install, uninstall)                                             |
-| `infer daemon`                     | Start the daemon - scheduler, channel listener, and heartbeat ([Channels](/cli-channels/)) |
-| `infer config <subcommand>`        | Configuration management (`init`, `get`, `set`)                                            |
-| `infer tools <subcommand>`         | Run agent tools directly (`execute`, `validate`)                                           |
-| `infer agents <subcommand>`        | A2A agent management                                                                       |
-| `infer conversations <subcommand>` | Conversation history management (`list`, `show`, `delete`)                                 |
-| `infer avatars <subcommand>`       | Avatar library management (`list`, `create`, `delete`) for `TextToVideo` renders           |
-| `infer completion <shell>`         | Generate a shell completion script (bash, zsh, fish, powershell)                           |
-| `infer version`                    | Show version information (backwards-compatible subcommand)                                 |
-| `infer --version`                  | Show version information (styled by fang)                                                  |
-| `infer --help`                     | Display styled help information                                                            |
+| Command                               | Description                                                                                    |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `infer init`                          | Seed the userspace baseline in `~/.infer/`                                                     |
+| `infer env`                           | Write a `.env.example` with every provider API key                                             |
+| `infer status`                        | Check gateway health and resource usage                                                        |
+| `infer chat`                          | Interactive chat session (TUI)                                                                 |
+| `infer chat --web`                    | Web-based terminal interface                                                                   |
+| `infer headless <task>`               | Autonomous task execution                                                                      |
+| `infer skills <subcommand>`           | Manage Agent Skills (`list`, `search`, `install`, `uninstall`)                                 |
+| `infer plugins <subcommand>`          | Manage Claude Code-format plugins (`install`, `list`, `enable`, `disable`, `update`, `remove`) |
+| `infer daemon`                        | Start the daemon - scheduler, channel listener, and heartbeat ([Channels](/cli-channels/))     |
+| `infer config <subcommand>`           | Configuration management (`init`, `get`, `set`)                                                |
+| `infer tools <subcommand>`            | Run agent tools directly (`execute`, `validate`)                                               |
+| `infer agents <subcommand>`           | A2A agent management                                                                           |
+| `infer binaries <subcommand>`         | Manage the helper binaries under `~/.infer/bin/` (gateway, ffmpeg, whisper-cli, llama-tts)     |
+| `infer conversations <subcommand>`    | Conversation history management (`list`, `show`, `delete`)                                     |
+| `infer conversation-title`            | Generate AI titles for saved conversations, or run it as a daemon                              |
+| `infer export <session-id>`           | Export a conversation to Markdown under the project's `exports/` directory                     |
+| `infer stats`                         | Summarize local telemetry - token usage, tool outcomes, and cost                               |
+| `infer traces`                        | Render a session's trace span tree ([Telemetry](#telemetry))                                   |
+| `infer insights [since]`              | Analyze past sessions for repeatable workflows and recurring failures                          |
+| `infer reset` / `infer reset confirm` | Preview, then wipe local runtime state ([Reset Shortcut](#reset-shortcut))                     |
+| `infer avatars <subcommand>`          | Avatar library management (`list`, `create`, `delete`) for `TextToVideo` renders               |
+| `infer completion <shell>`            | Generate a shell completion script (bash, zsh, fish, powershell)                               |
+| `infer version`                       | Show version information (backwards-compatible subcommand)                                     |
+| `infer --version`                     | Show version information (styled by fang)                                                      |
+| `infer --help`                        | Display styled help information                                                                |
+
+### Global Flags
+
+Available on every command:
+
+| Flag                               | Description                                                                                                                   |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `-v, --verbose`                    | Enable verbose output                                                                                                         |
+| `--no-colors`                      | Disable ANSI colors (also auto-disabled when stdout is not a terminal or `NO_COLOR` is set)                                   |
+| `--tools-bash-allow-append <cmds>` | Comma/newline-separated commands added to the bash allow-list in every mode; `INFER_TOOLS_BASH_ALLOW_APPEND` takes precedence |
+| `--reminders-file <path>`          | Reminders YAML path, overriding project `.infer/` and `~/.infer/` reminders; `INFER_REMINDERS_CONFIG` takes precedence        |
+
+For per-command flags and examples, see the CLI repository's [Commands Reference](https://github.com/inference-gateway/cli/blob/main/docs/commands-reference.md).
 
 ## Support and Resources
 
 - **Repository**: [github.com/inference-gateway/cli](https://github.com/inference-gateway/cli)
-- **Issues**: [GitHub Issues](https://github.com/inference-gateway/cli/issues)
 - **Releases**: [GitHub Releases](https://github.com/inference-gateway/cli/releases)
-- **Documentation**: [Full Configuration Reference](https://github.com/inference-gateway/cli/blob/main/docs/configuration-reference.md)
+
+### Canonical CLI references
+
+This page mirrors the CLI repository's documentation; these pages are the source of truth for each topic:
+
+| Topic                       | Reference                                                                                                        |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Installation                | [installation.md](https://github.com/inference-gateway/cli/blob/main/docs/installation.md)                       |
+| Commands and global flags   | [commands-reference.md](https://github.com/inference-gateway/cli/blob/main/docs/commands-reference.md)           |
+| Tools and tool overview     | [tools-reference.md](https://github.com/inference-gateway/cli/blob/main/docs/tools-reference.md)                 |
+| Configuration               | [configuration-reference.md](https://github.com/inference-gateway/cli/blob/main/docs/configuration-reference.md) |
+| Tool approval               | [tool-approval.md](https://github.com/inference-gateway/cli/blob/main/docs/tool-approval.md)                     |
+| Cost tracking               | [cost-tracking.md](https://github.com/inference-gateway/cli/blob/main/docs/cost-tracking.md)                     |
+| Computer use                | [computer-use.md](https://github.com/inference-gateway/cli/blob/main/docs/computer-use.md)                       |
+| Frame sources and vision    | [vision.md](https://github.com/inference-gateway/cli/blob/main/docs/vision.md)                                   |
+| Persistent memory           | [memory.md](https://github.com/inference-gateway/cli/blob/main/docs/memory.md)                                   |
+| Reminders and command hooks | [hooks.md](https://github.com/inference-gateway/cli/blob/main/docs/hooks.md)                                     |
+| Plugins                     | [plugins.md](https://github.com/inference-gateway/cli/blob/main/docs/plugins.md)                                 |
+| Runnable examples           | [examples.md](https://github.com/inference-gateway/cli/blob/main/docs/examples.md)                               |
 
 The CLI is actively developed with regular updates and new features. Check the repository for the latest releases and announcements.
-s.
