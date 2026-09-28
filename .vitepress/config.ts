@@ -176,6 +176,7 @@ export default withMermaid(
             { text: 'REST API', link: pageLink('/api-reference') },
             { text: 'SDKs', link: pageLink('/sdks') },
             { text: 'CLI', link: pageLink('/cli') },
+            { text: 'Custom Tools', link: pageLink('/cli-custom-tools') },
             { text: 'Command Hooks', link: pageLink('/cli-hooks') },
             { text: 'Agent Definition Language', link: pageLink('/adl') },
             { text: 'ADL CLI', link: pageLink('/adl-cli') },
@@ -304,6 +305,7 @@ export default withMermaid(
           items: [
             { text: 'Desktop App', link: pageLink('/desktop') },
             { text: 'CLI', link: pageLink('/cli') },
+            { text: 'Custom Tools', link: pageLink('/cli-custom-tools') },
             { text: 'Command Hooks', link: pageLink('/cli-hooks') },
             { text: 'Judge Mode', link: pageLink('/cli-judge-mode') },
             { text: 'Channels', link: pageLink('/cli-channels') },

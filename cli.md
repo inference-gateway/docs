@@ -21,6 +21,7 @@ The Inference Gateway CLI (`infer`) is a powerful Go-based command-line tool pro
 - **Web Terminal** - Browser-based interface with tabbed sessions
 - **Remote Messaging Channels** - Control the agent from Telegram and other platforms ([Learn more](/cli-channels/))
 - **Agent Skills** - Reusable, model-readable instruction folders loaded on demand, portable across vendors ([Learn more](/cli-skills/))
+- **Custom Tools** - Add tools written in any language with one YAML manifest per tool ([Learn more](/cli-custom-tools/))
 - **Cost Tracking** - Real-time token usage and cost calculation
 
 ## Installation
@@ -976,6 +977,7 @@ When tools are enabled, LLMs have access to a comprehensive suite across multipl
 | **Audio**             | TextToSpeech, TextToMusic, TextToSFX                                               | Local speech synthesis and voice cloning - opt-in via `text_to_speech.enabled`, see [Text-to-Speech](/cli-text-to-speech/); music composition and sound-effect generation through the gateway - opt-in via `text_to_music.enabled` and `text_to_sfx.enabled` |
 | **Video**             | TextToVideo, CreateAvatar                                                          | Prompt and lip-synced avatar renders through the gateway, plus avatar-library creation - opt-in via `text_to_video.enabled` and `text_to_video.create_avatar`, see [Text-to-Video and Avatars](/cli-text-to-video/)                                          |
 | **MCP**               | `MCP_<server>_<tool>`                                                              | Dynamically registered tools from MCP servers - see [MCP](/mcp/)                                                                                                                                                                                             |
+| **Custom**            | Any name you give them                                                             | Tools you add yourself with one YAML manifest per tool, run as a program with the arguments as JSON on stdin - see [Custom Tools](/cli-custom-tools/)                                                                                                        |
 
 ### File System Tools
 
@@ -1756,6 +1758,8 @@ Interactive (tmux-pane) subagents are **not** stitched into the caller's trace; 
 - **Sandbox Controls**: Restrict tool operations to allowed directories
 - **Domain allow-listing**: Control web fetch access
 - **Diff Preview**: Colored, syntax-aware diff before file modifications
+- **Project Tools Always Ask**: [Custom tools](/cli-custom-tools/) supplied by a repository need approval on every call, whatever their manifest says, except in `auto` mode
+- **Write-Protected Tool Directories**: Write, Edit, MultiEdit and Delete refuse any path inside a custom-tool directory (`~/.infer/tools/`, `tools.custom_dir`, `.infer/tools/`, `.agents/tools/`), including through symlinks - this cannot be switched off
 
 ### Tool Configuration
 
@@ -1777,6 +1781,9 @@ infer config set tools.bash.require_approval true
 
 # Sandbox directories - comma-separated; the whole list is replaced
 infer config set tools.sandbox.directories ".,/protected/path"
+
+# Load user custom tools from another directory instead of ~/.infer/tools
+infer config set tools.custom_dir /opt/my-app/tools
 
 # Inspect the resulting tools config
 infer config get tools
@@ -1829,6 +1836,7 @@ Two-layer configuration system with precedence from highest to lowest:
 | `memory.yaml`      | Project/user | Persistent, cross-session agent memory - fact-files plus the `MEMORY.md` index.                                                                                            | [Persistent Memory](#persistent-memory)                     |
 | `shortcuts/*.yaml` | Project      | Custom slash shortcuts - simple commands, subcommands, and AI-powered snippets.                                                                                            | [Custom Shortcuts](#custom-shortcuts)                       |
 | `skills/`          | Project/user | Agent Skills folders (`name/SKILL.md`) discovered and injected on demand.                                                                                                  | [Agent Skills](#agent-skills)                               |
+| `tools/`           | Project/user | Custom tool manifests (`Name.yaml`), one per tool, also read from `.agents/tools/`.                                                                                        | [Custom Tools](/cli-custom-tools/)                          |
 | `schedules/`       | User         | Persisted cron jobs created by the Schedule tool, run by the daemon.                                                                                                       | [Schedule](#schedule)                                       |
 | `artifacts/`       | Project/user | Agent deliverables, grouped per session.                                                                                                                                   | [Artifacts directory](#artifacts-directory)                 |
 | `logs/`            | User         | CLI and gateway log files (`~/.infer/logs`, overridable via `logging.dir`).                                                                                                | [Key Configuration Areas](#key-configuration-areas)         |
@@ -2113,6 +2121,9 @@ export INFER_TOOLS_BASH_ALLOW_APPEND="git commit,git push"
 
 # How a needed approval is delivered: prompt | ipc | judge | block
 export INFER_TOOLS_SAFETY_APPROVAL_BEHAVIOUR="prompt"
+
+# Load user custom tools from another directory instead of ~/.infer/tools
+export INFER_TOOLS_CUSTOM_DIR="/opt/my-app/tools"
 
 # Inline reminders YAML (replaces file-loaded reminders)
 export INFER_REMINDERS_CONFIG='enabled: true

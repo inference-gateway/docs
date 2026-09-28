@@ -858,8 +858,13 @@ curl -X POST http://localhost:8080/mcp \
 5. **Documentation**: Document your custom tools and their expected inputs/outputs
 6. **Testing**: Thoroughly test tool interactions before production deployment
 
+## Custom tools vs MCP
+
+If you only need to add a tool to the [CLI](/cli/) and you control the program behind it, [custom tools](/cli-custom-tools/) are the lighter option: one YAML manifest per tool, no server to start or health-check, no `MCP_<server>_` prefix, and per-tool agent modes and approval. Reach for MCP when the tools are served by something you do not own, are shared across clients, or need to run somewhere other than the machine the CLI runs on.
+
 ## Learn More
 
+- [Custom Tools (CLI)](/cli-custom-tools/)
 - [Model Context Protocol Documentation](https://modelcontextprotocol.io/)
 - [MCP Specification](https://modelcontextprotocol.io/specification)
 - [Docker Compose Example](https://github.com/inference-gateway/inference-gateway/tree/main/examples/docker-compose/mcp)
