@@ -161,6 +161,33 @@ The agent will:
 
 This documentation helps other AI agents (and developers) quickly understand how to work with your project.
 
+### How AGENTS.md reaches the model
+
+The project-root `AGENTS.md` is injected whole into the system prompt as a `PROJECT INSTRUCTIONS (AGENTS.md)` section, after any custom instructions. It is capped by `agent.agents_md.max_lines` (default `399`) and `agent.agents_md.max_chars` (default `8000`); when the file exceeds either limit it is truncated with a marker. Both limits apply to the root file only. Turn the whole section off with `agent.agents_md.enabled: false`.
+
+```yaml
+agent:
+  agents_md:
+    enabled: true
+    max_lines: 399
+    max_chars: 8000
+```
+
+Environment variables: `INFER_AGENT_AGENTS_MD_ENABLED`, `INFER_AGENT_AGENTS_MD_MAX_LINES`, `INFER_AGENT_AGENTS_MD_MAX_CHARS`.
+
+#### Nested AGENTS.md files
+
+Following the [agents.md](https://agents.md) standard, an `AGENTS.md` in a subdirectory holds rules for that directory and **takes precedence over the root file there**. The CLI points the model at these nested files rather than injecting them, so the model reads a package brief with the Read tool only when it works in that directory - the system prompt stays small no matter how many briefs the repository has.
+
+Discovery walks the working directory up to 4 levels deep and skips hidden directories and `node_modules`/`vendor` trees. The walk is lexical, so the system prompt stays byte-stable across turns and keeps prompt-cache prefix hits.
+
+How the section renders depends on the project tree:
+
+- **With `agent.context.tree_enabled` on** (the default): the `PROJECT STRUCTURE` listing already shows where the nested files are, so only the precedence rule is added.
+- **With the tree off**: the precedence rule is followed by the nested paths, at most 20 entries. Beyond that the section notes how many more exist.
+
+Nested files are never subject to `max_lines` / `max_chars`, since their content is not injected. When the root `AGENTS.md` is missing, nested files are still discovered and pointed at.
+
 ## Help and Version Output
 
 The CLI's help, error, and version output are rendered with [fang](https://github.com/charmbracelet/fang), so every command produces styled, colorized output. The samples below are shown as plain text; in a real terminal the headings, flags, and errors are colorized.
@@ -2176,6 +2203,7 @@ logging:
 - System reminders interval
 - Max turns and tokens
 - Parallel tool execution (default: 5 concurrent)
+- Project instructions: `agent.agents_md.*` injects the root `AGENTS.md` and points at nested ones (see [How AGENTS.md reaches the model](#how-agents-md-reaches-the-model))
 
 The built-in system prompt includes a `Current date:` line (date-only, no time) so provider-side prompt-prefix caching stays effective across turns. When the agent needs the current time, it runs the `date` command via Bash.
 
