@@ -21,6 +21,7 @@ The Inference Gateway CLI (`infer`) is a powerful Go-based command-line tool pro
 - **Web Terminal** - Browser-based interface with tabbed sessions
 - **Remote Messaging Channels** - Control the agent from Telegram and other platforms ([Learn more](/cli-channels/))
 - **Agent Skills** - Reusable, model-readable instruction folders loaded on demand, portable across vendors ([Learn more](/cli-skills/))
+- **Custom Tools** - Add tools written in any language with one YAML manifest per tool ([Learn more](#custom-tools))
 - **Cost Tracking** - Real-time token usage and cost calculation
 
 ## Installation
@@ -976,6 +977,7 @@ When tools are enabled, LLMs have access to a comprehensive suite across multipl
 | **Audio**             | TextToSpeech, TextToMusic, TextToSFX                                               | Local speech synthesis and voice cloning - opt-in via `text_to_speech.enabled`, see [Text-to-Speech](/cli-text-to-speech/); music composition and sound-effect generation through the gateway - opt-in via `text_to_music.enabled` and `text_to_sfx.enabled` |
 | **Video**             | TextToVideo, CreateAvatar                                                          | Prompt and lip-synced avatar renders through the gateway, plus avatar-library creation - opt-in via `text_to_video.enabled` and `text_to_video.create_avatar`, see [Text-to-Video and Avatars](/cli-text-to-video/)                                          |
 | **MCP**               | `MCP_<server>_<tool>`                                                              | Dynamically registered tools from MCP servers - see [MCP](/mcp/)                                                                                                                                                                                             |
+| **Custom**            | Any name you give them                                                             | Tools you add yourself with one YAML manifest per tool, run as a program with the arguments as JSON on stdin - see [Custom Tools](#custom-tools)                                                                                                             |
 
 ### File System Tools
 
@@ -1756,6 +1758,8 @@ Interactive (tmux-pane) subagents are **not** stitched into the caller's trace; 
 - **Sandbox Controls**: Restrict tool operations to allowed directories
 - **Domain allow-listing**: Control web fetch access
 - **Diff Preview**: Colored, syntax-aware diff before file modifications
+- **Project Tools Always Ask**: [Custom tools](#custom-tools) supplied by a repository need approval on every call, whatever their manifest says, except in `auto` mode
+- **Write-Protected Tool Directories**: Write, Edit, MultiEdit and Delete refuse any path inside a custom-tool directory (`~/.infer/tools/`, `tools.custom_dir`, `.infer/tools/`, `.agents/tools/`), including through symlinks - this cannot be switched off
 
 ### Tool Configuration
 
@@ -1778,6 +1782,9 @@ infer config set tools.bash.require_approval true
 # Sandbox directories - comma-separated; the whole list is replaced
 infer config set tools.sandbox.directories ".,/protected/path"
 
+# Load user custom tools from another directory instead of ~/.infer/tools
+infer config set tools.custom_dir /opt/my-app/tools
+
 # Inspect the resulting tools config
 infer config get tools
 ```
@@ -1798,6 +1805,224 @@ infer tools validate "git status"
 `infer tools execute <tool> [json-args]` resolves tool names case-insensitively in the CLI - the agent itself still uses the exact PascalCase names. `infer tools validate <command>` reports whether a bash command would be permitted by the configured allowed-list, without executing it.
 
 > `infer tools execute` and `infer tools validate` moved from `config tools exec`/`config tools validate` to the top-level `infer tools` command.
+
+## Custom Tools
+
+**Custom tools** let you add tools written in any language to the CLI. Drop one YAML manifest per tool into `~/.infer/tools/`, or into a project's `.infer/tools/` or `.agents/tools/`, and the CLI offers the tool to the model next to the built-in ones. A call runs the manifest's `command` with the call's arguments as JSON on stdin, and whatever the command prints on stdout is the result. There is no SDK to import and no server to run.
+
+A custom tool behaves like a built-in tool: the model sees it under its own name, you can run it yourself with `!!Name(arg="v")` in chat or `infer tools execute Name '{...}'`, and it follows the same agent modes and approval flow.
+
+> For a runnable version, see [`examples/tools`](https://github.com/inference-gateway/cli/tree/main/examples/tools) in the CLI repository - a user tool and a project tool driven by a scripted mock model, so it needs no API key.
+
+### Custom Tools Quick Start
+
+A tool that counts the words in a file, written as a shell script.
+
+`~/.infer/tools/WordCount.yaml`:
+
+```yaml
+name: WordCount
+description: Count the words in a text file.
+command:
+  - ./word-count.sh
+parameters:
+  type: object
+  properties:
+    path:
+      type: string
+      description: Path of the file to count
+  required:
+    - path
+modes:
+  - standard
+  - auto
+  - auto-with-judge
+  - plan
+  - readonly
+require_approval: false
+```
+
+`~/.infer/tools/word-count.sh` (make it executable with `chmod +x`):
+
+```sh
+#!/bin/sh
+path=$(jq -r .path)
+wc -w < "$path"
+```
+
+Try it without the model:
+
+```bash
+infer tools execute WordCount '{"path":"README.md"}'
+```
+
+### User Tools and Project Tools
+
+The CLI loads custom tools from three directories and merges them:
+
+| Directory                                 | Kind                                         | Approval                                  |
+| ----------------------------------------- | -------------------------------------------- | ----------------------------------------- |
+| `~/.infer/tools/` (or `tools.custom_dir`) | User tools, which you installed              | As the manifest's `require_approval` says |
+| `.infer/tools/` in the working directory  | Project tools, which the repository supplies | Always, except in `auto` mode             |
+| `.agents/tools/` in the working directory | Project tools, which the repository supplies | Always, except in `auto` mode             |
+
+When two directories define a tool with the same name, the project tool wins over the user tool, and `.infer/tools/` wins over `.agents/tools/`.
+
+A project tool comes with whatever repository you cloned, so the CLI never lets it run silently. Every call needs approval, even when its manifest says `require_approval: false` and even in `readonly` mode, which runs every other tool it offers without asking. Only `auto` mode, which runs every call unapproved, runs a project tool without asking. `!!Name(...)` and `infer tools execute` count as your approval, as for any tool.
+
+### Custom Tool Manifest Reference
+
+A custom tool manifest uses the same format as the manifests of the CLI's built-in tools, plus three fields that only custom tools have: `command`, `timeout` and `enabled`. Unknown fields are rejected, so a misspelled key fails loudly instead of silently falling back to a default.
+
+| Field              | Required | Default                               | Meaning                                                                                                                                                        |
+| ------------------ | -------- | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`             | yes      |                                       | Tool name the model sees. Must match the file name (`WordCount.yaml`), start with a letter, and use only letters, digits and underscores, up to 64 characters. |
+| `description`      | yes      |                                       | What the tool does and when to use it. The model reads this to decide when to call the tool.                                                                   |
+| `command`          | yes      |                                       | Program and fixed arguments, as a list. It runs without a shell, see below.                                                                                    |
+| `parameters`       | yes      |                                       | JSON Schema of type `object` for the call's arguments, sent to the model unchanged.                                                                            |
+| `modes`            | no       | `standard`, `auto`, `auto-with-judge` | Agent modes that offer the tool, see [Custom Tool Modes and Approval](#custom-tool-modes-and-approval).                                                        |
+| `require_approval` | no       | `tools.safety.require_approval`       | Whether a call needs approval before it runs.                                                                                                                  |
+| `timeout`          | no       | `30`                                  | Seconds before the call is killed.                                                                                                                             |
+| `enabled`          | no       | `true`                                | `false` keeps the manifest on disk without loading the tool.                                                                                                   |
+
+`command[0]` is resolved like this:
+
+- A bare name such as `infer-desktop-tools` is looked up on `PATH`.
+- A path containing a slash such as `./word-count.sh` or `bin/tool` resolves against the manifest's directory, so a tool can ship next to its manifest.
+- An absolute path is used as is.
+
+### How a Custom Tool Call Runs
+
+1. The CLI checks the arguments against `parameters`: every `required` property must be present and each property must have its declared type. A call that fails the check never starts the process.
+2. It starts `command` without a shell, in the session's working directory, with the CLI's environment.
+3. It writes the arguments to stdin as one JSON object, for example `{"path":"README.md"}`, and closes stdin.
+4. **Exit code 0**: stdout is the tool result, as text. **Non-zero exit code**: the call fails, and stderr (or stdout when stderr is empty) goes back to the model as the error.
+5. The process is killed when `timeout` expires or the turn is cancelled. On Linux and macOS the whole process group is killed, so the children a script started die too. On Windows only the direct child is killed.
+
+Like every tool result, the output the model sees is capped at `tools.max_result_bytes`.
+
+### Custom Tool Modes and Approval
+
+Custom tools follow the same policy as built-in tools:
+
+- **`modes`** lists the agent modes that offer the tool. Without it the tool is offered in `standard`, `auto` and `auto-with-judge`, and hidden in `plan` and `readonly`, like an MCP tool. A tool that only reads can list every mode, as the `WordCount` example in [Custom Tools Quick Start](#custom-tools-quick-start) does. A call outside the tool's modes is refused.
+- **`require_approval`** decides whether a user tool's call needs approval. Without it the tool follows the global `tools.safety.require_approval` (default `true`). A project tool always needs approval, see [User Tools and Project Tools](#user-tools-and-project-tools). How the approval is asked for follows `tools.safety.approval_behaviour` (`prompt`, `ipc`, `judge` or `block`) in both chat and headless mode.
+
+> **Listing `readonly` declares the tool safe.** Read-only mode runs the tools it offers without asking for approval, so only list `readonly` (and `plan`) for tools that do not change anything.
+
+Approval applies to calls the model makes. `!!Name(...)` in chat and `infer tools execute` are started by you and count as approved, as they do for built-in tools. `infer tools execute --format json` still reports `approval_required` for callers that handle approval themselves.
+
+`tools.enabled: false` turns custom tools off together with the other local tools. Markdown subagents (`.infer/agents/*.md`) can list custom tools in their `tools:` field.
+
+### Custom Tool Names
+
+Custom tools get no prefix, so they look like built-in tools to the model. To keep that unambiguous, the CLI skips a manifest whose name:
+
+- matches the name of any built-in tool, even one your configuration switches off, compared case-insensitively (`read` is rejected because of `Read`), or
+- starts with `MCP_`, which is reserved for [MCP](/mcp/) tools.
+
+A custom tool never replaces a built-in or MCP tool, and no built-in or MCP tool replaces a custom tool. Between custom tools, a project tool replaces a user tool of the same name.
+
+### Example: One Binary for Many Tools (Rust)
+
+A compiled program can back several tools through subcommands, one manifest per tool.
+
+`~/.infer/tools/TakeScreenshot.yaml`:
+
+```yaml
+name: TakeScreenshot
+description: Capture a screenshot of a desktop app window and return the PNG path.
+command:
+  - infer-desktop-tools
+  - screenshot
+parameters:
+  type: object
+  properties:
+    window:
+      type: string
+      description: Title of the window to capture
+  required:
+    - window
+timeout: 60
+```
+
+`src/main.rs` (with `serde` and `serde_json` as dependencies):
+
+```rust
+use serde::Deserialize;
+use std::io::Read;
+
+#[derive(Deserialize)]
+struct ScreenshotArgs {
+    window: String,
+}
+
+fn screenshot(args: ScreenshotArgs) -> Result<String, String> {
+    let path = format!("/tmp/{}.png", args.window.replace(' ', "_"));
+    // Capture the window here.
+    Ok(path)
+}
+
+fn main() {
+    let mut input = String::new();
+    std::io::stdin().read_to_string(&mut input).expect("reading stdin");
+
+    let result = match std::env::args().nth(1).as_deref() {
+        Some("screenshot") => serde_json::from_str(&input)
+            .map_err(|e| format!("invalid arguments: {e}"))
+            .and_then(screenshot),
+        other => Err(format!("unknown subcommand {other:?}")),
+    };
+
+    match result {
+        Ok(output) => println!("{output}"),
+        Err(message) => {
+            eprintln!("{message}");
+            std::process::exit(1);
+        }
+    }
+}
+```
+
+Install the binary on `PATH` (or reference it by a path relative to the manifest), and every manifest pointing at it becomes a tool.
+
+### Custom Tools vs MCP
+
+[MCP servers](/mcp/) also add tools in any language. Custom tools are the lighter option when you control the tool:
+
+- No server to start or health-check. Nothing runs until a call is made, which keeps each `infer headless` start cheap.
+- No prefix: the tool is `TakeScreenshot`, not `MCP_<server>_TakeScreenshot`.
+- Per-tool `modes` and `require_approval`. MCP tools are hidden in plan mode and use the global approval setting.
+
+`~/.infer/tools/` is yours. It is unrelated to `~/.infer/bin/tools/`, which `infer binaries` owns and fills with the prebuilt helper programs the CLI itself uses (ffmpeg, whisper-cli, llama-tts).
+
+### Custom Tool Security
+
+A custom tool runs with **your** permissions and can do anything you can. The sandbox settings (`tools.sandbox.directories`, `tools.sandbox.protected_paths`) only restrict the CLI's built-in file tools, not the programs custom tools start. Only install manifests and programs you trust, keep `require_approval` on for tools that change things, and list `plan`/`readonly` in `modes` only for tools that do not.
+
+- **Project tools always ask.** A cloned repository can offer tools, but none of them runs without your approval outside `auto` mode.
+- **The CLI never edits the tool directories.** The Write, Edit, MultiEdit and Delete tools refuse any path inside `~/.infer/tools/`, `tools.custom_dir`, `.infer/tools/` or `.agents/tools/`, also through a symlink or another spelling of the path, so the model cannot write itself a tool that skips approval. This cannot be switched off. The Bash tool is not covered: in `auto` mode it runs any command.
+- **A project's `.infer/config.yaml` is trusted like your own.** It can set `tools.custom_dir`, the Bash allow-list and the approval settings, so review it before running the CLI in a repository you do not trust.
+
+### Loading Custom Tools From Another Directory
+
+Set `tools.custom_dir` in `config.yaml`, or the `INFER_TOOLS_CUSTOM_DIR` environment variable, to load your user tools from another directory instead of `~/.infer/tools/`. The project directories still load:
+
+```bash
+infer config set tools.custom_dir /opt/my-app/tools
+```
+
+```bash
+INFER_TOOLS_CUSTOM_DIR=/opt/my-app/tools infer headless "Take a screenshot of the editor"
+```
+
+An app that embeds the CLI can use this to offer its own tools without adding them to the user's terminal CLI.
+
+### Custom Tools Troubleshooting
+
+- **The tool does not show up.** The CLI skips an invalid manifest with a warning in its logs (`~/.infer/logs/`) and starts anyway. The warning names the file and the reason, such as an unknown field, a name that does not match the file name, or a taken name.
+- **Test a tool without the model.** `infer tools execute Name '{"arg":"value"}'` runs it directly and prints the result or the error.
+- **The call fails with "executable file not found".** A bare command name must be on the `PATH` the CLI runs with. Use a path relative to the manifest, or an absolute path, instead.
 
 ## Configuration
 
@@ -1829,6 +2054,7 @@ Two-layer configuration system with precedence from highest to lowest:
 | `memory.yaml`      | Project/user | Persistent, cross-session agent memory - fact-files plus the `MEMORY.md` index.                                                                                            | [Persistent Memory](#persistent-memory)                     |
 | `shortcuts/*.yaml` | Project      | Custom slash shortcuts - simple commands, subcommands, and AI-powered snippets.                                                                                            | [Custom Shortcuts](#custom-shortcuts)                       |
 | `skills/`          | Project/user | Agent Skills folders (`name/SKILL.md`) discovered and injected on demand.                                                                                                  | [Agent Skills](#agent-skills)                               |
+| `tools/`           | Project/user | Custom tool manifests (`Name.yaml`), one per tool, also read from `.agents/tools/`.                                                                                        | [Custom Tools](#custom-tools)                               |
 | `schedules/`       | User         | Persisted cron jobs created by the Schedule tool, run by the daemon.                                                                                                       | [Schedule](#schedule)                                       |
 | `artifacts/`       | Project/user | Agent deliverables, grouped per session.                                                                                                                                   | [Artifacts directory](#artifacts-directory)                 |
 | `logs/`            | User         | CLI and gateway log files (`~/.infer/logs`, overridable via `logging.dir`).                                                                                                | [Key Configuration Areas](#key-configuration-areas)         |
@@ -2113,6 +2339,9 @@ export INFER_TOOLS_BASH_ALLOW_APPEND="git commit,git push"
 
 # How a needed approval is delivered: prompt | ipc | judge | block
 export INFER_TOOLS_SAFETY_APPROVAL_BEHAVIOUR="prompt"
+
+# Load user custom tools from another directory instead of ~/.infer/tools
+export INFER_TOOLS_CUSTOM_DIR="/opt/my-app/tools"
 
 # Inline reminders YAML (replaces file-loaded reminders)
 export INFER_REMINDERS_CONFIG='enabled: true
