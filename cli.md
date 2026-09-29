@@ -285,17 +285,18 @@ infer version
 
 ## Core Commands
 
-| Command                 | Description                      | Key Features                                                 |
-| ----------------------- | -------------------------------- | ------------------------------------------------------------ |
-| `infer init`            | Seed the userspace baseline      | Creates `~/.infer/` defaults - writes nothing to the project |
-| `infer status`          | Check gateway health             | Shows resource usage and connectivity                        |
-| `infer chat`            | Interactive chat TUI             | Streaming, scrolling, tool expansion, mode switching         |
-| `infer chat --web`      | Web-based terminal               | Browser interface, tabbed sessions, remote access            |
-| `infer headless <task>` | Autonomous task execution        | Background operation, task planning, validation              |
-| `infer config <cmd>`    | Configuration management         | Generic `get`/`set` for any config key                       |
-| `infer tools <cmd>`     | Run agent tools directly         | Execute a tool or validate a bash command                    |
-| `infer stats`           | Summarize local telemetry        | Token usage, tool outcomes, and cost across sessions         |
-| `infer traces`          | View a session's trace span tree | Offline span-tree viewer, `--list` and JSON output           |
+| Command                  | Description                      | Key Features                                                 |
+| ------------------------ | -------------------------------- | ------------------------------------------------------------ |
+| `infer init`             | Seed the userspace baseline      | Creates `~/.infer/` defaults - writes nothing to the project |
+| `infer status`           | Check gateway health             | Shows resource usage and connectivity                        |
+| `infer chat`             | Interactive chat TUI             | Streaming, scrolling, tool expansion, mode switching         |
+| `infer chat --web`       | Web-based terminal               | Browser interface, tabbed sessions, remote access            |
+| `infer headless <task>`  | Autonomous task execution        | Background operation, task planning, validation              |
+| `infer headless --serve` | Long-lived AG-UI worker          | One run per `user_message` over stdio, no task argument      |
+| `infer config <cmd>`     | Configuration management         | Generic `get`/`set` for any config key                       |
+| `infer tools <cmd>`      | Run agent tools directly         | Execute a tool or validate a bash command                    |
+| `infer stats`            | Summarize local telemetry        | Token usage, tool outcomes, and cost across sessions         |
+| `infer traces`           | View a session's trace span tree | Offline span-tree viewer, `--list` and JSON output           |
 
 ### Chat Interface Features
 
@@ -551,7 +552,7 @@ The output format is controlled by the `--format` flag (renamed from the legacy 
 
 - `json` (default) - newline-delimited JSON (JSONL), one compact object per line, suitable for programmatic consumption
 - `json-pretty` - same per-turn stream as `json` with each object indented across multiple lines for human reading
-- `ag-ui` - spec-compliant AG UI framed output with `TEXT_MESSAGE_START/CONTENT/END` framing and a fresh message id per turn. A `token_usage` custom event follows every LLM step. The terminal `RUN_FINISHED` event carries the session totals in its [`result`](#ag-ui-run-finished-result), or the [`cancelled` outcome](#ag-ui-cancelled-runs) when the turn was stopped. Resuming with `--session-id` opens the run with a [`MESSAGES_SNAPSHOT`](#ag-ui-resume-snapshot) of the restored conversation
+- `ag-ui` - spec-compliant AG UI framed output with `TEXT_MESSAGE_START/CONTENT/END` framing and a fresh message id per turn. A `token_usage` custom event follows every LLM step. The terminal `RUN_FINISHED` event carries the session totals in its [`result`](#ag-ui-run-finished-result), or the [`cancelled` outcome](#ag-ui-cancelled-runs) when the turn was stopped. Resuming with `--session-id` opens the run with a [`MESSAGES_SNAPSHOT`](#ag-ui-resume-snapshot) of the restored conversation. Implied by [`--serve`](#serve-worker---serve)
 - `text` - human-readable plain text output
 
 ```bash
@@ -833,6 +834,49 @@ Each entry of the stored conversation maps to one snapshot message:
 - Only a **restored** conversation produces a snapshot - a fresh session (an unknown `--session-id`, or none at all) starts with `RUN_STARTED` and no snapshot, so hosts should treat it as optional.
 - The event is the same `MESSAGES_SNAPSHOT` the [daemon](#shared-event-stream) answers `new_session` / `resume_conversation` with, because a session worker is an `infer headless --format ag-ui` process.
 
+#### Serve worker (`--serve`)
+
+`infer headless --serve` is a **long-lived worker**: one process per thread instead of one process per prompt. It takes **no task argument** and implies `--format ag-ui`. It reads app frames from stdin and runs **one agent turn per `user_message`**, writing each turn to stdout as one AG-UI run - `RUN_STARTED` with `threadId` set to the conversation id, then exactly one `RUN_FINISHED` or `RUN_ERROR`.
+
+```bash
+infer headless --serve --session-id abc-123-def
+```
+
+This is the shape the [daemon](#daemon) spawns its [session workers](#what-the-daemon-runs) in, so a host that owns the subprocess speaks the same vocabulary as a daemon client: app frames in with a lowercase `type`, AG-UI events out with an uppercase `type`, no envelope and no translation.
+
+```json
+{ "type": "user_message", "content": "Refactor the authentication module" }
+```
+
+```json
+{"type":"RUN_STARTED","threadId":"abc-123-def","runId":"9f4e1a0b-..."}
+{"type":"TEXT_MESSAGE_START","messageId":"msg-4","role":"assistant"}
+{"type":"TEXT_MESSAGE_CONTENT","messageId":"msg-4","delta":"Reading the module first."}
+{"type":"TEXT_MESSAGE_END","messageId":"msg-4"}
+{"type":"RUN_FINISHED","threadId":"abc-123-def","runId":"9f4e1a0b-...","result":{"...":"..."}}
+```
+
+**Stdin frames:**
+
+| Frame                    | Behaviour                                                                                                                                    |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `user_message`           | Runs one turn. Sent mid-turn it is **queued** and drained into the running turn; anything still queued when a turn ends starts the next turn |
+| `interrupt`              | Cancels the running turn, which ends with `RUN_FINISHED` outcome [`cancelled`](#ag-ui-cancelled-runs)                                        |
+| `browser_result`         | Answers a `browser_command` the worker wrote on stdout - see [browser tools without a port](#browser-tools-without-a-port)                   |
+| `approval_response`      | Unchanged: `tool_call_id`, `approved`, `scope` for a pending tool call                                                                       |
+| `user_question_response` | Unchanged: the collected `AskUserQuestion` answers, or a dismissal                                                                           |
+| `computer_use_control`   | Unchanged: `action` is `pause` or `resume` - see [pause and resume control](#pause-and-resume-control-ipc)                                   |
+
+Only the **first** run of a resumed session opens with a [`MESSAGES_SNAPSHOT`](#ag-ui-resume-snapshot); later runs on the same worker start with `RUN_STARTED` alone, because the host already has the history.
+
+##### Browser tools without a port
+
+With [`browser_use.backend: extension`](/opentask/#cli-bridge-protocol) a serve worker **binds no port**. A browser tool writes a `browser_command` line on **stdout** and waits for the `browser_result` line with the same `id` on **stdin**, so the host relays both to the extension - exactly what the daemon does for its own workers. Only a daemon binds the extension port.
+
+##### Shutdown
+
+Closing stdin (**EOF**) lets the running turn and any queued `user_message` frames finish, then shuts the worker down together with the gateway, MCP servers and containers it started. For a fast stop send `{"type":"interrupt"}` first, then close stdin: the running turn ends `cancelled` and the worker drains immediately instead of waiting the turn out.
+
 ## Daemon
 
 `infer daemon` is the long-lived hub every external client connects to. One process owns the outside world: the AG-UI WebSocket binding that the [desktop app](/desktop/) and the [OpenTask browser extension](/opentask/) dial into, the [messaging channels](/cli-channels/), the [scheduler](/cli-scheduling/), and the heartbeat. Clients do not spawn `infer headless` themselves - they ask the daemon for a thread, and the daemon runs it.
@@ -853,14 +897,14 @@ scheduler / heartbeat ----------------------------+
 
 ### What the daemon runs
 
-| Subsystem           | What it does                                                                                                                          |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| **Binding**         | Serves `ws://127.0.0.1:<port>/ws` (default `52789`) for the extension and the desktop app, behind an `Origin` check and a token       |
-| **Session workers** | One long-lived worker process per thread, spawned in the thread's project directory, speaking AG-UI over stdio                        |
-| **Channels**        | Telegram and other [messaging channels](/cli-channels/), each sender mapped to its own thread                                         |
-| **Scheduler**       | Cron jobs from the [local scheduler backend](/cli-scheduling/), run as threads instead of one-off processes                           |
-| **Heartbeat**       | Periodic self-checks and the artifact poller that pulls conversations back from the [GitHub backend](/cli-scheduling/#github-backend) |
-| **Logging**         | Collects worker, channel and connection logs into [one daemon log](#the-daemon-log)                                                   |
+| Subsystem           | What it does                                                                                                                                              |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Binding**         | Serves `ws://127.0.0.1:<port>/ws` (default `52789`) for the extension and the desktop app, behind an `Origin` check and a token                           |
+| **Session workers** | One long-lived [`infer headless --serve`](#serve-worker---serve) process per thread, spawned in the thread's project directory, speaking AG-UI over stdio |
+| **Channels**        | Telegram and other [messaging channels](/cli-channels/), each sender mapped to its own thread                                                             |
+| **Scheduler**       | Cron jobs from the [local scheduler backend](/cli-scheduling/), run as threads instead of one-off processes                                               |
+| **Heartbeat**       | Periodic self-checks and the artifact poller that pulls conversations back from the [GitHub backend](/cli-scheduling/#github-backend)                     |
+| **Logging**         | Collects worker, channel and connection logs into [one daemon log](#the-daemon-log)                                                                       |
 
 ### Starting the daemon
 
