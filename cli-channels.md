@@ -7,7 +7,7 @@ description: Turn the Inference Gateway CLI agent into a remote-controllable bot
 
 Channels turn the [Inference Gateway CLI](/cli/) agent into a remote-controllable bot accessible from messaging platforms like Telegram. Send a message to your bot and the agent runs as if you launched it locally - with persistent per-sender conversation memory, allowlist-based access control, and optional approval prompts for sensitive tools.
 
-> **Note:** Channels run as a long-lived daemon started with `infer daemon`. Telegram is fully supported today; WhatsApp is planned and Discord/Slack are open for contributions.
+> **Note:** Channels are one subsystem of [`infer daemon`](/cli/#daemon), the hub that also serves the desktop app and the browser extension - the same event stream and the same approval contract reach every client. Telegram is fully supported today; WhatsApp is planned and Discord/Slack are open for contributions.
 
 ## Key Features
 
@@ -33,13 +33,13 @@ Channel adapter (long-polls or webhook)
 Channel manager - checks the allowlist
     │
     ▼
-Spawns: infer headless --session-id channel-<name>-<sender_id> "<message>"
+Session worker for thread channel-<name>-<sender_id> runs "<message>"
     │
     ▼
-Agent emits JSON-line output on stdout
+Worker emits the shared event stream
     │
     ├── approval_request   →  prompt sent back through channel,
-    │                          response written to agent stdin
+    │                          decision returned to the worker
     │
     └── assistant message  →  formatted and sent back as a reply
 ```
