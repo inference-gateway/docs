@@ -13,6 +13,8 @@ The app is open-source at [github.com/inference-gateway/desktop](https://github.
 
 On first run, the app downloads the `infer` CLI binary and installs it to `~/.infer/bin/infer`. The CLI manages the gateway server and routes requests to whatever provider you configure. The gateway binary lands at `~/.infer/bin/inference-gateway`, and config lives under `~/.infer/`.
 
+Agents run through [`infer daemon`](/cli/#daemon), the CLI's hub. The app starts the daemon, connects to its AG-UI WebSocket binding as a `desktop` client, and asks it for a thread per conversation - it does not spawn a CLI process per prompt. The same daemon serves the [OpenTask browser extension](/opentask/) and the messaging channels, so all of them see one event stream, one approval contract and [one log](/cli/#the-daemon-log).
+
 ### ~/.infer layout
 
 | Path                             | Purpose                                                                               |
@@ -613,7 +615,7 @@ the captions, or switch the lane to `classic` or `bold`, which never use it.
 
 ## Parallel sessions
 
-You can run several agent sessions at once. Click **+ New chat** while another conversation is streaming and start typing - each session is backed by its own `infer headless` process, so they stream independently. `+ New chat` is never disabled by a running session.
+You can run several agent sessions at once. Click **+ New chat** while another conversation is streaming and start typing - each session is a [daemon thread](/cli/#threads) with its own session worker, so they stream independently. `+ New chat` is never disabled by a running session.
 
 Every conversation keeps its own transcript and approval prompts. Switching the active conversation mid-stream does not interrupt the others: a session you navigate away from keeps running in the background, and its output is waiting when you switch back.
 
@@ -657,7 +659,7 @@ extension:
   token: <generated when none is set>
 ```
 
-Only those keys are touched; anything else you configured for the CLI passes through untouched. The bridge starts immediately - no restart - and the desktop app itself hosts it on `127.0.0.1:52789`, or on `extension.port` if you changed it.
+Only those keys are touched; anything else you configured for the CLI passes through untouched. The connection is served by [`infer daemon`](/cli/#daemon) on `127.0.0.1:52789` (or on `extension.port` if you changed it), not by the app itself, and it comes up immediately - no restart.
 
 ### Connecting the extension
 
@@ -667,25 +669,21 @@ Only those keys are touched; anything else you configured for the CLI passes thr
 
 A browser indicator appears above the composer while the feature is enabled, showing **Browser connected** or **Browser disconnected**. It is hidden entirely when Browser Use is off.
 
-The extension stays connected between agent turns. On every turn the desktop relays the CLI's browser tools - `browser_navigate`, `browser_click`, `browser_type`, `browser_read`, `browser_screenshot` and `browser_tabs` - to the extension, which runs them in the controlled tab. The wire contract is documented in the [CLI bridge protocol](/opentask/#cli-bridge-protocol).
+The extension stays connected between agent turns. A browser tool call - `browser_navigate`, `browser_click`, `browser_type`, `browser_read`, `browser_screenshot` or `browser_tabs` - travels from the session worker through the daemon to the extension, which runs it in the controlled tab. The wire contract is documented in the [OpenTask bridge protocol](/opentask/#cli-bridge-protocol).
 
-### One browser, one owner
+### One browser, many sessions
 
-There is only one real browser, so only one thing may drive it:
+There is only one real browser, so the daemon owns it and serializes access:
 
-- While the desktop app is running it **holds the bridge port**. A standalone `infer` chat or headless session configured with `backend: extension` cannot bind it. Untick **Enable Browser Use (extension)** in the desktop (or quit the app) to hand the port back.
-- A second concurrent desktop session that tries to use the browser gets a clear tool error rather than hijacking the tab the first session is driving.
+- Only the daemon binds the extension port. The app, a terminal `infer chat` and a standalone `infer headless` with `backend: extension` all reach the browser as daemon clients, so nothing has to hand the port back.
+- Browser commands from different sessions are serialized rather than interleaved on the same tab.
+- When no extension is connected, browser tool calls fail with `no extension connected`, and the indicator follows the `browser_extension_status` event.
 
 ### Troubleshooting
 
 If the indicator stays on **Browser disconnected**, check that the port and token in the extension options match Settings exactly, and that the extension is loaded and enabled.
 
-The CLI logs the bridge bind result to `~/.infer/logs/app-<date>.log`:
-
-| Log line                     | Meaning                                                                      |
-| ---------------------------- | ---------------------------------------------------------------------------- |
-| `extension bridge listening` | The bridge is up and waiting for the extension to dial in                    |
-| `failed to listen`           | The port is already taken - another desktop or `infer` session is holding it |
+Connects, disconnects and routing errors are logged to [`~/.infer/logs/daemon-<date>.log`](/cli/#the-daemon-log) with the client kind, the extension version and the protocol version, so that file shows whether the extension ever reached the daemon.
 
 ## Voice input
 

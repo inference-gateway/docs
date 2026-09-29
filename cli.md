@@ -783,6 +783,155 @@ infer headless "Continue the refactoring" --session-id abc-123-def
 
 The same flag is also available on [`infer chat --session-id`](#resuming-a-session---session-id) for resuming chat sessions interactively.
 
+## Daemon
+
+`infer daemon` is the long-lived hub every external client connects to. One process owns the outside world: the AG-UI WebSocket binding that the [desktop app](/desktop/) and the [OpenTask browser extension](/opentask/) dial into, the [messaging channels](/cli-channels/), the [scheduler](/cli-scheduling/), and the heartbeat. Clients do not spawn `infer headless` themselves - they ask the daemon for a thread, and the daemon runs it.
+
+```text
+desktop app -----+
+                 +--> AG-UI WebSocket binding ----+
+extension -------+                                |
+                                                  +--> infer daemon --> session worker per thread
+Telegram channel ----------------------------------+                    (project dir + conversation)
+                                                  |
+scheduler / heartbeat ----------------------------+
+                                                  |
+                                                  +--> one log: ~/.infer/logs/daemon-<date>.log
+```
+
+> **Note:** The binding, the session workers and the client handshake described here are the daemon hub. Older CLI builds connect the extension directly to `infer chat` and spawn one `infer headless` per desktop prompt; see [Connecting the extension](/opentask/#connecting-to-the-daemon) for what changes on the client side.
+
+### What the daemon runs
+
+| Subsystem           | What it does                                                                                                                          |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| **Binding**         | Serves `ws://127.0.0.1:<port>/ws` (default `52789`) for the extension and the desktop app, behind an `Origin` check and a token       |
+| **Session workers** | One long-lived worker process per thread, spawned in the thread's project directory, speaking AG-UI over stdio                        |
+| **Channels**        | Telegram and other [messaging channels](/cli-channels/), each sender mapped to its own thread                                         |
+| **Scheduler**       | Cron jobs from the [local scheduler backend](/cli-scheduling/), run as threads instead of one-off processes                           |
+| **Heartbeat**       | Periodic self-checks and the artifact poller that pulls conversations back from the [GitHub backend](/cli-scheduling/#github-backend) |
+| **Logging**         | Collects worker, channel and connection logs into [one daemon log](#the-daemon-log)                                                   |
+
+### Starting the daemon
+
+```bash
+infer daemon
+```
+
+The daemon boots with the binding alone - channels, the scheduler and the heartbeat are optional and enabled through configuration. Clients connect with the port and token from `~/.infer/browser_use.yaml`:
+
+```yaml
+# ~/.infer/browser_use.yaml
+enabled: true
+backend: extension
+extension:
+  port: 52789
+  token: <shared secret; infer init seeds one>
+```
+
+A standalone `infer chat` or `infer headless` with `backend: extension` reaches the browser as a daemon client, and starts the daemon when none is running.
+
+### Threads
+
+A **thread** is a project directory plus a conversation id, and it runs in exactly one session worker:
+
+- A client opens a thread with `new_session` or `resume_conversation`, passing `project_dir` and the thread options (model, agent mode, system prompt and custom instruction overrides, sandbox directories, max turns). The daemon answers with a `MESSAGES_SNAPSHOT` of the restored history.
+- `threadId` on the thread's runs is its conversation id, so a client can list and resume the same conversations the CLI resumes.
+- Every agent turn is **one run**: `RUN_STARTED`, then exactly one `RUN_FINISHED` or `RUN_ERROR`. A stopped turn ends as `RUN_FINISHED` with outcome `cancelled`.
+- Several clients may subscribe to one thread; each of them sees the same frames.
+- Idle workers exit after a timeout, and a worker that crashes mid-turn has its open run closed with `RUN_ERROR`.
+
+### Clients and the handshake
+
+The client dials in and sends the first frame within 5 seconds:
+
+```json
+{
+  "type": "browser_hello",
+  "token": "<shared secret>",
+  "client": "extension",
+  "extension_version": "1.9.2",
+  "protocol_version": 1
+}
+```
+
+```json
+{ "type": "browser_hello_ack", "protocol_version": 1 }
+```
+
+- `client` is `extension` or `desktop`. There is **one** extension connection - a new one replaces the previous, because MV3 service workers restart at will - and any number of desktop connections.
+- The handshake is lenient: any valid-token hello is accepted, a hello without a `protocol_version` is logged as a warning, and a client that sees a version it does not support shows an "update" state rather than refusing to connect.
+- Only `chrome-extension://`, `moz-extension://`, `safari-web-extension://` or absent `Origin` headers are accepted.
+
+### Shared event stream
+
+Every transport carries the same vocabulary, with no envelope around it: AG-UI events go **out** with an uppercase `type`, app frames come **in** with a lowercase `type`. The frames on a session worker's stdio (`infer headless --format ag-ui`) and on the daemon socket are identical, so a client written against one works against the other.
+
+**AG-UI events out:**
+
+| Event                                                              | When                                                                                                                       |
+| ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| `RUN_STARTED`                                                      | A turn starts; `threadId` is the conversation id                                                                           |
+| `MESSAGES_SNAPSHOT`                                                | Answer to `new_session` / `resume_conversation`                                                                            |
+| `TEXT_MESSAGE_START` / `TEXT_MESSAGE_CONTENT` / `TEXT_MESSAGE_END` | Assistant or user message, role on START                                                                                   |
+| `TOOL_CALL_START` / `TOOL_CALL_ARGS` / `TOOL_CALL_END`             | A tool call the assistant issued                                                                                           |
+| `TOOL_CALL_RESULT`                                                 | The raw JSON execution result of a tool call                                                                               |
+| `STATE_SNAPSHOT`                                                   | Todo-list change, as `{"todos": [...]}`                                                                                    |
+| `RUN_FINISHED`                                                     | The turn ended; outcome `cancelled` when it was stopped, `result` carries the [session totals](#ag-ui-run-finished-result) |
+| `RUN_ERROR`                                                        | The turn failed, or its worker died                                                                                        |
+
+**CUSTOM events out**, each with a `name` and a `value`:
+
+| Name                                           | Value                                                                                                                              |
+| ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `approval_request`                             | `tool_name`, `tool_args`, `tool_call_id` - a tool call is waiting                                                                  |
+| `approval_resolved`                            | `tool_call_id` - somebody else answered it                                                                                         |
+| `user_question_request`                        | `tool_call_id` and the `AskUserQuestion` form's `questions`                                                                        |
+| `agent_status`                                 | A local A2A agent starting: `name`, `state`, `message`, pull progress `done`/`total`                                               |
+| `background_tasks`                             | `running` plus the `jobs` array (id, kind, label, description, detail, status)                                                     |
+| `queued_message`                               | A background job landed its note into the conversation                                                                             |
+| `token_usage`                                  | The same cumulative stats as `RUN_FINISHED.result`, after each model request                                                       |
+| `judge_verdict`                                | Per [judge](/cli-judge-mode/) decision: tool, `decision`, `reason`, `model`, turn                                                  |
+| `screen_recording`                             | `active`, plus `path`, `region` `{x, y, width, height}`, `frame_width` and `frame_height` while recording                          |
+| `computer_use_action`                          | `tool_call_id`, `action`, `x`, `y`, `screen_width`, `screen_height`, in screen coordinates, before each pointer or keyboard action |
+| `computer_use_paused` / `computer_use_resumed` | `request_id` - answer to a `computer_use_control` frame                                                                            |
+| `browser_extension_status`                     | `connected`, `extension_version`, `protocol_version` - on extension connect and disconnect                                         |
+| `browser_use_paused` / `browser_use_resumed`   | `request_id` - answer to a `browser_use_control` frame                                                                             |
+
+**App frames in:**
+
+| Frame                                                       | Purpose                                                                    |
+| ----------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `new_session` / `resume_conversation`                       | Open a thread in a project directory                                       |
+| `user_message`                                              | Send a message into the thread; queued when the agent is busy              |
+| `interrupt`                                                 | Stop the streaming turn, which ends `cancelled`                            |
+| `approval_response`                                         | `tool_call_id`, `approved`, `scope` - the decision for a pending tool call |
+| `user_question_response`                                    | The collected answers, or a dismissal                                      |
+| `computer_use_control` / `browser_use_control`              | `action` is `pause` or `resume`, for computer use and browser use          |
+| `list_conversations` / `list_history`                       | Browse the project's stored conversations                                  |
+| `list_skills` / `list_models` / `select_model` / `set_mode` | Inspect and change what the thread runs with                               |
+| `tool_request` / `tool_result`                              | Run a tool directly, scoped to a project directory                         |
+
+Unknown `type` and `name` values are ignored on both sides, so the vocabulary stays additive. The full per-event reference lives with the CLI source, in [`docs/ag-ui-output.md`](https://github.com/inference-gateway/cli/blob/main/docs/ag-ui-output.md).
+
+### Approvals
+
+Approvals have one contract on every transport. The daemon sends CUSTOM `approval_request` to every client of the thread, and the **first** `approval_response` wins - it goes to the worker, and the thread's other clients get CUSTOM `approval_resolved` with the same `tool_call_id` so they can clear their prompt. A decision made in the terminal resolves the panel's prompt the same way. A response for an unknown or already-answered `tool_call_id` is ignored.
+
+### Browser use through the daemon
+
+There is one real browser, so only the daemon binds the extension port. `browser_command` lines from the session workers are routed to the extension connection and each `browser_result` goes back to its worker by `id`; commands from different threads are serialized. With no extension connected, browser tools fail with their usual `no extension connected` error. The command and result shapes are documented in the [OpenTask bridge protocol](/opentask/#browser-commands-daemon-extension).
+
+### The daemon log
+
+One file holds the whole picture: `~/.infer/logs/daemon-<date>.log`. Session workers log to stderr as JSON and create no files of their own - the daemon writes each worker line with `thread_id`, `project_dir` and `worker_pid`. Client connects and disconnects are logged with `client`, `extension_version` and `protocol_version`, and routing errors (unknown thread, dead worker, no extension) with the `thread_id` they concerned. Channel, scheduler and heartbeat lines carry `thread_id` when they act for a thread.
+
+Logs are not streamed to clients, so `tail` the file when debugging a client:
+
+```bash
+tail -f ~/.infer/logs/daemon-$(date +%Y-%m-%d).log
+```
+
 ## Computer Use
 
 GUI automation and visual understanding capabilities for interacting with applications and desktop environments.
