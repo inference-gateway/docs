@@ -241,13 +241,13 @@ Daemon -> extension, the discovered skills (empty when skills are unavailable):
 
 ### Artifacts (generated images)
 
-Chat text can reference files the agent saved under the artifacts dir (`~/.infer/artifacts/<...>`, for example `ImageGeneration` output). An MV3 extension cannot load a local file path in `<img>`, so alongside `/ws` the daemon serves that directory read-only over HTTP:
+Chat text can reference files the agent saved under the artifacts dir (`~/.infer/projects/<project-slug>/artifacts/<...>`, for example `ImageGeneration` output). An MV3 extension cannot load a local file path in `<img>`, so the extension rewrites a markdown image whose URL contains `/artifacts/` to an HTTP route on the bridge (stripping the prefix through and including `artifacts/`):
 
 ```text
 GET http://127.0.0.1:<port>/artifacts/<relative-path>
 ```
 
-The extension rewrites a markdown image whose URL contains `/.infer/artifacts/` to this route (stripping the prefix through and including `artifacts/`) and renders it inline. The route is loopback-only and unauthenticated, since the artifacts are your own generated files; path traversal is blocked.
+The daemon does not serve that route yet, so it answers 404 and generated images do not render in the panel. One daemon serves many projects and the route names none, so it cannot pick an artifacts dir; a per-project form is planned. Only `infer chat`'s own binding, which is scoped to a single project, serves the directory today.
 
 ### Tool approvals
 
