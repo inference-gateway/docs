@@ -551,7 +551,7 @@ The output format is controlled by the `--format` flag (renamed from the legacy 
 
 - `json` (default) - newline-delimited JSON (JSONL), one compact object per line, suitable for programmatic consumption
 - `json-pretty` - same per-turn stream as `json` with each object indented across multiple lines for human reading
-- `ag-ui` - spec-compliant AG UI framed output with `TEXT_MESSAGE_START/CONTENT/END` framing and a fresh message id per turn. A `token_usage` custom event follows every LLM step. The terminal `RUN_FINISHED` event carries the session totals in its [`result`](#ag-ui-run-finished-result)
+- `ag-ui` - spec-compliant AG UI framed output with `TEXT_MESSAGE_START/CONTENT/END` framing and a fresh message id per turn. A `token_usage` custom event follows every LLM step. The terminal `RUN_FINISHED` event carries the session totals in its [`result`](#ag-ui-run-finished-result), or the [`cancelled` outcome](#ag-ui-cancelled-runs) when the turn was stopped. Resuming with `--session-id` opens the run with a [`MESSAGES_SNAPSHOT`](#ag-ui-resume-snapshot) of the restored conversation
 - `text` - human-readable plain text output
 
 ```bash
@@ -613,7 +613,7 @@ A host UI (the desktop app, or any process that owns the `infer headless` subpro
 
 - Works with the `json`, `json-pretty`, and `ag-ui` formats, **with or without** `--require-approval`, and regardless of the [`computer_use.approval`](#computer-use-approval) level.
 - **Pause** cancels the in-flight request and emits `computer_use_paused`.
-- **Resume** restarts the run over the same conversation with a hidden `Please continue from where you left off.` message, and emits `computer_use_resumed`. The resume also clears the error the cancelled run carried, so a paused run that is resumed still finishes cleanly.
+- **Resume** restarts the run over the same conversation with a hidden `Please continue from where you left off.` message, and emits `computer_use_resumed`. The resume also clears the [cancellation the paused run carried](#ag-ui-cancelled-runs), so a pause and resume stays one successful run.
 - A malformed line, an unknown `type`, or an unrecognized `action` is ignored (logged as a warning), so the stdin stream can carry `approval_response` and `computer_use_control` messages interleaved.
 
 **Events out.** In the `json` / `json-pretty` stream both events are plain JSON lines carrying the session `request_id`:
@@ -752,6 +752,25 @@ The same stats object is also streamed as a `CUSTOM` event named `token_usage` a
 }
 ```
 
+##### AG-UI cancelled runs
+
+Every run is bracketed by `RUN_STARTED` and exactly one terminal `RUN_FINISHED` or `RUN_ERROR`. A **stopped** turn is not a failure: it ends as AG-UI 1.0 describes cancelled runs, a `RUN_FINISHED` carrying outcome `cancelled` and **no `result`**, rather than a `RUN_ERROR`:
+
+```json
+{
+  "type": "RUN_FINISHED",
+  "threadId": "b7a1c3d2-...",
+  "runId": "9f4e1a0b-...",
+  "outcome": "cancelled"
+}
+```
+
+`RUN_ERROR` stays reserved for a run that actually failed (a panic, a gateway error, a worker that died mid-turn), so a host can tell "the user stopped this" apart from "this broke" without parsing error text.
+
+A [computer-use pause](#pause-and-resume-control-ipc) cancels the in-flight request, so a paused run is a cancelled one. A later `computer_use_resumed` **clears** that cancellation - the pause and the resume stay **one successful run**, and the terminal event the host finally sees is an ordinary `RUN_FINISHED` with its `result`. Hosts should therefore treat `cancelled` as the outcome of the turn, not as a reason to tear down the thread.
+
+The same outcome reaches [daemon](#daemon) clients that send an `interrupt` frame, since the worker's stdio stream and the daemon socket carry [identical frames](#shared-event-stream).
+
 **For AG-UI consumers** (the [desktop app](/desktop/) sidecar, or any process hosting `infer headless --format ag-ui`): the per-step `token_usage` events stream the cumulative stats above, so live indicators stay current during the run instead of jumping once at `RUN_FINISHED`. Drive the context-percentage indicator from `lastInputTokens / contextWindow` - `lastInputTokens` is the live occupancy of the window, where `inputTokens` is a session-wide sum and will overshoot it. Hide the indicator when `contextWindow` is absent. Drive the cost indicator from `cost`, which is already the computed dollar total and needs no per-model pricing table on the client.
 
 #### Writing the result to a file (`--result-file`)
@@ -782,6 +801,37 @@ infer headless "Continue the refactoring" --session-id abc-123-def
 **Fallback:** If the session cannot be loaded (e.g. the ID does not exist or storage is disabled), the CLI prints a visible notice and starts a new session under the requested ID.
 
 The same flag is also available on [`infer chat --session-id`](#resuming-a-session---session-id) for resuming chat sessions interactively.
+
+##### AG-UI resume snapshot
+
+Under `--format ag-ui`, resuming an existing conversation emits a **`MESSAGES_SNAPSHOT` of the restored conversation right after `RUN_STARTED`**, before the turn produces anything of its own. A host that reconnects to a thread can therefore render the prior history from the stream itself, with no side channel and no separate conversation-read command:
+
+```bash
+infer headless --format ag-ui --session-id abc-123-def "Continue the refactoring"
+```
+
+```json
+{"type":"RUN_STARTED","threadId":"abc-123-def","runId":"9f4e1a0b-..."}
+{"type":"MESSAGES_SNAPSHOT","messages":[
+  {"id":"msg-1","role":"user","content":"Refactor the authentication module"},
+  {"id":"msg-2","role":"assistant","content":"Reading the module first.","toolCalls":[{"id":"call-1","type":"function","function":{"name":"Read","arguments":"{\"file_path\":\"auth.go\"}"}}]},
+  {"id":"msg-3","role":"tool","toolCallId":"call-1","content":"package auth\n..."}
+]}
+```
+
+Each entry of the stored conversation maps to one snapshot message:
+
+| Field        | On                 | Value                                                             |
+| ------------ | ------------------ | ----------------------------------------------------------------- |
+| `id`         | every message      | The stored message id                                             |
+| `role`       | every message      | `user`, `assistant`, `system` or `tool`                           |
+| `content`    | every message      | The message's text content                                        |
+| `toolCalls`  | assistant messages | The tool calls that message issued, omitted when it issued none   |
+| `toolCallId` | tool messages      | The id of the assistant tool call this result answers             |
+| `error`      | tool messages      | The failure message, present only when that tool execution failed |
+
+- Only a **restored** conversation produces a snapshot - a fresh session (an unknown `--session-id`, or none at all) starts with `RUN_STARTED` and no snapshot, so hosts should treat it as optional.
+- The event is the same `MESSAGES_SNAPSHOT` the [daemon](#shared-event-stream) answers `new_session` / `resume_conversation` with, because a session worker is an `infer headless --format ag-ui` process.
 
 ## Daemon
 
@@ -869,16 +919,16 @@ Every transport carries the same vocabulary, with no envelope around it: AG-UI e
 
 **AG-UI events out:**
 
-| Event                                                              | When                                                                                                                       |
-| ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
-| `RUN_STARTED`                                                      | A turn starts; `threadId` is the conversation id                                                                           |
-| `MESSAGES_SNAPSHOT`                                                | Answer to `new_session` / `resume_conversation`                                                                            |
-| `TEXT_MESSAGE_START` / `TEXT_MESSAGE_CONTENT` / `TEXT_MESSAGE_END` | Assistant or user message, role on START                                                                                   |
-| `TOOL_CALL_START` / `TOOL_CALL_ARGS` / `TOOL_CALL_END`             | A tool call the assistant issued                                                                                           |
-| `TOOL_CALL_RESULT`                                                 | The raw JSON execution result of a tool call                                                                               |
-| `STATE_SNAPSHOT`                                                   | Todo-list change, as `{"todos": [...]}`                                                                                    |
-| `RUN_FINISHED`                                                     | The turn ended; outcome `cancelled` when it was stopped, `result` carries the [session totals](#ag-ui-run-finished-result) |
-| `RUN_ERROR`                                                        | The turn failed, or its worker died                                                                                        |
+| Event                                                              | When                                                                                                                                                |
+| ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `RUN_STARTED`                                                      | A turn starts; `threadId` is the conversation id                                                                                                    |
+| `MESSAGES_SNAPSHOT`                                                | Answer to `new_session` / `resume_conversation`; also emitted [right after `RUN_STARTED` on a resumed run](#ag-ui-resume-snapshot)                  |
+| `TEXT_MESSAGE_START` / `TEXT_MESSAGE_CONTENT` / `TEXT_MESSAGE_END` | Assistant or user message, role on START                                                                                                            |
+| `TOOL_CALL_START` / `TOOL_CALL_ARGS` / `TOOL_CALL_END`             | A tool call the assistant issued                                                                                                                    |
+| `TOOL_CALL_RESULT`                                                 | The raw JSON execution result of a tool call                                                                                                        |
+| `STATE_SNAPSHOT`                                                   | Todo-list change, as `{"todos": [...]}`                                                                                                             |
+| `RUN_FINISHED`                                                     | The turn ended; outcome [`cancelled`](#ag-ui-cancelled-runs) when it was stopped, `result` carries the [session totals](#ag-ui-run-finished-result) |
+| `RUN_ERROR`                                                        | The turn failed, or its worker died                                                                                                                 |
 
 **CUSTOM events out**, each with a `name` and a `value`:
 
