@@ -923,7 +923,9 @@ extension:
   token: <shared secret; infer init seeds one>
 ```
 
-A standalone `infer chat` or `infer headless` with `backend: extension` reaches the browser as a daemon client, and starts the daemon when none is running.
+A standalone `infer chat` or `infer headless` with `backend: extension` reaches the browser as a daemon client (`client: "browser"` in the handshake), and starts `infer daemon` itself on the first browser call when nothing is listening on the port. Neither binds the port, so nothing has to hand it back.
+
+The daemon needs the extension port to be free: if another process already holds it, the boot **fails** with the port named instead of retrying until it frees. Stop whatever holds it, or change `extension.port`.
 
 ### Threads
 
@@ -953,7 +955,7 @@ The client dials in and sends the first frame within 5 seconds:
 { "type": "browser_hello_ack", "protocol_version": 1 }
 ```
 
-- `client` is `extension` or `desktop`. There is **one** extension connection - a new one replaces the previous, because MV3 service workers restart at will - and any number of desktop connections.
+- `client` is `extension`, `desktop`, or `browser` for a CLI process that connects only to drive the browser; an absent or unknown value counts as `extension`. There is **one** extension connection - a new one replaces the previous, because MV3 service workers restart at will - and any number of `desktop` and `browser` connections.
 - The handshake is lenient: any valid-token hello is accepted, a hello without a `protocol_version` is logged as a warning, and a client that sees a version it does not support shows an "update" state rather than refusing to connect.
 - Only `chrome-extension://`, `moz-extension://`, `safari-web-extension://` or absent `Origin` headers are accepted.
 
@@ -1014,7 +1016,7 @@ Approvals have one contract on every transport. The daemon sends CUSTOM `approva
 
 ### Browser use through the daemon
 
-There is one real browser, so only the daemon binds the extension port. `browser_command` lines from the session workers are routed to the extension connection and each `browser_result` goes back to its worker by `id`; commands from different threads are serialized. With no extension connected, browser tools fail with their usual `no extension connected` error. The command and result shapes are documented in the [OpenTask bridge protocol](/opentask/#browser-commands-daemon-extension).
+There is one real browser, so only the daemon binds the extension port. `browser_command` lines from the session workers are routed to the extension connection and each `browser_result` goes back to its worker by `id`. Commands from every source - session workers, the desktop app and `browser` clients - are serialized rather than interleaved on the same tab, and a command a client posts on the socket is answered only on that connection. With no extension connected, browser tools fail with `no browser extension connected on port <port>`; a command the extension does not finish in time fails with `timed out waiting for the browser extension to <action>`. The command and result shapes are documented in the [OpenTask bridge protocol](/opentask/#browser-commands-daemon-extension).
 
 ### The daemon log
 
