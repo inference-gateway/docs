@@ -157,7 +157,7 @@ Extension -> daemon, exactly one result per command id:
 - `content` is only meaningful for `read`, `image`/`image_mime_type` for `screenshot`, `tabs` for `tabs`. `events` carries optional browser-initiated notices (console lines and similar) and may always be empty.
 - `url`/`title` reflect the controlled tab after the action.
 
-There is one browser and many threads, so the daemon serializes commands across threads and routes each result back to the worker that asked, by `id`. When no extension is connected the browser tools fail with `no extension connected`, and every client learns about it from the CUSTOM `browser_extension_status` event. A client pauses and resumes the agent's browsing with `{"type": "browser_use_control", "action": "pause"}`, answered with CUSTOM `browser_use_paused` / `browser_use_resumed` - the same shape as the computer-use pair.
+There is one browser and many threads, so the daemon serializes commands across threads and routes each result back to the worker that asked, by `id`. A standalone [`infer headless --serve`](/cli/#serve-worker---serve) worker binds no port either: it writes the same `browser_command` line on **stdout** and waits for the matching `browser_result` line on **stdin**, so whoever owns the subprocess relays both frames to the extension. When no extension is connected the browser tools fail with `no extension connected`, and every client learns about it from the CUSTOM `browser_extension_status` event. A client pauses and resumes the agent's browsing with `{"type": "browser_use_control", "action": "pause"}`, answered with CUSTOM `browser_use_paused` / `browser_use_resumed` - the same shape as the computer-use pair.
 
 ### Threads, conversations and resume
 
