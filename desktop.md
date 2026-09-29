@@ -675,9 +675,9 @@ The extension stays connected between agent turns. A browser tool call - `browse
 
 There is only one real browser, so the daemon owns it and serializes access:
 
-- Only the daemon binds the extension port. The app, a terminal `infer chat` and a standalone `infer headless` with `backend: extension` all reach the browser as daemon clients, so nothing has to hand the port back.
-- Browser commands from different sessions are serialized rather than interleaved on the same tab.
-- When no extension is connected, browser tool calls fail with `no extension connected`, and the indicator follows the `browser_extension_status` event.
+- Only the daemon binds the extension port. The app, a terminal `infer chat` and a standalone `infer headless` with `backend: extension` all reach the browser as daemon clients, so nothing has to hand the port back. The CLI ones start the daemon themselves on the first browser call.
+- Browser commands from every source - the app, the daemon's session workers and the CLI clients - are serialized rather than interleaved on the same tab, and each answer goes back to whoever asked.
+- When no extension is connected, browser tool calls fail with `no browser extension connected on port <port>`, and the indicator follows the `browser_extension_status` event.
 
 ### Troubleshooting
 

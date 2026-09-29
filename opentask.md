@@ -85,7 +85,7 @@ The extension connects to [`infer daemon`](/cli/#daemon) - the one hub that also
 
 3. Paste both into the extension options.
 
-The panel then lists the daemon's threads - a thread is a project directory plus a conversation - and shows the live stream of whichever one you open. A standalone `infer chat` or `infer headless` with `backend: extension` reaches the browser as another daemon client, and starts the daemon when none is running.
+The panel then lists the daemon's threads - a thread is a project directory plus a conversation - and shows the live stream of whichever one you open. A standalone `infer chat` or `infer headless` with `backend: extension` reaches the browser as another daemon client (`client: "browser"` in the handshake) and starts `infer daemon` itself on the first browser call when none is running. The daemon needs the port to be free - if another process holds it, the daemon's boot fails with the port named rather than retrying.
 
 ### Transport
 
@@ -115,7 +115,7 @@ Daemon -> extension on success (on failure the socket is closed):
 { "type": "browser_hello_ack", "protocol_version": 1 }
 ```
 
-- `client` tells the daemon which kind of client this is (`extension` here, `desktop` for the app). One extension connection is kept, any number of desktop ones.
+- `client` tells the daemon which kind of client this is (`extension` here, `desktop` for the app, `browser` for a CLI process that only needs the browser). An absent or unknown value counts as `extension`. One extension connection is kept, any number of `desktop` and `browser` ones.
 - `protocol_version` is negotiated leniently: any valid-token hello is accepted, a hello without a version is logged as a warning, and a version the extension does not support surfaces as an "update" state in the panel instead of a closed socket.
 - Nothing is pushed automatically after the handshake - the panel asks for what it needs.
 
@@ -157,7 +157,7 @@ Extension -> daemon, exactly one result per command id:
 - `content` is only meaningful for `read`, `image`/`image_mime_type` for `screenshot`, `tabs` for `tabs`. `events` carries optional browser-initiated notices (console lines and similar) and may always be empty.
 - `url`/`title` reflect the controlled tab after the action.
 
-There is one browser and many threads, so the daemon serializes commands across threads and routes each result back to the worker that asked, by `id`. A standalone [`infer headless --serve`](/cli/#serve-worker---serve) worker binds no port either: it writes the same `browser_command` line on **stdout** and waits for the matching `browser_result` line on **stdin**, so whoever owns the subprocess relays both frames to the extension. When no extension is connected the browser tools fail with `no extension connected`, and every client learns about it from the CUSTOM `browser_extension_status` event. A client pauses and resumes the agent's browsing with `{"type": "browser_use_control", "action": "pause"}`, answered with CUSTOM `browser_use_paused` / `browser_use_resumed` - the same shape as the computer-use pair.
+One browser serves everyone, so the daemon serializes every command it receives - from its session workers, from the desktop app and from `browser` clients - and returns each answer to whoever asked, by `id`. A `browser_command` a `desktop` or `browser` client posts on the socket is answered only on that connection. A standalone [`infer headless --serve`](/cli/#serve-worker---serve) worker binds no port either: it writes the same `browser_command` line on **stdout** and waits for the matching `browser_result` line on **stdin**, so whoever owns the subprocess relays both frames to the extension. When no extension is connected the browser tools fail with `no browser extension connected on port <port>`, and every client learns about it from the CUSTOM `browser_extension_status` event. A client pauses and resumes the agent's browsing with `{"type": "browser_use_control", "action": "pause"}`, answered with CUSTOM `browser_use_paused` / `browser_use_resumed` - the same shape as the computer-use pair.
 
 ### Threads, conversations and resume
 
