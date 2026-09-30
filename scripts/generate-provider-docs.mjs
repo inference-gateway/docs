@@ -308,6 +308,7 @@ export function buildProviders(model, overrides) {
       supportsChat,
       displayName: ov.displayName || id,
       urlLabel: ov.urlLabel || ov.displayName || id,
+      urlDescription: ov.urlDescription || '',
       keyLabel: ov.keyLabel || ov.displayName || id,
       vision: ov.vision || '',
       adkExampleModel: ov.adkExampleModel,
@@ -390,7 +391,7 @@ export function renderVisionList(providers) {
 export function renderSettingsConsts(providers) {
   const blocks = providers.map((p) => {
     const entries = [
-      `  { variable: '${p.envUpper}_API_URL', description: '${p.urlLabel} API URL', defaultValue: '${p.url}' },`,
+      `  { variable: '${p.envUpper}_API_URL', description: '${p.urlDescription || `${p.urlLabel} API URL`}', defaultValue: '${p.url}' },`,
     ];
     if (p.authType !== 'none') {
       entries.push(

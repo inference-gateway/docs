@@ -27,7 +27,7 @@ Inference Gateway provides a unified interface to interact with multiple LLM pro
 | MiniMax      | Bearer Token     | `https://api.minimax.io/v1`                                     | No             |
 | Moonshot     | Bearer Token     | `https://api.moonshot.ai/v1`                                    | No             |
 | NVIDIA       | Bearer Token     | `https://integrate.api.nvidia.com/v1`                           | No             |
-| Z-AI         | Bearer Token     | `https://api.z.ai/api/paas/v4`                                  | No             |
+| Z-AI         | Bearer Token     | `https://api.z.ai/api/coding/paas/v4`                           | No             |
 | ElevenLabs   | X-Header         | `https://api.elevenlabs.io/v1`                                  | No             |
 
 <!-- GENERATED:providers-table END (do not edit - run: task generate) -->
@@ -486,6 +486,8 @@ curl http://localhost:8080/v1/models?provider=llamacpp
 ### Z-AI Provider
 
 Generate content with Z-AI models for direct access to open-weight models like GLM:
+
+> **Note:** `ZAI_API_URL` defaults to the GLM Coding Plan endpoint, `https://api.z.ai/api/coding/paas/v4`, so requests from Coding Plan subscribers draw on the subscription. If your key is pay-as-you-go only, set `ZAI_API_URL=https://api.z.ai/api/paas/v4`.
 
 ```bash
 curl -X POST http://localhost:8080/v1/chat/completions \

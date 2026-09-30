@@ -141,7 +141,7 @@ const nvidiaSettings = [
 ];
 
 const zaiSettings = [
-  { variable: 'ZAI_API_URL', description: 'Z-AI API URL', defaultValue: 'https://api.z.ai/api/paas/v4' },
+  { variable: 'ZAI_API_URL', description: 'Z-AI API URL - defaults to the GLM Coding Plan endpoint; pay-as-you-go keys need https://api.z.ai/api/paas/v4', defaultValue: 'https://api.z.ai/api/coding/paas/v4' },
   { variable: 'ZAI_API_KEY', description: 'Z-AI API Key', defaultValue: '""' },
 ];
 
@@ -584,7 +584,7 @@ MOONSHOT_API_URL=https://api.moonshot.ai/v1
 MOONSHOT_API_KEY=
 NVIDIA_API_URL=https://integrate.api.nvidia.com/v1
 NVIDIA_API_KEY=
-ZAI_API_URL=https://api.z.ai/api/paas/v4
+ZAI_API_URL=https://api.z.ai/api/coding/paas/v4
 ZAI_API_KEY=
 ELEVENLABS_API_URL=https://api.elevenlabs.io/v1
 ELEVENLABS_API_KEY=
