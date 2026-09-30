@@ -912,14 +912,14 @@ scheduler / heartbeat ----------------------------+
 
 ### What the daemon runs
 
-| Subsystem           | What it does                                                                                                                                              |
-| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Binding**         | Serves `ws://127.0.0.1:<port>/ws` (default `52789`) for the extension and the desktop app, behind an `Origin` check and a token                           |
-| **Session workers** | One long-lived [`infer headless --serve`](#serve-worker---serve) process per thread, spawned in the thread's project directory, speaking AG-UI over stdio |
-| **Channels**        | Telegram and other [messaging channels](/cli-channels/), each sender mapped to its own thread                                                             |
-| **Scheduler**       | Cron jobs from the [local scheduler backend](/cli-scheduling/), run as threads instead of one-off processes                                               |
-| **Heartbeat**       | Periodic self-checks and the artifact poller that pulls conversations back from the [GitHub backend](/cli-scheduling/#github-backend)                     |
-| **Logging**         | Collects worker, channel and connection logs into [one daemon log](#the-daemon-log)                                                                       |
+| Subsystem           | What it does                                                                                                                                                                |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Binding**         | Serves `ws://127.0.0.1:<port>/ws` (default `52789`) for the extension and the desktop app, behind an `Origin` check and a token. On its own `daemon.binding.enabled` switch |
+| **Session workers** | One long-lived [`infer headless --serve`](#serve-worker---serve) process per thread, spawned in the thread's project directory, speaking AG-UI over stdio                   |
+| **Channels**        | Telegram and other [messaging channels](/cli-channels/), each sender mapped to its own thread                                                                               |
+| **Scheduler**       | Cron jobs from the [local scheduler backend](/cli-scheduling/), run as threads instead of one-off processes                                                                 |
+| **Heartbeat**       | Periodic self-checks and the artifact poller that pulls conversations back from the [GitHub backend](/cli-scheduling/#github-backend)                                       |
+| **Logging**         | Collects worker, channel and connection logs into [one daemon log](#the-daemon-log)                                                                                         |
 
 ### Starting the daemon
 
@@ -927,7 +927,17 @@ scheduler / heartbeat ----------------------------+
 infer daemon
 ```
 
-The daemon boots with the binding alone - channels, the scheduler and the heartbeat are optional and enabled through configuration. Clients connect with the port and token from `~/.infer/browser_use.yaml`:
+The daemon boots with the binding alone - channels, the scheduler and the heartbeat are optional and enabled through configuration. The binding has its own switch in the `daemon.yaml` sidecar, so a client that never touches the browser (the desktop app, a channel) can reach the daemon without enabling `browser_use`:
+
+```yaml
+# ~/.infer/daemon.yaml
+binding:
+  enabled: true
+  port: 52789 # optional; falls back to browser_use.extension.port
+  token: <shared secret> # optional; falls back to browser_use.extension.token
+```
+
+The binding listens when `daemon.binding.enabled` is `true`, or - as before - when `browser_use.enabled` is `true` with `backend: extension`. Port and token resolve the same way in both cases: the `daemon.yaml` value wins, and `~/.infer/browser_use.yaml` stays the fallback.
 
 ```yaml
 # ~/.infer/browser_use.yaml
@@ -938,9 +948,19 @@ extension:
   token: <shared secret; infer init seeds one>
 ```
 
+With neither token set the daemon refuses to boot rather than serving an unauthenticated socket - set `daemon.binding.token`, or `browser_use.extension.token` as the fallback. The **browser extension relay** is separate from the binding: it attaches only with `browser_use.enabled` and `backend: extension`. With the binding on through `daemon.yaml` alone, clients get threads but browser tools have nothing to drive.
+
+Every field has an `INFER_DAEMON_`-prefixed environment override:
+
+| Variable                       | Maps to                  |
+| ------------------------------ | ------------------------ |
+| `INFER_DAEMON_BINDING_ENABLED` | `daemon.binding.enabled` |
+| `INFER_DAEMON_BINDING_PORT`    | `daemon.binding.port`    |
+| `INFER_DAEMON_BINDING_TOKEN`   | `daemon.binding.token`   |
+
 A standalone `infer chat` or `infer headless` with `backend: extension` reaches the browser as a daemon client (`client: "browser"` in the handshake), and starts `infer daemon` itself on the first browser call when nothing is listening on the port. Neither binds the port, so nothing has to hand it back.
 
-The daemon needs the extension port to be free: if another process already holds it, the boot **fails** with the port named instead of retrying until it frees. Stop whatever holds it, or change `extension.port`.
+The daemon needs the binding port to be free: if another process already holds it, the boot **fails** with the port named instead of retrying until it frees. Stop whatever holds it, or change the port.
 
 ### Threads
 
@@ -2404,6 +2424,7 @@ Two-layer configuration system with precedence from highest to lowest:
 | `hooks.yaml`       | Project/user | User-defined shell commands run at agent-loop hook points (feature-flagged off by default).                                                                                | [Command Hooks](/cli-hooks/)                                |
 | `reminders.yaml`   | Project/user | System reminders injected into the conversation on a schedule.                                                                                                             | [System Reminders](#system-reminders)                       |
 | `judge.yaml`       | Project/user | LLM judge that decides approval-requiring tool calls (model, timeout, prompts, `on_error`).                                                                                | [Judge Mode](/cli-judge-mode/)                              |
+| `daemon.yaml`      | Project/user | `infer daemon` itself - the AG-UI binding's own switch, port and token (`binding.enabled`, `binding.port`, `binding.token`).                                               | [Starting the daemon](#starting-the-daemon)                 |
 | `memory.yaml`      | Project/user | Persistent, cross-session agent memory - fact-files plus the `MEMORY.md` index.                                                                                            | [Persistent Memory](#persistent-memory)                     |
 | `shortcuts/*.yaml` | Project      | Custom slash shortcuts - simple commands, subcommands, and AI-powered snippets.                                                                                            | [Custom Shortcuts](#custom-shortcuts)                       |
 | `skills/`          | Project/user | Agent Skills folders (`name/SKILL.md`) discovered and injected on demand.                                                                                                  | [Agent Skills](#agent-skills)                               |

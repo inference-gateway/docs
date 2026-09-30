@@ -12,7 +12,7 @@ Channels turn the [Inference Gateway CLI](/cli/) agent into a remote-controllabl
 ## Key Features
 
 - **Pluggable adapters** - One daemon, multiple platforms. Add new channels by implementing a small Go interface
-- **Per-sender sessions** - Each chat ID gets a deterministic session (`channel-<name>-<sender_id>`) so conversations persist across messages and daemon restarts
+- **One thread per sender** - Each chat ID gets a deterministic session (`channel-<name>-<sender_id>`) served by a long-lived [session worker](/cli/#threads) inside the daemon, so conversations persist across messages and daemon restarts. No process is spawned per message
 - **Allowlist-only access** - Empty allowlist rejects all messages. Secure by default
 - **Tool approval prompts** - Sensitive tools (Bash, Write, Edit, Delete) ask for confirmation through the channel before running
 - **Image attachments** - Send a photo to the bot and the agent receives it as part of the prompt
@@ -21,7 +21,7 @@ Channels turn the [Inference Gateway CLI](/cli/) agent into a remote-controllabl
 
 ## How Channels Work
 
-When the daemon receives a message, it routes it through a small pipeline:
+A channel is a [driving adapter of the daemon's thread registry](/cli/#daemon): the chat is a client of a session worker, exactly like the desktop app or the browser extension. When the daemon receives a message, it routes it through a small pipeline:
 
 ```text
 Messaging platform (e.g. Telegram)
@@ -33,18 +33,25 @@ Channel adapter (long-polls or webhook)
 Channel manager - checks the allowlist
     │
     ▼
-Session worker for thread channel-<name>-<sender_id> runs "<message>"
+Thread registry: resume_conversation  (thread channel-<name>-<sender_id>)
+                 user_message         (text + images as attachments)
     │
     ▼
-Worker emits the shared event stream
+Session worker emits the shared AG-UI event stream
     │
-    ├── approval_request   →  prompt sent back through channel,
-    │                          decision returned to the worker
+    ├── approval_request        →  prompt sent back through the channel,
+    │                               answered with an approval_response frame
     │
-    └── assistant message  →  formatted and sent back as a reply
+    ├── user_question_request   →  dismissed (a chat has no form to fill)
+    │
+    └── assistant message       →  rendered and sent back as a reply
 ```
 
-Because each sender gets a dedicated session ID, conversation history, model state, and any in-flight context are preserved across messages - even after restarting the daemon.
+The daemon holds one thread per chat. The first message on a chat sends a `resume_conversation` frame for the sender's deterministic session id in the daemon's working directory, and every message - the first one included - sends a `user_message` frame carrying the text, with any images riding along as attachments. The worker runs with the same remote-control system prompt that `infer headless --remote` selects.
+
+Because each sender gets a dedicated session ID, conversation history, model state, and any in-flight context are preserved across messages - even after restarting the daemon. A chat that sits idle is detached from its thread and the registry reaps the worker; the next message reattaches to the same session.
+
+The daemon must be running for a channel to work: channels have no agent of their own, they drive the daemon's threads.
 
 ## Telegram
 
@@ -115,11 +122,11 @@ Best practices:
 
 ### Tool Approval
 
-By default, sensitive tools (`Bash`, `Write`, `Edit`, `Delete`) request explicit user approval before running. The agent emits an approval request, the daemon turns it into an inline keyboard message in Telegram, and the user taps **Approve** or **Reject** to continue.
+By default, sensitive tools (`Bash`, `Write`, `Edit`, `Delete`) request explicit user approval before running. The worker raises an `approval_request` interrupt, the daemon turns it into an inline keyboard message in Telegram, and the user taps **Approve** or **Reject**. The answer goes back as an `approval_response` frame - the same contract every other daemon client answers on, so a decision made in the terminal or the desktop app resolves the chat's prompt too.
 
 Read-only tools (`Read`, `Grep`, `Tree`) execute without prompting.
 
-Approval is wired through the existing `tools.*.require_approval` configuration. To turn it off entirely:
+Approval is wired through the existing `tools.*.require_approval` configuration. To stop the chat from prompting:
 
 ```yaml
 channels:
@@ -128,7 +135,11 @@ channels:
 
 Or set `INFER_CHANNELS_REQUIRE_APPROVAL=false`.
 
+> **This does not grant the tools.** With `require_approval: false` the chat answers **rejected** without asking, so gated tools stay blocked - a chat is an unattended surface, and silently auto-approving `Bash` on it would be a remote shell. Ungate a tool in `tools.*.require_approval` if you want the agent to run it from a chat.
+
 Approvals time out after **5 minutes** and are auto-rejected if the user does not respond.
+
+`AskUserQuestion` is **dismissed** on a channel: a chat has no form to fill, so the tool takes its dismissed path and the agent continues without the answer.
 
 ### Scheduled Tasks
 
@@ -174,14 +185,14 @@ This requires `whisper.cpp` and `ffmpeg` on the host. See [Speech-to-Text](/cli-
 
 ### Troubleshooting
 
-| Symptom                          | What to check                                                                                                      |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| Bot does not respond             | Verify the token is reachable: `curl https://api.telegram.org/bot<TOKEN>/getMe`                                    |
-| Logs show "unauthorized user"    | Add the sender's chat ID to `allowed_users` (string, not number)                                                   |
-| Agent fails to spawn             | Run `infer headless "test"` standalone to confirm the agent itself works before debugging the daemon               |
-| Approvals never appear           | Ensure `channels.require_approval: true` and the relevant tool's `require_approval` is not explicitly set to false |
-| Long replies are cut off         | Telegram limit is 4096 chars per message - confirm the adapter is splitting (check daemon logs)                    |
-| `channels are not enabled` error | Set `channels.enabled: true` (or `INFER_CHANNELS_ENABLED=true`) - the master switch is off by default              |
+| Symptom                            | What to check                                                                                                                                                     |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Bot does not respond               | Verify the token is reachable: `curl https://api.telegram.org/bot<TOKEN>/getMe`                                                                                   |
+| Logs show "unauthorized user"      | Add the sender's chat ID to `allowed_users` (string, not number)                                                                                                  |
+| Bot acknowledges but never replies | The thread's session worker failed - grep the daemon log for the chat's `thread_id`, and run `infer headless "test"` standalone to confirm the agent itself works |
+| Approvals never appear             | Ensure `channels.require_approval: true` and the relevant tool's `require_approval` is not explicitly set to false                                                |
+| Long replies are cut off           | Telegram limit is 4096 chars per message - confirm the adapter is splitting (check daemon logs)                                                                   |
+| `channels are not enabled` error   | Set `channels.enabled: true` (or `INFER_CHANNELS_ENABLED=true`) - the master switch is off by default                                                             |
 
 ## WhatsApp (Planned)
 
@@ -223,7 +234,7 @@ All channel-level options live under `channels` in `.infer/config.yaml`:
 | Key                         | Type | Default | Description                                                        |
 | --------------------------- | ---- | ------- | ------------------------------------------------------------------ |
 | `channels.enabled`          | bool | `false` | Master switch - must be `true` for any channel to start            |
-| `channels.max_workers`      | int  | `5`     | Maximum concurrent agent subprocesses                              |
+| `channels.max_workers`      | int  | `5`     | Maximum messages processed concurrently across chats               |
 | `channels.image_retention`  | int  | `5`     | Number of recent images kept per session                           |
 | `channels.require_approval` | bool | `true`  | Send tool-approval prompts through the channel for sensitive tools |
 | `channels.telegram.*`       | -    | -       | See [Telegram configuration](#configuration-options)               |

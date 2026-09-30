@@ -72,7 +72,9 @@ The extension connects to [`infer daemon`](/cli/#daemon) - the one hub that also
    infer daemon
    ```
 
-2. Read the **port** and **token** from `~/.infer/browser_use.yaml` (the desktop app shows both with **Copy** buttons under **Settings -> General -> Browser Use**):
+2. Enable the browser backend. The daemon's AG-UI binding listens whenever `daemon.binding.enabled` is set in `~/.infer/daemon.yaml`, or whenever `browser_use.enabled` is `true` with `backend: extension` - but the **extension relay** attaches only in the second case, so the extension needs `backend: extension` even if the binding is already up for the desktop app.
+
+3. Read the **port** and **token** from `~/.infer/browser_use.yaml` (the desktop app shows both with **Copy** buttons under **Settings -> General -> Browser Use**). `daemon.binding.port` and `daemon.binding.token` override them when set:
 
    ```yaml
    # ~/.infer/browser_use.yaml
@@ -83,14 +85,14 @@ The extension connects to [`infer daemon`](/cli/#daemon) - the one hub that also
      token: <shared secret; infer init seeds one>
    ```
 
-3. Paste both into the extension options.
+4. Paste both into the extension options.
 
 The panel then lists the daemon's threads - a thread is a project directory plus a conversation - and shows the live stream of whichever one you open. A standalone `infer chat` or `infer headless` with `backend: extension` reaches the browser as another daemon client (`client: "browser"` in the handshake) and starts `infer daemon` itself on the first browser call when none is running. The daemon needs the port to be free - if another process holds it, the daemon's boot fails with the port named rather than retrying.
 
 ### Transport
 
-- The daemon listens on `ws://127.0.0.1:<port>/ws` (default port `52789`, `browser_use.yaml` -> `extension.port`). The extension dials in, because MV3 service workers cannot listen.
-- Auth is a shared token (`extension.token` in `browser_use.yaml`, copied into the extension options). Browser WebSocket clients cannot set headers, so the token rides in the first message.
+- The daemon listens on `ws://127.0.0.1:<port>/ws` (default port `52789`, `daemon.yaml` -> `binding.port`, falling back to `browser_use.yaml` -> `extension.port`). The extension dials in, because MV3 service workers cannot listen.
+- Auth is a shared token (`binding.token` in `daemon.yaml`, falling back to `extension.token` in `browser_use.yaml`, copied into the extension options). Browser WebSocket clients cannot set headers, so the token rides in the first message.
 - One extension connection at a time; a newly authenticated connection replaces the previous one (service workers restart at will). The daemon sends WebSocket pings every ~20s to keep the service worker alive.
 - Only `chrome-extension://`, `moz-extension://`, `safari-web-extension://` (or absent) `Origin` headers are accepted.
 - Connects, disconnects and routing errors land in the [daemon log](/cli/#the-daemon-log).
