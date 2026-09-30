@@ -119,6 +119,7 @@ Daemon -> extension on success (on failure the socket is closed):
 
 - `client` tells the daemon which kind of client this is (`extension` here, `desktop` for the app, `browser` for a CLI process that only needs the browser). An absent or unknown value counts as `extension`. One extension connection is kept, any number of `desktop` and `browser` ones.
 - `protocol_version` is negotiated leniently: any valid-token hello is accepted, a hello without a version is logged as a warning, and a version the extension does not support surfaces as an "update" state in the panel instead of a closed socket.
+- `extension_version` is not interpreted by the daemon - it is carried along for diagnostics. The relay logs it when the extension attaches and again when it detaches, in the [daemon log](/cli/#the-daemon-log), so that file shows which build of the extension was talking and when it went away.
 - Nothing is pushed automatically after the handshake - the panel asks for what it needs.
 
 ### Events

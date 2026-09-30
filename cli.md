@@ -919,7 +919,7 @@ scheduler / heartbeat ----------------------------+
 | **Channels**        | Telegram and other [messaging channels](/cli-channels/), each sender mapped to its own thread                                                                               |
 | **Scheduler**       | Cron jobs from the [local scheduler backend](/cli-scheduling/), run as threads instead of one-off processes                                                                 |
 | **Heartbeat**       | Periodic self-checks and the artifact poller that pulls conversations back from the [GitHub backend](/cli-scheduling/#github-backend)                                       |
-| **Logging**         | Collects worker, channel and connection logs into [one daemon log](#the-daemon-log)                                                                                         |
+| **Logging**         | Collects worker, one-shot job, channel and connection logs into [one daemon log](#the-daemon-log)                                                                           |
 
 ### Starting the daemon
 
@@ -1055,7 +1055,16 @@ There is one real browser, so only the daemon binds the extension port. `browser
 
 ### The daemon log
 
-One file holds the whole picture: `~/.infer/logs/daemon-<date>.log`. Session workers log to stderr as JSON and create no files of their own - the daemon writes each worker line with `thread_id`, `project_dir` and `worker_pid`. Client connects and disconnects are logged with `client`, `extension_version` and `protocol_version`, and routing errors (unknown thread, dead worker, no extension) with the `thread_id` they concerned. Channel, scheduler and heartbeat lines carry `thread_id` when they act for a thread.
+One file holds the whole picture: `~/.infer/logs/daemon-<date>.log` (`logging.dir` moves the directory). Everything the daemon starts logs JSON to **stderr** and keeps no log file of its own while supervised - session workers and the one-shot job runs (scheduled fires, heartbeat ticks) alike - and the daemon collects that stderr into its own log, each line tagged with the `project_dir`, `conversation_id` and `worker_pid` it came from. There is no per-process `app-<date>.log` to correlate.
+
+Also in the same file:
+
+| Logged                                                     | Fields                                                           |
+| ---------------------------------------------------------- | ---------------------------------------------------------------- |
+| Client connects and disconnects                            | `client`, `extension_version`, `protocol_version`                |
+| The browser extension relay's attach and detach            | `extension_version`, `protocol_version` from the hello           |
+| Routing errors (unknown thread, dead worker, no extension) | `project_dir` and `conversation_id` of the thread they concerned |
+| Channel, scheduler and heartbeat lines                     | `project_dir` and `conversation_id` when they act for a thread   |
 
 Logs are not streamed to clients, so `tail` the file when debugging a client:
 
