@@ -303,7 +303,9 @@ infer version
 **Navigation:**
 
 - **Shift + Arrow Down/Up**: Scroll chat history
-- **Ctrl+R**: Toggle tool result expansion
+- **Ctrl+O**: Toggle tool result expansion
+- **Ctrl+R**: Fuzzy search the project's prompt history (see below)
+- **Ctrl+M** (**Alt+M** fallback): Toggle raw/rendered markdown
 - **Shift+Tab**: Cycle agent modes (Standard -> Plan -> Auto-Accept -> Auto+Judge)
 - **Ctrl+K**: Toggle model thinking blocks
 
@@ -316,6 +318,19 @@ infer version
 - Cost tracking in status bar
 - Collapsible thinking blocks
 - GitHub issue references - type `#` to insert and expand `#N` tokens (see below)
+
+#### Prompt History Search (`Ctrl+R`)
+
+`Ctrl+R` opens a fuzzy search over the current project's prompt history above the input:
+
+- Type to filter - matches are highlighted, most recent prompts first, duplicates collapsed.
+- **Up/Down** select an entry.
+- **Enter** loads the highlighted prompt into the input for editing - it is **not** sent.
+- **Esc** closes the overlay and leaves whatever you had typed untouched.
+
+> **Muscle memory:** `Ctrl+R` used to toggle raw/rendered markdown. That toggle moved to **Ctrl+M**, with **Alt+M** as a fallback. Terminals without the [Kitty keyboard protocol](https://sw.kovidgoyal.net/kitty/keyboard-protocol/) report `Ctrl+M` as `Enter`, so use `Alt+M` there.
+
+Both actions are rebindable in `.infer/keybindings.yaml` - `text_editing_history_search` for the search and `display_toggle_raw_format` for the markdown toggle. `infer keybindings list` prints the current bindings.
 
 #### GitHub Issue References (`#`)
 
