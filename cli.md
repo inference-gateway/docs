@@ -2052,10 +2052,17 @@ The `mode` controls where subagents run. Either way the result aggregates back i
 - `headless` - subagents run in the background; results aggregate back into the main context.
 - `interactive` (the shipped default) - each subagent runs in a live **tmux** pane/window you can watch while it works.
 
-tmux is an **optional runtime dependency**, required only for interactive mode (headless needs nothing extra). Interactive mode must be run from **inside tmux** (`$TMUX` set). When you are not inside tmux (or tmux is not installed), the `interactive.fallback` setting decides what happens:
+tmux is an **optional runtime dependency**, required only for interactive mode (headless needs nothing extra). Interactive mode must be run from **inside tmux** (`$TMUX` set). Panes always open as a **vertical split**, and when you are not inside tmux (or tmux is not installed) the call **warns and runs headless** - there is nothing to configure either way.
 
-- `fallback: headless` (default) - warn and run headless.
-- `fallback: error` - fail the call instead.
+#### Done signal and idle auto-close
+
+An interactive pane is not a REPL you keep open. Each subagent reports completion and the parent closes the pane for you:
+
+- **Done signal.** On its task turn - and on a failed terminal turn - the subagent writes `done: true` into the result file behind `INFER_SUBAGENT_RESULT_FILE`. The parent monitor sees it, closes the pane, and emits exactly one `[Subagent Completed: <label>]` note (carrying the error text when the turn failed).
+- **Every completed turn with text counts as done**, including one that ends with a question. Write **self-contained task descriptions**: a subagent that stops to ask for more detail is treated as finished, not as waiting.
+- **Idle auto-close.** A subagent that never reports done - a turn that ended without any text, a hung TUI, a pane running an older binary - is closed after `tools.agent.idle_timeout` seconds of inactivity. You get an early `[Subagent Idle: <label>]` warning, then `[Subagent Closed: <label>]` when the pane is closed.
+- **The clock pauses for approvals** and is reset by `SendSubagentInput` typing, so a subagent waiting on your approval is never closed out from under you.
+- **`CloseSubagent` is only for stopping a subagent early.** The main agent does not need it in the normal case - completed and idle panes close themselves.
 
 #### Agent tool configuration
 
@@ -2072,27 +2079,24 @@ tools:
     max_depth: 1 # recursion guard; a subagent is itself an `infer headless`
     model: '' # default subagent model (inherits parent if blank)
     inherit_mock: true # when gateway.mock is on, spawn subagents against the embedded mock too
-    interactive:
-      multiplexer: tmux # tmux only
-      layout: vertical # vertical | horizontal | window
-      fallback: headless # headless | error (when not inside tmux)
+    idle_timeout: 300 # seconds of inactivity before an interactive pane is closed (0 disables)
 ```
+
+**Idle timeout (`idle_timeout`, default `300`).** Seconds of inactivity after which an interactive subagent pane that never signalled done is closed; `0` disables the auto-close and leaves such panes open. Approval prompts pause the clock and `SendSubagentInput` resets it. See [Done signal and idle auto-close](#done-signal-and-idle-auto-close).
 
 Every key has an `INFER_TOOLS_AGENT_*` environment-variable override, consistent with the rest of the config:
 
-| Setting                   | Environment variable                        |
-| ------------------------- | ------------------------------------------- |
-| `enabled`                 | `INFER_TOOLS_AGENT_ENABLED`                 |
-| `require_approval`        | `INFER_TOOLS_AGENT_REQUIRE_APPROVAL`        |
-| `mode`                    | `INFER_TOOLS_AGENT_MODE`                    |
-| `wait`                    | `INFER_TOOLS_AGENT_WAIT`                    |
-| `max_parallel`            | `INFER_TOOLS_AGENT_MAX_PARALLEL`            |
-| `max_depth`               | `INFER_TOOLS_AGENT_MAX_DEPTH`               |
-| `model`                   | `INFER_TOOLS_AGENT_MODEL`                   |
-| `inherit_mock`            | `INFER_TOOLS_AGENT_INHERIT_MOCK`            |
-| `interactive.multiplexer` | `INFER_TOOLS_AGENT_INTERACTIVE_MULTIPLEXER` |
-| `interactive.layout`      | `INFER_TOOLS_AGENT_INTERACTIVE_LAYOUT`      |
-| `interactive.fallback`    | `INFER_TOOLS_AGENT_INTERACTIVE_FALLBACK`    |
+| Setting            | Environment variable                 |
+| ------------------ | ------------------------------------ |
+| `enabled`          | `INFER_TOOLS_AGENT_ENABLED`          |
+| `require_approval` | `INFER_TOOLS_AGENT_REQUIRE_APPROVAL` |
+| `mode`             | `INFER_TOOLS_AGENT_MODE`             |
+| `wait`             | `INFER_TOOLS_AGENT_WAIT`             |
+| `max_parallel`     | `INFER_TOOLS_AGENT_MAX_PARALLEL`     |
+| `max_depth`        | `INFER_TOOLS_AGENT_MAX_DEPTH`        |
+| `model`            | `INFER_TOOLS_AGENT_MODEL`            |
+| `inherit_mock`     | `INFER_TOOLS_AGENT_INHERIT_MOCK`     |
+| `idle_timeout`     | `INFER_TOOLS_AGENT_IDLE_TIMEOUT`     |
 
 ```bash
 # Toggle the tool, or switch the default execution surface to headless
