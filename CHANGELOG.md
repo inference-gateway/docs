@@ -2,6 +2,36 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.19](https://github.com/inference-gateway/docs/compare/0.9.18...0.9.19) (2026-09-30)
+
+### 📚 Documentation
+
+* ag-ui resume snapshot and cancelled run outcome ([#861](https://github.com/inference-gateway/docs/issues/861)) ([53e4c80](https://github.com/inference-gateway/docs/commit/53e4c802d0518413ae11f413fa68a4ff607d5652))
+* **agents:** add code readability guidelines ([#832](https://github.com/inference-gateway/docs/issues/832)) ([9435459](https://github.com/inference-gateway/docs/commit/9435459718750ea925ba880bfeb849c2193bec1d))
+* **agents:** add code readability guidelines ([#834](https://github.com/inference-gateway/docs/issues/834)) ([6b06d8b](https://github.com/inference-gateway/docs/commit/6b06d8b1b84e3e5d9defb013f26604ae772ae1d1))
+* artifacts route is not served by the daemon ([#867](https://github.com/inference-gateway/docs/issues/867)) ([513e866](https://github.com/inference-gateway/docs/commit/513e86606c9cf4a3561751d880d4f0df4757142d))
+* browser-use routes through the daemon socket ([#865](https://github.com/inference-gateway/docs/issues/865)) ([79a9292](https://github.com/inference-gateway/docs/commit/79a9292f0079aa3993f8ec836ebea1cc8deab397))
+* bundled ffmpeg covers desktop timeline export ([#837](https://github.com/inference-gateway/docs/issues/837)) ([43ff30c](https://github.com/inference-gateway/docs/commit/43ff30c22d039069228a906ca1832679998174d4))
+* daemon.yaml binding and channel thread path ([#871](https://github.com/inference-gateway/docs/issues/871)) ([9f6efc5](https://github.com/inference-gateway/docs/commit/9f6efc59faef3982686b4ae79ba7d70236522c96))
+* document autocomplete kind labels ([#847](https://github.com/inference-gateway/docs/issues/847)) ([94b0ceb](https://github.com/inference-gateway/docs/commit/94b0ceb1b87e516a256c381f4e714c3f4196bc82))
+* document ctrl+r prompt history search in chat ([#869](https://github.com/inference-gateway/docs/issues/869)) ([08239c2](https://github.com/inference-gateway/docs/commit/08239c2fdd445ccbe8ceb3ee35be26bf4e5616fb))
+* document custom tools in the CLI ([#852](https://github.com/inference-gateway/docs/issues/852)) ([e32cf2e](https://github.com/inference-gateway/docs/commit/e32cf2e6925b523adce6b7e02200a98fa9ca49db))
+* document infer daemon as the client hub ([#860](https://github.com/inference-gateway/docs/issues/860)) ([6fabb62](https://github.com/inference-gateway/docs/commit/6fabb62bcbc124d27972db11a0ed29db84a8f8a6))
+* document nested AGENTS.md awareness in the CLI ([#854](https://github.com/inference-gateway/docs/issues/854)) ([e6c17a9](https://github.com/inference-gateway/docs/commit/e6c17a9c9d42b93ba82d97485dd842257404c162))
+* document secret redaction in infer insights ([#831](https://github.com/inference-gateway/docs/issues/831)) ([7ae06bb](https://github.com/inference-gateway/docs/commit/7ae06bb66f89a65dccd1d99d98e8765d21b92e53))
+* headless --serve ag-ui worker over stdio ([#863](https://github.com/inference-gateway/docs/issues/863)) ([ac80158](https://github.com/inference-gateway/docs/commit/ac801587df282573d5d46fb86343611ef568fc43))
+* lead agent pages with bare-name infer agents add ([#835](https://github.com/inference-gateway/docs/issues/835)) ([113179d](https://github.com/inference-gateway/docs/commit/113179d97bcae1319b0dde4a0722fbb4252af7b4))
+* opentask tab recording skill loop ([#840](https://github.com/inference-gateway/docs/issues/840)) ([48b6bde](https://github.com/inference-gateway/docs/commit/48b6bde07bcea6129004f5ff5ba9fee1d03d79b8))
+* single /agents view and markdown subagents ([#845](https://github.com/inference-gateway/docs/issues/845)) ([9557066](https://github.com/inference-gateway/docs/commit/95570668e2cf1cdcc31a465bc6a6f35c9362591a))
+* **skills:** document the built-in demo skill and infer-action record-demo ([#849](https://github.com/inference-gateway/docs/issues/849)) ([393b0c9](https://github.com/inference-gateway/docs/commit/393b0c9d4105cfa800ca917703eb1f66d4a7df69))
+* sync cli page with new upstream cli docs ([#855](https://github.com/inference-gateway/docs/issues/855)) ([88e0905](https://github.com/inference-gateway/docs/commit/88e09051e1f86e507460e4fcfcc17594b4c91712))
+
+### 🔧 Miscellaneous
+
+* **deps-dev:** bump the bun group with 2 updates ([#846](https://github.com/inference-gateway/docs/issues/846)) ([c278297](https://github.com/inference-gateway/docs/commit/c27829798e78ec769922a389cb68309699a607b0))
+* **deps:** bump claude-code 2.1.280 -> 2.1.283 ([#858](https://github.com/inference-gateway/docs/issues/858)) ([3a23dc8](https://github.com/inference-gateway/docs/commit/3a23dc8172ee4e546b2bfa3cebc2289cccaed258))
+* **deps:** bump infer CLI v0.208.0 -> v0.218.0 ([#859](https://github.com/inference-gateway/docs/issues/859)) ([fd05fc6](https://github.com/inference-gateway/docs/commit/fd05fc69346e32a494bb781cb348c420d7541d1d))
+
 ## [0.9.18](https://github.com/inference-gateway/docs/compare/0.9.17...0.9.18) (2026-09-26)
 
 ### 📚 Documentation
