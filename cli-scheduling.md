@@ -132,7 +132,7 @@ The `Schedule` tool itself is gated separately under `tools.schedule.*` - see [T
 
 ## Troubleshooting
 
-**Jobs are not firing (local backend).** Confirm `infer daemon` is running and logged `Scheduler started`, then inspect the job's `last_error` after the expected fire time.
+**Jobs are not firing (local backend).** Confirm `infer daemon` is running and logged `Scheduler started`, then inspect the job's `last_error` after the expected fire time. A fire's own output is in the [daemon log](/cli/#the-daemon-log), tagged with the job's `project_dir` and `conversation_id` - a scheduled run the daemon supervises writes no log file of its own.
 
 **Jobs are not firing (github backend).** Check the Actions tab of the routines repository. GitHub disables scheduled workflows in repositories with no activity for 60 days, and scheduled runs can be delayed under load.
 

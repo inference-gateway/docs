@@ -185,14 +185,14 @@ This requires `whisper.cpp` and `ffmpeg` on the host. See [Speech-to-Text](/cli-
 
 ### Troubleshooting
 
-| Symptom                            | What to check                                                                                                                                                     |
-| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Bot does not respond               | Verify the token is reachable: `curl https://api.telegram.org/bot<TOKEN>/getMe`                                                                                   |
-| Logs show "unauthorized user"      | Add the sender's chat ID to `allowed_users` (string, not number)                                                                                                  |
-| Bot acknowledges but never replies | The thread's session worker failed - grep the daemon log for the chat's `thread_id`, and run `infer headless "test"` standalone to confirm the agent itself works |
-| Approvals never appear             | Ensure `channels.require_approval: true` and the relevant tool's `require_approval` is not explicitly set to false                                                |
-| Long replies are cut off           | Telegram limit is 4096 chars per message - confirm the adapter is splitting (check daemon logs)                                                                   |
-| `channels are not enabled` error   | Set `channels.enabled: true` (or `INFER_CHANNELS_ENABLED=true`) - the master switch is off by default                                                             |
+| Symptom                            | What to check                                                                                                                                                                                   |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Bot does not respond               | Verify the token is reachable: `curl https://api.telegram.org/bot<TOKEN>/getMe`                                                                                                                 |
+| Logs show "unauthorized user"      | Add the sender's chat ID to `allowed_users` (string, not number)                                                                                                                                |
+| Bot acknowledges but never replies | The thread's session worker failed - grep the [daemon log](/cli/#the-daemon-log) for the chat's `conversation_id`, and run `infer headless "test"` standalone to confirm the agent itself works |
+| Approvals never appear             | Ensure `channels.require_approval: true` and the relevant tool's `require_approval` is not explicitly set to false                                                                              |
+| Long replies are cut off           | Telegram limit is 4096 chars per message - confirm the adapter is splitting (check daemon logs)                                                                                                 |
+| `channels are not enabled` error   | Set `channels.enabled: true` (or `INFER_CHANNELS_ENABLED=true`) - the master switch is off by default                                                                                           |
 
 ## WhatsApp (Planned)
 
