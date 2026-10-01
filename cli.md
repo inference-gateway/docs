@@ -789,6 +789,64 @@ The same outcome reaches [daemon](#daemon) clients that send an `interrupt` fram
 
 **For AG-UI consumers** (the [desktop app](/desktop/) sidecar, or any process hosting `infer headless --format ag-ui`): the per-step `token_usage` events stream the cumulative stats above, so live indicators stay current during the run instead of jumping once at `RUN_FINISHED`. Drive the context-percentage indicator from `lastInputTokens / contextWindow` - `lastInputTokens` is the live occupancy of the window, where `inputTokens` is a session-wide sum and will overshoot it. Hide the indicator when `contextWindow` is absent. Drive the cost indicator from `cost`, which is already the computed dollar total and needs no per-model pricing table on the client.
 
+##### AG-UI computer-use activity and recording state
+
+Under `--format ag-ui` the stream itself reports what a computer-use run is doing and whether a screen recording is up, so a host (the [desktop app](/desktop/) overlay and monitor, or any AG-UI client) renders them from standard events instead of reverse-engineering `Computer` tool arguments and `RecordStart` results.
+
+**Computer-use activity.** Each pointer or keyboard action is written as an `ACTIVITY_SNAPSHOT` with `activityType` `computer_use`, keyed `computer_use:<toolCallId>`, **just before** the `Computer` tool performs it:
+
+```json
+{
+  "type": "ACTIVITY_SNAPSHOT",
+  "activityType": "computer_use",
+  "messageId": "computer_use:call-1",
+  "content": {
+    "toolCallId": "call-1",
+    "action": "click",
+    "x": 812,
+    "y": 344,
+    "screenWidth": 1920,
+    "screenHeight": 1080
+  }
+}
+```
+
+- Written for the pointer actions `move`, `click`, `double_click`, `triple_click` and the keyboard actions `type` and `key`. Keyboard actions carry no `x` and `y`.
+- `x` and `y` are already scaled to **screen coordinates**, and `screenWidth`/`screenHeight` give the space they are relative to - an overlay can place a cursor marker without knowing the model's own resolution.
+- The snapshot **replaces** the previous one with the same `messageId`, so a client keeps one live action entry per tool call.
+
+**Recording state.** The `screenRecording` key of the [run state object](#shared-event-stream) carries `active`, and while a recording runs also where it writes and what it captures:
+
+```json
+{
+  "type": "STATE_DELTA",
+  "delta": [
+    {
+      "op": "add",
+      "path": "/screenRecording",
+      "value": {
+        "active": true,
+        "path": "/home/user/.infer/recordings/session-1.mp4",
+        "region": { "x": 0, "y": 0, "width": 1280, "height": 720 },
+        "frameWidth": 1280,
+        "frameHeight": 720
+      }
+    }
+  ]
+}
+```
+
+| Field                        | Value                                                                    |
+| ---------------------------- | ------------------------------------------------------------------------ |
+| `active`                     | Whether a recording is running right now - the only field when it is off |
+| `path`                       | The file the recording is being written to                               |
+| `region`                     | The captured region, `{x, y, width, height}`                             |
+| `frameWidth` / `frameHeight` | The dimensions of the frames the recorder captures                       |
+
+`region` and `frameWidth`/`frameHeight` are in the **frame space the recorder captures** - the same space screenshots and their annotations use - so a client can overlay the region without rescaling. This is the same state key the [daemon](#shared-event-stream) carries, because a session worker is an `infer headless --format ag-ui` process.
+
+The full per-event reference lives with the CLI source, in [`docs/ag-ui-output.md`](https://github.com/inference-gateway/cli/blob/main/docs/ag-ui-output.md).
+
 #### Writing the result to a file (`--result-file`)
 
 `infer headless` accepts a `--result-file <path>` flag that **atomically** writes the final assistant message and the run outcome as JSON to `<path>` on exit. The [Agent tool](#local-subagents-agent-tool) uses it to harvest the result of a detached (tmux pane) subagent, but it is useful on its own whenever a script needs the final answer as a file rather than by parsing the stdout stream.
@@ -1000,33 +1058,33 @@ Every transport carries the same vocabulary, with no envelope around it: AG-UI e
 
 **AG-UI events out:**
 
-| Event                                                              | When                                                                                                                                                |
-| ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `RUN_STARTED`                                                      | A turn starts; `threadId` is the conversation id                                                                                                    |
-| `MESSAGES_SNAPSHOT`                                                | Answer to `new_session` / `resume_conversation`; also emitted [right after `RUN_STARTED` on a resumed run](#ag-ui-resume-snapshot)                  |
-| `TEXT_MESSAGE_START` / `TEXT_MESSAGE_CONTENT` / `TEXT_MESSAGE_END` | Assistant or user message, role on START                                                                                                            |
-| `TOOL_CALL_START` / `TOOL_CALL_ARGS` / `TOOL_CALL_END`             | A tool call the assistant issued                                                                                                                    |
-| `TOOL_CALL_RESULT`                                                 | The raw JSON execution result of a tool call                                                                                                        |
-| `STATE_SNAPSHOT`                                                   | Todo-list change, as `{"todos": [...]}`                                                                                                             |
-| `RUN_FINISHED`                                                     | The turn ended; outcome [`cancelled`](#ag-ui-cancelled-runs) when it was stopped, `result` carries the [session totals](#ag-ui-run-finished-result) |
-| `RUN_ERROR`                                                        | The turn failed, or its worker died                                                                                                                 |
+| Event                                                              | When                                                                                                                                                      |
+| ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `RUN_STARTED`                                                      | A turn starts; `threadId` is the conversation id                                                                                                          |
+| `MESSAGES_SNAPSHOT`                                                | Answer to `new_session` / `resume_conversation`; also emitted [right after `RUN_STARTED` on a resumed run](#ag-ui-resume-snapshot)                        |
+| `TEXT_MESSAGE_START` / `TEXT_MESSAGE_CONTENT` / `TEXT_MESSAGE_END` | Assistant or user message, role on START                                                                                                                  |
+| `TOOL_CALL_START` / `TOOL_CALL_ARGS` / `TOOL_CALL_END`             | A tool call the assistant issued                                                                                                                          |
+| `TOOL_CALL_RESULT`                                                 | The raw JSON execution result of a tool call                                                                                                              |
+| `STATE_SNAPSHOT` / `STATE_DELTA`                                   | The run state object - `todos`, `usage`, `backgroundTasks` and [`screenRecording`](#ag-ui-computer-use-activity-and-recording-state)                      |
+| `ACTIVITY_SNAPSHOT`                                                | Progress a client keeps as one entry per `messageId`: `agent_status`, `judge_verdict`, [`computer_use`](#ag-ui-computer-use-activity-and-recording-state) |
+| `RUN_FINISHED`                                                     | The turn ended; outcome [`cancelled`](#ag-ui-cancelled-runs) when it was stopped, `result` carries the [session totals](#ag-ui-run-finished-result)       |
+| `RUN_ERROR`                                                        | The turn failed, or its worker died                                                                                                                       |
 
 **CUSTOM events out**, each with a `name` and a `value`:
 
-| Name                                           | Value                                                                                                                                                       |
-| ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `approval_request`                             | `tool_name`, `tool_args`, `tool_call_id` - a tool call is waiting                                                                                           |
-| `approval_resolved`                            | `tool_call_id` - somebody else answered it                                                                                                                  |
-| `user_question_request`                        | `tool_call_id` and the `AskUserQuestion` form's `questions`                                                                                                 |
-| `agent_status`                                 | A local A2A agent starting: `name`, `state`, `message`, pull progress `done`/`total`                                                                        |
-| `background_tasks`                             | `running` plus the `jobs` array (id, kind, label, description, detail, status)                                                                              |
-| `queued_message`                               | A background job landed its note into the conversation                                                                                                      |
-| `token_usage`                                  | The same cumulative stats as `RUN_FINISHED.result`, after each model request                                                                                |
-| `judge_verdict`                                | Per [judge](/cli-judge-mode/) decision: tool, `decision`, `reason`, `model`, turn                                                                           |
-| `screen_recording`                             | `active`, plus `path`, `region` `{x, y, width, height}`, `frame_width` and `frame_height` while recording                                                   |
-| `computer_use_action`                          | `tool_call_id`, `action`, `x`, `y`, `screen_width`, `screen_height`, in screen coordinates, before each pointer or keyboard action                          |
-| `computer_use_paused` / `computer_use_resumed` | `request_id` - answer to a `computer_use_control` frame                                                                                                     |
-| `browser_extension_status`                     | `connected`, `extension_version`, `protocol_version` - on client connect and on extension attach or detach ([details](/opentask/#browser-extension-status)) |
+| Name                                           | Value                                                                                      |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `approval_request`                             | `tool_name`, `tool_args`, `tool_call_id` - a tool call is waiting                          |
+| `approval_resolved`                            | `tool_call_id` - somebody else answered it                                                 |
+| `user_question_request`                        | `tool_call_id` and the `AskUserQuestion` form's `questions`                                |
+| `agent_status`                                 | A local A2A agent starting: `name`, `state`, `message`, pull progress `done`/`total`       |
+| `background_tasks`                             | `running` plus the `jobs` array (id, kind, label, description, detail, status)             |
+| `queued_message`                               | A background job landed its note into the conversation                                     |
+| `token_usage`                                  | The same cumulative stats as `RUN_FINISHED.result`, after each model request               |
+| `judge_verdict`                                | Per [judge](/cli-judge-mode/) decision: tool, `decision`, `reason`, `model`, turn          |
+| `computer_use_paused` / `computer_use_resumed` | `request_id` - answer to a `computer_use_control` frame                                    |
+| `browser_extension_status`                     | `connected`, `extension_version`, `protocol_version` - on extension connect and disconnect |
+| `browser_use_paused` / `browser_use_resumed`   | `request_id` - answer to a `browser_use_control` frame                                     |
 
 **App frames in:**
 
@@ -1189,13 +1247,13 @@ Every key has an `INFER_COMPUTER_USE_RECORDING_`-prefixed environment variable t
 
 With `--format ag-ui` (the format the [desktop app](/desktop/) consumes):
 
-| Event                                                                                         | Payload                                                                                |
-| --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| `CUSTOM` event `screen_recording` - on `RecordStart`, `RecordStop`, or the `max_duration` cap | `{ "active": true }` / `{ "active": false }`                                           |
-| `CUSTOM` event `background_tasks`                                                             | The recording appears among `jobs` with kind `recording`                               |
-| `approval_request`                                                                            | `RecordStart` when the run has `--require-approval`; without an approver it is blocked |
+| Event                                                                                  | Payload                                                                                                                                      |
+| -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `STATE_DELTA` on `screenRecording` - on `RecordStart`, `RecordStop`, or `max_duration` | `active`, plus `path`, `region` and `frameWidth`/`frameHeight` while it runs - see [state](#ag-ui-computer-use-activity-and-recording-state) |
+| `STATE_DELTA` on `backgroundTasks`                                                     | The recording appears among `jobs` with kind `recording`                                                                                     |
+| `approval_request`                                                                     | `RecordStart` when the run has `--require-approval`; without an approver it is blocked                                                       |
 
-A recording still running when the run ends is finalized **after** the terminal event, so no `screen_recording` event with `active: false` follows it - clear the indicator on `RUN_FINISHED` or `RUN_ERROR`.
+A recording still running when the run ends is finalized **after** the terminal event, so no `screenRecording` patch with `active: false` follows it - clear the indicator on `RUN_FINISHED` or `RUN_ERROR`.
 
 ### Screenshot Tool Features
 
