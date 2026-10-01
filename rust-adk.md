@@ -739,6 +739,8 @@ The error contract (spec 3.3.4) for `agent/getAuthenticatedExtendedCard`:
 | `supportsExtendedAgentCard: true`, no extended configured | `-32007` (`AuthenticatedExtendedCardNotConfigured`) |
 | `supportsExtendedAgentCard: true`, extended configured    | the extended card is returned                       |
 
+> **The served card is still the pre-1.0.1 shape.** The A2A v1.0.1 `AgentCard` moved this flag to `capabilities.extendedAgentCard`, dropped `capabilities.stateTransitionHistory`, and replaced `url` / `preferredTransport` / `protocolVersion` with `supportedInterfaces`. The Rust ADK card type has not followed yet: it keeps the top-level `supportsExtendedAgentCard`, still accepts `stateTransitionHistory`, and leaves `supportedInterfaces` empty unless you populate it yourself. The names used above are the ones on the wire today. ADL manifests already use the v1.0.1 names - see [Deprecated card fields](/adl-cli/#deprecated-card-fields) for the mapping.
+
 ## TLS and mTLS
 
 When `A2A_SERVER_TLS_ENABLED=true`, `A2AServer::serve` swaps its plaintext listener for [`axum-server`](https://github.com/programatik29/axum-server) backed by [`rustls`](https://github.com/rustls/rustls) 0.23 (with the `ring` crypto provider) and serves the same router over HTTPS. Rustls was chosen over native-tls because it is pure Rust - avoiding the OpenSSL toolchain on container builds - and because it gives programmatic access to the negotiated connection, which is what makes the mTLS subject extraction below tractable.
@@ -1248,7 +1250,7 @@ Log verbosity is controlled by [`RUST_LOG`](https://docs.rs/tracing-subscriber/l
 | `A2A_AGENT_CLIENT_SYSTEM_PROMPT`                  | _(unset)_ | System prompt prepended to conversations.                                                                                |
 | `A2A_AGENT_CLIENT_ENABLE_USAGE_METADATA`          | `true`    | Attach token usage + execution stats to terminal task metadata.                                                          |
 
-**Capabilities** are not environment-configurable. The served card and the [builder's streaming-handler validation](#the-server-and-its-builder) read the `capabilities` object of your agent card JSON, so set `streaming`, `pushNotifications`, and `stateTransitionHistory` there.
+**Capabilities** are not environment-configurable. The served card and the [builder's streaming-handler validation](#the-server-and-its-builder) read the `capabilities` object of your agent card JSON, so set `streaming`, `pushNotifications`, and `stateTransitionHistory` there. `stateTransitionHistory` is gone from the A2A v1.0.1 card, but the Rust ADK card type still accepts it, so a card carrying it keeps serving it verbatim.
 
 **MCP client** (`MCP_` prefix) - connect the agent to [MCP servers](#mcp-client); disabled by default. Loaded under its own `MCP_` prefix (like `ARTIFACTS_`), separate from the `A2A_` `Config`.
 
