@@ -1095,7 +1095,7 @@ Every transport carries the same vocabulary, with no envelope around it: AG-UI e
 | `interrupt`                                                 | Stop the streaming turn, which ends `cancelled`                            |
 | `approval_response`                                         | `tool_call_id`, `approved`, `scope` - the decision for a pending tool call |
 | `user_question_response`                                    | The collected answers, or a dismissal                                      |
-| `computer_use_control` / `browser_use_control`              | `action` is `pause` or `resume`, for computer use and browser use          |
+| `computer_use_control`                                      | `action` is `pause` or `resume`, for computer use                          |
 | `list_conversations` / `list_history`                       | Browse the project's stored conversations                                  |
 | `list_skills` / `list_models` / `select_model` / `set_mode` | Inspect and change what the thread runs with                               |
 | `tool_request` / `tool_result`                              | Run a tool directly, scoped to a project directory                         |
@@ -1108,7 +1108,7 @@ Approvals have one contract on every transport. The daemon sends CUSTOM `approva
 
 ### Browser use through the daemon
 
-There is one real browser, so only the daemon binds the extension port. `browser_command` lines from the session workers are routed to the extension connection and each `browser_result` goes back to its worker by `id`. Commands from every source - session workers, the desktop app and `browser` clients - are serialized rather than interleaved on the same tab, and a command a client posts on the socket is answered only on that connection. With no extension connected, browser tools fail with `no browser extension connected on port <port>`; a command the extension does not finish in time fails with `timed out waiting for the browser extension to <action>`. The command and result shapes are documented in the [OpenTask bridge protocol](/opentask/#browser-commands-daemon-extension).
+There is one real browser, so only the daemon binds the extension port. `browser_command` lines from the session workers are routed to the extension connection and each `browser_result` goes back to its worker by `id`. Commands from every source - session workers, the desktop app and `browser` clients - are serialized rather than interleaved on the same tab, and a command a client posts on the socket is answered only on that connection. Every non-extension client is told the state of that connection by the [`browser_extension_status`](/opentask/#browser-extension-status) frame - on connect, and on each attach or detach. With no extension connected, browser tools fail with `no browser extension connected on port <port>`; a command the extension does not finish in time fails with `timed out waiting for the browser extension to <action>`. The command and result shapes are documented in the [OpenTask bridge protocol](/opentask/#browser-commands-daemon-extension).
 
 ### The daemon log
 
