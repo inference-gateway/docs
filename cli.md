@@ -389,6 +389,22 @@ The selected indicator is highlighted as an **accent-colored pill**.
 | Theme     | `Theme`                                  | Opens the theme selector to change the TUI color scheme.                                                                                                                                                                                                                                                              |
 | Reconnect | `Reconnecting...` / `Reconnecting (N/M)` | Shown in red when the stream has stalled and the CLI is reconnecting. `N` is the current attempt, `M` is `client.retry.max_attempts`. Input is blocked until the stream recovers or all attempts are exhausted.                                                                                                       |
 
+#### Background job list
+
+While background jobs are tracked - [local subagents](#local-subagents-agent-tool), [A2A tasks](#a2a-integration), background shells, [screen recordings](#screen-recording) - they appear as a stacked list below the status indicators, one row per job with its label, kind and a live elapsed counter.
+
+| Key               | Action                                                    |
+| ----------------- | --------------------------------------------------------- |
+| `Down` arrow      | Focus the job list from the status indicator row          |
+| `Up` / `Down`     | Move the selection over the tracked jobs                  |
+| `Enter`           | Show the selected job's transcript in place of the chat's |
+| `Esc`             | Back to the chat's own transcript, then back to the input |
+| `Up` (on top row) | Return focus to the status indicator row                  |
+
+Typing any other text blurs the list and lands in the input. While a job is viewed, moving the selection follows it to the newly selected job, and the transcript refreshes once a second until the job is reaped.
+
+**Scroll window.** The list shows at most **5 rows** so a large fan-out cannot push the status bar off screen, but the cap is a scroll window rather than a hard limit: with the list focused, the selection moves over **every** tracked job and the window scrolls to follow it, so any job can be selected and opened with `Enter`. Jobs outside the window are summarized by dim boundary markers - `N above` above the first row and `+N more` below the last. With the list unfocused the window sits at the top, so only `+N more` is shown.
+
 #### Switching models (`/model`)
 
 `/model` is the unified model command:
