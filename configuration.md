@@ -141,7 +141,7 @@ const nvidiaSettings = [
 ];
 
 const zaiSettings = [
-  { variable: 'ZAI_API_URL', description: 'Z-AI API URL', defaultValue: 'https://api.z.ai/api/paas/v4' },
+  { variable: 'ZAI_API_URL', description: 'Z-AI API URL', defaultValue: 'https://api.z.ai/api/coding/paas/v4' },
   { variable: 'ZAI_API_KEY', description: 'Z-AI API Key', defaultValue: '""' },
 ];
 
