@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.20](https://github.com/inference-gateway/docs/compare/0.9.19...0.9.20) (2026-10-01)
+
+### 📚 Documentation
+
+* align adl card and capabilities with a2a v1.0.1 ([#889](https://github.com/inference-gateway/docs/issues/889)) ([4ea33ce](https://github.com/inference-gateway/docs/commit/4ea33cea8130139b004a73498a9885eb5ad6a028))
+* centralize daemon logging in the daemon log ([#875](https://github.com/inference-gateway/docs/issues/875)) ([ff5e9af](https://github.com/inference-gateway/docs/commit/ff5e9afd677eff5236183f646b0614a5cf8929f7))
+* desktop avatars, text to video and avatar clips ([#887](https://github.com/inference-gateway/docs/issues/887)) ([1737563](https://github.com/inference-gateway/docs/commit/17375639d35fa316902b6b23a81d14712727fcdb))
+* document chat job list scroll window ([#893](https://github.com/inference-gateway/docs/issues/893)) ([6998335](https://github.com/inference-gateway/docs/commit/6998335dfc185761473400f3d6c53b7e250b075a))
+* document computer_use activity and recording state ([#883](https://github.com/inference-gateway/docs/issues/883)) ([d3936eb](https://github.com/inference-gateway/docs/commit/d3936eb87217b5e273f5dcf5b94afb11eba6e85d))
+* document per-project artifacts route in panel ([#880](https://github.com/inference-gateway/docs/issues/880)) ([3666a65](https://github.com/inference-gateway/docs/commit/3666a653ce2bf8a2e51396e8b3789c2a6952025a))
+* document the browser_extension_status frame ([#882](https://github.com/inference-gateway/docs/issues/882)) ([5f699e8](https://github.com/inference-gateway/docs/commit/5f699e86b8fbfab508343ed2604b650de79d6c0f))
+* note adk cards still use pre-1.0.1 shape ([#891](https://github.com/inference-gateway/docs/issues/891)) ([e123f58](https://github.com/inference-gateway/docs/commit/e123f5834ac5f5243e5dc07ca787bd4e8d59b9cd))
+* opentask ffmpeg via infer binaries commands ([#886](https://github.com/inference-gateway/docs/issues/886)) ([20e69f1](https://github.com/inference-gateway/docs/commit/20e69f11fa69e9c9a7c04e1a7af473391d306828))
+* subagent done signal and idle auto-close ([#874](https://github.com/inference-gateway/docs/issues/874)) ([febc3f9](https://github.com/inference-gateway/docs/commit/febc3f93d424d6c6297557066e9430412cd81291))
+
+### 🔧 Miscellaneous
+
+* **deps:** bump infer CLI v0.218.0 -> v0.221.1 ([#884](https://github.com/inference-gateway/docs/issues/884)) ([a702d6a](https://github.com/inference-gateway/docs/commit/a702d6abd00208601266922bb2fb44521a233b4c))
+
 ## [0.9.19](https://github.com/inference-gateway/docs/compare/0.9.18...0.9.19) (2026-09-30)
 
 ### 📚 Documentation
