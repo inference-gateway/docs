@@ -136,7 +136,6 @@ spec:
   capabilities:
     streaming: true
     pushNotifications: false
-    stateTransitionHistory: false
   agent:
     provider: deepseek
     model: deepseek-v4-flash
@@ -345,7 +344,7 @@ Returns validation errors if the file structure or required fields are invalid.
 
 ## ADL Schema Reference
 
-> **Reflects ADL `schema/v1` (JSON Schema Draft-07) as of [`v0.19.0`](https://github.com/inference-gateway/adl/releases/tag/v0.19.0).** The field definitions below are an in-page convenience copy. The single source of truth is [`schema/v1/schema.json`](https://github.com/inference-gateway/adl/blob/main/schema/v1/schema.json) in `inference-gateway/adl` (rendered at [adl.inference-gateway.com](https://adl.inference-gateway.com)) - if anything here disagrees with the canonical schema, the canonical schema wins.
+> **Reflects ADL `schema/v1` (JSON Schema Draft-07) as of [`v0.19.0`](https://github.com/inference-gateway/adl/releases/tag/v0.19.0).** The field definitions below are an in-page convenience copy. The single source of truth is [`schema/v1/schema.json`](https://github.com/inference-gateway/adl/blob/main/schema/v1/schema.json) in `inference-gateway/adl` (rendered at [adl.inference-gateway.com](https://adl.inference-gateway.com)) - if anything here disagrees with the canonical schema, the canonical schema wins. `spec.card` and `spec.capabilities` track the [A2A](/a2a/) v1.0.1 `AgentCard`; the pre-release card fields they replaced are listed under [Deprecated card fields](#deprecated-card-fields).
 
 ### Overview
 
@@ -369,17 +368,18 @@ spec:
   capabilities:
     streaming: true
     pushNotifications: true
-    stateTransitionHistory: true
+    extendedAgentCard: true
   card:
-    protocolVersion: '0.3.0'
-    preferredTransport: 'JSONRPC'
+    supportedInterfaces:
+      - url: 'https://my-agent.example.com:8443'
+        protocolBinding: 'JSONRPC'
+        protocolVersion: '1.0'
     defaultInputModes:
       - text
       - voice
     defaultOutputModes:
       - text
       - audio
-    url: 'https://my-agent.example.com:8443'
     documentationUrl: 'https://github.com/company/my-agent/docs'
     iconUrl: 'https://github.com/company/my-agent/icon.png'
   agent:
@@ -584,25 +584,50 @@ Top-level identification for your agent.
 
 Defines what the agent supports at the protocol level.
 
-| Field                    | Type    | Default | Description                           |
-| ------------------------ | ------- | ------- | ------------------------------------- |
-| `streaming`              | boolean | `false` | Enable streaming responses            |
-| `pushNotifications`      | boolean | `false` | Enable push notification support      |
-| `stateTransitionHistory` | boolean | `false` | Enable task state transition tracking |
+| Field               | Type    | Required | Default | Description                                                                                            |
+| ------------------- | ------- | -------- | ------- | ------------------------------------------------------------------------------------------------------ |
+| `streaming`         | boolean | ✓        | -       | Enable streaming responses                                                                             |
+| `pushNotifications` | boolean | ✓        | -       | Enable push notification support                                                                       |
+| `extendedAgentCard` | boolean |          | `false` | Serve a richer card to authenticated callers via A2A `GetExtendedAgentCard` (`GET /extendedAgentCard`) |
+
+`spec.capabilities.stateTransitionHistory` is deprecated: the A2A v1.0.1 AgentCard dropped the flag, so published cards no longer carry it. Existing manifests stay valid, but leave it out of new ones.
 
 ### Card
 
-Optional A2A agent card configuration that controls how your agent is discovered and described.
+Optional A2A agent card configuration that controls how your agent is discovered and described. The fields mirror the [A2A](/a2a/) v1.0.1 `AgentCard`.
 
-| Field                | Type     | Description                                        |
-| -------------------- | -------- | -------------------------------------------------- |
-| `protocolVersion`    | string   | A2A protocol version (e.g., `"0.3.0"`)             |
-| `preferredTransport` | string   | Transport protocol (e.g., `"JSONRPC"`)             |
-| `defaultInputModes`  | string[] | Supported input modes (e.g., `["text", "voice"]`)  |
-| `defaultOutputModes` | string[] | Supported output modes (e.g., `["text", "audio"]`) |
-| `url`                | string   | Public URL where the agent is accessible           |
-| `documentationUrl`   | string   | URL to agent documentation                         |
-| `iconUrl`            | string   | URL to agent icon                                  |
+| Field                  | Type     | Description                                                                           |
+| ---------------------- | -------- | ------------------------------------------------------------------------------------- |
+| `supportedInterfaces`  | object[] | Protocol endpoints the agent serves; the first entry is the preferred one. See below. |
+| `defaultInputModes`    | string[] | Supported input modes (e.g., `["text", "voice"]`)                                     |
+| `defaultOutputModes`   | string[] | Supported output modes (e.g., `["text", "audio"]`)                                    |
+| `documentationUrl`     | string   | URL to agent documentation                                                            |
+| `iconUrl`              | string   | URL to agent icon                                                                     |
+| `securitySchemes`      | object   | Statically declared security schemes, keyed by name (`apiKey`, `http`, `mutualTLS`)   |
+| `securityRequirements` | object[] | Advertised requirements, each mapping a scheme name to its required scopes            |
+
+Each `supportedInterfaces` entry describes one protocol binding:
+
+| Field             | Type   | Required | Description                                                                                                                    |
+| ----------------- | ------ | -------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `url`             | string | ✓        | Absolute URL where this interface is available                                                                                 |
+| `protocolBinding` | string | ✓        | Binding served at that URL - `JSONRPC`, `GRPC`, `HTTP+JSON`, or another value                                                  |
+| `protocolVersion` | string | ✓        | A2A protocol version this interface exposes (e.g., `"1.0"`)                                                                    |
+| `tenant`          | string |          | Opaque routing value when several agents or tenants share one endpoint; clients echo it in the `tenant` field of every request |
+
+OAuth2 and OIDC schemes do not belong in `securitySchemes`: they are runtime concerns the ADK derives from `AUTH_ISSUER_URL` / `AUTH_CLIENT_ID` / `AUTH_CLIENT_SECRET` at startup, so an issuer baked into the manifest would be wrong per environment.
+
+#### Deprecated card fields
+
+A2A v1.0.1 reshaped the card surface. These fields still validate so older manifests keep working, and consumers translate each onto its counterpart, but prefer the current fields:
+
+| Deprecated field            | Counterpart                              |
+| --------------------------- | ---------------------------------------- |
+| `protocolVersion`           | `supportedInterfaces[].protocolVersion`  |
+| `url`                       | `supportedInterfaces[0].url`             |
+| `preferredTransport`        | `supportedInterfaces[0].protocolBinding` |
+| `supportsExtendedAgentCard` | `spec.capabilities.extendedAgentCard`    |
+| `security`                  | `securityRequirements`                   |
 
 ### Agent Configuration
 
