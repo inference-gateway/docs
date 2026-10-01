@@ -285,18 +285,18 @@ infer version
 
 ## Core Commands
 
-| Command                  | Description                      | Key Features                                                 |
-| ------------------------ | -------------------------------- | ------------------------------------------------------------ |
-| `infer init`             | Seed the userspace baseline      | Creates `~/.infer/` defaults - writes nothing to the project |
-| `infer status`           | Check gateway health             | Shows resource usage and connectivity                        |
-| `infer chat`             | Interactive chat TUI             | Streaming, scrolling, tool expansion, mode switching         |
-| `infer chat --web`       | Web-based terminal               | Browser interface, tabbed sessions, remote access            |
-| `infer headless <task>`  | Autonomous task execution        | Background operation, task planning, validation              |
-| `infer headless --serve` | Long-lived AG-UI worker          | One run per `user_message` over stdio, no task argument      |
-| `infer config <cmd>`     | Configuration management         | Generic `get`/`set` for any config key                       |
-| `infer tools <cmd>`      | Run agent tools directly         | Execute a tool or validate a bash command                    |
-| `infer stats`            | Summarize local telemetry        | Token usage, tool outcomes, and cost across sessions         |
-| `infer traces`           | View a session's trace span tree | Offline span-tree viewer, `--list` and JSON output           |
+| Command                  | Description                      | Key Features                                                     |
+| ------------------------ | -------------------------------- | ---------------------------------------------------------------- |
+| `infer init`             | Seed the userspace baseline      | Creates `~/.infer/` defaults - writes nothing to the project     |
+| `infer status`           | Check gateway health             | Shows resource usage and connectivity                            |
+| `infer chat`             | Interactive chat TUI             | Streaming, scrolling, tool expansion, mode switching             |
+| `infer chat --web`       | Web-based terminal               | Browser interface, tabbed sessions, remote access                |
+| `infer headless <task>`  | Autonomous task execution        | Background operation, task planning, validation                  |
+| `infer headless --serve` | Long-lived AG-UI worker          | One run per `run_agent_input` frame over stdio, no task argument |
+| `infer config <cmd>`     | Configuration management         | Generic `get`/`set` for any config key                           |
+| `infer tools <cmd>`      | Run agent tools directly         | Execute a tool or validate a bash command                        |
+| `infer stats`            | Summarize local telemetry        | Token usage, tool outcomes, and cost across sessions             |
+| `infer traces`           | View a session's trace span tree | Offline span-tree viewer, `--list` and JSON output               |
 
 ### Chat Interface Features
 
@@ -865,11 +865,38 @@ The full per-event reference lives with the CLI source, in [`docs/ag-ui-output.m
 
 #### Writing the result to a file (`--result-file`)
 
-`infer headless` accepts a `--result-file <path>` flag that **atomically** writes the final assistant message and the run outcome as JSON to `<path>` on exit. The [Agent tool](#local-subagents-agent-tool) uses it to harvest the result of a detached (tmux pane) subagent, but it is useful on its own whenever a script needs the final answer as a file rather than by parsing the stdout stream.
+`infer headless` accepts a `--result-file <path>` flag that **atomically** writes the final assistant message and the run outcome as JSON to `<path>` on exit. The [Agent tool](#local-subagents-agent-tool) uses it to harvest the result of an **interactive** (tmux pane) subagent only - headless subagents report each turn on stdout instead, see [`--keep-alive`](#keeping-the-session-alive---keep-alive). The flag is useful on its own whenever a script needs the final answer as a file rather than by parsing the stdout stream.
 
 ```bash
 infer headless "Summarize the open PRs" --result-file /tmp/result.json
 ```
+
+#### Keeping the session alive (`--keep-alive`)
+
+`infer headless --keep-alive <task>` does not exit when the task turn ends. It keeps the process and the session alive and reads further work from stdin: each [`run_agent_input`](#serve-worker---serve) frame runs as **another turn in the same session**, so follow-ups keep the accumulated context instead of starting over. Every finished turn is reported as one `subagent_turn` line on stdout, and closing stdin (**EOF**) ends the run.
+
+```bash
+infer headless --keep-alive --session-id sub-1 "Review the auth module" <<'FRAMES'
+{"type":"run_agent_input","input":{"messages":[{"id":"m2","role":"user","content":"Also cover the token refresh path"}]}}
+FRAMES
+```
+
+Each turn prints a line like:
+
+```json
+{
+  "type": "subagent_turn",
+  "final_assistant": "...",
+  "success": true,
+  "session_id": "sub-1",
+  "done": true,
+  "stats": { "tools_succeeded": 3, "tools_failed": 0, "input_tokens": 1200, "output_tokens": 80 }
+}
+```
+
+The line is the [`--result-file`](#writing-the-result-to-a-file---result-file) JSON shape plus `"type": "subagent_turn"` and `done`, so a consumer that already parses result files needs no new parser.
+
+`--format text` and [`--serve`](#serve-worker---serve) are **rejected** with `--keep-alive`: the first has no frame to carry a turn line, and the second is already a long-lived worker with its own AG-UI protocol. This is the shape the [Agent tool](#local-subagents-agent-tool) spawns its async **headless** subagents in - see [headless keep-alive lifecycle](#headless-keep-alive-lifecycle).
 
 #### Resuming a session (`--session-id`)
 
@@ -925,7 +952,7 @@ Each entry of the stored conversation maps to one snapshot message:
 
 #### Serve worker (`--serve`)
 
-`infer headless --serve` is a **long-lived worker**: one process per thread instead of one process per prompt. It takes **no task argument** and implies `--format ag-ui`. It reads app frames from stdin and runs **one agent turn per `user_message`**, writing each turn to stdout as one AG-UI run - `RUN_STARTED` with `threadId` set to the conversation id, then exactly one `RUN_FINISHED` or `RUN_ERROR`.
+`infer headless --serve` is a **long-lived worker**: one process per thread instead of one process per prompt. It takes **no task argument** and implies `--format ag-ui`. It reads app frames from stdin and runs **one agent turn per `run_agent_input` frame**, writing each turn to stdout as one AG-UI run - `RUN_STARTED` with `threadId` set to the conversation id, then exactly one `RUN_FINISHED` or `RUN_ERROR`.
 
 ```bash
 infer headless --serve --session-id abc-123-def
@@ -934,7 +961,12 @@ infer headless --serve --session-id abc-123-def
 This is the shape the [daemon](#daemon) spawns its [session workers](#what-the-daemon-runs) in, so a host that owns the subprocess speaks the same vocabulary as a daemon client: app frames in with a lowercase `type`, AG-UI events out with an uppercase `type`, no envelope and no translation.
 
 ```json
-{ "type": "user_message", "content": "Refactor the authentication module" }
+{
+  "type": "run_agent_input",
+  "input": {
+    "messages": [{ "id": "m1", "role": "user", "content": "Refactor the authentication module" }]
+  }
+}
 ```
 
 ```json
@@ -947,14 +979,14 @@ This is the shape the [daemon](#daemon) spawns its [session workers](#what-the-d
 
 **Stdin frames:**
 
-| Frame                    | Behaviour                                                                                                                                    |
-| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `user_message`           | Runs one turn. Sent mid-turn it is **queued** and drained into the running turn; anything still queued when a turn ends starts the next turn |
-| `interrupt`              | Cancels the running turn, which ends with `RUN_FINISHED` outcome [`cancelled`](#ag-ui-cancelled-runs)                                        |
-| `browser_result`         | Answers a `browser_command` the worker wrote on stdout - see [browser tools without a port](#browser-tools-without-a-port)                   |
-| `approval_response`      | Unchanged: `tool_call_id`, `approved`, `scope` for a pending tool call                                                                       |
-| `user_question_response` | Unchanged: the collected `AskUserQuestion` answers, or a dismissal                                                                           |
-| `computer_use_control`   | Unchanged: `action` is `pause` or `resume` - see [pause and resume control](#pause-and-resume-control-ipc)                                   |
+| Frame                    | Behaviour                                                                                                                                                                                                                                                                                             |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `run_agent_input`        | Runs one turn from `input.messages` (the new messages only - the worker owns the history). Sent mid-turn it is **queued** and drained into the running turn; anything still queued when a turn ends starts the next turn. An `input.resume` answers a pending interrupt, and an empty `input` resumes |
+| `interrupt`              | Cancels the running turn, which ends with `RUN_FINISHED` outcome [`cancelled`](#ag-ui-cancelled-runs)                                                                                                                                                                                                 |
+| `browser_result`         | Answers a `browser_command` the worker wrote on stdout - see [browser tools without a port](#browser-tools-without-a-port)                                                                                                                                                                            |
+| `approval_response`      | Unchanged: `tool_call_id`, `approved`, `scope` for a pending tool call                                                                                                                                                                                                                                |
+| `user_question_response` | Unchanged: the collected `AskUserQuestion` answers, or a dismissal                                                                                                                                                                                                                                    |
+| `computer_use_control`   | Unchanged: `action` is `pause` or `resume` - see [pause and resume control](#pause-and-resume-control-ipc)                                                                                                                                                                                            |
 
 Only the **first** run of a resumed session opens with a [`MESSAGES_SNAPSHOT`](#ag-ui-resume-snapshot); later runs on the same worker start with `RUN_STARTED` alone, because the host already has the history.
 
@@ -964,7 +996,7 @@ With [`browser_use.backend: extension`](/opentask/#cli-bridge-protocol) a serve 
 
 ##### Shutdown
 
-Closing stdin (**EOF**) lets the running turn and any queued `user_message` frames finish, then shuts the worker down together with the gateway, MCP servers and containers it started. For a fast stop send `{"type":"interrupt"}` first, then close stdin: the running turn ends `cancelled` and the worker drains immediately instead of waiting the turn out.
+Closing stdin (**EOF**) lets the running turn and any queued `run_agent_input` frames finish, then shuts the worker down together with the gateway, MCP servers and containers it started. For a fast stop send `{"type":"interrupt"}` first, then close stdin: the running turn ends `cancelled` and the worker drains immediately instead of waiting the turn out.
 
 ## Daemon
 
@@ -2077,7 +2109,7 @@ The model calls the tool with either a batch of `tasks` or a single `description
 - `system_prompt` (optional) - system prompt for the single-`description` form
 - `agent` (optional) - preset name for the single-`description` form
 
-Each subagent runs in its own isolated session id of the form `subagent-<parentSession>-<uuid>`. Parallel fan-out is capped by `max_parallel` (default `4`) concurrent subagents per call.
+Each subagent runs in its own isolated session id of the form `subagent-<parentSession>-<uuid>`. Parallel fan-out is capped by `max_parallel` (default `10`) concurrent subagents per call.
 
 #### Markdown subagent presets
 
@@ -2124,19 +2156,31 @@ Files are scanned **once per session**. A file with broken frontmatter, a missin
 
 #### Result modes: async and wait-all
 
-- **Wait-all (`wait: true`)** - the **shipped default**. The call blocks until every spawned subagent reaches a terminal state, then returns the aggregated results in one tool result.
-- **Async (`wait: false`)** - the call returns immediately with the subagent ids; when each subagent finishes, its final result is injected back into the main conversation (mirroring `A2A_SubmitTask` notify behavior). In chat, running/completed status is surfaced in the sticky progress area.
+- **Async (`wait: false`)** - the **shipped default**. The call returns immediately with the subagent ids, so later tool calls in the same turn run right away; when each subagent finishes a turn, its result is injected back into the main conversation (mirroring `A2A_SubmitTask` notify behavior) and a headless subagent then [stays alive](#headless-keep-alive-lifecycle) for follow-ups. In chat, running/completed status is surfaced in the sticky progress area.
+- **Wait-all (`wait: true`)** - the call blocks until every spawned subagent reaches a terminal state, then returns the aggregated results in one tool result. A blocking subagent returns its **first turn** and is **not** kept alive.
 
 #### Execution surfaces: headless and interactive (tmux)
 
 The `mode` controls where subagents run. Either way the result aggregates back into the main context exactly the same - interactive is "headless plus a tmux pane attached to the live process":
 
-- `headless` - subagents run in the background; results aggregate back into the main context.
-- `interactive` (the shipped default) - each subagent runs in a live **tmux** pane/window you can watch while it works.
+- `headless` (the **shipped default**) - each subagent runs in the background as an [`infer headless --keep-alive`](#keeping-the-session-alive---keep-alive) subprocess whose stdin the parent holds open; results aggregate back into the main context.
+- `interactive` - each subagent runs in a live **tmux** pane/window you can watch while it works.
 
 tmux is an **optional runtime dependency**, required only for interactive mode (headless needs nothing extra). Interactive mode must be run from **inside tmux** (`$TMUX` set). Panes always open as a **vertical split**, and when you are not inside tmux (or tmux is not installed) the call **warns and runs headless** - there is nothing to configure either way.
 
-#### Done signal and idle auto-close
+#### Headless keep-alive lifecycle
+
+A headless subagent is a conversation, not a one-shot: the delegated task is its first turn, and it stays alive afterwards so the main agent can talk to it without respawning and losing its context.
+
+- **One completion note per finished turn.** Each turn that ends delivers a `[Subagent Completed: <label>]` note carrying that turn's final message and the run stats; a turn that ended in an error arrives as `[Subagent Failed: <label>]` with the error. The stats cover the **whole subagent session** - every turn it ran, not just the one that produced the note.
+- **Follow-ups with `SendSubagentInput`.** Passing `text` sends the subagent a message - new information, a correction, a question about its result - which it runs as its **next turn in the same session**, with a new completion note when that turn ends. A message sent while the subagent is mid-turn is **queued** and runs next, so nothing is lost and no note is duplicated.
+- **Idle auto-close.** A subagent that sits idle for `tools.agent.idle_timeout` seconds after a completed turn is closed with one `[Subagent Closed: <label>]` note carrying its last message. `0` disables the auto-close. There is **no `[Subagent Idle]` warning** for a headless subagent: every turn reports done, so the completion note itself is the cue that it awaits a follow-up.
+- **`CloseSubagent`** stops a headless subagent at once, whether it is idle or running.
+- **An idle subagent does not keep a headless parent alive.** A one-shot `infer headless` run that delegated work exits once its own turn is done.
+
+`SendSubagentInput` works for **both** execution surfaces: `text` is the message in either mode, while `keys` and `submit: false` drive an interactive pane's TUI and **fail** for a headless subagent.
+
+#### Done signal and idle auto-close (interactive panes)
 
 An interactive pane is not a REPL you keep open. Each subagent reports completion and the parent closes the pane for you:
 
@@ -2155,16 +2199,16 @@ tools:
   agent:
     enabled: true
     require_approval: true # spawning work that can edit files is a mutating action
-    mode: interactive # headless | interactive (default when a call omits it)
-    wait: true # block and return aggregated results by default
-    max_parallel: 4 # cap on concurrent subagents per call
+    mode: headless # headless | interactive (default when a call omits it)
+    wait: false # return as soon as the subagents are dispatched; each reports back on its own
+    max_parallel: 10 # cap on concurrent subagents per call
     max_depth: 1 # recursion guard; a subagent is itself an `infer headless`
     model: '' # default subagent model (inherits parent if blank)
     inherit_mock: true # when gateway.mock is on, spawn subagents against the embedded mock too
-    idle_timeout: 300 # seconds of inactivity before an interactive pane is closed (0 disables)
+    idle_timeout: 300 # seconds a subagent may sit idle before the parent closes it (0 disables)
 ```
 
-**Idle timeout (`idle_timeout`, default `300`).** Seconds of inactivity after which an interactive subagent pane that never signalled done is closed; `0` disables the auto-close and leaves such panes open. Approval prompts pause the clock and `SendSubagentInput` resets it. See [Done signal and idle auto-close](#done-signal-and-idle-auto-close).
+**Idle timeout (`idle_timeout`, default `300`).** Seconds a subagent may sit idle before the parent closes it with one `[Subagent Closed: <label>]` note; `0` disables the auto-close. A **headless** subagent is idle from a completed turn until the next `SendSubagentInput` (see [headless keep-alive lifecycle](#headless-keep-alive-lifecycle)); an **interactive** pane is idle when it shows no harvested result turn, no pane change and no pending approval, which only catches a pane that never reported done. Approval prompts pause the clock and `SendSubagentInput` resets it. See [Done signal and idle auto-close](#done-signal-and-idle-auto-close-interactive-panes).
 
 Every key has an `INFER_TOOLS_AGENT_*` environment-variable override, consistent with the rest of the config:
 
@@ -2181,9 +2225,9 @@ Every key has an `INFER_TOOLS_AGENT_*` environment-variable override, consistent
 | `idle_timeout`     | `INFER_TOOLS_AGENT_IDLE_TIMEOUT`     |
 
 ```bash
-# Toggle the tool, or switch the default execution surface to headless
+# Toggle the tool, or switch the default execution surface to watchable tmux panes
 infer config set tools.agent.enabled true
-infer config set tools.agent.mode headless
+infer config set tools.agent.mode interactive
 ```
 
 **Mock inheritance (`inherit_mock`, default `true`).** When the parent CLI runs against the embedded mock gateway (`gateway.mock: true`), spawned subagents inherit mock mode: the CLI passes `INFER_GATEWAY_MOCK=true` to each subagent - both the headless environment and the interactive tmux-pane command - so they exercise the same mock instead of talking to the real gateway. Set `tools.agent.inherit_mock: false` (or `INFER_TOOLS_AGENT_INHERIT_MOCK=false`) to opt out and have subagents always target the configured gateway.
