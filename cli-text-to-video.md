@@ -180,6 +180,7 @@ The tool **never overwrites** an avatar and has **no delete counterpart** - the 
 - [CLI](/cli/#texttovideo-tool) - the tool reference entry, parameters, and the rest of the `infer` command-line tool
 - [CreateAvatar](/cli/#createavatar-tool) - the tool reference entry for building avatars from chat
 - [Videos API](/api-reference/#reference-images) - how `reference_images` and `input_reference` differ on the wire
+- [Desktop App](/desktop/#avatars) - manage the same avatar library from **Settings -> Avatars**, and place renders on a Content project timeline
 - [Text-to-Speech](/cli-text-to-speech/) - generate the voice track an avatar render lip-syncs to
 - [TextToMusic](/cli/#texttomusic-tool) and [TextToSFX](/cli/#texttosfx-tool) - the audio siblings, with the same `output_path` rules
 - [Configuration](/configuration/) - full configuration system across the gateway and CLI

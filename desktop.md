@@ -17,13 +17,14 @@ Agents run through [`infer daemon`](/cli/#daemon), the CLI's hub. The app starts
 
 ### ~/.infer layout
 
-| Path                             | Purpose                                                                               |
-| -------------------------------- | ------------------------------------------------------------------------------------- |
-| `~/.infer/bin/infer`             | The `infer` CLI - manages the gateway, routes requests, and drives agent interactions |
-| `~/.infer/bin/inference-gateway` | The gateway server binary                                                             |
-| `~/.infer/config.yaml`           | Gateway configuration (providers, API keys, model routing)                            |
-| `~/.infer/agents.yaml`           | Registered A2A agent definitions                                                      |
-| `~/.infer/auth.yaml`             | Provider API keys saved from **Settings -> API Keys**                                 |
+| Path                             | Purpose                                                                                  |
+| -------------------------------- | ---------------------------------------------------------------------------------------- |
+| `~/.infer/bin/infer`             | The `infer` CLI - manages the gateway, routes requests, and drives agent interactions    |
+| `~/.infer/bin/inference-gateway` | The gateway server binary                                                                |
+| `~/.infer/config.yaml`           | Gateway configuration (providers, API keys, model routing)                               |
+| `~/.infer/agents.yaml`           | Registered A2A agent definitions                                                         |
+| `~/.infer/auth.yaml`             | Provider API keys saved from **Settings -> API Keys**                                    |
+| `~/.infer/avatars/`              | [Avatar portraits](#avatars) managed from **Settings -> Avatars**, one folder per avatar |
 
 Everything is scoped to your home directory - no system-wide installs, no vendor lock-in.
 
@@ -57,13 +58,14 @@ The app updates itself. When a newer release is available the top bar shows an u
 
 Open Settings with the gear icon at the right of the top bar. A left rail lists the sections, and **Back** returns to the chat. Settings opens on **API Keys**.
 
-| Section           | What it covers                                                                                                                                             |
-| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **General**       | [Max concurrent sessions](#the-concurrency-cap), [Browser Use](#browser-use-opentask-extension), and the [text-to-speech toggle](#enabling-text-to-speech) |
-| **API Keys**      | One API key per provider                                                                                                                                   |
-| **Agents**        | A2A agents the local agent can delegate to                                                                                                                 |
-| **Voice samples** | [WAV reference recordings](#voice-samples) for voice cloning                                                                                               |
-| **Updates**       | Installed versions, manual check, and [Install updates](#updates)                                                                                          |
+| Section           | What it covers                                                                                                                                                                                                  |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **General**       | [Max concurrent sessions](#the-concurrency-cap), [Browser Use](#browser-use-opentask-extension), the [text-to-speech toggle](#enabling-text-to-speech), and the [text-to-video toggle](#enabling-text-to-video) |
+| **API Keys**      | One API key per provider                                                                                                                                                                                        |
+| **Agents**        | A2A agents the local agent can delegate to                                                                                                                                                                      |
+| **Voice samples** | [WAV reference recordings](#voice-samples) for voice cloning                                                                                                                                                    |
+| **Avatars**       | [Named portraits](#avatars) used for talking-avatar renders                                                                                                                                                     |
+| **Updates**       | Installed versions, manual check, and [Install updates](#updates)                                                                                                                                               |
 
 ### API Keys
 
@@ -83,6 +85,9 @@ Each supported provider gets one masked field. Fill in the providers you use and
 | Moonshot     | `MOONSHOT_API_KEY`     |
 | MiniMax      | `MINIMAX_API_KEY`      |
 | Ollama Cloud | `OLLAMA_CLOUD_API_KEY` |
+| ElevenLabs   | `ELEVENLABS_API_KEY`   |
+
+**ElevenLabs** is the one entry that is not a chat provider: it is the key the gateway needs to render [talking avatars](#text-to-video), and it offers no models to the picker.
 
 **Save** writes the non-empty values to `~/.infer/auth.yaml` (mode `0600` on macOS and Linux; keys still sitting in a legacy `~/.infer/auth.json` are read as a fallback but never written back), returns you to the chat, and restarts the gateway so the new keys take effect - which is also what refreshes the model list. Keys are passed to the agent as environment variables of the same name; nothing is sent anywhere else.
 
@@ -365,9 +370,33 @@ different files - and the export plays them in `start` order. A gap between two 
 | `offset`       | Optional. Where the clip starts inside its `src` file, in seconds. `0` when absent - the desktop sets it when you trim a clip's head |
 | `scale`        | Optional. A multiplier on the size that covers the export frame. `1` (the default) fills the frame and crops                         |
 | `x`, `y`       | Optional. The centre the clip is framed on, as fractions (0-1) of the frame. `0.5`, `0.5` when absent                                |
+| `avatar`       | Optional. The [avatar](#avatars) this clip was rendered from - present only on an avatar clip                                        |
+| `voice_sample` | Optional. The sample the paired spoken clip was cloned from, copied here so the lane can colour the clip                             |
+| `status`       | Optional. On an avatar clip: `draft` means it still needs rendering, `done` means the mp4 at `src` is current                        |
 
 So a clip plays its `src` from `offset` for `end - start` seconds. `scale`, `x`, and `y` are what
 the framing controls under the preview write; an untouched recording carries none of them.
+
+#### Avatar clips
+
+A talking avatar is an ordinary video-track clip that happens to be a render of a face speaking one
+spoken clip - not a new track kind. The two are paired by id: the avatar clip is
+`"<spoken id>-avatar"` and carries the spoken clip's `start` and `end`.
+
+```json
+{ "id": "video", "kind": "video", "clips": [
+  { "id": "s1-avatar", "start": 0, "end": 6.2, "src": "media/demo-s1-avatar.mp4",
+    "avatar": "presenter", "voice_sample": "eden.wav", "status": "done" } ] },
+{ "id": "voice", "kind": "audio", "voice_sample": "eden.wav", "clips": [
+  { "id": "s1", "start": 0, "end": 6.2, "text": "Hi, welcome to the demo.",
+    "src": "media/demo-s1.wav", "voice_sample": "eden.wav", "status": "done" } ] }
+```
+
+The voice stays on the spoken clip. The export mixes that wav, not the mp4's own sound, so a
+timeline with avatar clips never sets `source_audio: "keep"` - that would play the voice twice.
+
+Re-synthesizing a spoken clip puts its avatar clip back to `draft`, and **Redo drafts** re-renders
+only the draft avatar clips, leaving finished ones alone.
 
 #### Spoken clips
 
@@ -527,8 +556,26 @@ Asking for a change to one caption changes that clip's `text`: a misheard word i
 rebuild the track. A caption you add with empty `text` is a range for the agent to fill; one you
 type yourself stays verbatim.
 
+### Asking the agent for a talking avatar
+
+Ask for a talking avatar, a presenter, or a talking head in a Content project and the
+`video-editing` skill:
+
+- Picks the avatar: the clip's own `avatar` when it has one, otherwise the single avatar in your
+  [library](#avatars) - and asks you which one when there are several.
+- Writes the script and voices it as spoken clips with `TextToSpeech`, exactly as for any voiceover.
+- Renders each clip with `TextToVideo { avatar, audio, output_path }`, then copies the mp4 into
+  `media/`.
+- Places each render on the video track over its spoken clip, as an [avatar clip](#avatar-clips).
+- Stops there. You review the result on the timeline and press **Export**.
+
+This needs [Text to speech](#enabling-text-to-speech) and [Text to video](#enabling-text-to-video)
+both enabled, an ElevenLabs key, and at least one avatar in the library.
+
 ### The timeline editor
 
+- An avatar clip is labelled `<avatar>: <file>` and carries a coloured stripe per avatar, the same
+  way spoken clips are coloured by their voice sample.
 - Overlay lanes sit above the video lane and show thumbnails of their cards. Their clips move,
   trim, and delete exactly like audio clips.
 - The preview stage draws the whole picture, with the export frame sharp inside a thin outline and
@@ -739,6 +786,47 @@ To use a sample, name its full file name in chat: _"read this in the voice of my
 
 Cloning quality comes down to the reference: one speaker, no music or background noise, roughly 10-30 seconds.
 
+## Text to video
+
+Talking avatars come from the [`infer` CLI's `TextToVideo` tool](/cli-text-to-video/). The desktop app renders nothing itself: it flips the feature on, manages the portraits the renders use, and places the finished mp4s on a [Content project](#content-projects) timeline.
+
+### Enabling text to video
+
+**Settings -> General -> Text to video -> Enable Text to Video**. It is off by default; while it is off the `TextToVideo` tool is not sent to the model at all.
+
+Saving writes `text_to_video.enabled` to `~/.infer/config.yaml` and, if the toggle changed, restarts the desktop-owned gateway with `VIDEOS_ENABLED=true` - the same restart path as saving an API key. Renders also need an [**ElevenLabs** API key](#api-keys): the default `avatar_model` is ElevenLabs `creatify-aurora`, and every render sends the avatar's portrait and the voice clip to that provider.
+
+Only `enabled` is written. The rest of the `text_to_video` section - `model`, `avatar_model`, `output_dir`, `timeout` and the others in the [configuration reference](/cli-text-to-video/#configuration-reference) - is CLI-managed and passes through untouched.
+
+The composer's **tools** dropdown lists `TextToSpeech` and `TextToVideo` while they are enabled, alongside the rest of the agent's tools.
+
+### Avatars
+
+**Settings -> Avatars** is a managed library of named portraits of you, stored one folder per avatar under `~/.infer/avatars/<name>/` - the same library the [CLI's `infer avatars`](/cli-text-to-video/#the-avatar-library) reads, so an avatar made here works from the CLI too.
+
+| Action           | How                                                                                            |
+| ---------------- | ---------------------------------------------------------------------------------------------- |
+| **Import photo** | Opens the native file picker, filtered to `.png`, `.jpg`, `.jpeg` and `.webp`                  |
+| **Take photo**   | Opens the camera, then **Capture** takes the shot. macOS asks for camera access the first time |
+| **Preview**      | Every image in the folder is shown on the avatar's card, including the generated views         |
+| **Delete**       | The trash icon on the card, which runs `infer avatars delete` and removes the folder from disk |
+
+Either source then runs `infer avatars create <name> --from <photo>`: your photo is kept as `01-front.<ext>` and two three-quarter views are generated through the gateway's image edit API. That takes a while, so the CLI's progress lines are shown in the tab while it runs.
+
+```text
+~/.infer/avatars/
+  presenter/
+    01-front.png       # the photo you imported - first in sort order, so this is the face that talks
+    02-left.png
+    03-right.png
+```
+
+Lip-sync takes a single image, so the **first image in sort order** is the one that talks. The other views are there to keep the face consistent in prompt renders.
+
+> **Only your own likeness, or one you have the rights to use.** Do not create an avatar of someone else without their permission.
+
+**Privacy:** creating an avatar uploads the photo to the image-edit provider to generate the extra views, and every render uploads the portrait and the voice clip to the video provider. Nothing is stored as an avatar at either provider - the library is yours, on your disk. Drop images into `~/.infer/avatars/<name>/` by hand to skip the image-edit round trip entirely.
+
 ## Related
 
 - [Getting Started](/getting-started/) - set up the Inference Gateway server
@@ -747,6 +835,7 @@ Cloning quality comes down to the reference: one speaker, no music or background
 - [OpenTask](/opentask/) - the browser extension behind [Browser Use](#browser-use-opentask-extension)
 - [Speech-to-Text](/cli-speech-to-text/) - speech-to-text in the `infer` CLI
 - [Text-to-Speech](/cli-text-to-speech/) - the `TextToSpeech` tool behind the desktop toggle
+- [Text-to-Video and Avatars](/cli-text-to-video/) - the `TextToVideo` tool and `infer avatars` behind [Avatars](#avatars)
 - [A2A Integration](/a2a/) - chat with A2A agents from the desktop app
 - [Agent Registry](/registry/) - the catalog behind the Agents tab
 - [Configuration](/configuration/) - gateway configuration reference
