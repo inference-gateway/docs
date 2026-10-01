@@ -128,6 +128,25 @@ Past the handshake the socket carries the [shared event stream](/cli/#shared-eve
 
 The browser frames below are the part specific to this transport.
 
+### Browser extension status
+
+Daemon -> client, the state of the extension connection, sent to every client that is **not** the extension: once when the client connects, and again whenever the extension attaches or detaches. The frame a client gets on connect names the state at that moment, so a `desktop` or `browser` client's first frame is always a status one - it never has to probe the daemon to learn whether a browser is reachable.
+
+```json
+{
+  "type": "browser_extension_status",
+  "connected": true,
+  "extension_version": "1.9.2",
+  "protocol_version": 1
+}
+```
+
+- `connected` - whether an extension is attached right now. While it is `false`, browser tool calls fail with `no browser extension connected on port <port>`.
+- `extension_version` - the version the attached extension declared in its [handshake](#handshake). It travels only while an extension is attached, so a status frame with `connected: false` carries no version.
+- `protocol_version` - this frame's own schema version, independent of the handshake's `protocol_version`. Clients gate on it to decide what they render or how they parse the frame.
+
+There is deliberately **no** frame and no CUSTOM event for pausing or resuming browser use. A client that wants to interrupt the agent's browsing stops the run - the run ends with outcome `cancelled` - and continues with a new run on the same thread.
+
 ### Browser commands (daemon -> extension)
 
 One shape, six actions; only the fields relevant to the action are set. `timeout_ms` is the per-action budget the extension must enforce.
@@ -160,7 +179,7 @@ Extension -> daemon, exactly one result per command id:
 - `content` is only meaningful for `read`, `image`/`image_mime_type` for `screenshot`, `tabs` for `tabs`. `events` carries optional browser-initiated notices (console lines and similar) and may always be empty.
 - `url`/`title` reflect the controlled tab after the action.
 
-One browser serves everyone, so the daemon serializes every command it receives - from its session workers, from the desktop app and from `browser` clients - and returns each answer to whoever asked, by `id`. A `browser_command` a `desktop` or `browser` client posts on the socket is answered only on that connection. A standalone [`infer headless --serve`](/cli/#serve-worker---serve) worker binds no port either: it writes the same `browser_command` line on **stdout** and waits for the matching `browser_result` line on **stdin**, so whoever owns the subprocess relays both frames to the extension. When no extension is connected the browser tools fail with `no browser extension connected on port <port>`, and every client learns about it from the CUSTOM `browser_extension_status` event. A client pauses and resumes the agent's browsing with `{"type": "browser_use_control", "action": "pause"}`, answered with CUSTOM `browser_use_paused` / `browser_use_resumed` - the same shape as the computer-use pair.
+One browser serves everyone, so the daemon serializes every command it receives - from its session workers, from the desktop app and from `browser` clients - and returns each answer to whoever asked, by `id`. A `browser_command` a `desktop` or `browser` client posts on the socket is answered only on that connection. A standalone [`infer headless --serve`](/cli/#serve-worker---serve) worker binds no port either: it writes the same `browser_command` line on **stdout** and waits for the matching `browser_result` line on **stdin**, so whoever owns the subprocess relays both frames to the extension. When no extension is connected the browser tools fail with `no browser extension connected on port <port>`, and every client learns about it from the [`browser_extension_status`](#browser-extension-status) frame.
 
 ### Threads, conversations and resume
 
@@ -296,21 +315,21 @@ Daemon -> the thread's other clients, when the request is no longer pending:
 
 Browser and session frames specific to this transport; the AG-UI and CUSTOM events both directions share are listed under [shared event stream](/cli/#shared-event-stream).
 
-| Frame                                 | Direction     | Purpose                                                       |
-| ------------------------------------- | ------------- | ------------------------------------------------------------- |
-| `browser_hello`                       | ext -> daemon | Handshake with the shared token, `client`, `protocol_version` |
-| `browser_hello_ack`                   | daemon -> ext | Handshake accepted, carries `protocol_version`                |
-| `browser_command`                     | daemon -> ext | Navigate, click, type, read, screenshot, tabs                 |
-| `browser_result`                      | ext -> daemon | One result per command id                                     |
-| `browser_use_control`                 | ext -> daemon | Pause or resume the agent's browsing                          |
-| `list_conversations`                  | ext -> daemon | Ask for a project's stored conversations                      |
-| `conversations`                       | daemon -> ext | Conversation list, newest-first                               |
-| `new_session` / `resume_conversation` | ext -> daemon | Open a thread, answered with `MESSAGES_SNAPSHOT`              |
-| `user_message`                        | ext -> daemon | Send a user message into the thread                           |
-| `interrupt`                           | ext -> daemon | Stop the turn currently streaming                             |
-| `approval_response`                   | ext -> daemon | Approve or reject a pending tool call                         |
-| `list_skills`                         | ext -> daemon | Ask for a project's available skills                          |
-| `skills`                              | daemon -> ext | Skill list with `name`, `description`, `scope`                |
+| Frame                                 | Direction        | Purpose                                                                          |
+| ------------------------------------- | ---------------- | -------------------------------------------------------------------------------- |
+| `browser_hello`                       | ext -> daemon    | Handshake with the shared token, `client`, `protocol_version`                    |
+| `browser_hello_ack`                   | daemon -> ext    | Handshake accepted, carries `protocol_version`                                   |
+| `browser_command`                     | daemon -> ext    | Navigate, click, type, read, screenshot, tabs                                    |
+| `browser_result`                      | ext -> daemon    | One result per command id                                                        |
+| `browser_extension_status`            | daemon -> client | `connected`, `extension_version`, `protocol_version` of the extension connection |
+| `list_conversations`                  | ext -> daemon    | Ask for a project's stored conversations                                         |
+| `conversations`                       | daemon -> ext    | Conversation list, newest-first                                                  |
+| `new_session` / `resume_conversation` | ext -> daemon    | Open a thread, answered with `MESSAGES_SNAPSHOT`                                 |
+| `user_message`                        | ext -> daemon    | Send a user message into the thread                                              |
+| `interrupt`                           | ext -> daemon    | Stop the turn currently streaming                                                |
+| `approval_response`                   | ext -> daemon    | Approve or reject a pending tool call                                            |
+| `list_skills`                         | ext -> daemon    | Ask for a project's available skills                                             |
+| `skills`                              | daemon -> ext    | Skill list with `name`, `description`, `scope`                                   |
 
 ## Related
 
