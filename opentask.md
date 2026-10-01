@@ -244,13 +244,15 @@ Daemon -> extension, the discovered skills (empty when skills are unavailable):
 
 ### Artifacts (generated images)
 
-Chat text can reference files the agent saved under the artifacts dir (`~/.infer/projects/<project-slug>/artifacts/<...>`, for example `ImageGeneration` output). An MV3 extension cannot load a local file path in `<img>`, so the extension rewrites a markdown image whose URL contains `/artifacts/` to an HTTP route on the bridge (stripping the prefix through and including `artifacts/`):
+Chat text can reference files the agent saved under the artifacts dir (`~/.infer/projects/<project-slug>/artifacts/<...>`, for example `ImageGeneration` output). An MV3 extension cannot load a local file path in `<img>`, so the extension rewrites a markdown image whose URL contains `/.infer/projects/<project-slug>/artifacts/<relative-path>` - tilde-prefixed or spelled out as an absolute home-directory path - onto a per-project HTTP route on the bridge and renders it inline in the panel:
 
 ```text
-GET http://127.0.0.1:<port>/artifacts/<relative-path>
+GET http://127.0.0.1:<port>/artifacts/<project-slug>/<relative-path>
 ```
 
-The daemon does not serve that route yet, so it answers 404 and generated images do not render in the panel. One daemon serves many projects and the route names none, so it cannot pick an artifacts dir; a per-project form is planned. Only `infer chat`'s own binding, which is scoped to a single project, serves the directory today.
+The daemon serves the file read-only from that project's artifacts dir, over the same loopback listener as the AG-UI binding. Because the slug is part of the route, one daemon serving many projects still resolves the right directory.
+
+The route is unauthenticated - a browser `<img>` tag cannot send the bearer token - so it is confined in two ways instead: it listens only on loopback, and it answers only from inside `~/.infer/projects/<project-slug>/artifacts/`. A slug that is not a single local path segment, a relative path that escapes the artifacts dir, a missing file, and a directory all answer 404.
 
 ### Tool approvals
 

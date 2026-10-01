@@ -27,7 +27,7 @@ Inference Gateway provides a unified interface to interact with multiple LLM pro
 | MiniMax      | Bearer Token     | `https://api.minimax.io/v1`                                     | No             |
 | Moonshot     | Bearer Token     | `https://api.moonshot.ai/v1`                                    | No             |
 | NVIDIA       | Bearer Token     | `https://integrate.api.nvidia.com/v1`                           | No             |
-| Z-AI         | Bearer Token     | `https://api.z.ai/api/paas/v4`                                  | No             |
+| Z-AI         | Bearer Token     | `https://api.z.ai/api/coding/paas/v4`                           | No             |
 | ElevenLabs   | X-Header         | `https://api.elevenlabs.io/v1`                                  | No             |
 
 <!-- GENERATED:providers-table END (do not edit - run: task generate) -->
