@@ -1134,6 +1134,8 @@ The public well-known card (`GET /.well-known/agent-card.json`) is served unauth
 
 The public card signals that an extended variant exists by setting `supportsExtendedAgentCard: true`. Clients that respect the agent card discovery convention check this flag and only then attempt the JSON-RPC call against the authenticated endpoint.
 
+> **The served card is still the pre-1.0.1 shape.** The A2A v1.0.1 `AgentCard` moved this flag to `capabilities.extendedAgentCard`, dropped `capabilities.stateTransitionHistory`, and replaced `url` / `preferredTransport` / `protocolVersion` with `supportedInterfaces`. The TypeScript ADK card type has not followed yet: it keeps the top-level `supportsExtendedAgentCard`, still accepts `stateTransitionHistory`, and leaves `supportedInterfaces` empty unless you populate it yourself. The names used on this page are the ones on the wire today. ADL manifests already use the v1.0.1 names - see [Deprecated card fields](/adl-cli/#deprecated-card-fields) for the mapping.
+
 ### Registering the handler
 
 The handler is **auto-registered** when an extended card is configured on the server - manual registration is rarely needed. The two recommended wiring paths:

@@ -686,6 +686,8 @@ The error contract (spec 3.3.4) for `agent/getAuthenticatedExtendedCard`:
 | `supportsExtendedAgentCard: true`, no extended configured | `-32007` (`ExtendedAgentCardNotConfigured`) |
 | `supportsExtendedAgentCard: true`, extended configured    | the extended card is returned               |
 
+> **The served card is still the pre-1.0.1 shape.** The A2A v1.0.1 `AgentCard` moved this flag to `capabilities.extendedAgentCard`, dropped `capabilities.stateTransitionHistory`, and replaced `url` / `preferredTransport` / `protocolVersion` with `supportedInterfaces`. The Go ADK card type has not followed yet: it keeps the top-level `supportsExtendedAgentCard`, still accepts `stateTransitionHistory`, and leaves `supportedInterfaces` empty unless you populate it yourself. The names used above are the ones on the wire today. ADL manifests already use the v1.0.1 names - see [Deprecated card fields](/adl-cli/#deprecated-card-fields) for the mapping.
+
 #### Client-side flow
 
 Discover the schemes, attach the out-of-band credential, then fetch the richer card:
