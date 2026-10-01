@@ -41,7 +41,9 @@ Settings live under **Options -> Orchestrator -> Tab recording**:
 
 - **Recording cap (seconds)** - the hard stop for a recording (default 60, bounded to 5-300).
 
-Audio capture and automatic upload of the recording are deliberately out of scope. Recording needs the `tabCapture`, `offscreen`, and `downloads` permissions, which only the Chrome and Edge builds request; on Firefox and Safari the control hides itself. Nothing on the gateway, CLI, or SDK side is involved - the capture never leaves your machine until you attach it yourself. Full details are in the extension's [Tab recording](https://github.com/inference-gateway/opentask#tab-recording) README section.
+**Frame extraction is CLI-managed.** When a recording is sent through the [CLI bridge](#cli-bridge-protocol) rather than attached to GitHub, the agent extracts its frames with the prebuilt `ffmpeg` the CLI owns under `~/.infer/bin/tools/`. The extension never installs that extractor itself: it checks the copy on disk with the approval-free, sha256-based `infer binaries status ffmpeg` and, only when that reports `missing` or `stale`, installs it through the connected CLI with `infer binaries install ffmpeg` - an approval card headed `# opentask: download the latest ffmpeg ...`. A send carrying a recording waits for that install and reports in the composer if it failed; a denied upgrade keeps the existing copy. Needs CLI v0.221.1 or newer, which is where `infer binaries` took ownership of the prebuilt tools - see the [command reference](/cli/#command-reference).
+
+Audio capture and automatic upload of the recording are deliberately out of scope. Recording needs the `tabCapture`, `offscreen`, and `downloads` permissions, which only the Chrome and Edge builds request; on Firefox and Safari the control hides itself. Nothing on the gateway or SDK side is involved - the capture never leaves your machine until you attach it yourself or send it through the bridge. Full details are in the extension's [Tab recording](https://github.com/inference-gateway/opentask#tab-recording) README section.
 
 ## Configuration
 
