@@ -235,11 +235,10 @@ adl init my-agent \
 
 **Capabilities:**
 
-| Flag              | Description                     |
-| ----------------- | ------------------------------- |
-| `--streaming`     | Enable streaming responses      |
-| `--notifications` | Enable push notifications       |
-| `--history`       | Enable state transition history |
+| Flag              | Description                |
+| ----------------- | -------------------------- |
+| `--streaming`     | Enable streaming responses |
+| `--notifications` | Enable push notifications  |
 
 **Server:**
 
@@ -344,7 +343,7 @@ Returns validation errors if the file structure or required fields are invalid.
 
 ## ADL Schema Reference
 
-> **Reflects ADL `schema/v1` (JSON Schema Draft-07) as of [`v0.19.0`](https://github.com/inference-gateway/adl/releases/tag/v0.19.0).** The field definitions below are an in-page convenience copy. The single source of truth is [`schema/v1/schema.json`](https://github.com/inference-gateway/adl/blob/main/schema/v1/schema.json) in `inference-gateway/adl` (rendered at [adl.inference-gateway.com](https://adl.inference-gateway.com)) - if anything here disagrees with the canonical schema, the canonical schema wins. `spec.card` and `spec.capabilities` track the [A2A](/a2a/) v1.0.1 `AgentCard`; the pre-release card fields they replaced are listed under [Deprecated card fields](#deprecated-card-fields).
+> **Reflects ADL `schema/v1` (JSON Schema Draft-07) as of [`v0.28.0`](https://github.com/inference-gateway/adl/releases/tag/v0.28.0).** The field definitions below are an in-page convenience copy. The single source of truth is [`schema/v1/schema.json`](https://github.com/inference-gateway/adl/blob/main/schema/v1/schema.json) in `inference-gateway/adl` (rendered at [adl.inference-gateway.com](https://adl.inference-gateway.com)) - if anything here disagrees with the canonical schema, the canonical schema wins. `spec.card` and `spec.capabilities` track the [A2A](/a2a/) v1.0.1 `AgentCard`; the pre-release card fields they replaced are listed under [Deprecated card fields](#deprecated-card-fields).
 
 ### Overview
 
@@ -590,7 +589,7 @@ Defines what the agent supports at the protocol level.
 | `pushNotifications` | boolean | ✓        | -       | Enable push notification support                                                                       |
 | `extendedAgentCard` | boolean |          | `false` | Serve a richer card to authenticated callers via A2A `GetExtendedAgentCard` (`GET /extendedAgentCard`) |
 
-`spec.capabilities.stateTransitionHistory` is deprecated: the A2A v1.0.1 AgentCard dropped the flag, so published cards no longer carry it. Existing manifests stay valid, but leave it out of new ones.
+`spec.capabilities.stateTransitionHistory` was removed in schema v0.28.0: the A2A v1.0.1 AgentCard dropped the flag. A manifest that still carries it keeps validating, but `adl validate` and `adl generate` warn that the field is ignored - the generated card omits it, and the generated config no longer exposes an `A2A_CAPABILITIES_STATE_TRANSITION_HISTORY` environment variable.
 
 ### Card
 
@@ -606,28 +605,51 @@ Optional A2A agent card configuration that controls how your agent is discovered
 | `securitySchemes`      | object   | Statically declared security schemes, keyed by name (`apiKey`, `http`, `mutualTLS`)   |
 | `securityRequirements` | object[] | Advertised requirements, each mapping a scheme name to its required scopes            |
 
-Each `supportedInterfaces` entry describes one protocol binding:
+Each `supportedInterfaces` entry describes one protocol binding, and all three fields are required:
 
-| Field             | Type   | Required | Description                                                                                                                    |
-| ----------------- | ------ | -------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `url`             | string | ✓        | Absolute URL where this interface is available                                                                                 |
-| `protocolBinding` | string | ✓        | Binding served at that URL - `JSONRPC`, `GRPC`, `HTTP+JSON`, or another value                                                  |
-| `protocolVersion` | string | ✓        | A2A protocol version this interface exposes (e.g., `"1.0"`)                                                                    |
-| `tenant`          | string |          | Opaque routing value when several agents or tenants share one endpoint; clients echo it in the `tenant` field of every request |
+| Field             | Type   | Required | Description                                                                   |
+| ----------------- | ------ | -------- | ----------------------------------------------------------------------------- |
+| `url`             | string | ✓        | Absolute URL where this interface is available                                |
+| `protocolBinding` | string | ✓        | Binding served at that URL - `JSONRPC`, `GRPC`, `HTTP+JSON`, or another value |
+| `protocolVersion` | string | ✓        | A2A protocol version this interface exposes (e.g., `"1.0"`)                   |
 
-OAuth2 and OIDC schemes do not belong in `securitySchemes`: they are runtime concerns the ADK derives from `AUTH_ISSUER_URL` / `AUTH_CLIENT_ID` / `AUTH_CLIENT_SECRET` at startup, so an issuer baked into the manifest would be wrong per environment.
+The published card must advertise at least one interface, so a manifest that omits `supportedInterfaces` (or omits `spec.card` entirely) still gets one derived entry: a `JSONRPC` binding on protocol version `1.0`, whose URL the generated agent fills in at startup from `A2A_AGENT_URL`. Declare the list explicitly when the agent serves more than one binding, or when the preferred binding is not JSON-RPC - order matters, since clients treat the first entry as the preferred one.
+
+`securityRequirements` entries reference scheme names declared in `securitySchemes`, with the same OR-of-ANDs semantics as the OpenAPI `security` field: several keys in one entry are ANDed, and separate entries are ORed. The scope list is empty for schemes that have no scopes.
+
+```yaml
+spec:
+  card:
+    supportedInterfaces:
+      - url: 'https://my-agent.example.com/a2a'
+        protocolBinding: 'JSONRPC'
+        protocolVersion: '1.0'
+      - url: 'https://my-agent.example.com/grpc'
+        protocolBinding: 'GRPC'
+        protocolVersion: '1.0'
+    securitySchemes:
+      apiKey:
+        type: apiKey
+        name: X-API-Key
+        in: header
+    securityRequirements:
+      - apiKey: []
+```
+
+OAuth2 and OIDC schemes do not belong in `securitySchemes`: they are runtime concerns the ADK derives from `AUTH_ISSUER_URL` / `AUTH_CLIENT_ID` / `AUTH_CLIENT_SECRET` at startup, so an issuer baked into the manifest would be wrong per environment. When auth is enabled, the generated agent appends the derived OIDC requirement to whatever `securityRequirements` the manifest declares.
 
 #### Deprecated card fields
 
-A2A v1.0.1 reshaped the card surface. These fields still validate so older manifests keep working, and consumers translate each onto its counterpart, but prefer the current fields:
+A2A v1.0.1 reshaped the card surface, and schema v0.28.0 removed the pre-release fields it replaced. Older manifests keep generating: `adl validate` and `adl generate` translate each removed field onto its counterpart and emit a deprecation warning. A field already written in the v1.0.1 shape always wins over its deprecated mirror, so translation never overwrites an explicit value. Update the manifest to silence the warning.
 
-| Deprecated field            | Counterpart                              |
-| --------------------------- | ---------------------------------------- |
-| `protocolVersion`           | `supportedInterfaces[].protocolVersion`  |
-| `url`                       | `supportedInterfaces[0].url`             |
-| `preferredTransport`        | `supportedInterfaces[0].protocolBinding` |
-| `supportsExtendedAgentCard` | `spec.capabilities.extendedAgentCard`    |
-| `security`                  | `securityRequirements`                   |
+| Removed field                         | Counterpart                              |
+| ------------------------------------- | ---------------------------------------- |
+| `card.url`                            | `supportedInterfaces[0].url`             |
+| `card.preferredTransport`             | `supportedInterfaces[0].protocolBinding` |
+| `card.protocolVersion`                | `supportedInterfaces[0].protocolVersion` |
+| `card.security`                       | `securityRequirements`                   |
+| `card.supportsExtendedAgentCard`      | `spec.capabilities.extendedAgentCard`    |
+| `capabilities.stateTransitionHistory` | none - the field is ignored              |
 
 ### Agent Configuration
 

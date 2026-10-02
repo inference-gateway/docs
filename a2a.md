@@ -343,27 +343,48 @@ To create your own A2A-compatible agent, implement these endpoints:
 
 ### Required Endpoints
 
-- `/.well-known/agent.json` - Agent capabilities and metadata
+- `/.well-known/agent-card.json` - Agent card: capabilities and metadata
 - `/a2a` - Main A2A protocol endpoint
 - `/health` - Health check endpoint
 
-### Agent Capabilities Schema
+### Agent Card
 
-Your agent must expose its capabilities via the `/.well-known/agent.json` endpoint:
+Your agent must publish an A2A v1.0.1 `AgentCard` at `/.well-known/agent-card.json`. The gateway reads it to discover what the agent does, where to reach it, and how to authenticate:
 
 ```json
 {
+  "name": "my-agent",
+  "version": "1.0.0",
+  "description": "What this agent does",
+  "supportedInterfaces": [
+    {
+      "url": "https://my-agent.example.com/a2a",
+      "protocolBinding": "JSONRPC",
+      "protocolVersion": "1.0"
+    }
+  ],
+  "defaultInputModes": ["text"],
+  "defaultOutputModes": ["text"],
   "capabilities": {
-    "skills": [
-      {
-        "id": "your-skill-id",
-        "name": "Your Skill Name",
-        "description": "Description of what your skill does"
-      }
-    ]
-  }
+    "streaming": true,
+    "pushNotifications": false
+  },
+  "skills": [
+    {
+      "id": "your-skill-id",
+      "name": "Your Skill Name",
+      "description": "Description of what your skill does",
+      "tags": []
+    }
+  ]
 }
 ```
+
+Card fields worth knowing:
+
+- `supportedInterfaces` is an ordered list of the protocol endpoints the agent serves, one entry per binding (`JSONRPC`, `GRPC`, `HTTP+JSON`, or another value). At least one entry is required and the first is the preferred one - this replaces the single top-level `url` / `preferredTransport` / `protocolVersion` triple used before v1.0.1.
+- `capabilities.extendedAgentCard: true` advertises that an authenticated caller can fetch a richer card via `GetExtendedAgentCard`. Leave it out when the agent serves only the public card. The v1.0.1 card has no `stateTransitionHistory` flag.
+- `securitySchemes` names the schemes the agent accepts, and `securityRequirements` lists which of them a caller must satisfy (several keys in one entry are ANDed, separate entries are ORed). Keep `/.well-known/agent-card.json` itself unauthenticated so clients can negotiate auth from the advertised schemes - see [Authentication](/authentication/).
 
 ### A2A Protocol Implementation
 

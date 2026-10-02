@@ -877,11 +877,12 @@ Reference them in code as `server.BuildAgentName`, etc., when constructing the `
 
 **Capabilities** (`CAPABILITIES_` prefix)
 
-| Variable                                | Default | Purpose                               |
-| --------------------------------------- | ------- | ------------------------------------- |
-| `CAPABILITIES_STREAMING`                | `true`  | Advertise `message/stream` support.   |
-| `CAPABILITIES_PUSH_NOTIFICATIONS`       | `true`  | Advertise push-notification support.  |
-| `CAPABILITIES_STATE_TRANSITION_HISTORY` | `false` | Record task state-transition history. |
+| Variable                          | Default | Purpose                              |
+| --------------------------------- | ------- | ------------------------------------ |
+| `CAPABILITIES_STREAMING`          | `true`  | Advertise `message/stream` support.  |
+| `CAPABILITIES_PUSH_NOTIFICATIONS` | `true`  | Advertise push-notification support. |
+
+`CAPABILITIES_STATE_TRANSITION_HISTORY` is gone: the A2A v1.0.1 AgentCard dropped the flag, so the ADK no longer reads it and generated configurations no longer set it.
 
 **MCP client** (`MCP_` prefix) - connect the agent to [MCP servers](#mcp-client); disabled by default. When the ADK config is nested under `A2A_` (as in the examples), the prefix becomes `A2A_MCP_`.
 
