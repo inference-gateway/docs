@@ -4126,7 +4126,7 @@ Rendering is bounded so a chatty shell cannot overflow the panel: the Output sec
 
 ### A2A Integration
 
-Delegate specialized tasks to Agent-to-Agent compatible agents.
+Delegate specialized tasks to Agent-to-Agent compatible agents. The A2A client speaks **A2A v1.0.1**, matching agents built on ADK v0.30.0 or later, while still reading the pre-v1.0.1 task state spellings - see [protocol version and task states](/a2a/#protocol-version-and-task-states).
 
 **Setup:**
 

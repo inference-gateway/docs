@@ -199,6 +199,14 @@ The CLI provides four A2A tools that LLMs can use to interact with agents:
 - **A2A_SubmitTask**: Submit tasks to specialized agents for processing
 - **A2A_QueryTask**: Check the status and results of submitted tasks
 
+`A2A_QueryAgent` returns the [agent card](#agent-card) in its A2A v1.0.1 shape, so the endpoint comes from `supportedInterfaces` rather than a flat `url` field. The result message names the **preferred endpoint** - the URL of the first `supportedInterfaces` entry, falling back to the configured agent URL when the card declares none.
+
+### Protocol Version and Task States
+
+The CLI's A2A client speaks **A2A v1.0.1**, matching agents built on ADK v0.30.0 or later. Task states in `A2A_SubmitTask` and `A2A_QueryTask` results therefore use the v1.0.1 spellings, so a canceled task reports `TASK_STATE_CANCELED`.
+
+The pre-v1.0.1 spelling `TASK_STATE_CANCELLED` is still accepted on read, along with bare forms such as `canceled` and `cancelled`. Agents on either release render as the same terminal **Canceled** status in the [`/tasks` view](/cli/#tasks-view) and in tool results - no agent upgrade is required.
+
 ### Viewing Connected Agents
 
 During a chat session, the `/agents` shortcut opens the [Agents view](/cli/#agents-view) - one list of every agent the chat can delegate to, where each row carries an `a2a` chip for remote agents or a `local` chip for Markdown subagent presets:
