@@ -1488,6 +1488,17 @@ Read a file from the local filesystem with an optional line range. Handles text 
 - **Approval**: not required (read-only)
 - **Notes**: lines longer than 2000 characters are truncated; output is returned in `cat -n` format
 
+A missing file does not return a bare `NOT_FOUND`. The error appends up to five candidate paths so the next call can correct a typo or a wrong directory instead of retrying the same path: siblings of the nearest existing directory ranked by name similarity, plus - when no sibling carries the missing base name - files with that base name found under the configured sandbox directory containing it.
+
+```text
+NOT_FOUND: /home/user/project/internal/tools/reader.go
+
+Did you mean one of:
+  /home/user/project/internal/tools/read.go
+  /home/user/project/internal/tools/read_test.go
+  /home/user/project/internal/tools/registry.go
+```
+
 #### Write
 
 Write content to a file on disk. Overwrites the existing file at the given path.
@@ -2774,34 +2785,46 @@ reminders:
     text: 'A failed call means the change did not happen. Re-try or ask the user.'
 ```
 
-| Field      | Type    | Description                                                                                                                                                                        |
-| ---------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `enabled`  | boolean | Master switch. Default `true`. Can also be toggled via `INFER_REMINDERS_ENABLED`.                                                                                                  |
-| `name`     | string  | Unique identifier for the reminder. Used for deduplication and logging.                                                                                                            |
-| `hook`     | string  | When the reminder fires. One of `pre_tool` (before each tool call) or `post_tool` (after each tool call completes).                                                                |
-| `trigger`  | string  | Condition under which the reminder fires. See [Trigger catalog](#trigger-catalog) below.                                                                                           |
-| `text`     | string  | The reminder text injected into the conversation. Supports `os.ExpandEnv` environment variable interpolation (`$VAR` or `${VAR}`).                                                 |
-| `guidance` | map     | `on_mode_change` only. Maps a mode key (`standard`, `plan`, `auto`) to the text substituted for the `{guidance}` placeholder in `text`. Omitted keys keep their built-in defaults. |
+| Field       | Type    | Description                                                                                                                                                                        |
+| ----------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `enabled`   | boolean | Master switch. Default `true`. Can also be toggled via `INFER_REMINDERS_ENABLED`.                                                                                                  |
+| `name`      | string  | Unique identifier for the reminder. Used for deduplication and logging.                                                                                                            |
+| `hook`      | string  | When the reminder fires. One of `pre_tool` (before each tool call) or `post_tool` (after each tool call completes).                                                                |
+| `trigger`   | string  | Condition under which the reminder fires. See [Trigger catalog](#trigger-catalog) below.                                                                                           |
+| `text`      | string  | The reminder text injected into the conversation. Supports `os.ExpandEnv` environment variable interpolation (`$VAR` or `${VAR}`).                                                 |
+| `threshold` | integer | `on_repeated_failure` only (required, > 0). Number of consecutive failures of the same call before the reminder fires.                                                             |
+| `guidance`  | map     | `on_mode_change` only. Maps a mode key (`standard`, `plan`, `auto`) to the text substituted for the `{guidance}` placeholder in `text`. Omitted keys keep their built-in defaults. |
 
 #### Trigger catalog
 
-| Trigger          | Hook requirement | Description                                                                                                                                                                                                                                               |
-| ---------------- | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `always`         | Any              | Fire on every hook invocation.                                                                                                                                                                                                                            |
-| `on_failure`     | `post_tool`      | Fire only when the tool call that just ran failed (returned an error). Requires `hook: post_tool`; validation rejects other hooks.                                                                                                                        |
-| `on_mode_change` | Any              | Fire when the [agent mode](#agent-modes) changes (Shift+Tab). Used by the built-in `mode-change-reminder`, which is the **sole carrier** of mode-specific instructions - see [How mode instructions are delivered](#how-mode-instructions-are-delivered). |
+| Trigger               | Hook requirement | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| --------------------- | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `always`              | Any              | Fire on every hook invocation.                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| `on_failure`          | `post_tool`      | Fire only when the tool call that just ran failed (returned an error). Requires `hook: post_tool`; validation rejects other hooks.                                                                                                                                                                                                                                                                                                                                    |
+| `on_mode_change`      | Any              | Fire when the [agent mode](#agent-modes) changes (Shift+Tab). Used by the built-in `mode-change-reminder`, which is the **sole carrier** of mode-specific instructions - see [How mode instructions are delivered](#how-mode-instructions-are-delivered).                                                                                                                                                                                                             |
+| `on_repeated_failure` | `post_tool`      | Fire when the same tool call has failed `threshold` times in a row (built-in default `3`). Matching is on **normalized** arguments, not the raw string: `offset`, `limit`, key order and whitespace are ignored, so retries that only change pagination or re-serialize the same arguments still count toward the threshold. `Read` matches on the `file_path` alone. A success with the same key resets the counter. Requires `hook: post_tool` and `threshold` > 0. |
+
+The built-in `repeated-failure` reminder uses this trigger and is appended to the failing tool result:
+
+```text
+<system-reminder>
+{tool_name} failed {count} times with the same arguments. Stop retrying - verify your assumptions (list or search first) and take a different approach.
+</system-reminder>
+```
+
+`{tool_name}` and `{count}` are substituted from the tracked failure; both placeholders work in your own `on_repeated_failure` reminder text.
 
 #### Configuration sources and precedence
 
 Reminders are resolved with the following precedence (highest first):
 
-| Priority    | Source                   | Description                                                                                          |
-| ----------- | ------------------------ | ---------------------------------------------------------------------------------------------------- |
-| 1 (Highest) | `INFER_REMINDERS_CONFIG` | Inline YAML string. When set, it **replaces** all file-loaded reminders.                             |
-| 2           | `--reminders-file PATH`  | Load reminders from an arbitrary file path. Available on `infer headless` and `infer chat`.          |
-| 3           | Project config           | `./.infer/reminders.yaml`                                                                            |
-| 4           | User config              | `~/.infer/reminders.yaml`                                                                            |
-| 5 (Lowest)  | Built-in defaults        | The CLI ships a built-in `memory-consult` reminder that nudges the agent to consult the Memory tool. |
+| Priority    | Source                   | Description                                                                                                                                                                              |
+| ----------- | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1 (Highest) | `INFER_REMINDERS_CONFIG` | Inline YAML string. When set, it **replaces** all file-loaded reminders.                                                                                                                 |
+| 2           | `--reminders-file PATH`  | Load reminders from an arbitrary file path. Available on `infer headless` and `infer chat`.                                                                                              |
+| 3           | Project config           | `./.infer/reminders.yaml`                                                                                                                                                                |
+| 4           | User config              | `~/.infer/reminders.yaml`                                                                                                                                                                |
+| 5 (Lowest)  | Built-in defaults        | The CLI ships a built-in `memory-consult` reminder that nudges the agent to consult the Memory tool, and a `repeated-failure` reminder that fires on the third failure of the same call. |
 
 `INFER_REMINDERS_ENABLED` toggles the master switch on top of all sources — set it to `false` to disable all reminders regardless of the resolved config.
 
