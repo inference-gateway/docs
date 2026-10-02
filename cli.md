@@ -854,7 +854,7 @@ Under `--format ag-ui` the stream itself reports what a computer-use run is doin
       "path": "/screenRecording",
       "value": {
         "active": true,
-        "path": "/home/user/.infer/recordings/session-1.mp4",
+        "path": "/home/user/.infer/projects/my-app/tmp/media/recordings/session-1.mp4",
         "region": { "x": 0, "y": 0, "width": 1280, "height": 720 },
         "frameWidth": 1280,
         "frameHeight": 720
@@ -1250,18 +1250,18 @@ Recording lives under `recording` in `.infer/computer_use.yaml` (project) or `~/
 recording:
   enabled: true # register the RecordStart/RecordStop tools (default: false)
   max_duration: 120 # seconds; the recording stops and finalizes itself at this cap
-  output_dir: '' # empty = ~/.infer/tmp/recordings
+  output_dir: '' # empty = recordings/ under the media root
   framerate: 24 # frames per second
 ```
 
 Every key has an `INFER_COMPUTER_USE_RECORDING_`-prefixed environment variable that takes precedence over the YAML value.
 
-| Config key                            | Environment variable                        | Type   | Default                   | Notes                                                                  |
-| ------------------------------------- | ------------------------------------------- | ------ | ------------------------- | ---------------------------------------------------------------------- |
-| `computer_use.recording.enabled`      | `INFER_COMPUTER_USE_RECORDING_ENABLED`      | bool   | `false`                   | Feature flag - both tools are absent from the LLM payload when `false` |
-| `computer_use.recording.max_duration` | `INFER_COMPUTER_USE_RECORDING_MAX_DURATION` | int    | `120`                     | Seconds; the recording finalizes itself at the cap. Must be positive   |
-| `computer_use.recording.output_dir`   | `INFER_COMPUTER_USE_RECORDING_OUTPUT_DIR`   | string | `~/.infer/tmp/recordings` | Where MP4s are written, as `<timestamp>.mp4`; created on first use     |
-| `computer_use.recording.framerate`    | `INFER_COMPUTER_USE_RECORDING_FRAMERATE`    | int    | `24`                      | Capture frame rate. Must be positive                                   |
+| Config key                            | Environment variable                        | Type   | Default                                                  | Notes                                                                  |
+| ------------------------------------- | ------------------------------------------- | ------ | -------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `computer_use.recording.enabled`      | `INFER_COMPUTER_USE_RECORDING_ENABLED`      | bool   | `false`                                                  | Feature flag - both tools are absent from the LLM payload when `false` |
+| `computer_use.recording.max_duration` | `INFER_COMPUTER_USE_RECORDING_MAX_DURATION` | int    | `120`                                                    | Seconds; the recording finalizes itself at the cap. Must be positive   |
+| `computer_use.recording.output_dir`   | `INFER_COMPUTER_USE_RECORDING_OUTPUT_DIR`   | string | `recordings/` under the [media root](#media-directories) | Where MP4s are written, as `<timestamp>.mp4`; created on first use     |
+| `computer_use.recording.framerate`    | `INFER_COMPUTER_USE_RECORDING_FRAMERATE`    | int    | `24`                                                     | Capture frame rate. Must be positive                                   |
 
 **Requirements.** The recorder shells out to **ffmpeg with libx264 and the platform's screen grabber**, found on `PATH` - for example `brew install ffmpeg` (macOS) or `apt install ffmpeg` (Debian/Ubuntu). A minimal ffmpeg build without the encoder or the grabber cannot record.
 
@@ -1361,7 +1361,7 @@ screenshot:
   streaming_enabled: true # also registers the GetLatestFrame tool
   capture_interval: 3
   buffer_size: 60
-  temp_dir: ''
+  temp_dir: '' # empty = screenshots/ under the media root
 rate_limit:
   enabled: true
   max_actions_per_minute: 60
@@ -1821,7 +1821,7 @@ Synthesize speech from text with a local TTS engine and save it as a WAV file. T
 
 - `text` (required): The text to speak
 - `voice_sample` (optional): Bare file name of a WAV of the target speaker (~10-30s of clean speech) to clone, resolved against the working directory first and then the [voice samples library](/cli-text-to-speech/#the-voice-samples-library) at `~/.infer/models/tts/samples/`; a name found in neither fails with an error listing both paths tried
-- `output_path` (optional): Destination WAV; defaults to a timestamped file under `text_to_speech.output_dir` (`~/.infer/tmp/tts/`)
+- `output_path` (optional): Destination WAV; defaults to a timestamped file under `text_to_speech.output_dir` (`tts/` in the [media root](#media-directories))
 
 **Configuration:**
 
@@ -1851,18 +1851,18 @@ The clip is always MP3 - the format the gateway's music providers serve (ElevenL
 text_to_music:
   enabled: true
   # model: elevenlabs/music_v2_5 # gateway provider/model id
-  # output_dir: ~/.infer/tmp/music
+  # output_dir: ~/.infer/projects/<project-slug>/tmp/media/music
   require_approval: false # optional; unset = no approval, like the image tools
 ```
 
 Every key also has an `INFER_TEXT_TO_MUSIC_`-prefixed environment variable that takes precedence over the config file:
 
-| Config key                       | Environment variable                   | Type   | Default                 | Notes                                                                                       |
-| -------------------------------- | -------------------------------------- | ------ | ----------------------- | ------------------------------------------------------------------------------------------- |
-| `text_to_music.enabled`          | `INFER_TEXT_TO_MUSIC_ENABLED`          | bool   | `false`                 | Feature flag - must be `true` for the `TextToMusic` tool to reach the LLM                   |
-| `text_to_music.model`            | `INFER_TEXT_TO_MUSIC_MODEL`            | string | `elevenlabs/music_v2_5` | Gateway `provider/model` id; a bare model name fails validation once the feature is enabled |
-| `text_to_music.output_dir`       | `INFER_TEXT_TO_MUSIC_OUTPUT_DIR`       | string | `~/.infer/tmp/music`    | Where generated MP3s are written                                                            |
-| `text_to_music.require_approval` | `INFER_TEXT_TO_MUSIC_REQUIRE_APPROVAL` | bool   | unset (no approval)     | Tri-state: unset keeps the tool's own default, an explicit value pins the policy either way |
+| Config key                       | Environment variable                   | Type   | Default                                             | Notes                                                                                       |
+| -------------------------------- | -------------------------------------- | ------ | --------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `text_to_music.enabled`          | `INFER_TEXT_TO_MUSIC_ENABLED`          | bool   | `false`                                             | Feature flag - must be `true` for the `TextToMusic` tool to reach the LLM                   |
+| `text_to_music.model`            | `INFER_TEXT_TO_MUSIC_MODEL`            | string | `elevenlabs/music_v2_5`                             | Gateway `provider/model` id; a bare model name fails validation once the feature is enabled |
+| `text_to_music.output_dir`       | `INFER_TEXT_TO_MUSIC_OUTPUT_DIR`       | string | `music/` under the [media root](#media-directories) | Where generated MP3s are written                                                            |
+| `text_to_music.require_approval` | `INFER_TEXT_TO_MUSIC_REQUIRE_APPROVAL` | bool   | unset (no approval)                                 | Tri-state: unset keeps the tool's own default, an explicit value pins the policy either way |
 
 **Gateway requirements:** the music endpoint is part of the gateway's Audio API, so the gateway must run with `AUDIO_ENABLED=true` and hold credentials for the provider behind `model` (an ElevenLabs API key for the default). The CLI-managed local gateway is started with `AUDIO_ENABLED=true` automatically when `text_to_music.enabled` is on, and an already-running instance without the Audio API is restarted. Point the CLI at an externally managed gateway and you set `AUDIO_ENABLED=true` and the provider key there yourself.
 
@@ -1887,18 +1887,18 @@ The same `output_path` rule as [TextToMusic](#texttomusic-tool) applies: the cli
 text_to_sfx:
   enabled: true
   # model: elevenlabs/eleven_text_to_sound_v2 # gateway provider/model id
-  # output_dir: ~/.infer/tmp/sfx
+  # output_dir: ~/.infer/projects/<project-slug>/tmp/media/sfx
   require_approval: false # optional; unset = no approval, like the image tools
 ```
 
 Every key also has an `INFER_TEXT_TO_SFX_`-prefixed environment variable that takes precedence over the config file:
 
-| Config key                     | Environment variable                 | Type   | Default                              | Notes                                                                                       |
-| ------------------------------ | ------------------------------------ | ------ | ------------------------------------ | ------------------------------------------------------------------------------------------- |
-| `text_to_sfx.enabled`          | `INFER_TEXT_TO_SFX_ENABLED`          | bool   | `false`                              | Feature flag - must be `true` for the `TextToSFX` tool to reach the LLM                     |
-| `text_to_sfx.model`            | `INFER_TEXT_TO_SFX_MODEL`            | string | `elevenlabs/eleven_text_to_sound_v2` | Gateway `provider/model` id; a bare model name fails validation once the feature is enabled |
-| `text_to_sfx.output_dir`       | `INFER_TEXT_TO_SFX_OUTPUT_DIR`       | string | `~/.infer/tmp/sfx`                   | Where generated WAVs are written                                                            |
-| `text_to_sfx.require_approval` | `INFER_TEXT_TO_SFX_REQUIRE_APPROVAL` | bool   | unset (no approval)                  | Tri-state: unset keeps the tool's own default, an explicit value pins the policy either way |
+| Config key                     | Environment variable                 | Type   | Default                                           | Notes                                                                                       |
+| ------------------------------ | ------------------------------------ | ------ | ------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `text_to_sfx.enabled`          | `INFER_TEXT_TO_SFX_ENABLED`          | bool   | `false`                                           | Feature flag - must be `true` for the `TextToSFX` tool to reach the LLM                     |
+| `text_to_sfx.model`            | `INFER_TEXT_TO_SFX_MODEL`            | string | `elevenlabs/eleven_text_to_sound_v2`              | Gateway `provider/model` id; a bare model name fails validation once the feature is enabled |
+| `text_to_sfx.output_dir`       | `INFER_TEXT_TO_SFX_OUTPUT_DIR`       | string | `sfx/` under the [media root](#media-directories) | Where generated WAVs are written                                                            |
+| `text_to_sfx.require_approval` | `INFER_TEXT_TO_SFX_REQUIRE_APPROVAL` | bool   | unset (no approval)                               | Tri-state: unset keeps the tool's own default, an explicit value pins the policy either way |
 
 **Gateway requirements:** the SFX endpoint is part of the gateway's Audio API (gateway v0.54.0 or newer), so the gateway must run with `AUDIO_ENABLED=true` and hold credentials for the provider behind `model` (an ElevenLabs API key for the default). The CLI-managed local gateway is started with `AUDIO_ENABLED=true` automatically when `text_to_sfx.enabled` is on, and an already-running instance without the Audio API is restarted. Point the CLI at an externally managed gateway and you set `AUDIO_ENABLED=true` and the provider key there yourself.
 
@@ -1930,7 +1930,7 @@ text_to_video:
   # model: elevenlabs/veo-3.1-fast-generate-001 # prompt renders
   # avatar_model: elevenlabs/creatify-aurora # lip-synced avatar renders
   # size: '' # "widthxheight" passthrough
-  # output_dir: ~/.infer/tmp/video
+  # output_dir: ~/.infer/projects/<project-slug>/tmp/media/video
   # timeout: 900
   # poll_interval: 5
   # create_avatar: false # register the CreateAvatar tool as well
@@ -2572,29 +2572,29 @@ Two-layer configuration system with precedence from highest to lowest:
 
 `infer init` seeds the userspace baseline in `~/.infer/` (`config.yaml`, `sandbox.yaml`, `mcp.yaml`, `prompts.yaml`, `agents.yaml`, `shortcuts/`, `skills/` and so on) and writes nothing into the project. Project-level overrides are created on demand with `infer config set --project <key> <value>`, or with `--project` on `infer mcp` / `infer agents`. Configuration is split across purpose-specific YAML files rather than one giant file:
 
-| File               | Scope        | Purpose                                                                                                                                                                    | Where it is documented                                      |
-| ------------------ | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| `config.yaml`      | Project/user | Main config - agent, tools, storage, pricing, and everything `config get`/`set` touches.                                                                                   | [Configuration](#configuration-commands)                    |
-| `prompts.yaml`     | Project/user | System prompts (`prompts.agent.system_prompt`), per-mode adjustments, and tool descriptions (`prompts.tools.<Tool>.description`) - edited, not `set`.                      | [Configuration Commands](#configuration-commands)           |
-| `mcp.yaml`         | Project/user | MCP server definitions and connection settings.                                                                                                                            | [MCP Integration](#mcp-integration)                         |
-| `keybindings.yaml` | Project/user | Keybindings for the TUI and diff viewer (category `diff_viewer`).                                                                                                          | [Diff viewer and git staging](#diff-viewer-and-git-staging) |
-| `hooks.yaml`       | Project/user | User-defined shell commands run at agent-loop hook points (feature-flagged off by default).                                                                                | [Command Hooks](/cli-hooks/)                                |
-| `reminders.yaml`   | Project/user | System reminders injected into the conversation on a schedule.                                                                                                             | [System Reminders](#system-reminders)                       |
-| `sandbox.yaml`     | User only    | File sandbox policy - `filesystem.allowed` and `filesystem.denied`. A project copy is ignored.                                                                             | [File sandbox](#file-sandbox)                               |
-| `judge.yaml`       | Project/user | LLM judge that decides approval-requiring tool calls (model, timeout, prompts, `on_error`).                                                                                | [Judge Mode](/cli-judge-mode/)                              |
-| `daemon.yaml`      | Project/user | `infer daemon` itself - the AG-UI binding's own switch, port and token (`binding.enabled`, `binding.port`, `binding.token`).                                               | [Starting the daemon](#starting-the-daemon)                 |
-| `memory.yaml`      | Project/user | Persistent, cross-session agent memory - fact-files plus the `MEMORY.md` index.                                                                                            | [Persistent Memory](#persistent-memory)                     |
-| `shortcuts/*.yaml` | Project      | Custom slash shortcuts - simple commands, subcommands, and AI-powered snippets.                                                                                            | [Custom Shortcuts](#custom-shortcuts)                       |
-| `skills/`          | Project/user | Agent Skills folders (`name/SKILL.md`) discovered and injected on demand.                                                                                                  | [Agent Skills](#agent-skills)                               |
-| `tools/`           | Project/user | Custom tool manifests (`Name.yaml`), one per tool, also read from `.agents/tools/`.                                                                                        | [Custom Tools](#custom-tools)                               |
-| `schedules/`       | User         | Persisted cron jobs created by the Schedule tool, run by the daemon.                                                                                                       | [Schedule](#schedule)                                       |
-| `artifacts/`       | Project/user | Agent deliverables, grouped per session.                                                                                                                                   | [Artifacts directory](#artifacts-directory)                 |
-| `logs/`            | User         | CLI and gateway log files (`~/.infer/logs`, overridable via `logging.dir`).                                                                                                | [Key Configuration Areas](#key-configuration-areas)         |
-| `bin/`             | User         | Downloaded binaries - the gateway server, plus optional helpers like `ffmpeg`.                                                                                             | [Key Configuration Areas](#key-configuration-areas)         |
-| `insights/`        | User         | Saved `infer insights` reports. Written with secrets redacted, and kept by `/reset`.                                                                                       | [Insights Shortcut](#insights-shortcut)                     |
-| `avatars/`         | User         | Avatar portrait folders (`avatars/<name>/*.png`) used by `TextToVideo` lip-sync renders. Kept by `/reset`.                                                                 | [Text-to-Video](/cli-text-to-video/#the-avatar-library)     |
-| `auth.yaml`        | User         | Fallback provider API keys, used when a key is not in the environment or the project `.env`.                                                                               | [Provider API keys](#provider-api-keys)                     |
-| `tmp/`             | User         | Userspace scratch - generated speech (`tmp/tts`), retained recordings (`tmp/voice`), screen recordings (`tmp/recordings`), channel media (`tmp/media`). Wiped by `/reset`. | [Userspace tmp tree](#userspace-tmp-tree)                   |
+| File               | Scope        | Purpose                                                                                                                                                | Where it is documented                                      |
+| ------------------ | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------- |
+| `config.yaml`      | Project/user | Main config - agent, tools, storage, pricing, and everything `config get`/`set` touches.                                                               | [Configuration](#configuration-commands)                    |
+| `prompts.yaml`     | Project/user | System prompts (`prompts.agent.system_prompt`), per-mode adjustments, and tool descriptions (`prompts.tools.<Tool>.description`) - edited, not `set`.  | [Configuration Commands](#configuration-commands)           |
+| `mcp.yaml`         | Project/user | MCP server definitions and connection settings.                                                                                                        | [MCP Integration](#mcp-integration)                         |
+| `keybindings.yaml` | Project/user | Keybindings for the TUI and diff viewer (category `diff_viewer`).                                                                                      | [Diff viewer and git staging](#diff-viewer-and-git-staging) |
+| `hooks.yaml`       | Project/user | User-defined shell commands run at agent-loop hook points (feature-flagged off by default).                                                            | [Command Hooks](/cli-hooks/)                                |
+| `reminders.yaml`   | Project/user | System reminders injected into the conversation on a schedule.                                                                                         | [System Reminders](#system-reminders)                       |
+| `sandbox.yaml`     | User only    | File sandbox policy - `filesystem.allowed` and `filesystem.denied`. A project copy is ignored.                                                         | [File sandbox](#file-sandbox)                               |
+| `judge.yaml`       | Project/user | LLM judge that decides approval-requiring tool calls (model, timeout, prompts, `on_error`).                                                            | [Judge Mode](/cli-judge-mode/)                              |
+| `daemon.yaml`      | Project/user | `infer daemon` itself - the AG-UI binding's own switch, port and token (`binding.enabled`, `binding.port`, `binding.token`).                           | [Starting the daemon](#starting-the-daemon)                 |
+| `memory.yaml`      | Project/user | Persistent, cross-session agent memory - fact-files plus the `MEMORY.md` index.                                                                        | [Persistent Memory](#persistent-memory)                     |
+| `shortcuts/*.yaml` | Project      | Custom slash shortcuts - simple commands, subcommands, and AI-powered snippets.                                                                        | [Custom Shortcuts](#custom-shortcuts)                       |
+| `skills/`          | Project/user | Agent Skills folders (`name/SKILL.md`) discovered and injected on demand.                                                                              | [Agent Skills](#agent-skills)                               |
+| `tools/`           | Project/user | Custom tool manifests (`Name.yaml`), one per tool, also read from `.agents/tools/`.                                                                    | [Custom Tools](#custom-tools)                               |
+| `schedules/`       | User         | Persisted cron jobs created by the Schedule tool, run by the daemon.                                                                                   | [Schedule](#schedule)                                       |
+| `artifacts/`       | Project/user | Agent deliverables, grouped per session.                                                                                                               | [Artifacts directory](#artifacts-directory)                 |
+| `logs/`            | User         | CLI and gateway log files (`~/.infer/logs`, overridable via `logging.dir`).                                                                            | [Key Configuration Areas](#key-configuration-areas)         |
+| `bin/`             | User         | Downloaded binaries - the gateway server, plus optional helpers like `ffmpeg`.                                                                         | [Key Configuration Areas](#key-configuration-areas)         |
+| `insights/`        | User         | Saved `infer insights` reports. Written with secrets redacted, and kept by `/reset`.                                                                   | [Insights Shortcut](#insights-shortcut)                     |
+| `avatars/`         | User         | Avatar portrait folders (`avatars/<name>/*.png`) used by `TextToVideo` lip-sync renders. Kept by `/reset`.                                             | [Text-to-Video](/cli-text-to-video/#the-avatar-library)     |
+| `auth.yaml`        | User         | Fallback provider API keys, used when a key is not in the environment or the project `.env`.                                                           | [Provider API keys](#provider-api-keys)                     |
+| `tmp/`             | User         | Scratch space, including the `tmp/media` root for generated speech, music, video, recordings, screenshots and retained attachments. Wiped by `/reset`. | [Media directories](#media-directories)                     |
 
 > **No migration.** `logs/` and `bin/` are userspace-only: they live under `~/.infer/` and are
 > shared by every project. Older versions wrote them into the project's `.infer/` directory; those
@@ -2646,29 +2646,34 @@ What lands there:
 
 `.infer/artifacts` is **not** the same as `.infer/tmp`:
 
-| Directory          | Contents                                                                    | Lifetime                                  |
-| ------------------ | --------------------------------------------------------------------------- | ----------------------------------------- |
-| `.infer/artifacts` | Intended agent deliverables, grouped by session                             | Yours to keep - nothing prunes it for you |
-| `.infer/tmp`       | Internal scratch only - chunk staging, skill downloads, screenshots, pastes | Disposable working data                   |
+| Directory          | Contents                                                                                                                                    | Lifetime                                  |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| `.infer/artifacts` | Intended agent deliverables, grouped by session                                                                                             | Yours to keep - nothing prunes it for you |
+| `.infer/tmp`       | Internal scratch - chunk staging, skill downloads, pastes, and the [media root](#media-directories) holding screenshots and generated media | Disposable working data                   |
 
 Session IDs are sanitized before use, so a directory can never escape the artifacts root. The [file sandbox](#file-sandbox) carves the artifacts directory out as writable, so tools can save there even when it sits outside the allowed list.
 
-### Userspace tmp tree
+### Media directories
 
-Disposable runtime output that is not tied to a single project lives under `~/.infer/tmp/`:
+Every generated and retained media file lives under one **media root**, with a subdirectory per kind. The root follows the open project:
 
-| Directory            | Contents                          | Config default of               |
-| -------------------- | --------------------------------- | ------------------------------- |
-| `~/.infer/tmp/tts`   | Generated speech WAVs             | `text_to_speech.output_dir`     |
-| `~/.infer/tmp/music` | Generated music MP3s              | `text_to_music.output_dir`      |
-| `~/.infer/tmp/sfx`   | Generated sound-effect WAVs       | `text_to_sfx.output_dir`        |
-| `~/.infer/tmp/video` | Rendered MP4 clips                | `text_to_video.output_dir`      |
-| `~/.infer/tmp/voice` | Retained inbound voice recordings | `speech_to_text.recordings_dir` |
-| `~/.infer/tmp/media` | Retained inbound Telegram media   | `channels.telegram.media.dir`   |
+- **In a project** - `~/.infer/projects/<project-slug>/tmp/media/`. The desktop app runs a selected project's sessions there, so its media lands in that project's root too.
+- **No project open** - `~/.infer/tmp/media/`, used when the working directory is `$HOME` or the desktop's `~/.infer/workspace`.
 
-The whole `~/.infer/tmp` tree is agent-readable and writable by design - retained recordings and media are assets the agent consumes, and generated speech is output it can reference. The rest of `~/.infer/` is covered by the `.infer/` denial in the [file sandbox](#file-sandbox), which asks before every read and write. [`/reset`](#reset-shortcut) empties the tree through the `tmp` parent; the owning subsystems recreate the subdirectories on next use. Directories you explicitly point outside `~/.infer` are left alone.
+| Subdirectory   | Contents                                             | Config default of                   |
+| -------------- | ---------------------------------------------------- | ----------------------------------- |
+| `tts/`         | Generated speech WAVs                                | `text_to_speech.output_dir`         |
+| `music/`       | Generated music MP3s                                 | `text_to_music.output_dir`          |
+| `sfx/`         | Generated sound-effect WAVs                          | `text_to_sfx.output_dir`            |
+| `video/`       | Rendered MP4 clips                                   | `text_to_video.output_dir`          |
+| `recordings/`  | [`RecordStart`](#screen-recording) screen recordings | `computer_use.recording.output_dir` |
+| `screenshots/` | Browser and computer-use screenshots                 | `computer_use.screenshot.temp_dir`  |
+| `voice/`       | Retained inbound voice recordings                    | `speech_to_text.recordings_dir`     |
+| `attachments/` | Retained inbound Telegram photos and videos          | `channels.telegram.media.dir`       |
 
-> **Existing installs.** Older releases placed these three directories directly under `~/.infer/` (`tts/`, `voice/`, `media/`). Nothing migrates automatically - they hold only disposable output, so delete them, or `mv` their contents under `~/.infer/tmp/` to keep the retained files. Explicit `output_dir` / `recordings_dir` / `media.dir` overrides are unaffected.
+The media root is agent-readable and writable by design - retained recordings and attachments are assets the agent consumes, and generated speech is output it can reference. The rest of `~/.infer/` is covered by the `.infer/` denial in the [file sandbox](#file-sandbox), which asks before every read and write. [`/reset`](#reset-shortcut) empties both tmp trees through their `tmp` parents; the owning subsystems recreate the subdirectories on next use. Directories you explicitly point outside `~/.infer` are left alone.
+
+> **Existing installs.** Older releases placed these directories directly under `~/.infer/` or `~/.infer/tmp/` (`tts/`, `voice/`, `media/`, ...). Nothing migrates automatically - they hold only disposable output, so delete them, or `mv` their contents into the media root to keep the retained files. Explicit `output_dir` / `recordings_dir` / `temp_dir` / `media.dir` overrides are unaffected.
 
 ### Key Configuration Areas
 
@@ -3398,7 +3403,7 @@ Both steps end with a disk-space total: the preview ends with `Total reclaimable
 
 `/reset confirm` only deletes after a preview was shown in the same session (within the last 5 minutes). A cold `/reset confirm` prints the preview instead, so a tab-completed confirm cannot wipe anything by accident.
 
-**Deleted**, for every project under `~/.infer/projects/`: conversations, plans, scratch dirs, artifacts, history, backups, exports, logs, telemetry, schedules, pid/lock files, and the userspace tmp tree (generated speech, retained recordings, channel media). With the SQLite backend the conversation database and its WAL sidecars go too.
+**Deleted**, for every project under `~/.infer/projects/`: conversations, plans, scratch dirs, artifacts, history, backups, exports, logs, telemetry, schedules, pid/lock files, and both tmp trees including their [media roots](#media-directories) (generated speech, music, video, screen recordings, screenshots, retained voice recordings and attachments). With the SQLite backend the conversation database and its WAL sidecars go too.
 
 **Preserved**: configuration (`config.yaml`, custom shortcuts, skills, `projects.yaml`), the [avatar library](/cli-text-to-video/#the-avatar-library) under `~/.infer/avatars/`, and saved [insights reports](#insights-shortcut) under `~/.infer/insights/` (written redacted). Directories you pointed outside `~/.infer` (for example a `text_to_speech.output_dir` of `/data/tts`) are left alone.
 
@@ -4370,7 +4375,7 @@ Paths are either **anchored** (`/abs`, `~/x`, `.`, `./x` - matched at that locat
 - `allowed`: `.` and `/tmp`.
 - `denied`: `.infer/` (with `on_violation: approval`), `.git/`, `*.env`, `.environment`, `auth.yaml`, `*.key`, `*.pem`, `id_rsa`, `id_dsa`, `id_ecdsa`, `id_ed25519`.
 
-The config dirs (`.infer/` and `~/.infer/`) therefore **ask before every read and write**, since their files can hold tokens - including [`auth.yaml`](#provider-api-keys). Built-in carve-outs keep the agent's own working surface open without a prompt: [skills](/cli-skills/#skills-sandbox-carve-out), plans, plugins, [memory](#persistent-memory), the [artifacts directory](#artifacts-directory) and runtime output such as [`~/.infer/tmp`](#userspace-tmp-tree).
+The config dirs (`.infer/` and `~/.infer/`) therefore **ask before every read and write**, since their files can hold tokens - including [`auth.yaml`](#provider-api-keys). Built-in carve-outs keep the agent's own working surface open without a prompt: [skills](/cli-skills/#skills-sandbox-carve-out), plans, plugins, [memory](#persistent-memory), the [artifacts directory](#artifacts-directory) and runtime output such as the [media root](#media-directories).
 
 #### Decision order
 

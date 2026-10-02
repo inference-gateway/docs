@@ -145,7 +145,7 @@ Reasoning requires a model that emits it and an `infer` CLI new enough to forwar
 
 Images an agent produces are rendered inline in the transcript, not shown as a link or a file path. Markdown images (`![alt](url)`) render as-is, and a bare image URL or `data:image/...` URI on its own is turned into an image too. Images are sized to their natural dimensions up to the width of the chat bubble; one that fails to load is replaced with a short error line instead of a broken-image icon.
 
-Hover an image (or focus it with the keyboard) to reveal a **download** button in its corner. Clicking it copies the file from `~/.infer/tmp/` to your Downloads folder - there is no save dialog, and an existing file with the same name is overwritten. The button reports what happened by swapping its icon:
+Hover an image (or focus it with the keyboard) to reveal a **download** button in its corner. Clicking it copies the file out of the session's [media root](/cli/#media-directories) to your Downloads folder - there is no save dialog, and an existing file with the same name is overwritten. The button reports what happened by swapping its icon:
 
 | Icon           | State                                         |
 | -------------- | --------------------------------------------- |
@@ -767,7 +767,7 @@ A WAV produced by the tool renders inline in the transcript as an audio player r
 
 The same player is used for [voice samples](#voice-samples).
 
-**Output-dir caveat:** only WAVs under `~/.infer/tmp/` (which covers `~/.infer/tmp/tts/`, the default `text_to_speech.output_dir`), `~/.infer/models/tts/samples/` and the legacy `~/.infer/tts/` are inside the app's asset scope. Point `output_dir` at a directory outside those and the turn degrades to a plain tool card showing the path - the audio is still generated, it just cannot be played or downloaded from the app.
+**Output-dir caveat:** only WAVs inside the app's asset scope can be played or downloaded - the [media root](/cli/#media-directories) of the project whose sessions the app runs (`tts/` under it is the default `text_to_speech.output_dir`), plus `~/.infer/models/tts/samples/` and the legacy `~/.infer/tts/`. Point `output_dir` at a directory outside those and the turn degrades to a plain tool card showing the path - the audio is still generated, it just cannot be played or downloaded from the app.
 
 ### Voice samples
 
