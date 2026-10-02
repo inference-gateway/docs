@@ -128,7 +128,7 @@ Set `artifacts.enabled: false` to turn the poller off.
 | `scheduler.github.artifacts.max_attempts`       | `INFER_SCHEDULER_GITHUB_ARTIFACTS_MAX_ATTEMPTS`       | `3`                 | Download attempts per artifact before it is skipped                              |
 | `scheduler.github.artifacts.rate_limit_backoff` | `INFER_SCHEDULER_GITHUB_ARTIFACTS_RATE_LIMIT_BACKOFF` | `1h`                | Polling pause after a rate-limited GitHub API call                               |
 
-The `Schedule` tool itself is gated separately under `tools.schedule.*` - see [Tool Configuration](/cli/#tool-configuration).
+The `Schedule` tool itself is gated separately, under `schedule.*` in the userspace tools policy `~/.infer/tools.yaml` - see [Tool Configuration](/cli/#tool-configuration).
 
 ## Troubleshooting
 
