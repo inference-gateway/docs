@@ -139,7 +139,7 @@ Run `infer completion --help` to list the supported shells. After writing a pers
 
 ## Quick Start
 
-![Inference Gateway TUI Interface](/images/tui.gif)
+![infer chat in plan mode fans out 5 read-only subagents to search a repository for docs gaps and drift, then opens each running subagent's live transcript from the list under the composer](/images/subagents.gif)
 
 ```bash
 # Initialize configuration
@@ -393,6 +393,16 @@ The selected indicator is highlighted as an **accent-colored pill**.
 
 While background jobs are tracked - [local subagents](#local-subagents-agent-tool), [A2A tasks](#a2a-integration), background shells, [screen recordings](#screen-recording) - they appear as a stacked list below the status indicators, one row per job with its label, kind and a live elapsed counter.
 
+A subagent's row carries a child line with its run stats: tool calls that succeeded and failed, the tokens of its whole session and the slice the provider served from its prompt cache (`C.`). For a headless subagent the line counts up while it works. A finished row lingers with a green `✓` or a red `✗` for `chat.status_bar.subagent_linger_seconds` (default `5`), then drops.
+
+```text
+┌ npm run build shell       2.0s
+│ reviewer      subagent ✓ 40.0s
+│ └ 12 ✓ 1 ✗ · 61.2k tokens C.58.1k
+└ tester        subagent ✗ 48.0s
+  └ 3 ✓ 4 ✗ · 890 tokens
+```
+
 | Key               | Action                                                    |
 | ----------------- | --------------------------------------------------------- |
 | `Down` arrow      | Focus the job list from the status indicator row          |
@@ -484,12 +494,12 @@ Select a range with `space`/`v`, navigate, then apply to stage just those lines 
 
 Toggle between modes anytime during chat using **Shift+Tab**.
 
-| Mode                   | Tools                 | Approval                            | Best For                                            |
-| ---------------------- | --------------------- | ----------------------------------- | --------------------------------------------------- |
-| **Standard** (Default) | All configured        | Required for Write/Edit/Delete/Bash | General development, collaborative coding           |
-| **Plan** (Read-Only)   | Read, Grep, Tree only | None                                | Code reviews, architecture analysis, planning       |
-| **Auto-Accept** (YOLO) | All configured        | None - immediate execution          | Trusted environments, rapid prototyping, automation |
-| **Auto+Judge**         | All configured        | An LLM judge answers every gate     | Unattended CI/headless runs that still want a gate  |
+| Mode                   | Tools                                    | Approval                            | Best For                                            |
+| ---------------------- | ---------------------------------------- | ----------------------------------- | --------------------------------------------------- |
+| **Standard** (Default) | All configured                           | Required for Write/Edit/Delete/Bash | General development, collaborative coding           |
+| **Plan** (Read-Only)   | Read, Grep, Tree and read-only subagents | None                                | Code reviews, architecture analysis, planning       |
+| **Auto-Accept** (YOLO) | All configured                           | None - immediate execution          | Trusted environments, rapid prototyping, automation |
+| **Auto+Judge**         | All configured                           | An LLM judge answers every gate     | Unattended CI/headless runs that still want a gate  |
 
 ### Standard Mode
 
@@ -513,6 +523,8 @@ infer chat
 ```
 
 While planning, the agent can pause to ask you up to four multiple-choice clarifying questions with the [`AskUserQuestion`](#askuserquestion) tool, then fold your answers into the plan it submits for approval. The same tool is available in the other interactive modes, where the answers come back mid-task instead.
+
+When the investigation spans several areas, the agent can fan it out to [local subagents](#local-subagents-agent-tool) that explore in parallel. In plan mode every subagent runs read-only, whatever its preset or tool allowlist says, so a delegated subagent may explore the repository but never change it. Ask for it directly ("Use 5 subagents to search this project for docs gaps and drift, then plan the fixes") and watch them work from the [background job list](#background-job-list) under the composer.
 
 #### How mode instructions are delivered
 
@@ -2109,7 +2121,7 @@ The model calls the tool with either a batch of `tasks` or a single `description
 - `system_prompt` (optional) - system prompt for the single-`description` form
 - `agent` (optional) - preset name for the single-`description` form
 
-Each subagent runs in its own isolated session id of the form `subagent-<parentSession>-<uuid>`. Parallel fan-out is capped by `max_parallel` (default `10`) concurrent subagents per call.
+Each subagent runs in its own isolated session id of the form `subagent-<parentSession>-<uuid>`. One call dispatches at most `max_parallel` subagents (default `10`). Tasks past the cap are dropped, not queued, and the tool result says how many.
 
 #### Markdown subagent presets
 
@@ -2168,6 +2180,8 @@ The `mode` controls where subagents run. Either way the result aggregates back i
 
 tmux is an **optional runtime dependency**, required only for interactive mode (headless needs nothing extra). Interactive mode must be run from **inside tmux** (`$TMUX` set). Panes always open as a **vertical split**, and when you are not inside tmux (or tmux is not installed) the call **warns and runs headless** - there is nothing to configure either way.
 
+In chat, a headless subagent is listed in the [background job list](#background-job-list) under the composer while it works, with its run stats counting up. Select its row and press `Enter` to read its conversation so far, refreshed every second.
+
 #### Headless keep-alive lifecycle
 
 A headless subagent is a conversation, not a one-shot: the delegated task is its first turn, and it stays alive afterwards so the main agent can talk to it without respawning and losing its context.
@@ -2206,23 +2220,25 @@ tools:
     model: '' # default subagent model (inherits parent if blank)
     inherit_mock: true # when gateway.mock is on, spawn subagents against the embedded mock too
     idle_timeout: 300 # seconds a subagent may sit idle before the parent closes it (0 disables)
+    completed_retention: 5 # finished subagent results kept for later retrieval
 ```
 
 **Idle timeout (`idle_timeout`, default `300`).** Seconds a subagent may sit idle before the parent closes it with one `[Subagent Closed: <label>]` note; `0` disables the auto-close. A **headless** subagent is idle from a completed turn until the next `SendSubagentInput` (see [headless keep-alive lifecycle](#headless-keep-alive-lifecycle)); an **interactive** pane is idle when it shows no harvested result turn, no pane change and no pending approval, which only catches a pane that never reported done. Approval prompts pause the clock and `SendSubagentInput` resets it. See [Done signal and idle auto-close](#done-signal-and-idle-auto-close-interactive-panes).
 
 Every key has an `INFER_TOOLS_AGENT_*` environment-variable override, consistent with the rest of the config:
 
-| Setting            | Environment variable                 |
-| ------------------ | ------------------------------------ |
-| `enabled`          | `INFER_TOOLS_AGENT_ENABLED`          |
-| `require_approval` | `INFER_TOOLS_AGENT_REQUIRE_APPROVAL` |
-| `mode`             | `INFER_TOOLS_AGENT_MODE`             |
-| `wait`             | `INFER_TOOLS_AGENT_WAIT`             |
-| `max_parallel`     | `INFER_TOOLS_AGENT_MAX_PARALLEL`     |
-| `max_depth`        | `INFER_TOOLS_AGENT_MAX_DEPTH`        |
-| `model`            | `INFER_TOOLS_AGENT_MODEL`            |
-| `inherit_mock`     | `INFER_TOOLS_AGENT_INHERIT_MOCK`     |
-| `idle_timeout`     | `INFER_TOOLS_AGENT_IDLE_TIMEOUT`     |
+| Setting               | Environment variable                    |
+| --------------------- | --------------------------------------- |
+| `enabled`             | `INFER_TOOLS_AGENT_ENABLED`             |
+| `require_approval`    | `INFER_TOOLS_AGENT_REQUIRE_APPROVAL`    |
+| `mode`                | `INFER_TOOLS_AGENT_MODE`                |
+| `wait`                | `INFER_TOOLS_AGENT_WAIT`                |
+| `max_parallel`        | `INFER_TOOLS_AGENT_MAX_PARALLEL`        |
+| `max_depth`           | `INFER_TOOLS_AGENT_MAX_DEPTH`           |
+| `model`               | `INFER_TOOLS_AGENT_MODEL`               |
+| `inherit_mock`        | `INFER_TOOLS_AGENT_INHERIT_MOCK`        |
+| `idle_timeout`        | `INFER_TOOLS_AGENT_IDLE_TIMEOUT`        |
+| `completed_retention` | `INFER_TOOLS_AGENT_COMPLETED_RETENTION` |
 
 ```bash
 # Toggle the tool, or switch the default execution surface to watchable tmux panes
@@ -2237,6 +2253,7 @@ infer config set tools.agent.mode interactive
 - Subagents run in standard **bash mode** (the restricted [allowed-list](#command-allow-listing)), exactly like every other headless run - an off-list or mutating action is blocked in CI/heartbeat (no approver reachable) or sent for IPC approval under a channel (for example Telegram). See [Headless secure-by-default](#headless-secure-by-default).
 - The Agent tool is in the approval policy and **requires approval by default** (`require_approval: true`), with a per-tool override - consistent with `A2A_SubmitTask`. Spawning work that can edit files is treated as a mutating action.
 - A **depth guard** (`max_depth`, default `1`) prevents subagent fork-bombs: a subagent cannot itself spawn further subagents at the default cap.
+- While the parent is in [plan mode](#plan-mode), every subagent is **read-only**, whatever its preset or derived allowlist says.
 
 #### Tracing
 
@@ -4074,10 +4091,13 @@ Selecting a **background shell** row shows the shell's captured **stdout/stderr*
 - **While the shell is running**, the output streams **live**, refreshed about once per second along with the Elapsed column.
 - **Once the shell finishes**, the panel shows the **full captured output**, bounded by the shell's output ring buffer.
 
-Selecting a **subagent** row shows the subagent's result:
+Selecting a **subagent** row shows:
 
-- **Headless subagents** show their **final result message**.
-- **Interactive** (tmux-pane) subagents show the **last harvested turn**.
+- Its **run stats** - tool calls succeeded and failed, input and output tokens. They count up while a headless subagent runs.
+- Its **transcript** - the task, each assistant turn with the tools it called, and every tool result (a long result is cut at 2 KB). It refreshes every second while anything is running. An interactive subagent's pane runs under the subagent's session ID, so its conversation loads the same way.
+- Its **final answer** instead, when the conversation cannot be loaded (`storage.enabled: false`).
+
+The [background job list](#background-job-list) under the composer is the live view of what is running. `/tasks` is where finished jobs stay for review.
 
 Rendering is bounded so a chatty shell cannot overflow the panel: the Output section shows **at most the last 10KB** of output. When the captured output is larger, it is prefixed with `(truncated, showing last 10KB)` and only the trailing 10KB is displayed.
 
