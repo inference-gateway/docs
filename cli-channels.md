@@ -148,13 +148,14 @@ When the daemon is running, you can ask the bot to schedule prompts on a cron sc
 > _"Send me an inspiring quote every day at 8 AM"_ - recurring
 > _"Remind me at 6pm today to call mum"_ - one-off (deletes itself after firing)
 
-Enable it in `~/.infer/tools.yaml` (keys at the file root - the tools policy is userspace-only, see [Tool Configuration](/cli/#tool-configuration)):
+Enable it in `~/.infer/tools.yaml` (the `schedule` section sits under `tools:` - the tools policy is userspace-only, see [Tool Configuration](/cli/#tool-configuration)):
 
 ```yaml
 # ~/.infer/tools.yaml
-schedule:
-  enabled: true # disabled by default
-  require_approval: true # recommended
+tools:
+  schedule:
+    enabled: true # disabled by default
+    require_approval: true # recommended
 ```
 
 Or via environment variable: `INFER_TOOLS_SCHEDULE_ENABLED=true`.

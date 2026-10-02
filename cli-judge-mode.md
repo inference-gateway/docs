@@ -130,7 +130,7 @@ A judge call can fail (timeout, gateway error, unparseable output) or return gar
 
 ## Judge as the approval behavior, without the mode
 
-You can route gated calls to the judge in **any** mode with `safety.approval_behaviour: judge` in the userspace tools policy, `~/.infer/tools.yaml` (env: `INFER_TOOLS_SAFETY_APPROVAL_BEHAVIOUR`). The keys sit at the **root** of that file, with no `tools:` key around them, and `infer config set tools.*` is rejected - see [Tool Configuration](/cli/#tool-configuration):
+You can route gated calls to the judge in **any** mode with `safety.approval_behaviour: judge` in the userspace tools policy, `~/.infer/tools.yaml` (env: `INFER_TOOLS_SAFETY_APPROVAL_BEHAVIOUR`). `safety` sits at the top of that file, next to the other keys for every tool, and `infer config set tools.*` is rejected - see [Tool Configuration](/cli/#tool-configuration):
 
 ```yaml
 # ~/.infer/tools.yaml

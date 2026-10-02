@@ -1559,28 +1559,29 @@ Execute a bash command that matches the active mode's **allowed-list**. Matching
 
 ##### Per-mode allowed-list
 
-The allowed-list is configured **per [agent mode](#agent-modes)** under `bash.mode.<mode>.allow` in [`~/.infer/tools.yaml`](#tool-configuration). The effective list for a mode is `mode.all.allow` (the every-mode baseline) **unioned** with that mode's own entries:
+The allowed-list is configured **per [agent mode](#agent-modes)** under `tools.bash.mode.<mode>.allow` in [`~/.infer/tools.yaml`](#tool-configuration). The effective list for a mode is `mode.all.allow` (the every-mode baseline) **unioned** with that mode's own entries:
 
 ```yaml
 # ~/.infer/tools.yaml
-bash:
-  enabled: true
-  require_approval: false
-  mode:
-    all: # baseline applied in every mode
-      allow:
-        - ls( .*)?
-        - pwd( .*)?
-        - git status( .*)?
-        - git diff( .*)?
-    plan: # read-only analysis - usually adds nothing
-      allow: []
-    standard: # default interactive mode
-      allow:
-        - npm (install|test|run).*
-    auto: # Auto-Accept / YOLO mode
-      allow:
-        - .* # unrestricted sentinel
+tools:
+  bash:
+    enabled: true
+    require_approval: false
+    mode:
+      all: # baseline applied in every mode
+        allow:
+          - ls( .*)?
+          - pwd( .*)?
+          - git status( .*)?
+          - git diff( .*)?
+      plan: # read-only analysis - usually adds nothing
+        allow: []
+      standard: # default interactive mode
+        allow:
+          - npm (install|test|run).*
+      auto: # Auto-Accept / YOLO mode
+        allow:
+          - .* # unrestricted sentinel
 ```
 
 - **Default-deny.** Out of the box only `mode.auto` ships the `.*` sentinel; `mode.plan` and `mode.standard` add nothing on top of `mode.all`, so they reduce to the read-only baseline. GitHub _writes_ (`gh issue/pr create|edit|comment`), `git push`, and `git commit` are **not** in the defaults - they fall through to approval until you add them.
@@ -1683,10 +1684,11 @@ Re-run a check command server-side at a fixed interval until it exits 0. The che
 
 ```yaml
 # ~/.infer/tools.yaml
-wait:
-  enabled: true # Enable/disable the Wait tool
-  max_timeout_seconds: 600 # Maximum allowed timeout (ceiling)
-  command_poll_interval_ms: 2000 # Poll interval for command condition (ms)
+tools:
+  wait:
+    enabled: true # Enable/disable the Wait tool
+    max_timeout_seconds: 600 # Maximum allowed timeout (ceiling)
+    command_poll_interval_ms: 2000 # Poll interval for command condition (ms)
 ```
 
 ##### Examples
@@ -1718,12 +1720,13 @@ Search the web via DuckDuckGo or Google.
 
 ```yaml
 # ~/.infer/tools.yaml
-web_search:
-  enabled: true
-  default_engine: duckduckgo
-  max_results: 10
-  engines: [duckduckgo, google]
-  timeout: 10
+tools:
+  web_search:
+    enabled: true
+    default_engine: duckduckgo
+    max_results: 10
+    engines: [duckduckgo, google]
+    timeout: 10
 ```
 
 #### WebFetch
@@ -1735,18 +1738,19 @@ Fetch content from an allowed URL. Optionally save the response to disk.
 
 ```yaml
 # ~/.infer/tools.yaml
-web_fetch:
-  enabled: true
-  allowed_domains:
-    - golang.org
-    - github.com
-    - agents.md
-  safety:
-    max_size: 8192
-    timeout: 30
-  cache:
+tools:
+  web_fetch:
     enabled: true
-    ttl: 3600
+    allowed_domains:
+      - golang.org
+      - github.com
+      - agents.md
+    safety:
+      max_size: 8192
+      timeout: 30
+    cache:
+      enabled: true
+      ttl: 3600
 ```
 
 ### Image Tools
@@ -1769,10 +1773,11 @@ Edit an existing image and save the result as a PNG under `.infer/artifacts/<ses
 
 ```yaml
 # ~/.infer/tools.yaml
-image_edit:
-  enabled: true
-  model: openai/gpt-image-2
-  require_approval: false
+tools:
+  image_edit:
+    enabled: true
+    model: openai/gpt-image-2
+    require_approval: false
 ```
 
 **Example with mask:**
@@ -1798,10 +1803,11 @@ Create a variation of an existing image and save the result as a PNG under `.inf
 
 ```yaml
 # ~/.infer/tools.yaml
-image_variation:
-  enabled: true
-  model: openai/gpt-image-2
-  require_approval: false
+tools:
+  image_variation:
+    enabled: true
+    model: openai/gpt-image-2
+    require_approval: false
 ```
 
 #### Vision-capable models and ImageDecode
@@ -2002,14 +2008,15 @@ The shipped `mode.all` baseline:
 
 ```yaml
 # ~/.infer/tools.yaml
-bash:
-  mode:
-    all:
-      allow:
-        - gh (issue|pr|repo|release|run|workflow) (list|view|status|diff|checks)( .*)?
-        - gh auth status( .*)?
-        - gh search (issues|code|prs|repos|commits)( .*)?
-        - gh project (list|view|item-list|field-list)( .*)?
+tools:
+  bash:
+    mode:
+      all:
+        allow:
+          - gh (issue|pr|repo|release|run|workflow) (list|view|status|diff|checks)( .*)?
+          - gh auth status( .*)?
+          - gh search (issues|code|prs|repos|commits)( .*)?
+          - gh project (list|view|item-list|field-list)( .*)?
 ```
 
 #### Migration: the built-in GitHub tool was removed
@@ -2216,21 +2223,22 @@ An interactive pane is not a REPL you keep open. Each subagent reports completio
 
 #### Agent tool configuration
 
-The new `agent` block in [`~/.infer/tools.yaml`](#tool-configuration), with its shipped defaults (regenerated by `infer init`):
+The new `tools.agent` block in [`~/.infer/tools.yaml`](#tool-configuration), with its shipped defaults (regenerated by `infer init`):
 
 ```yaml
 # ~/.infer/tools.yaml
-agent:
-  enabled: true
-  require_approval: true # spawning work that can edit files is a mutating action
-  mode: headless # headless | interactive (default when a call omits it)
-  wait: false # return as soon as the subagents are dispatched; each reports back on its own
-  max_parallel: 10 # cap on concurrent subagents per call
-  max_depth: 1 # recursion guard; a subagent is itself an `infer headless`
-  model: '' # default subagent model (inherits parent if blank)
-  inherit_mock: true # when gateway.mock is on, spawn subagents against the embedded mock too
-  idle_timeout: 300 # seconds a subagent may sit idle before the parent closes it (0 disables)
-  completed_retention: 5 # finished subagent results kept for later retrieval
+tools:
+  agent:
+    enabled: true
+    require_approval: true # spawning work that can edit files is a mutating action
+    mode: headless # headless | interactive (default when a call omits it)
+    wait: false # return as soon as the subagents are dispatched; each reports back on its own
+    max_parallel: 10 # cap on concurrent subagents per call
+    max_depth: 1 # recursion guard; a subagent is itself an `infer headless`
+    model: '' # default subagent model (inherits parent if blank)
+    inherit_mock: true # when gateway.mock is on, spawn subagents against the embedded mock too
+    idle_timeout: 300 # seconds a subagent may sit idle before the parent closes it (0 disables)
+    completed_retention: 5 # finished subagent results kept for later retrieval
 ```
 
 **Idle timeout (`idle_timeout`, default `300`).** Seconds a subagent may sit idle before the parent closes it with one `[Subagent Closed: <label>]` note; `0` disables the auto-close. A **headless** subagent is idle from a completed turn until the next `SendSubagentInput` (see [headless keep-alive lifecycle](#headless-keep-alive-lifecycle)); an **interactive** pane is idle when it shows no harvested result turn, no pane change and no pending approval, which only catches a pane that never reported done. Approval prompts pause the clock and `SendSubagentInput` resets it. See [Done signal and idle auto-close](#done-signal-and-idle-auto-close-interactive-panes).
@@ -2253,9 +2261,10 @@ Every key has an `INFER_TOOLS_AGENT_*` environment-variable override, consistent
 ```yaml
 # ~/.infer/tools.yaml - toggle the tool, or switch the default execution
 # surface to watchable tmux panes
-agent:
-  enabled: true
-  mode: interactive
+tools:
+  agent:
+    enabled: true
+    mode: interactive
 ```
 
 **Mock inheritance (`inherit_mock`, default `true`).** When the parent CLI runs against the embedded mock gateway (`gateway.mock: true`), spawned subagents inherit mock mode: the CLI passes `INFER_GATEWAY_MOCK=true` to each subagent - both the headless environment and the interactive tmux-pane command - so they exercise the same mock instead of talking to the real gateway. Set `tools.agent.inherit_mock: false` (or `INFER_TOOLS_AGENT_INHERIT_MOCK=false`) to opt out and have subagents always target the configured gateway.
@@ -2296,7 +2305,7 @@ Interactive (tmux-pane) subagents are **not** stitched into the caller's trace; 
 
 ### Tool Configuration
 
-The whole tools policy lives in a **userspace-only policy file**, `~/.infer/tools.yaml` - not in `config.yaml`. The keys sit at the **root** of the file, with no `tools:` key around them:
+The whole tools policy lives in a **userspace-only policy file**, `~/.infer/tools.yaml` - not in `config.yaml`. The keys for every tool sit at the top of the file and each tool's section sits under `tools:`. `infer config get` and the `INFER_TOOLS_*` overrides name both kinds `tools.<key>`, for example `tools.safety.require_approval` and `tools.bash.enabled`:
 
 ```yaml
 # ~/.infer/tools.yaml
@@ -2304,14 +2313,15 @@ enabled: true # all tool execution for LLMs
 safety:
   require_approval: true # approval before any tool runs
   approval_behaviour: judge # how an approval is delivered
-bash:
-  enabled: true
-  require_approval: true # per-tool override of safety.require_approval
-  mode:
-    standard:
-      allow:
-        - make test
 custom_dir: /opt/my-app/tools # user custom tools from another directory
+tools:
+  bash:
+    enabled: true
+    require_approval: true # per-tool override of safety.require_approval
+    mode:
+      standard:
+        allow:
+          - make test
 ```
 
 `infer init` seeds the file from the defaults, and `--overwrite` regenerates it. Like [`sandbox.yaml`](#file-sandbox), it is **userspace-only and agent-protected**:
@@ -2596,7 +2606,7 @@ Two-layer configuration system with precedence from highest to lowest:
 | `keybindings.yaml` | Project/user | Keybindings for the TUI and diff viewer (category `diff_viewer`).                                                                                      | [Diff viewer and git staging](#diff-viewer-and-git-staging) |
 | `hooks.yaml`       | Project/user | User-defined shell commands run at agent-loop hook points (feature-flagged off by default).                                                            | [Command Hooks](/cli-hooks/)                                |
 | `reminders.yaml`   | Project/user | System reminders injected into the conversation on a schedule.                                                                                         | [System Reminders](#system-reminders)                       |
-| `tools.yaml`       | User only    | Tools policy - enablement, approval, per-mode bash allowed-lists. Keys sit at the file root. A project copy is ignored.                                | [Tool Configuration](#tool-configuration)                   |
+| `tools.yaml`       | User only    | Tools policy - enablement, approval, per-mode bash allowed-lists, each tool under `tools:`. A project copy is ignored.                                 | [Tool Configuration](#tool-configuration)                   |
 | `sandbox.yaml`     | User only    | File sandbox policy - `filesystem.allowed` and `filesystem.denied`. A project copy is ignored.                                                         | [File sandbox](#file-sandbox)                               |
 | `judge.yaml`       | Project/user | LLM judge that decides approval-requiring tool calls (model, timeout, prompts, `on_error`).                                                            | [Judge Mode](/cli-judge-mode/)                              |
 | `daemon.yaml`      | Project/user | `infer daemon` itself - the AG-UI binding's own switch, port and token (`binding.enabled`, `binding.port`, `binding.token`).                           | [Starting the daemon](#starting-the-daemon)                 |
@@ -2736,11 +2746,11 @@ The built-in system prompt includes a `Current date:` line (date-only, no time) 
 
 **Tool Settings:**
 
-Tool settings live outside `config.yaml`, in [`~/.infer/tools.yaml`](#tool-configuration) - keys at the file root:
+Tool settings live outside `config.yaml`, in [`~/.infer/tools.yaml`](#tool-configuration), which keeps the keys for every tool at the top and each tool's section under `tools`:
 
 - Enable/disable individual tools
 - Approval requirements per tool (whether) and delivery via `safety.approval_behaviour` (how)
-- Per-mode bash allowed-lists (`bash.mode.<mode>.allow`)
+- Per-mode bash allowed-lists (`tools.bash.mode.<mode>.allow`)
 - The file sandbox has its own policy file too, [`~/.infer/sandbox.yaml`](#file-sandbox)
 
 **Storage Backends:**
@@ -2981,12 +2991,12 @@ The per-setting subcommands were removed in favor of `config get`/`config set` a
 | `config agent verbose-tools enable`    | `config set agent.verbose_tools true`                                 |
 | `config agent skills enable`           | `config set agent.skills.enabled true`                                |
 | `config tools enable`                  | Set `enabled: true` in [`~/.infer/tools.yaml`](#tool-configuration)   |
-| `config tools bash enable`             | Set `bash.enabled` in `~/.infer/tools.yaml`                           |
+| `config tools bash enable`             | Set `tools.bash.enabled` in `~/.infer/tools.yaml`                     |
 | `config tools safety enable`           | Set `safety.require_approval` in `~/.infer/tools.yaml`                |
-| `config tools safety set bash enabled` | Set `bash.require_approval` in `~/.infer/tools.yaml`                  |
+| `config tools safety set bash enabled` | Set `tools.bash.require_approval` in `~/.infer/tools.yaml`            |
 | `config tools sandbox add DIR`         | Edit `filesystem.allowed` in [`~/.infer/sandbox.yaml`](#file-sandbox) |
-| `config tools grep set-backend rg`     | Set `grep.backend` in `~/.infer/tools.yaml`                           |
-| `config tools web-fetch add-domain D`  | Add to `web_fetch.allowed_domains` in `~/.infer/tools.yaml`           |
+| `config tools grep set-backend rg`     | Set `tools.grep.backend` in `~/.infer/tools.yaml`                     |
+| `config tools web-fetch add-domain D`  | Add to `tools.web_fetch.allowed_domains` in `~/.infer/tools.yaml`     |
 | `config export set-model X`            | `config set export.summary_model X`                                   |
 | `config show`                          | `config get`                                                          |
 | `config tools exec <tool>`             | `tools execute <tool>`                                                |
@@ -4343,19 +4353,20 @@ The Bash tool is **default-deny**: a command auto-runs only when it matches the 
 
 ```yaml
 # ~/.infer/tools.yaml
-bash:
-  mode:
-    all:
-      allow:
-        - ls( .*)?
-        - pwd( .*)?
-        - tree( .*)?
-        - git status( .*)?
-        - git diff( .*)?
-        - npm (install|test|run).*
-    auto:
-      allow:
-        - .* # unrestricted - Auto-Accept mode only
+tools:
+  bash:
+    mode:
+      all:
+        allow:
+          - ls( .*)?
+          - pwd( .*)?
+          - tree( .*)?
+          - git status( .*)?
+          - git diff( .*)?
+          - npm (install|test|run).*
+      auto:
+        allow:
+          - .* # unrestricted - Auto-Accept mode only
 ```
 
 Read-only `gh` operations are in the baseline so the agent can inspect GitHub out of the box; **writes** (`gh issue/pr create|edit|comment`) and **destructive** operations (for example `gh pr merge`, `gh repo delete`) are not - they fall through to approval. See [Default gh allowed-list](#default-gh-allowed-list) for the full list.
@@ -4430,7 +4441,7 @@ export INFER_TOOLS_SANDBOX_DIRECTORIES="/work/project,/tmp/scratch"
 
 Tool approval has **two independent layers** - _whether_ an action needs approval, and _how_ that approval is delivered:
 
-- **Whether** - `safety.require_approval` (with per-tool overrides like `bash.require_approval` / `write.require_approval`, and for Bash the per-mode [allowed-list](#command-allow-listing)).
+- **Whether** - `safety.require_approval` (with per-tool overrides like `tools.bash.require_approval` / `tools.write.require_approval`, and for Bash the per-mode [allowed-list](#command-allow-listing)).
 - **How** - `safety.approval_behaviour`, one of:
 
 | `approval_behaviour` | How a needed approval is delivered                                                            |
@@ -4463,15 +4474,16 @@ For a CI agent that should edit files and run a curated command set with **no** 
 # ~/.infer/tools.yaml
 safety:
   approval_behaviour: block # reject anything that would otherwise prompt
-write:
-  require_approval: false # ...but let the agent write/edit files freely
-bash:
-  mode:
-    all:
-      allow: # curate exactly what may run unattended
-        - git status( .*)?
-        - git add( .*)?
-        - go (build|test)( .*)?
+tools:
+  write:
+    require_approval: false # ...but let the agent write/edit files freely
+  bash:
+    mode:
+      all:
+        allow: # curate exactly what may run unattended
+          - git status( .*)?
+          - git add( .*)?
+          - go (build|test)( .*)?
 ```
 
 Add a couple more commands without touching config via `INFER_TOOLS_BASH_ALLOW_APPEND="git commit,git push"`.
