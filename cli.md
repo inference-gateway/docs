@@ -1488,7 +1488,7 @@ Read a file from the local filesystem with an optional line range. Handles text 
 - **Approval**: not required (read-only)
 - **Notes**: lines longer than 2000 characters are truncated; output is returned in `cat -n` format
 
-A missing file does not return a bare `NOT_FOUND`. The error appends up to five candidate paths so the next call can correct a typo or a wrong directory instead of retrying the same path: siblings of the nearest existing directory ranked by name similarity, plus - when no sibling carries the missing base name - files with that base name found under the configured sandbox directory containing it.
+A missing file does not return a bare `NOT_FOUND`. The error appends up to five candidate paths so the next call can correct a typo or a wrong directory instead of retrying the same path: siblings of the nearest existing directory ranked by name similarity, plus - when no sibling carries the missing base name - files with that base name found under the [allowed sandbox directory](#file-sandbox) containing it.
 
 ```text
 NOT_FOUND: /home/user/project/internal/tools/reader.go
@@ -2285,8 +2285,8 @@ Interactive (tmux-pane) subagents are **not** stitched into the caller's trace; 
 
 - **Command allow-listing**: Default-deny, per-mode allowed-list for the Bash tool
 - **Approval Prompts**: Safety confirmations for Write/Edit/Delete/Bash
-- **Path Protection**: Sensitive directories automatically excluded (`.git/`, `*.env`, `.infer/`)
-- **Sandbox Controls**: Restrict tool operations to allowed directories
+- **Path Protection**: Sensitive paths denied by default (`.git/`, `*.env`, `*.key`, `.infer/`)
+- **File sandbox**: [`~/.infer/sandbox.yaml`](#file-sandbox) bounds which paths the file tools may read and write
 - **Domain allow-listing**: Control web fetch access
 - **Diff Preview**: Colored, syntax-aware diff before file modifications
 - **Project Tools Always Ask**: [Custom tools](#custom-tools) supplied by a repository need approval on every call, whatever their manifest says, except in `auto` mode
@@ -2310,15 +2310,14 @@ infer config set tools.safety.require_approval true
 # Require approval for a specific tool only (for example bash)
 infer config set tools.bash.require_approval true
 
-# Sandbox directories - comma-separated; the whole list is replaced
-infer config set tools.sandbox.directories ".,/protected/path"
-
 # Load user custom tools from another directory instead of ~/.infer/tools
 infer config set tools.custom_dir /opt/my-app/tools
 
 # Inspect the resulting tools config
 infer config get tools
 ```
+
+> The file sandbox is **not** a tools config key. It lives in its own policy file, `~/.infer/sandbox.yaml` - see [File sandbox](#file-sandbox).
 
 ### Running Tools Directly
 
@@ -2529,7 +2528,7 @@ Install the binary on `PATH` (or reference it by a path relative to the manifest
 
 ### Custom Tool Security
 
-A custom tool runs with **your** permissions and can do anything you can. The sandbox settings (`tools.sandbox.directories`, `tools.sandbox.protected_paths`) only restrict the CLI's built-in file tools, not the programs custom tools start. Only install manifests and programs you trust, keep `require_approval` on for tools that change things, and list `plan`/`readonly` in `modes` only for tools that do not.
+A custom tool runs with **your** permissions and can do anything you can. The [file sandbox](#file-sandbox) (`~/.infer/sandbox.yaml`) only restricts the CLI's built-in file tools, not the programs custom tools start. Only install manifests and programs you trust, keep `require_approval` on for tools that change things, and list `plan`/`readonly` in `modes` only for tools that do not.
 
 - **Project tools always ask.** A cloned repository can offer tools, but none of them runs without your approval outside `auto` mode.
 - **The CLI never edits the tool directories.** The Write, Edit, MultiEdit and Delete tools refuse any path inside `~/.infer/tools/`, `tools.custom_dir`, `.infer/tools/` or `.agents/tools/`, also through a symlink or another spelling of the path, so the model cannot write itself a tool that skips approval. This cannot be switched off. The Bash tool is not covered: in `auto` mode it runs any command.
@@ -2571,7 +2570,7 @@ Two-layer configuration system with precedence from highest to lowest:
 
 ### Configuration Files
 
-`infer init` seeds the userspace baseline in `~/.infer/` (`config.yaml`, `mcp.yaml`, `prompts.yaml`, `agents.yaml`, `shortcuts/`, `skills/` and so on) and writes nothing into the project. Project-level overrides are created on demand with `infer config set --project <key> <value>`, or with `--project` on `infer mcp` / `infer agents`. Configuration is split across purpose-specific YAML files rather than one giant file:
+`infer init` seeds the userspace baseline in `~/.infer/` (`config.yaml`, `sandbox.yaml`, `mcp.yaml`, `prompts.yaml`, `agents.yaml`, `shortcuts/`, `skills/` and so on) and writes nothing into the project. Project-level overrides are created on demand with `infer config set --project <key> <value>`, or with `--project` on `infer mcp` / `infer agents`. Configuration is split across purpose-specific YAML files rather than one giant file:
 
 | File               | Scope        | Purpose                                                                                                                                                                    | Where it is documented                                      |
 | ------------------ | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
@@ -2581,6 +2580,7 @@ Two-layer configuration system with precedence from highest to lowest:
 | `keybindings.yaml` | Project/user | Keybindings for the TUI and diff viewer (category `diff_viewer`).                                                                                                          | [Diff viewer and git staging](#diff-viewer-and-git-staging) |
 | `hooks.yaml`       | Project/user | User-defined shell commands run at agent-loop hook points (feature-flagged off by default).                                                                                | [Command Hooks](/cli-hooks/)                                |
 | `reminders.yaml`   | Project/user | System reminders injected into the conversation on a schedule.                                                                                                             | [System Reminders](#system-reminders)                       |
+| `sandbox.yaml`     | User only    | File sandbox policy - `filesystem.allowed` and `filesystem.denied`. A project copy is ignored.                                                                             | [File sandbox](#file-sandbox)                               |
 | `judge.yaml`       | Project/user | LLM judge that decides approval-requiring tool calls (model, timeout, prompts, `on_error`).                                                                                | [Judge Mode](/cli-judge-mode/)                              |
 | `daemon.yaml`      | Project/user | `infer daemon` itself - the AG-UI binding's own switch, port and token (`binding.enabled`, `binding.port`, `binding.token`).                                               | [Starting the daemon](#starting-the-daemon)                 |
 | `memory.yaml`      | Project/user | Persistent, cross-session agent memory - fact-files plus the `MEMORY.md` index.                                                                                            | [Persistent Memory](#persistent-memory)                     |
@@ -2630,7 +2630,7 @@ chmod 600 ~/.infer/auth.yaml
 ```
 
 - **Permissions**: `0600` is recommended. Broader permissions still work but log a warning.
-- **Sandboxed**: `~/.infer/auth.yaml` is on the [protected paths](#protected-paths) list - agent tools cannot read or edit it.
+- **Sandboxed**: `auth.yaml` is on the `filesystem.denied` list of the [file sandbox](#file-sandbox) - agent tools cannot read or edit it.
 - **Graceful degradation**: a missing or unreadable file changes nothing; a malformed file is ignored with a logged warning. Key resolution never fails because of `auth.yaml`.
 - **Legacy `auth.json`**: the old JSON file is still read as a fallback when `auth.yaml` is absent, so existing credentials keep working. Move your keys into `auth.yaml` - JSON is valid YAML, so the contents can be pasted as-is.
 
@@ -2651,7 +2651,7 @@ What lands there:
 | `.infer/artifacts` | Intended agent deliverables, grouped by session                             | Yours to keep - nothing prunes it for you |
 | `.infer/tmp`       | Internal scratch only - chunk staging, skill downloads, screenshots, pastes | Disposable working data                   |
 
-Session IDs are sanitized before use, so a directory can never escape the artifacts root. The tool [sandbox](#tool-configuration) carves the artifacts directory out as writable, so tools can save there even when it sits outside the sandbox directory list.
+Session IDs are sanitized before use, so a directory can never escape the artifacts root. The [file sandbox](#file-sandbox) carves the artifacts directory out as writable, so tools can save there even when it sits outside the allowed list.
 
 ### Userspace tmp tree
 
@@ -2666,7 +2666,7 @@ Disposable runtime output that is not tied to a single project lives under `~/.i
 | `~/.infer/tmp/voice` | Retained inbound voice recordings | `speech_to_text.recordings_dir` |
 | `~/.infer/tmp/media` | Retained inbound Telegram media   | `channels.telegram.media.dir`   |
 
-The whole `~/.infer/tmp` tree is agent-readable and writable by design - retained recordings and media are assets the agent consumes, and generated speech is output it can reference. The rest of `~/.infer/` stays on the [protected paths](#protected-paths) list. [`/reset`](#reset-shortcut) empties the tree through the `tmp` parent; the owning subsystems recreate the subdirectories on next use. Directories you explicitly point outside `~/.infer` are left alone.
+The whole `~/.infer/tmp` tree is agent-readable and writable by design - retained recordings and media are assets the agent consumes, and generated speech is output it can reference. The rest of `~/.infer/` is covered by the `.infer/` denial in the [file sandbox](#file-sandbox), which asks before every read and write. [`/reset`](#reset-shortcut) empties the tree through the `tmp` parent; the owning subsystems recreate the subdirectories on next use. Directories you explicitly point outside `~/.infer` are left alone.
 
 > **Existing installs.** Older releases placed these three directories directly under `~/.infer/` (`tts/`, `voice/`, `media/`). Nothing migrates automatically - they hold only disposable output, so delete them, or `mv` their contents under `~/.infer/tmp/` to keep the retained files. Explicit `output_dir` / `recordings_dir` / `media.dir` overrides are unaffected.
 
@@ -2717,8 +2717,7 @@ The built-in system prompt includes a `Current date:` line (date-only, no time) 
 - Enable/disable individual tools
 - Approval requirements per tool (whether) and delivery via `tools.safety.approval_behaviour` (how)
 - Per-mode bash allowed-lists (`tools.bash.mode.<mode>.allow`)
-- Sandbox directories
-- Protected paths
+- The file sandbox lives outside `config.yaml`, in [`~/.infer/sandbox.yaml`](#file-sandbox)
 
 **Storage Backends:**
 
@@ -2929,7 +2928,6 @@ infer config set agent.max_turns 50
 infer config set agent.verbose_tools true
 
 # List-valued keys take a comma-separated value (the whole list is replaced)
-infer config set tools.sandbox.directories ".,/work/project"
 infer config set tools.web_fetch.allowed_domains "golang.org,github.com"
 
 # config set writes the userspace baseline (~/.infer/config.yaml) by default
@@ -2948,23 +2946,23 @@ infer config init --overwrite
 
 The per-setting subcommands were removed in favor of `config get`/`config set` and the top-level `infer tools` command:
 
-| Old command                            | New command                                      |
-| -------------------------------------- | ------------------------------------------------ |
-| `config agent set-model X`             | `config set agent.model X`                       |
-| `config agent set-max-turns N`         | `config set agent.max_turns N`                   |
-| `config agent verbose-tools enable`    | `config set agent.verbose_tools true`            |
-| `config agent skills enable`           | `config set agent.skills.enabled true`           |
-| `config tools enable`                  | `config set tools.enabled true`                  |
-| `config tools bash enable`             | `config set tools.bash.enabled true`             |
-| `config tools safety enable`           | `config set tools.safety.require_approval true`  |
-| `config tools safety set bash enabled` | `config set tools.bash.require_approval true`    |
-| `config tools sandbox add DIR`         | `config set tools.sandbox.directories ".,DIR"`   |
-| `config tools grep set-backend rg`     | `config set tools.grep.backend ripgrep`          |
-| `config tools web-fetch add-domain D`  | `config set tools.web_fetch.allowed_domains "D"` |
-| `config export set-model X`            | `config set export.summary_model X`              |
-| `config show`                          | `config get`                                     |
-| `config tools exec <tool>`             | `tools execute <tool>`                           |
-| `config tools validate <cmd>`          | `tools validate <cmd>`                           |
+| Old command                            | New command                                                           |
+| -------------------------------------- | --------------------------------------------------------------------- |
+| `config agent set-model X`             | `config set agent.model X`                                            |
+| `config agent set-max-turns N`         | `config set agent.max_turns N`                                        |
+| `config agent verbose-tools enable`    | `config set agent.verbose_tools true`                                 |
+| `config agent skills enable`           | `config set agent.skills.enabled true`                                |
+| `config tools enable`                  | `config set tools.enabled true`                                       |
+| `config tools bash enable`             | `config set tools.bash.enabled true`                                  |
+| `config tools safety enable`           | `config set tools.safety.require_approval true`                       |
+| `config tools safety set bash enabled` | `config set tools.bash.require_approval true`                         |
+| `config tools sandbox add DIR`         | Edit `filesystem.allowed` in [`~/.infer/sandbox.yaml`](#file-sandbox) |
+| `config tools grep set-backend rg`     | `config set tools.grep.backend ripgrep`                               |
+| `config tools web-fetch add-domain D`  | `config set tools.web_fetch.allowed_domains "D"`                      |
+| `config export set-model X`            | `config set export.summary_model X`                                   |
+| `config show`                          | `config get`                                                          |
+| `config tools exec <tool>`             | `tools execute <tool>`                                                |
+| `config tools validate <cmd>`          | `tools validate <cmd>`                                                |
 
 See the [full configuration reference](https://github.com/inference-gateway/cli/blob/main/docs/configuration-reference.md) for detailed options.
 
@@ -4307,7 +4305,7 @@ infer headless "Fix the bug described in GitHub issue #456"
 - Run tests after significant changes
 - Have backups before extensive Auto-Accept usage
 - Allow-list only trusted commands
-- Add sensitive directories to protected paths
+- Add sensitive paths to `filesystem.denied` in [`~/.infer/sandbox.yaml`](#file-sandbox)
 
 ## Security
 
@@ -4336,16 +4334,69 @@ Read-only `gh` operations are in the baseline so the agent can inspect GitHub ou
 
 Entries match the **whole** command, and a [clean-command guard](#clean-command-guard) rejects command substitution, multi-command chains/pipelines, file-write redirects, dangerous `find` actions, and environment-variable leaks before matching. The only thing that lifts the guard is the `.*` sentinel (Auto-Accept mode).
 
-### Protected Paths
+### File sandbox
 
-Automatically excluded from tool access:
+Which paths the file tools may read and write is decided by a **userspace policy file**, `~/.infer/sandbox.yaml` - not by `config.yaml`. It holds one section per resource, today `filesystem` with two lists:
 
-- `.git/` - Repository data
-- `*.env` - Environment files
-- `.infer/` - Configuration directory
-- `~/.infer/auth.yaml` (and the legacy `~/.infer/auth.json`) - [Fallback provider API keys](#provider-api-keys)
-- `~/.infer/tmp/` is the exception: it is agent-readable and writable, see [Userspace tmp tree](#userspace-tmp-tree)
-- Custom paths via sandbox config
+```yaml
+filesystem:
+  allowed: # the sandbox. Outside it the user is asked. First match wins.
+    - .
+    - /tmp
+    - path: vendor/
+      access: read # read | write (default write). A write here asks.
+  denied: # always wins over allowed, a blocking entry over one that asks
+    - path: .infer/
+      on_violation: approval # block | approval (default block)
+    - .git/
+    - '*.env'
+```
+
+`infer init` seeds the file with the defaults.
+
+#### Entry forms
+
+Each entry is either a path string or a map:
+
+| List      | Map key        | Values                        | Meaning                                          |
+| --------- | -------------- | ----------------------------- | ------------------------------------------------ |
+| `allowed` | `access`       | `read`, `write` (default)     | A write into a `read` entry asks the user        |
+| `denied`  | `on_violation` | `block` (default), `approval` | `block` fails outright, `approval` asks the user |
+
+Paths are either **anchored** (`/abs`, `~/x`, `.`, `./x` - matched at that location) or **patterns** matched at any depth (`dir/`, `*.glob`, `name`).
+
+#### Defaults
+
+- `allowed`: `.` and `/tmp`.
+- `denied`: `.infer/` (with `on_violation: approval`), `.git/`, `*.env`, `.environment`, `auth.yaml`, `*.key`, `*.pem`, `id_rsa`, `id_dsa`, `id_ecdsa`, `id_ed25519`.
+
+The config dirs (`.infer/` and `~/.infer/`) therefore **ask before every read and write**, since their files can hold tokens - including [`auth.yaml`](#provider-api-keys). Built-in carve-outs keep the agent's own working surface open without a prompt: [skills](/cli-skills/#skills-sandbox-carve-out), plans, plugins, [memory](#persistent-memory), the [artifacts directory](#artifacts-directory) and runtime output such as [`~/.infer/tmp`](#userspace-tmp-tree).
+
+#### Decision order
+
+1. **`denied` first.** A blocking entry fails whatever its position; otherwise the first matching approval entry asks the user.
+2. **Built-in carve-outs**, which skip the default `.infer/` denial.
+3. **The first matching `allowed` entry** - a write into a `read` entry asks.
+4. **Otherwise the user is asked.** An empty `allowed` list is no boundary.
+
+#### Loading
+
+- Only `~/.infer/sandbox.yaml` is read. A project `.infer/sandbox.yaml` is **ignored**, so a checked-out repository cannot widen your sandbox, and the agent's file tools can never write the policy file.
+- The file loads **over** the defaults: a list it leaves out keeps its default.
+- A file that fails to parse or validate **stops `infer` from starting**, rather than falling back to a wider policy.
+- `infer config set` does not reach the sandbox - edit the file.
+
+#### Grants
+
+When the user approves a denied path, the grant lasts for the **session**. Answering "always" persists it into `sandbox.yaml`, except for paths matched by a `denied` entry, which stay session-only - denied wins over any allowed entry an "always" could write.
+
+#### Environment and daemon overrides
+
+`INFER_TOOLS_SANDBOX_DIRECTORIES` (and the daemon's per-thread `sandbox_directories` thread option) **adds** directories to `filesystem.allowed` instead of replacing the list.
+
+```bash
+export INFER_TOOLS_SANDBOX_DIRECTORIES="/work/project,/tmp/scratch"
+```
 
 ### Approval Workflow
 

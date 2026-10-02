@@ -196,7 +196,7 @@ When the agent finishes, the three `post_session` hooks fire in listed order - f
 
 - **Secure by default.** `enabled: false` is the shipped default, and every command passes the same [allow-list](/cli/#command-allow-listing) and [clean-command guard](/cli/#clean-command-guard) as an interactive Bash call. Hooks add no new escape hatch.
 - **No conversation feedback.** Hook output is reported only as a stream event - it is never injected into the model context, so a hook cannot change the agent's behavior or leak content into the prompt.
-- **Read the same path protections.** Hook commands run with the same [sandbox](/cli/#tool-configuration) and [protected paths](/cli/#protected-paths) as any other shell command (`.git/`, `*.env`, `.infer/` remain excluded).
+- **Read the same path protections.** Hook commands run under the same [file sandbox](/cli/#file-sandbox) as any other shell command (`.git/`, `*.env` stay denied and `.infer/` still asks).
 - **Curate your allow-list.** In CI, only append commands you would be happy for the agent to run unattended - the append override applies to the agent's Bash tool too, not just hooks.
 
 ## See also
