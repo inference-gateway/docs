@@ -291,35 +291,39 @@ Activation behavior:
 
 ## Skills sandbox carve-out
 
-A skill's instructions only reach the model through the Read tool (progressive disclosure). But user-scope skills live in `~/.infer/skills`, which is **outside the default Read sandbox**:
+A skill's instructions only reach the model through the Read tool (progressive disclosure). But skills live under the config dirs, and the default [file sandbox](/cli/#file-sandbox) policy denies `.infer/` with `on_violation: approval`, while user-scope skills in `~/.infer/skills` also sit outside the allowed list (`.` and `/tmp`):
 
 ```yaml
-tools:
-  sandbox:
-    directories: ['.', '/tmp', '.infer/tmp'] # default
+filesystem:
+  allowed:
+    - .
+    - /tmp
+  denied:
+    - path: .infer/
+      on_violation: approval
 ```
 
-Without a carve-out, `Read ~/.infer/skills/<name>/SKILL.md` is denied as "outside configured sandbox directories", so the skill never loads. This is exactly what broke the `@infer` CI bot, which installs to the user scope with `infer skills install <skill> --user --overwrite` and then runs the agent outside the project directory.
+Without a carve-out, `Read ~/.infer/skills/<name>/SKILL.md` would prompt for approval or fall outside the sandbox entirely, so the skill never loads unattended. This is exactly what broke the `@infer` CI bot, which installs to the user scope with `infer skills install <skill> --user --overwrite` and then runs the agent outside the project directory.
 
-**The carve-out:** when `agent.skills.enabled` is `true`, the Read sandbox automatically grants read access to `./.infer/skills` and `~/.infer/skills` (and everything under them). Installed `SKILL.md` and `references/*.md` are therefore reachable even when the agent runs outside the project directory, such as in CI.
+**The carve-out:** when `agent.skills.enabled` is `true`, the sandbox automatically grants read access to `./.infer/skills` and `~/.infer/skills` (and everything under them), skipping the `.infer/` denial. Installed `SKILL.md` and `references/*.md` are therefore reachable without a prompt even when the agent runs outside the project directory, such as in CI.
 
-### How it relates to `tools.sandbox.directories`
+### How it relates to `filesystem.allowed`
 
-The carve-out is automatic and additive - you do **not** add the skills directories to `tools.sandbox.directories` yourself:
+The carve-out is automatic and additive - you do **not** add the skills directories to `filesystem.allowed` in `~/.infer/sandbox.yaml` yourself:
 
-| Aspect               | Configured `tools.sandbox.directories` | Skills carve-out                                    |
-| -------------------- | -------------------------------------- | --------------------------------------------------- |
-| Default value        | `['.', '/tmp', '.infer/tmp']`          | `./.infer/skills` and `~/.infer/skills`             |
-| How it is granted    | Explicit - you list each directory     | Implicit - applied only when `agent.skills.enabled` |
-| Access               | Governs Read tool access generally     | Read-only, scoped to the skills directories         |
-| When skills disabled | Unchanged                              | Not applied (Read of `~/.infer/skills` is denied)   |
+| Aspect               | Configured `filesystem.allowed`    | Skills carve-out                                    |
+| -------------------- | ---------------------------------- | --------------------------------------------------- |
+| Default value        | `.` and `/tmp`                     | `./.infer/skills` and `~/.infer/skills`             |
+| How it is granted    | Explicit - you list each path      | Implicit - applied only when `agent.skills.enabled` |
+| Access               | Governs file tool access generally | Read-only, scoped to the skills directories         |
+| When skills disabled | Unchanged                          | Not applied (Read of `~/.infer/skills` asks)        |
 
 Two guarantees still hold on top of the carve-out:
 
-- **`tools.sandbox.protected_paths` wins.** Protected patterns are checked first, so a file like `*.env` or `.infer/config.yaml` under the skills tree stays denied even though the directory is carved out.
+- **A blocking `denied` entry wins.** Denied entries are evaluated first, so a file like `*.env` or `auth.yaml` under the skills tree stays denied even though the directory is carved out.
 - **Lookalike siblings are not granted.** Only the exact `./.infer/skills` and `~/.infer/skills` directories (and their descendants) are allowed - a sibling such as `~/.infer/skills-backup` is not.
 
-If you set `tools.sandbox.directories: []`, sandboxing is disabled entirely and the carve-out is moot. See the [CLI security model](/cli/#security) for the full sandbox and protected-paths picture.
+See the [file sandbox](/cli/#file-sandbox) for the entry forms, the decision order and how grants are persisted.
 
 ## Security
 
