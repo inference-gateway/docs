@@ -24,7 +24,7 @@ text_to_video:
   # model: elevenlabs/veo-3.1-fast-generate-001 # prompt renders
   # avatar_model: elevenlabs/creatify-aurora # lip-synced avatar renders
   # size: '' # "widthxheight", passed through to the provider; empty = provider default
-  # output_dir: ~/.infer/tmp/video
+  # output_dir: ~/.infer/projects/<project-slug>/tmp/media/video
   # timeout: 900 # seconds to wait for a render job
   # poll_interval: 5 # seconds between job status polls
   # create_avatar: false # also register the CreateAvatar agent tool
@@ -37,17 +37,17 @@ text_to_video:
 
 All options live under `text_to_video` in `.infer/config.yaml`. Every key also has an `INFER_TEXT_TO_VIDEO_`-prefixed environment variable that takes precedence over the config file.
 
-| Config key                       | Environment variable                   | Type   | Default                                | Notes                                                                                       |
-| -------------------------------- | -------------------------------------- | ------ | -------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `text_to_video.enabled`          | `INFER_TEXT_TO_VIDEO_ENABLED`          | bool   | `false`                                | Feature flag - must be `true` for the `TextToVideo` tool to reach the LLM                   |
-| `text_to_video.model`            | `INFER_TEXT_TO_VIDEO_MODEL`            | string | `elevenlabs/veo-3.1-fast-generate-001` | Gateway `provider/model` id used for prompt renders                                         |
-| `text_to_video.avatar_model`     | `INFER_TEXT_TO_VIDEO_AVATAR_MODEL`     | string | `elevenlabs/creatify-aurora`           | Gateway `provider/model` id used for lip-synced avatar renders                              |
-| `text_to_video.size`             | `INFER_TEXT_TO_VIDEO_SIZE`             | string | `""`                                   | `widthxheight` passed through to the provider; empty leaves the provider default            |
-| `text_to_video.output_dir`       | `INFER_TEXT_TO_VIDEO_OUTPUT_DIR`       | string | `~/.infer/tmp/video`                   | Where rendered MP4s are written                                                             |
-| `text_to_video.timeout`          | `INFER_TEXT_TO_VIDEO_TIMEOUT`          | int    | `900`                                  | Seconds to wait for a render job before giving up                                           |
-| `text_to_video.poll_interval`    | `INFER_TEXT_TO_VIDEO_POLL_INTERVAL`    | int    | `5`                                    | Seconds between job status polls                                                            |
-| `text_to_video.create_avatar`    | `INFER_TEXT_TO_VIDEO_CREATE_AVATAR`    | bool   | `false`                                | Also register the [`CreateAvatar`](#creating-avatars-from-chat) tool; needs `enabled` too   |
-| `text_to_video.require_approval` | `INFER_TEXT_TO_VIDEO_REQUIRE_APPROVAL` | bool   | unset (no approval)                    | Tri-state: unset keeps the tool's own default, an explicit value pins the policy either way |
+| Config key                       | Environment variable                   | Type   | Default                                                  | Notes                                                                                       |
+| -------------------------------- | -------------------------------------- | ------ | -------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `text_to_video.enabled`          | `INFER_TEXT_TO_VIDEO_ENABLED`          | bool   | `false`                                                  | Feature flag - must be `true` for the `TextToVideo` tool to reach the LLM                   |
+| `text_to_video.model`            | `INFER_TEXT_TO_VIDEO_MODEL`            | string | `elevenlabs/veo-3.1-fast-generate-001`                   | Gateway `provider/model` id used for prompt renders                                         |
+| `text_to_video.avatar_model`     | `INFER_TEXT_TO_VIDEO_AVATAR_MODEL`     | string | `elevenlabs/creatify-aurora`                             | Gateway `provider/model` id used for lip-synced avatar renders                              |
+| `text_to_video.size`             | `INFER_TEXT_TO_VIDEO_SIZE`             | string | `""`                                                     | `widthxheight` passed through to the provider; empty leaves the provider default            |
+| `text_to_video.output_dir`       | `INFER_TEXT_TO_VIDEO_OUTPUT_DIR`       | string | `video/` under the [media root](/cli/#media-directories) | Where rendered MP4s are written                                                             |
+| `text_to_video.timeout`          | `INFER_TEXT_TO_VIDEO_TIMEOUT`          | int    | `900`                                                    | Seconds to wait for a render job before giving up                                           |
+| `text_to_video.poll_interval`    | `INFER_TEXT_TO_VIDEO_POLL_INTERVAL`    | int    | `5`                                                      | Seconds between job status polls                                                            |
+| `text_to_video.create_avatar`    | `INFER_TEXT_TO_VIDEO_CREATE_AVATAR`    | bool   | `false`                                                  | Also register the [`CreateAvatar`](#creating-avatars-from-chat) tool; needs `enabled` too   |
+| `text_to_video.require_approval` | `INFER_TEXT_TO_VIDEO_REQUIRE_APPROVAL` | bool   | unset (no approval)                                      | Tri-state: unset keeps the tool's own default, an explicit value pins the policy either way |
 
 For example:
 
