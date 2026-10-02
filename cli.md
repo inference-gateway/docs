@@ -393,7 +393,7 @@ The selected indicator is highlighted as an **accent-colored pill**.
 
 While background jobs are tracked - [local subagents](#local-subagents-agent-tool), [A2A tasks](#a2a-integration), background shells, [screen recordings](#screen-recording) - they appear as a stacked list below the status indicators, one row per job with its label, kind and a live elapsed counter.
 
-A subagent's row carries a child line with its run stats: tool calls that succeeded and failed, the tokens of its whole session and the slice the provider served from its prompt cache (`C.`). For a headless subagent the line counts up while it works. A finished row lingers with a green `✓` or a red `✗` for `chat.status_bar.subagent_linger_seconds` (default `5`), then drops.
+A subagent's row carries a child line with its run stats: tool calls that succeeded and failed, the tokens of its whole session and the slice the provider served from its prompt cache (`C.`). For a headless subagent the line counts up while it works. Each count's icon takes its status color - `✓` in the success color, `✗` in the error color - only while that count is above `0`; at `0` the icon is dimmed, so a run with no failures never shows a red `✗`. A finished row lingers with a green `✓` or a red `✗` for `chat.status_bar.subagent_linger_seconds` (default `5`), then drops.
 
 ```text
 ┌ npm run build shell       2.0s
