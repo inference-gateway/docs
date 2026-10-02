@@ -1,6 +1,6 @@
 ---
 title: TypeScript ADK
-description: Build A2A-compatible agents in TypeScript with the @inference-gateway/adk package. Handler registration, JSON-RPC message/send, message/stream, tasks/get, tasks/list, tasks/cancel with TaskCancellationRegistry, agent/getAuthenticatedExtendedCard with the extended-card vs. public-card discovery convention (supportsExtendedAgentCard), withAuthConfig auto-registration, OIDC auth gating with -32001 envelope, SSE event sequence, CloudEvents v1.0 envelopes, STREAMING_STATUS_UPDATE_INTERVAL, DefaultBackgroundTaskHandler agentic loop with tool dispatch and usage metadata, MAX_CHAT_COMPLETION_ITERATIONS cap, reserved input_required tool, AgentBuilder fluent wiring for OpenAICompatibleAgent with Go-parity defaults, lifecycle callbacks (beforeAgent / afterAgent / beforeModel / afterModel / beforeTool / afterTool) with CallbackContext, short-circuit and chain semantics, sync vs. async, error propagation, caching and guardrail patterns, HTTPPushNotificationSender webhook delivery primitive with TaskUpdateNotification wire payload, sendTaskUpdate one-shot and deliverTaskUpdate fan-out helpers, exponential-backoff retry config, bearer / basic auth resolution, and per-task pushNotificationConfig on MessageSendConfiguration, artifact service with filesystem and MinIO/S3 storage backends and the registerArtifactsRoute download route, OpenTelemetry tracing via TelemetryProvider with OTLP spans, Prometheus metrics with a standalone /metrics server and request middleware, TLS and mutual-TLS server/client configuration, validation contract, id semantics, cancellation, and runnable client samples.
+description: Build A2A-compatible agents in TypeScript with the @inference-gateway/adk package. Handler registration, JSON-RPC message/send, message/stream, tasks/get, tasks/list, tasks/cancel with TaskCancellationRegistry, agent/getAuthenticatedExtendedCard with the extended-card vs. public-card discovery convention (capabilities.extendedAgentCard), withAuthConfig auto-registration, OIDC auth gating with -32001 envelope, SSE event sequence, CloudEvents v1.0 envelopes, STREAMING_STATUS_UPDATE_INTERVAL, DefaultBackgroundTaskHandler agentic loop with tool dispatch and usage metadata, MAX_CHAT_COMPLETION_ITERATIONS cap, reserved input_required tool, AgentBuilder fluent wiring for OpenAICompatibleAgent with Go-parity defaults, lifecycle callbacks (beforeAgent / afterAgent / beforeModel / afterModel / beforeTool / afterTool) with CallbackContext, short-circuit and chain semantics, sync vs. async, error propagation, caching and guardrail patterns, HTTPPushNotificationSender webhook delivery primitive with TaskUpdateNotification wire payload, sendTaskUpdate one-shot and deliverTaskUpdate fan-out helpers, exponential-backoff retry config, bearer / basic auth resolution, and per-task pushNotificationConfig on MessageSendConfiguration, artifact service with filesystem and MinIO/S3 storage backends and the registerArtifactsRoute download route, OpenTelemetry tracing via TelemetryProvider with OTLP spans, Prometheus metrics with a standalone /metrics server and request middleware, TLS and mutual-TLS server/client configuration, validation contract, id semantics, cancellation, and runnable client samples.
 ---
 
 # TypeScript ADK
@@ -73,7 +73,9 @@ const card: AgentCard = {
   name: 'echo-agent',
   description: 'Echoes user input back.',
   version: '0.1.0',
-  protocolVersion: '1.0',
+  supportedInterfaces: [
+    { url: 'http://localhost:8080', protocolBinding: 'JSONRPC', protocolVersion: '1.0' },
+  ],
   defaultInputModes: ['text/plain'],
   defaultOutputModes: ['text/plain'],
   capabilities: { streaming: false },
@@ -722,7 +724,9 @@ const card: AgentCard = {
   name: 'streaming-agent',
   description: 'Streams a reply token-by-token.',
   version: '0.1.0',
-  protocolVersion: '1.0',
+  supportedInterfaces: [
+    { url: 'http://localhost:8080', protocolBinding: 'JSONRPC', protocolVersion: '1.0' },
+  ],
   defaultInputModes: ['text/plain'],
   defaultOutputModes: ['text/plain'],
   capabilities: { streaming: true },
@@ -1128,13 +1132,13 @@ This mirrors the Go ADK's [`HandleGetAuthenticatedExtendedCard`](https://github.
 
 The public well-known card (`GET /.well-known/agent-card.json`) is served unauthenticated so any prospective client can discover what the agent does. The extended card is the place to surface anything that should only be visible to authenticated callers:
 
-- **Auth schemes** (`securitySchemes` / `security`) - keep credential requirements off the public card so the public card can stay infrastructure-neutral and cacheable.
+- **Auth schemes** (`securitySchemes` / `securityRequirements`) - keep credential requirements off the public card so the public card can stay infrastructure-neutral and cacheable.
 - **Private capabilities and skills** - admin-only tools, paid-tier skills, internal endpoints, or anything else the agent only advertises after authentication.
 - **Per-tenant variations** - the optional `tenant` param is forwarded to logs and can be threaded through your own card builder if the extended card needs to vary per caller. The bundled handler returns the configured card verbatim; tenant-aware variation is a layer you build on top.
 
-The public card signals that an extended variant exists by setting `supportsExtendedAgentCard: true`. Clients that respect the agent card discovery convention check this flag and only then attempt the JSON-RPC call against the authenticated endpoint.
+The public card signals that an extended variant exists by setting `capabilities.extendedAgentCard: true`. Clients that respect the agent card discovery convention check this flag and only then attempt the JSON-RPC call against the authenticated endpoint.
 
-> **The served card is still the pre-1.0.1 shape.** The A2A v1.0.1 `AgentCard` moved this flag to `capabilities.extendedAgentCard`, dropped `capabilities.stateTransitionHistory`, and replaced `url` / `preferredTransport` / `protocolVersion` with `supportedInterfaces`. The TypeScript ADK card type has not followed yet: it keeps the top-level `supportsExtendedAgentCard`, still accepts `stateTransitionHistory`, and leaves `supportedInterfaces` empty unless you populate it yourself. The names used on this page are the ones on the wire today. ADL manifests already use the v1.0.1 names - see [Deprecated card fields](/adl-cli/#deprecated-card-fields) for the mapping.
+> **Card shape.** From 0.17.0 the `AgentCard` type is the A2A v1.0.1 shape: the extended-card flag lives on `capabilities.extendedAgentCard`, security requirements on `securityRequirements`, and the endpoint list on the required `supportedInterfaces` array (there is no top-level `url` / `preferredTransport` / `protocolVersion`, and no `capabilities.stateTransitionHistory`). See [Deprecated card fields](/adl-cli/#deprecated-card-fields) for the mapping from the older names.
 
 ### Registering the handler
 
@@ -1142,7 +1146,7 @@ The handler is **auto-registered** when an extended card is configured on the se
 
 #### Via `A2AServerBuilder.withAuthConfig(...)`
 
-The fluent path: install an authenticator, supply the auth config, and the builder produces the decorated extended card and registers the handler for you. The public well-known card is left undecorated and gets `supportsExtendedAgentCard: true`.
+The fluent path: install an authenticator, supply the auth config, and the builder produces the decorated extended card and registers the handler for you. The public well-known card is left undecorated and gets `capabilities.extendedAgentCard: true`.
 
 ```ts
 import {
@@ -1159,7 +1163,9 @@ const card: AgentCard = {
   name: 'support-agent',
   description: 'Answers product questions and looks up account state.',
   version: '0.1.0',
-  protocolVersion: '1.0',
+  supportedInterfaces: [
+    { url: 'http://localhost:8080', protocolBinding: 'JSONRPC', protocolVersion: '1.0' },
+  ],
   defaultInputModes: ['text/plain'],
   defaultOutputModes: ['text/plain'],
   capabilities: { streaming: false },
@@ -1178,12 +1184,12 @@ await server.listen(8080, '0.0.0.0');
 
 What the builder does at `build()` time when both `withAuthenticator(...)` and `withAuthConfig(...)` are supplied:
 
-1. Calls `decorateAgentCardWithAuth(card, authConfig)` to produce the **extended** card - the public card plus an `openIdConnectSecurityScheme` entry (`securitySchemes.oidc`) pointing at `<issuerUrl>/.well-known/openid-configuration`, and a matching `security` requirement naming the same scheme.
-2. Clones the **public** card and sets `supportsExtendedAgentCard: true` on the clone (the original card stays untouched, auth schemes never appear on the public card).
+1. Calls `decorateAgentCardWithAuth(card, authConfig)` to produce the **extended** card - the public card plus an `openIdConnectSecurityScheme` entry (`securitySchemes.oidc`) pointing at `<issuerUrl>/.well-known/openid-configuration`, and a matching `securityRequirements` entry naming the same scheme.
+2. Clones the **public** card and sets `capabilities.extendedAgentCard: true` on the clone (the original card stays untouched, auth schemes never appear on the public card).
 3. Constructs the `A2AServer` with both `card` (public) and `extendedCard`, which causes the server to auto-register `agent/getAuthenticatedExtendedCard` against the extended card.
 4. Wires the authenticator's middleware on the JSON-RPC route, so the handler's "trust upstream auth" contract holds.
 
-> **Behavior change vs. prior versions.** Earlier releases of the TypeScript ADK decorated the **public** card with auth schemes when `withAuthConfig(...)` was supplied. Current releases leave the public card undecorated; auth schemes live only on the extended card. Clients that relied on parsing `securitySchemes` from the well-known card must either switch to fetching the extended card after authentication, or look for the `supportsExtendedAgentCard: true` flag and then negotiate. The Go ADK has always behaved this way; the TS ADK is now aligned.
+> **Behavior change vs. prior versions.** Earlier releases of the TypeScript ADK decorated the **public** card with auth schemes when `withAuthConfig(...)` was supplied. Current releases leave the public card undecorated; auth schemes live only on the extended card. Clients that relied on parsing `securitySchemes` from the well-known card must either switch to fetching the extended card after authentication, or look for the `capabilities.extendedAgentCard: true` flag and then negotiate. The Go ADK has always behaved this way; the TS ADK is now aligned.
 
 #### Via `A2AServer` directly
 
@@ -1202,7 +1208,7 @@ const authConfig = loadAuthConfigFromEnv();
 const publicCard: AgentCard = {
   /* ... */
   // signal availability:
-  supportsExtendedAgentCard: true,
+  capabilities: { streaming: false, extendedAgentCard: true },
 };
 const extendedCard = decorateAgentCardWithAuth(publicCard, authConfig);
 
@@ -1269,7 +1275,9 @@ On success the handler returns the configured `AgentCard` verbatim:
   "name": "support-agent",
   "description": "Answers product questions and looks up account state.",
   "version": "0.1.0",
-  "protocolVersion": "1.0",
+  "supportedInterfaces": [
+    { "url": "http://localhost:8080", "protocolBinding": "JSONRPC", "protocolVersion": "1.0" },
+  ],
   "defaultInputModes": ["text/plain"],
   "defaultOutputModes": ["text/plain"],
   "capabilities": { "streaming": false },
@@ -1284,11 +1292,11 @@ On success the handler returns the configured `AgentCard` verbatim:
       },
     },
   },
-  "security": [{ "schemes": { "oidc": { "list": [] } } }],
+  "securityRequirements": [{ "schemes": { "oidc": { "list": [] } } }],
 }
 ```
 
-When `decorateAgentCardWithAuth(...)` produces the card (the `A2AServerBuilder.withAuthConfig(...)` path), the `securitySchemes.oidc` and `security` entries above are the only fields it adds; every other field is copied from the public card unchanged. Manual extended cards are returned verbatim, so any private skills / capabilities / metadata you want gated behind auth go directly on the card you pass to `extendedCard`.
+When `decorateAgentCardWithAuth(...)` produces the card (the `A2AServerBuilder.withAuthConfig(...)` path), the `securitySchemes.oidc` and `securityRequirements` entries above are the only fields it adds; every other field is copied from the public card unchanged. Manual extended cards are returned verbatim, so any private skills / capabilities / metadata you want gated behind auth go directly on the card you pass to `extendedCard`.
 
 ### Validation contract
 
@@ -1366,7 +1374,9 @@ Response (the extended card, verbatim):
     "name": "support-agent",
     "description": "Answers product questions and looks up account state.",
     "version": "0.1.0",
-    "protocolVersion": "1.0",
+    "supportedInterfaces": [
+      { "url": "http://localhost:8080", "protocolBinding": "JSONRPC", "protocolVersion": "1.0" }
+    ],
     "defaultInputModes": ["text/plain"],
     "defaultOutputModes": ["text/plain"],
     "capabilities": { "streaming": false },
@@ -1381,7 +1391,7 @@ Response (the extended card, verbatim):
         }
       }
     },
-    "security": [{ "schemes": { "oidc": { "list": [] } } }]
+    "securityRequirements": [{ "schemes": { "oidc": { "list": [] } } }]
   }
 }
 ```
@@ -1702,7 +1712,9 @@ const card: AgentCard = {
   name: 'support-agent',
   description: 'Answers product questions and looks up account state.',
   version: '0.1.0',
-  protocolVersion: '1.0',
+  supportedInterfaces: [
+    { url: 'http://localhost:8080', protocolBinding: 'JSONRPC', protocolVersion: '1.0' },
+  ],
   defaultInputModes: ['text/plain'],
   defaultOutputModes: ['text/plain'],
   capabilities: { streaming: false },
@@ -1760,7 +1772,9 @@ const card: AgentCard = {
   name: 'support-agent',
   description: 'Answers product questions using an LLM.',
   version: '0.1.0',
-  protocolVersion: '1.0',
+  supportedInterfaces: [
+    { url: 'http://localhost:8080', protocolBinding: 'JSONRPC', protocolVersion: '1.0' },
+  ],
   defaultInputModes: ['text/plain'],
   defaultOutputModes: ['text/plain'],
   capabilities: { streaming: false },
@@ -2259,7 +2273,9 @@ const card: AgentCard = {
   name: 'support-agent',
   description: 'Answers product questions and looks up account state.',
   version: '0.1.0',
-  protocolVersion: '1.0',
+  supportedInterfaces: [
+    { url: 'http://localhost:8080', protocolBinding: 'JSONRPC', protocolVersion: '1.0' },
+  ],
   defaultInputModes: ['text/plain'],
   defaultOutputModes: ['text/plain'],
   capabilities: { streaming: false },
@@ -3203,7 +3219,7 @@ The TypeScript ADK is being grown in lockstep with the [Go ADK](https://github.c
 - `STREAMING_STATUS_UPDATE_INTERVAL` shares its name, default (`1s`), and accepted format with the Go ADK's `server/config/config.go`.
 - `DefaultBackgroundTaskHandler` mirrors the Go ADK's [`DefaultBackgroundTaskHandler`](https://github.com/inference-gateway/adk/blob/main/server/task_handler.go) - same iteration cap default (`50`), same `MAX_CHAT_COMPLETION_ITERATIONS` env var name, same reserved `input_required` tool and `message` / `prompt` / `question` arg-key fallback, and the same `execution_stats` / `usage` metadata shape on `task.metadata`.
 - [`AgentBuilder`](#agent-builder-agentbuilder) mirrors the Go ADK's [`AgentBuilder`](https://github.com/inference-gateway/adk/blob/main/server/agent_builder.go) - same fluent surface (`withProvider` / `withModel` / `withTemperature` / `withTopP` / `withMaxTokens` / `withMaxIterations` / `withSystemPrompt` / `withMaxConversationHistory` / `withCallbacks` / `withToolBox` / `withLLMClient` / `build`), same defaults (`maxIterations: 50`, `maxConversationHistory: 20`), and a `systemPrompt` default that is a byte-for-byte copy of `AgentConfig.SystemPrompt` from [`server/config/config.go`](https://github.com/inference-gateway/adk/blob/main/server/config/config.go). The TS variant surfaces each LLM-config field as its own builder method instead of a single `WithConfig` call.
-- [`agent/getAuthenticatedExtendedCard`](#the-agent-getauthenticatedextendedcard-json-rpc-method) mirrors the Go ADK's [`HandleGetAuthenticatedExtendedCard`](https://github.com/inference-gateway/adk/blob/main/server/task_handler.go) - same JSON-RPC method name, same optional `tenant` param, same "return the configured extended card verbatim" contract, same fail-closed behaviour when no extended card is configured (`-32601 method not found`). Both ADKs leave the public well-known card undecorated and surface auth schemes only on the extended endpoint; the public card sets `supportsExtendedAgentCard: true` to signal availability. The TS handler is auto-registered by [`A2AServerBuilder.withAuthConfig(...)`](#via-a2aserverbuilder-withauthconfig) when paired with an authenticator, matching the Go ADK's `A2AServerBuilder.WithAuthConfig` wiring.
+- [`agent/getAuthenticatedExtendedCard`](#the-agent-getauthenticatedextendedcard-json-rpc-method) mirrors the Go ADK's [`HandleGetAuthenticatedExtendedCard`](https://github.com/inference-gateway/adk/blob/main/server/task_handler.go) - same JSON-RPC method name, same optional `tenant` param, same "return the configured extended card verbatim" contract, same fail-closed behaviour when no extended card is configured (`-32601 method not found`). Both ADKs leave the public well-known card undecorated and surface auth schemes only on the extended endpoint; the public card sets `capabilities.extendedAgentCard: true` to signal availability. The TS handler is auto-registered by [`A2AServerBuilder.withAuthConfig(...)`](#via-a2aserverbuilder-withauthconfig) when paired with an authenticator, matching the Go ADK's `A2AServerBuilder.WithAuthConfig` wiring.
 - [`HTTPPushNotificationSender`](#push-notifications-httppushnotificationsender) mirrors the Go ADK's [`HTTPPushNotificationSender`](https://github.com/inference-gateway/adk/blob/main/server/push_notification_sender.go) - same `TaskUpdateNotification` JSON payload (`type` / `taskId` / `state` / `timestamp` / `task`), same auth-header resolution order (`config.token` first, then bearer / basic in `config.authentication.schemes`), and the same retryable-vs-non-retryable classification (5xx / 429 / network / per-attempt timeout retryable; 4xx and caller abort non-retryable). The TypeScript sender ships `deliverTaskUpdate` as a fan-out helper with a default concurrency cap of `8`; both ADKs' senders are delivery primitives only and depend on the lifecycle layer for invocation.
 - The generated `Message`, `Task`, and `Part` types are produced from the same `inference-gateway/schemas` source of truth, regenerated via `pnpm generate:types` and pinned to a specific schema commit.
 

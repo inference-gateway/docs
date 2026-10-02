@@ -592,7 +592,9 @@ client
 
 ## Agent card and metadata
 
-The agent card served at `/.well-known/agent.json` is the discovery document for your agent. Its `name`, `description`, `version`, `url`, and `capabilities` come from the card JSON you hand the builder - either inline via `with_agent_card(...)` or from disk via `with_agent_card_from_file(path, overrides)`. There are no environment variables for card fields: the card is the single source of truth, and the path is the `path` argument, not a configured value.
+The agent card served at `/.well-known/agent.json` is the discovery document for your agent. Its `name`, `description`, `version`, `supportedInterfaces`, and `capabilities` come from the card JSON you hand the builder - either inline via `with_agent_card(...)` or from disk via `with_agent_card_from_file(path, overrides)`. There are no environment variables for card fields: the card is the single source of truth, and the path is the `path` argument, not a configured value.
+
+> **Discovery path.** As of 0.15.0 the Rust ADK still serves and fetches `/.well-known/agent.json`, while A2A v1.0.1 and the Go/TypeScript ADKs use `/.well-known/agent-card.json`. Clients that only probe the newer path need an explicit fallback against a Rust agent.
 
 **Runtime overrides** layer on top of whatever was loaded from disk. Pass `AgentCardOverrides` to `with_agent_card_from_file(...)`; the file supplies the baseline and each explicitly-set override wins:
 
@@ -617,9 +619,9 @@ let server = A2AServerBuilder::new()
     .await?;
 ```
 
-`AgentCardOverrides` exposes `with_name`, `with_description`, `with_version`, and `with_url`. See [`examples/static-agent-card/`](https://github.com/inference-gateway/rust-adk/tree/main/examples/static-agent-card) for a runnable demo.
+`AgentCardOverrides` exposes `with_name`, `with_description`, `with_version`, and `with_url` - `with_url` rewrites the `url` of the first entry in the card's `supportedInterfaces` list, appending a `JSONRPC` / `1.0` interface when the list is empty. See [`examples/static-agent-card/`](https://github.com/inference-gateway/rust-adk/tree/main/examples/static-agent-card) for a runnable demo.
 
-The card's `supportsExtendedAgentCard` flag gates `agent/getAuthenticatedExtendedCard`. See [Card-driven authentication flow](#card-driven-authentication-flow) for how the flag is set, the extended-card error contract, and how clients discover which schemes the agent accepts.
+The card's `capabilities.extendedAgentCard` flag gates `agent/getAuthenticatedExtendedCard`. See [Card-driven authentication flow](#card-driven-authentication-flow) for how the flag is set, the extended-card error contract, and how clients discover which schemes the agent accepts.
 
 ## Authentication
 
@@ -675,21 +677,21 @@ let server = A2AServerBuilder::new()
     .await?;
 ```
 
-When auth is disabled the middleware is not attached, and `agent/getAuthenticatedExtendedCard` returns the configured card whenever `supportsExtendedAgentCard == true`. See [`examples/auth/`](https://github.com/inference-gateway/rust-adk/tree/main/examples/auth) for an end-to-end demo that runs both a static-token verifier and a Keycloak-backed `OidcJwtVerifier`.
+When auth is disabled the middleware is not attached, and `agent/getAuthenticatedExtendedCard` returns the configured card whenever `capabilities.extendedAgentCard == true`. See [`examples/auth/`](https://github.com/inference-gateway/rust-adk/tree/main/examples/auth) for an end-to-end demo that runs both a static-token verifier and a Keycloak-backed `OidcJwtVerifier`.
 
 ### Card-driven authentication flow
 
 Beyond validating bearer tokens, the ADK implements the [A2A spec, section 7](https://a2a-protocol.org/latest/specification/#7-authentication-and-authorization) **card-driven** auth model: the agent card advertises _how_ to authenticate, and clients transmit credentials obtained out-of-band on every request. A2A does not run OAuth flows in-protocol.
 
-1. **Discovery** - the client fetches the public card from `/.well-known/agent.json` (always unauthenticated). The card declares `securitySchemes` (named schemes the agent accepts: `apiKey`, `http`, `oauth2`, `openIdConnect`, `mutualTLS`) and `security` (a requirement list with OR-of-ANDs semantics - satisfying any one entry is sufficient).
+1. **Discovery** - the client fetches the public card from `/.well-known/agent.json` (always unauthenticated). The card declares `securitySchemes` (named schemes the agent accepts: `apiKey`, `http`, `oauth2`, `openIdConnect`, `mutualTLS`) and `securityRequirements` (a requirement list with OR-of-ANDs semantics - satisfying any one entry is sufficient).
 2. **Credential acquisition is out-of-band** - the client obtains a token/key however the chosen scheme dictates.
 3. **Transmission** - the client sends the credential (e.g. `Authorization: Bearer <token>`) on every request.
 4. **Server enforcement** - with `A2A_AUTH_ENABLED=true` the `POST /a2a` endpoint is protected; unauthenticated requests get `401` with a `WWW-Authenticate: Bearer realm="a2a"` challenge.
-5. **Extended card** - if the card sets `supportsExtendedAgentCard: true`, an authenticated client MAY call `agent/getAuthenticatedExtendedCard` for a richer card and SHOULD replace its cached public card with the response.
+5. **Extended card** - if the card sets `capabilities.extendedAgentCard: true`, an authenticated client MAY call `agent/getAuthenticatedExtendedCard` for a richer card and SHOULD replace its cached public card with the response.
 
 #### Declaring security schemes on the card
 
-With `A2A_AUTH_ENABLED=true` the served card must declare `securitySchemes` so clients can discover how to authenticate. The `oidc_security_schemes` helper derives that declaration from the auth config at startup - keyed `"openId"` with a discovery URL built from the OIDC issuer, plus a matching `security` requirement:
+With `A2A_AUTH_ENABLED=true` the served card must declare `securitySchemes` so clients can discover how to authenticate. The `oidc_security_schemes` helper derives that declaration from the auth config at startup - keyed `"openId"` with a discovery URL built from the OIDC issuer, plus a matching `securityRequirements` entry:
 
 ```rust
 use inference_gateway_adk::{oidc_security_schemes, Config};
@@ -697,11 +699,11 @@ use inference_gateway_adk::{oidc_security_schemes, Config};
 let config: Config = envy::prefixed("A2A_").from_env()?;
 
 let (schemes, security) = oidc_security_schemes(&config.auth);
-card.security_schemes = Some(schemes);
-card.security = Some(security);
+card.security_schemes = schemes;
+card.security_requirements = security;
 ```
 
-This mirrors Go's `server.OIDCSecuritySchemes`. It matters because [ADL](/adl) manifests deliberately exclude OIDC/OAuth2 from their card definitions - so an ADL-generated agent derives its `securitySchemes`/`security` from the running auth config at startup rather than hard-coding an issuer into the manifest. The resulting card fragment looks like:
+This mirrors Go's `server.OIDCSecuritySchemes`. It matters because [ADL](/adl) manifests deliberately exclude OIDC/OAuth2 from their card definitions - so an ADL-generated agent derives its `securitySchemes`/`securityRequirements` from the running auth config at startup rather than hard-coding an issuer into the manifest. The resulting card fragment looks like:
 
 ```json
 {
@@ -712,7 +714,7 @@ This mirrors Go's `server.OIDCSecuritySchemes`. It matters because [ADL](/adl) m
       }
     }
   },
-  "security": [{ "schemes": { "openId": { "list": [] } } }]
+  "securityRequirements": [{ "schemes": { "openId": { "list": [] } } }]
 }
 ```
 
@@ -720,7 +722,7 @@ If `A2A_AUTH_ENABLED=true` but the card declares no `securitySchemes` (or the in
 
 #### The authenticated extended card
 
-The extended card is served only to authenticated callers via `agent/getAuthenticatedExtendedCard`. Configure it with the builder; `with_extended_agent_card` also forces `supportsExtendedAgentCard: true` on the public card:
+The extended card is served only to authenticated callers via `agent/getAuthenticatedExtendedCard`. Configure it with the builder; `with_extended_agent_card` also forces `capabilities.extendedAgentCard: true` on the public card:
 
 ```rust
 let server = A2AServerBuilder::new()
@@ -733,13 +735,13 @@ let server = A2AServerBuilder::new()
 
 The error contract (spec 3.3.4) for `agent/getAuthenticatedExtendedCard`:
 
-| Card state                                                | Result                                              |
-| --------------------------------------------------------- | --------------------------------------------------- |
-| `supportsExtendedAgentCard` absent or `false`             | `-32004` (`UnsupportedOperation`)                   |
-| `supportsExtendedAgentCard: true`, no extended configured | `-32007` (`AuthenticatedExtendedCardNotConfigured`) |
-| `supportsExtendedAgentCard: true`, extended configured    | the extended card is returned                       |
+| Card state                                                     | Result                                              |
+| -------------------------------------------------------------- | --------------------------------------------------- |
+| `capabilities.extendedAgentCard` absent or `false`             | `-32004` (`UnsupportedOperation`)                   |
+| `capabilities.extendedAgentCard: true`, no extended configured | `-32007` (`AuthenticatedExtendedCardNotConfigured`) |
+| `capabilities.extendedAgentCard: true`, extended configured    | the extended card is returned                       |
 
-> **The served card is still the pre-1.0.1 shape.** The A2A v1.0.1 `AgentCard` moved this flag to `capabilities.extendedAgentCard`, dropped `capabilities.stateTransitionHistory`, and replaced `url` / `preferredTransport` / `protocolVersion` with `supportedInterfaces`. The Rust ADK card type has not followed yet: it keeps the top-level `supportsExtendedAgentCard`, still accepts `stateTransitionHistory`, and leaves `supportedInterfaces` empty unless you populate it yourself. The names used above are the ones on the wire today. ADL manifests already use the v1.0.1 names - see [Deprecated card fields](/adl-cli/#deprecated-card-fields) for the mapping.
+> **Card shape.** From 0.15.0 the Rust ADK card type is the A2A v1.0.1 `AgentCard`: the extended-card flag lives on `capabilities.extendedAgentCard`, security requirements on `securityRequirements`, and the endpoint list on the required `supportedInterfaces` array (there is no top-level `url` / `preferredTransport` / `protocolVersion`, and no `capabilities.stateTransitionHistory`). See [Deprecated card fields](/adl-cli/#deprecated-card-fields) for the mapping from the older names.
 
 ## TLS and mTLS
 
@@ -1250,7 +1252,7 @@ Log verbosity is controlled by [`RUST_LOG`](https://docs.rs/tracing-subscriber/l
 | `A2A_AGENT_CLIENT_SYSTEM_PROMPT`                  | _(unset)_ | System prompt prepended to conversations.                                                                                |
 | `A2A_AGENT_CLIENT_ENABLE_USAGE_METADATA`          | `true`    | Attach token usage + execution stats to terminal task metadata.                                                          |
 
-**Capabilities** are not environment-configurable. The served card and the [builder's streaming-handler validation](#the-server-and-its-builder) read the `capabilities` object of your agent card JSON, so set `streaming`, `pushNotifications`, and `stateTransitionHistory` there. `stateTransitionHistory` is gone from the A2A v1.0.1 card, but the Rust ADK card type still accepts it, so a card carrying it keeps serving it verbatim.
+**Capabilities** are not environment-configurable. The served card and the [builder's streaming-handler validation](#the-server-and-its-builder) read the `capabilities` object of your agent card JSON, so set `streaming`, `pushNotifications`, and `extendedAgentCard` there. The A2A v1.0.1 card has no `stateTransitionHistory` flag - a card still carrying it fails to deserialize into the ADK's `AgentCapabilities`.
 
 **MCP client** (`MCP_` prefix) - connect the agent to [MCP servers](#mcp-client); disabled by default. Loaded under its own `MCP_` prefix (like `ARTIFACTS_`), separate from the `A2A_` `Config`.
 

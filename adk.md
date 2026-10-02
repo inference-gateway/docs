@@ -98,15 +98,13 @@ func main() {
 	a2aServer, err := server.NewA2AServerBuilder(cfg, logger).
 		WithBackgroundTaskHandler(&EchoHandler{}).
 		WithAgentCard(types.AgentCard{
-			Name:            cfg.AgentName,
-			Description:     cfg.AgentDescription,
-			Version:         cfg.AgentVersion,
-			URL:             &agentURL,
-			ProtocolVersion: "0.3.0",
+			Name:                cfg.AgentName,
+			Description:         cfg.AgentDescription,
+			Version:             cfg.AgentVersion,
+			SupportedInterfaces: []types.AgentInterface{{URL: agentURL, ProtocolBinding: "JSONRPC", ProtocolVersion: "1.0"}},
 			Capabilities: types.AgentCapabilities{
-				Streaming:              &[]bool{false}[0],
-				PushNotifications:      &[]bool{false}[0],
-				StateTransitionHistory: &[]bool{false}[0],
+				Streaming:         &[]bool{false}[0],
+				PushNotifications: &[]bool{false}[0],
 			},
 			DefaultInputModes:  []string{"text/plain"},
 			DefaultOutputModes: []string{"text/plain"},
@@ -198,15 +196,13 @@ a2aServer, err := server.NewA2AServerBuilder(*cfg, logger).
 	WithAgent(agent).
 	WithDefaultTaskHandlers().
 	WithAgentCard(types.AgentCard{
-		Name:            cfg.AgentName,
-		Description:     cfg.AgentDescription,
-		Version:         cfg.AgentVersion,
-		URL:             &agentURL,
-		ProtocolVersion: "0.3.0",
+		Name:                cfg.AgentName,
+		Description:         cfg.AgentDescription,
+		Version:             cfg.AgentVersion,
+		SupportedInterfaces: []types.AgentInterface{{URL: agentURL, ProtocolBinding: "JSONRPC", ProtocolVersion: "1.0"}},
 		Capabilities: types.AgentCapabilities{
-			Streaming:              &cfg.CapabilitiesConfig.Streaming,
-			PushNotifications:      &cfg.CapabilitiesConfig.PushNotifications,
-			StateTransitionHistory: &cfg.CapabilitiesConfig.StateTransitionHistory,
+			Streaming:         &cfg.CapabilitiesConfig.Streaming,
+			PushNotifications: &cfg.CapabilitiesConfig.PushNotifications,
 		},
 		DefaultInputModes:  []string{"text/plain"},
 		DefaultOutputModes: []string{"text/plain"},
@@ -633,11 +629,11 @@ Enable OIDC/OAuth2 bearer-token authentication with the `AUTH_*` variables. When
 
 Beyond validating bearer tokens, the ADK implements the [A2A spec, section 7](https://a2a-protocol.org/latest/specification/#7-authentication-and-authorization) **card-driven** auth model: the agent card advertises _how_ to authenticate, and clients transmit credentials obtained out-of-band on every request. A2A does not run OAuth flows in-protocol.
 
-1. **Discovery** - the client fetches the public card from `/.well-known/agent-card.json` (always unauthenticated). The card declares `securitySchemes` (named schemes the agent accepts: `apiKey`, `http`, `oauth2`, `openIdConnect`, `mutualTLS`) and `security` (a requirement list with OR-of-ANDs semantics - satisfying any one entry is sufficient).
+1. **Discovery** - the client fetches the public card from `/.well-known/agent-card.json` (always unauthenticated). The card declares `securitySchemes` (named schemes the agent accepts: `apiKey`, `http`, `oauth2`, `openIdConnect`, `mutualTLS`) and `securityRequirements` (a requirement list with OR-of-ANDs semantics - satisfying any one entry is sufficient).
 2. **Credential acquisition is out-of-band** - the client obtains a token/key however the chosen scheme dictates.
 3. **Transmission** - the client sends the credential (e.g. `Authorization: Bearer <token>`) on every request.
 4. **Server enforcement** - with `AUTH_ENABLED=true` the `/a2a` endpoint is protected; unauthenticated requests get `401` with a `WWW-Authenticate` challenge.
-5. **Extended card** - if the card sets `supportsExtendedAgentCard: true`, an authenticated client MAY call `agent/getAuthenticatedExtendedCard` for a richer card and SHOULD replace its cached public card with the response.
+5. **Extended card** - if the card sets `capabilities.extendedAgentCard: true`, an authenticated client MAY call `agent/getAuthenticatedExtendedCard` for a richer card and SHOULD replace its cached public card with the response.
 
 #### Declaring security schemes on the card
 
@@ -646,7 +642,7 @@ With `AUTH_ENABLED=true` the served card must declare `securitySchemes` so clien
 ```go
 schemes, security := server.OIDCSecuritySchemes(cfg.AuthConfig)
 card.SecuritySchemes = schemes
-card.Security = security
+card.SecurityRequirements = security
 ```
 
 Or declare it directly in the card JSON:
@@ -660,7 +656,7 @@ Or declare it directly in the card JSON:
       }
     }
   },
-  "security": [{ "schemes": { "openId": { "list": [] } } }]
+  "securityRequirements": [{ "schemes": { "openId": { "list": [] } } }]
 }
 ```
 
@@ -668,7 +664,7 @@ If `AUTH_ENABLED=true` but the card declares no `securitySchemes` (or the invers
 
 #### The authenticated extended card
 
-The extended card is served only to authenticated callers via `agent/getAuthenticatedExtendedCard`. Configure it with the builder; `WithExtendedAgentCard` also forces `supportsExtendedAgentCard: true` on the public card:
+The extended card is served only to authenticated callers via `agent/getAuthenticatedExtendedCard`. Configure it with the builder; `WithExtendedAgentCard` also forces `capabilities.extendedAgentCard: true` on the public card:
 
 ```go
 srv, _ := server.NewA2AServerBuilder(cfg, logger).
@@ -680,13 +676,13 @@ srv, _ := server.NewA2AServerBuilder(cfg, logger).
 
 The error contract (spec 3.3.4) for `agent/getAuthenticatedExtendedCard`:
 
-| Card state                                                | Result                                      |
-| --------------------------------------------------------- | ------------------------------------------- |
-| Does not declare `supportsExtendedAgentCard`              | `-32004` (`UnsupportedOperationError`)      |
-| `supportsExtendedAgentCard: true`, no extended configured | `-32007` (`ExtendedAgentCardNotConfigured`) |
-| `supportsExtendedAgentCard: true`, extended configured    | the extended card is returned               |
+| Card state                                                     | Result                                      |
+| -------------------------------------------------------------- | ------------------------------------------- |
+| Does not declare `capabilities.extendedAgentCard`              | `-32004` (`UnsupportedOperationError`)      |
+| `capabilities.extendedAgentCard: true`, no extended configured | `-32007` (`ExtendedAgentCardNotConfigured`) |
+| `capabilities.extendedAgentCard: true`, extended configured    | the extended card is returned               |
 
-> **The served card is still the pre-1.0.1 shape.** The A2A v1.0.1 `AgentCard` moved this flag to `capabilities.extendedAgentCard`, dropped `capabilities.stateTransitionHistory`, and replaced `url` / `preferredTransport` / `protocolVersion` with `supportedInterfaces`. The Go ADK card type has not followed yet: it keeps the top-level `supportsExtendedAgentCard`, still accepts `stateTransitionHistory`, and leaves `supportedInterfaces` empty unless you populate it yourself. The names used above are the ones on the wire today. ADL manifests already use the v1.0.1 names - see [Deprecated card fields](/adl-cli/#deprecated-card-fields) for the mapping.
+> **Card shape.** From v0.30.0 the Go ADK serves the A2A v1.0.1 `AgentCard`: the extended-card flag lives on `capabilities.extendedAgentCard`, security requirements on `securityRequirements`, and the endpoint list on `supportedInterfaces` (there is no top-level `url` / `preferredTransport` / `protocolVersion`, and no `capabilities.stateTransitionHistory`). See [Deprecated card fields](/adl-cli/#deprecated-card-fields) for the mapping from the older names.
 
 #### Client-side flow
 
