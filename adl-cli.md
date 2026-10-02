@@ -1108,6 +1108,46 @@ language:
     nodeVersion: '22'
 ```
 
+#### Vendored dependencies
+
+Every language block accepts an optional `vendor` object that adds packages on top of the ones the generator already writes. Entries use the `<package>@<version>` form in the target language's native syntax.
+
+| Field     | Type     | Description                                                                    |
+| --------- | -------- | ------------------------------------------------------------------------------ |
+| `deps`    | string[] | Runtime dependencies                                                           |
+| `devdeps` | string[] | Development- and test-only dependencies (test frameworks, linters, generators) |
+
+```yaml
+language:
+  go:
+    module: 'github.com/company/my-agent'
+    version: '1.26.7'
+    vendor:
+      deps:
+        - 'github.com/stretchr/testify@v1.10.0'
+      devdeps:
+        - 'golang.org/x/tools/cmd/stringer@v0.49.0'
+```
+
+Where each list lands depends on the language:
+
+| Field                                     | Rendered into                     |
+| ----------------------------------------- | --------------------------------- |
+| `spec.language.go.vendor.deps`            | `go.mod` `require` block          |
+| `spec.language.go.vendor.devdeps`         | `go.mod` `tool` directive         |
+| `spec.language.rust.vendor.deps`          | `Cargo.toml` `[dependencies]`     |
+| `spec.language.rust.vendor.devdeps`       | `Cargo.toml` `[dev-dependencies]` |
+| `spec.language.typescript.vendor.deps`    | `package.json` `dependencies`     |
+| `spec.language.typescript.vendor.devdeps` | `package.json` `devDependencies`  |
+
+A Go `devdeps` entry names an executable package path, not a module path, so it renders only as a bare path inside the Go 1.24 `tool ( ... )` block - it gets no `require` line of its own. Because `go mod tidy` cannot resolve a package path back to its module, `adl generate` runs a one-time `go get <pkg>@<version>` for each tool entry before tidying, which records the owning module root in `require`.
+
+Built-in dependencies always win: a `vendor` entry that names a package the generator already pins - the ADK itself, for instance - is dropped with a warning rather than applied, so a manifest cannot downgrade the core runtime.
+
+#### Pinned ADK versions
+
+The generator pins the ADK release each generated project builds against, so the manifest does not carry an ADK version. The current pins are Go [`v0.30.0`](/adk/), TypeScript [`0.17.0`](/typescript-adk/), and Rust [`0.15.0`](/rust-adk/) - all three serve the A2A v1.0.1 `AgentCard`. Upgrade a project by regenerating it with a newer `adl` rather than by editing `go.mod`, `package.json`, or `Cargo.toml`.
+
 ### Configuration Sections
 
 The `config` block defines structured configuration sections that are mapped to environment variables.
