@@ -1,6 +1,6 @@
 ---
 title: Judge Mode
-description: Let an LLM judge answer tool-approval gates in the Inference Gateway CLI - the auto-with-judge agent mode, tools.safety.approval_behaviour judge, the .infer/judge.yaml schema (model, gateway_url, timeout, max_tokens, on_error, system_prompt, prompt) with INFER_JUDGE_* overrides, the JSON verdict contract, on_error semantics, the RequestApproval escalation for overriding a rejection, judge_verdict observability, and headless usage.
+description: Let an LLM judge answer tool-approval gates in the Inference Gateway CLI - the auto-with-judge agent mode, safety.approval_behaviour judge in ~/.infer/tools.yaml, the .infer/judge.yaml schema (model, gateway_url, timeout, max_tokens, on_error, system_prompt, prompt) with INFER_JUDGE_* overrides, the JSON verdict contract, on_error semantics, the RequestApproval escalation for overriding a rejection, judge_verdict observability, and headless usage.
 ---
 
 # Judge Mode
@@ -126,14 +126,16 @@ A judge call can fail (timeout, gateway error, unparseable output) or return gar
 
 ### Model resolution
 
-`judge.model` falls back to `agent.model`. `tools.safety.approval_behaviour: judge` is the only setting that makes **config validation** require a resolvable judge model - selecting it with neither set is a configuration error caught at startup. The `auto-with-judge` mode is validated separately, by the headless runner at start (`--mode` or `INFER_AGENT_MODE`).
+`judge.model` falls back to `agent.model`. `safety.approval_behaviour: judge` in `tools.yaml` is the only setting that makes **config validation** require a resolvable judge model - selecting it with neither set is a configuration error caught at startup. The `auto-with-judge` mode is validated separately, by the headless runner at start (`--mode` or `INFER_AGENT_MODE`).
 
 ## Judge as the approval behavior, without the mode
 
-You can route gated calls to the judge in **any** mode with `tools.safety.approval_behaviour: judge` (env: `INFER_TOOLS_SAFETY_APPROVAL_BEHAVIOUR`):
+You can route gated calls to the judge in **any** mode with `safety.approval_behaviour: judge` in the userspace tools policy, `~/.infer/tools.yaml` (env: `INFER_TOOLS_SAFETY_APPROVAL_BEHAVIOUR`). `safety` sits at the top of that file, next to the other keys for every tool, and `infer config set tools.*` is rejected - see [Tool Configuration](/cli/#tool-configuration):
 
-```bash
-infer config set tools.safety.approval_behaviour judge
+```yaml
+# ~/.infer/tools.yaml
+safety:
+  approval_behaviour: judge
 ```
 
 This is useful when you want a judge gate in Standard mode or under the [channel manager](/cli-channels/): the judge is always reachable (headless and CI included), so unlike `ipc` it is never downgraded to `block`. Mode selection and behavior selection compose - the `auto-with-judge` mode forces the judge regardless of `approval_behaviour`. See [Approval Workflow](/cli/#approval-workflow) for the other behaviors.
