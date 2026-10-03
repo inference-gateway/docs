@@ -1145,6 +1145,8 @@ The artifacts subsystem is configured entirely through the `ARTIFACTS_*` environ
 | `ARTIFACTS_RETENTION_MAX_AGE`          | `168h`                  | Maximum age before an artifact is pruned.                                                                                                              |
 | `ARTIFACTS_RETENTION_CLEANUP_INTERVAL` | `24h`                   | Frequency of the retention loop.                                                                                                                       |
 
+`ARTIFACTS_RETENTION_MAX_ARTIFACTS` is **store-wide** here: each cleanup run keeps the newest N artifacts across the whole store and prunes the oldest beyond that, regardless of `contextId`. The [Go ADK](/adk/#artifact-retention) shares the variable name and the default of `5` but applies it **per context**, so the same value retains more artifacts there.
+
 Duration values (`*_TIMEOUT`, `*_MAX_AGE`, `*_CLEANUP_INTERVAL`) accept Go-style suffixes - `30s`, `15m`, `2h`, `7d` - or a bare integer interpreted as seconds. An unknown suffix such as `5w` is rejected at load time.
 
 ### Upgrading to contextId-scoped artifacts
