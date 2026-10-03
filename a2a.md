@@ -345,7 +345,7 @@ For a full walkthrough of the Documentation Agent, its skill, tools, and configu
 
 > **Tip:** Use the [ADL CLI](/adl-cli/) to scaffold A2A agents from YAML definitions. It generates complete project structures with service injection, CI/CD pipelines, and deployment configurations.
 >
-> Writing the server by hand in TypeScript? See the [TypeScript ADK](/typescript-adk/) for the `@inference-gateway/adk` package, which ships the HTTP server core and JSON-RPC handlers (starting with `message/send`).
+> Writing the server by hand in TypeScript? See the [TypeScript ADK](/typescript-adk/) for the `@inference-gateway/adk` package, which ships the HTTP server core and JSON-RPC handlers (starting with `SendMessage`).
 
 To create your own A2A-compatible agent, implement these endpoints:
 
@@ -398,10 +398,12 @@ Card fields worth knowing:
 
 Implement the A2A protocol at the `/a2a` endpoint to handle:
 
-- `message/send` - Send a message and receive response
-- `message/stream` - Send a streaming message
-- `task/get` - Get task status (optional)
-- `task/cancel` - Cancel a running task (optional)
+- `SendMessage` - Send a message and receive response
+- `SendStreamingMessage` - Send a streaming message
+- `GetTask` - Get task status (optional)
+- `CancelTask` - Cancel a running task (optional)
+
+The v1.0.1 method names are bare PascalCase identifiers. The v0.x slash names (`message/send`, `tasks/get`, ...) are gone - an agent that still registers them answers `-32601 Method not found` to a v1.0.1 caller.
 
 ## Best Practices
 

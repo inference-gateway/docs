@@ -138,7 +138,7 @@ See the [`minimal`](https://github.com/inference-gateway/adk/tree/main/examples/
 
 ### AI-powered server
 
-Wire an LLM by building an `OpenAICompatibleAgent` and attaching it to the server. `config.Load` reads the environment (`AGENT_CLIENT_PROVIDER`, `AGENT_CLIENT_MODEL`, `AGENT_CLIENT_API_KEY`, ...) on top of any defaults you set programmatically. With an agent attached, `WithDefaultTaskHandlers()` gives you working `message/send` and `message/stream` handling - including automatic input-required pausing - without writing handler code.
+Wire an LLM by building an `OpenAICompatibleAgent` and attaching it to the server. `config.Load` reads the environment (`AGENT_CLIENT_PROVIDER`, `AGENT_CLIENT_MODEL`, `AGENT_CLIENT_API_KEY`, ...) on top of any defaults you set programmatically. With an agent attached, `WithDefaultTaskHandlers()` gives you working `SendMessage` and `SendStreamingMessage` handling - including automatic input-required pausing - without writing handler code.
 
 ```go
 ctx := context.Background()
@@ -222,8 +222,8 @@ See [`ai-powered`](https://github.com/inference-gateway/adk/tree/main/examples/a
 | `WithAgent(agent)`                       | Attach a pre-built `OpenAICompatibleAgent` for the task handlers to delegate to.             |
 | `WithAgentCard(card)`                    | Set the card served at `/.well-known/agent-card.json` from an in-memory value. **Required.** |
 | `WithAgentCardFromFile(path, overrides)` | Load the card from a JSON file, replacing top-level attributes from the `overrides` map.     |
-| `WithBackgroundTaskHandler(h)`           | Register a custom `message/send` (polling/queue) handler.                                    |
-| `WithStreamingTaskHandler(h)`            | Register a custom `message/stream` (SSE) handler.                                            |
+| `WithBackgroundTaskHandler(h)`           | Register a custom `SendMessage` (polling/queue) handler.                                     |
+| `WithStreamingTaskHandler(h)`            | Register a custom `SendStreamingMessage` (SSE) handler.                                      |
 | `WithDefaultBackgroundTaskHandler()`     | Opt into the bundled background handler.                                                     |
 | `WithDefaultStreamingTaskHandler()`      | Opt into the bundled streaming handler.                                                      |
 | `WithDefaultTaskHandlers()`              | Opt into both bundled handlers at once.                                                      |
@@ -361,8 +361,8 @@ type StreamableTaskHandler interface {
 }
 ```
 
-- **`TaskHandler`** backs `message/send` and background queue processing. It runs the task to a terminal state and returns the updated `Task`.
-- **`StreamableTaskHandler`** backs `message/stream`. It returns a channel of [CloudEvents](#streaming-and-cloudevents) that the protocol handler forwards to the client as Server-Sent Events; close the channel when streaming is complete.
+- **`TaskHandler`** backs `SendMessage` and background queue processing. It runs the task to a terminal state and returns the updated `Task`.
+- **`StreamableTaskHandler`** backs `SendStreamingMessage`. It returns a channel of [CloudEvents](#streaming-and-cloudevents) that the protocol handler forwards to the client as Server-Sent Events; close the channel when streaming is complete.
 
 You can register your own (`WithBackgroundTaskHandler` / `WithStreamingTaskHandler`) or use the bundled defaults (`WithDefaultBackgroundTaskHandler` / `WithDefaultStreamingTaskHandler` / `WithDefaultTaskHandlers`). The default handlers consume the agent's event stream, drive task status transitions, attach [usage metadata](#configuration-reference) on terminal states, and handle input-required pausing automatically. Streaming handlers require an agent to be configured.
 
@@ -472,21 +472,23 @@ resp, err := a2a.SendTask(ctx, types.MessageSendParams{
 
 The interface covers the entire A2A JSON-RPC surface:
 
-| Method                                          | A2A method                            | Returns                               |
-| ----------------------------------------------- | ------------------------------------- | ------------------------------------- |
-| `GetAgentCard(ctx)`                             | `GET /.well-known/agent-card.json`    | `*types.AgentCard`                    |
-| `GetAuthenticatedExtendedCard(ctx, params)`     | `agent/getAuthenticatedExtendedCard`  | `*types.JSONRPCSuccessResponse`       |
-| `GetHealth(ctx)`                                | `GET /health`                         | `*client.HealthResponse`              |
-| `SendTask(ctx, params)`                         | `message/send`                        | `*types.JSONRPCSuccessResponse`       |
-| `SendTaskStreaming(ctx, params)`                | `message/stream`                      | `<-chan types.JSONRPCSuccessResponse` |
-| `GetTask(ctx, params)`                          | `tasks/get`                           | `*types.JSONRPCSuccessResponse`       |
-| `ListTasks(ctx, params)`                        | `tasks/list`                          | `*types.JSONRPCSuccessResponse`       |
-| `CancelTask(ctx, params)`                       | `tasks/cancel`                        | `*types.JSONRPCSuccessResponse`       |
-| `ResubscribeTask(ctx, params)`                  | `tasks/resubscribe`                   | `<-chan types.JSONRPCSuccessResponse` |
-| `SetTaskPushNotificationConfig(ctx, params)`    | `tasks/pushNotificationConfig/set`    | `*types.JSONRPCSuccessResponse`       |
-| `GetTaskPushNotificationConfig(ctx, params)`    | `tasks/pushNotificationConfig/get`    | `*types.JSONRPCSuccessResponse`       |
-| `ListTaskPushNotificationConfig(ctx, params)`   | `tasks/pushNotificationConfig/list`   | `*types.JSONRPCSuccessResponse`       |
-| `DeleteTaskPushNotificationConfig(ctx, params)` | `tasks/pushNotificationConfig/delete` | `*types.JSONRPCSuccessResponse`       |
+| Method                                          | A2A method                         | Returns                               |
+| ----------------------------------------------- | ---------------------------------- | ------------------------------------- |
+| `GetAgentCard(ctx)`                             | `GET /.well-known/agent-card.json` | `*types.AgentCard`                    |
+| `GetAuthenticatedExtendedCard(ctx, params)`     | `GetExtendedAgentCard`             | `*types.JSONRPCSuccessResponse`       |
+| `GetHealth(ctx)`                                | `GET /health`                      | `*client.HealthResponse`              |
+| `SendTask(ctx, params)`                         | `SendMessage`                      | `*types.JSONRPCSuccessResponse`       |
+| `SendTaskStreaming(ctx, params)`                | `SendStreamingMessage`             | `<-chan types.JSONRPCSuccessResponse` |
+| `GetTask(ctx, params)`                          | `GetTask`                          | `*types.JSONRPCSuccessResponse`       |
+| `ListTasks(ctx, params)`                        | `ListTasks`                        | `*types.JSONRPCSuccessResponse`       |
+| `CancelTask(ctx, params)`                       | `CancelTask`                       | `*types.JSONRPCSuccessResponse`       |
+| `ResubscribeTask(ctx, params)`                  | `SubscribeToTask`                  | `<-chan types.JSONRPCSuccessResponse` |
+| `SetTaskPushNotificationConfig(ctx, params)`    | `CreateTaskPushNotificationConfig` | `*types.JSONRPCSuccessResponse`       |
+| `GetTaskPushNotificationConfig(ctx, params)`    | `GetTaskPushNotificationConfig`    | `*types.JSONRPCSuccessResponse`       |
+| `ListTaskPushNotificationConfig(ctx, params)`   | `ListTaskPushNotificationConfigs`  | `*types.JSONRPCSuccessResponse`       |
+| `DeleteTaskPushNotificationConfig(ctx, params)` | `DeleteTaskPushNotificationConfig` | `*types.JSONRPCSuccessResponse`       |
+
+The wire names in the middle column are the A2A v1.0.1 methods, generated from the canonical schema as the `types.A2AMethod*` constants (`types.A2AMethodSendMessage`, `types.A2AMethodGetTask`, ...). Use those constants - not string literals - when you hand-build a JSON-RPC envelope instead of going through the client. The v0.x slash names (`message/send`, `tasks/get`, ...) are no longer registered and answer `-32601 Method not found`.
 
 Configuration helpers (`SetTimeout`, `SetHTTPClient`, `GetBaseURL`, `SetLogger`, `GetLogger`) and `GetArtifactHelper()` round out the interface.
 
@@ -540,13 +542,13 @@ for evt := range events {
 ### Cancelling, listing, and resubscribing
 
 ```go
-// tasks/cancel - works for any non-terminal task.
+// CancelTask - works for any non-terminal task.
 _, _ = a2a.CancelTask(ctx, types.TaskIdParams{ID: taskID})
 
-// tasks/list - Limit (server caps at 100, default 50) + Offset paginate; filter by ContextID or State.
+// ListTasks - Limit (server caps at 100, default 50) + Offset paginate; filter by ContextID or State.
 resp, _ := a2a.ListTasks(ctx, types.TaskListParams{Limit: 20, Offset: 0})
 
-// tasks/resubscribe - re-attach to a streaming task after the SSE connection dropped.
+// SubscribeToTask - re-attach to a streaming task after the SSE connection dropped.
 // Name is a *string on the generated request types.
 events, _ := a2a.ResubscribeTask(ctx, types.TaskResubscriptionParams{Name: &taskID})
 for evt := range events {
@@ -610,7 +612,7 @@ Finished tasks (completed, failed, cancelled) are kept after they terminate, bou
 | `TASK_RETENTION_MAX_FAILED_TASKS`    | `50`    | Failed/cancelled tasks retained; `0` disables.  |
 | `TASK_RETENTION_CLEANUP_INTERVAL`    | `5m`    | How often retention trims tasks over the caps.  |
 
-Every `TASK_RETENTION_CLEANUP_INTERVAL` tick the oldest finished tasks beyond each cap are deleted; everything within the caps stays queryable via `tasks/get` and `tasks/list`. Raise the caps to keep more history, and remember that the in-memory provider still loses everything on restart - use `QUEUE_PROVIDER=redis` for retention that survives restarts.
+Every `TASK_RETENTION_CLEANUP_INTERVAL` tick the oldest finished tasks beyond each cap are deleted; everything within the caps stays queryable via `GetTask` and `ListTasks`. Raise the caps to keep more history, and remember that the in-memory provider still loses everything on restart - use `QUEUE_PROVIDER=redis` for retention that survives restarts.
 
 `QUEUE_CLEANUP_INTERVAL` is deprecated and unused. It previously purged **every** finished task on each tick (default `120s`), ignoring the retention caps; setting it now has no effect and it can be removed from your configuration.
 
@@ -633,7 +635,7 @@ Beyond validating bearer tokens, the ADK implements the [A2A spec, section 7](ht
 2. **Credential acquisition is out-of-band** - the client obtains a token/key however the chosen scheme dictates.
 3. **Transmission** - the client sends the credential (e.g. `Authorization: Bearer <token>`) on every request.
 4. **Server enforcement** - with `AUTH_ENABLED=true` the `/a2a` endpoint is protected; unauthenticated requests get `401` with a `WWW-Authenticate` challenge.
-5. **Extended card** - if the card sets `capabilities.extendedAgentCard: true`, an authenticated client MAY call `agent/getAuthenticatedExtendedCard` for a richer card and SHOULD replace its cached public card with the response.
+5. **Extended card** - if the card sets `capabilities.extendedAgentCard: true`, an authenticated client MAY call `GetExtendedAgentCard` for a richer card and SHOULD replace its cached public card with the response.
 
 #### Declaring security schemes on the card
 
@@ -664,7 +666,7 @@ If `AUTH_ENABLED=true` but the card declares no `securitySchemes` (or the invers
 
 #### The authenticated extended card
 
-The extended card is served only to authenticated callers via `agent/getAuthenticatedExtendedCard`. Configure it with the builder; `WithExtendedAgentCard` also forces `capabilities.extendedAgentCard: true` on the public card:
+The extended card is served only to authenticated callers via `GetExtendedAgentCard`. Configure it with the builder; `WithExtendedAgentCard` also forces `capabilities.extendedAgentCard: true` on the public card:
 
 ```go
 srv, _ := server.NewA2AServerBuilder(cfg, logger).
@@ -674,7 +676,7 @@ srv, _ := server.NewA2AServerBuilder(cfg, logger).
 	Build()
 ```
 
-The error contract (spec 3.3.4) for `agent/getAuthenticatedExtendedCard`:
+The error contract (spec 3.3.4) for `GetExtendedAgentCard`:
 
 | Card state                                                     | Result                                      |
 | -------------------------------------------------------------- | ------------------------------------------- |
@@ -873,10 +875,10 @@ Reference them in code as `server.BuildAgentName`, etc., when constructing the `
 
 **Capabilities** (`CAPABILITIES_` prefix)
 
-| Variable                          | Default | Purpose                              |
-| --------------------------------- | ------- | ------------------------------------ |
-| `CAPABILITIES_STREAMING`          | `true`  | Advertise `message/stream` support.  |
-| `CAPABILITIES_PUSH_NOTIFICATIONS` | `true`  | Advertise push-notification support. |
+| Variable                          | Default | Purpose                                   |
+| --------------------------------- | ------- | ----------------------------------------- |
+| `CAPABILITIES_STREAMING`          | `true`  | Advertise `SendStreamingMessage` support. |
+| `CAPABILITIES_PUSH_NOTIFICATIONS` | `true`  | Advertise push-notification support.      |
 
 `CAPABILITIES_STATE_TRANSITION_HISTORY` is gone: the A2A v1.0.1 AgentCard dropped the flag, so the ADK no longer reads it and generated configurations no longer set it.
 
@@ -915,7 +917,7 @@ The [`examples/`](https://github.com/inference-gateway/adk/tree/main/examples) d
 | Example                                                                                                  | What it shows                                                                              |
 | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
 | [ai-powered](https://github.com/inference-gateway/adk/tree/main/examples/ai-powered)                     | An LLM agent with custom function tools (weather, time).                                   |
-| [ai-powered-streaming](https://github.com/inference-gateway/adk/tree/main/examples/ai-powered-streaming) | The same agent streamed over `message/stream`.                                             |
+| [ai-powered-streaming](https://github.com/inference-gateway/adk/tree/main/examples/ai-powered-streaming) | The same agent streamed over `SendStreamingMessage`.                                       |
 | [callbacks](https://github.com/inference-gateway/adk/tree/main/examples/callbacks)                       | Lifecycle hooks for guardrails, caching, and logging.                                      |
 | [usage-metadata](https://github.com/inference-gateway/adk/tree/main/examples/usage-metadata)             | Token usage + execution metrics attached to terminal tasks.                                |
 | [input-required](https://github.com/inference-gateway/adk/tree/main/examples/input-required)             | Interactive pausing in `input-required`, streaming and non-streaming.                      |
