@@ -154,6 +154,8 @@ Deploys the gateway proxy. Source: [`api/v1alpha1/gateway_types.go`](https://git
 | `telemetry.traces.exporter.otlp.endpoint`                                          | Tracing. With `telemetry.enabled: true`, it sets `TELEMETRY_TRACING_ENABLED=true` and `TELEMETRY_TRACING_OTLP_ENDPOINT` on the gateway container.                                          |
 | `mcp.enabled` / `mcp.expose` / `mcp.resourceUrl` / `mcp.toolMode` / `mcp.timeouts` | MCP client configuration. See [MCP Servers (`spec.mcp`)](#mcp-servers-spec-mcp).                                                                                                           |
 | `mcp.servers[]` / `mcp.serviceDiscovery`                                           | Static MCP servers (`name`, `url`, `healthCheck`) and discovery of `MCP` CRs by label selector. Both feed `MCP_SERVERS`.                                                                   |
+| `a2a.enabled` / `a2a.resourceUrl` / `a2a.timeouts` / `a2a.cardRefreshInterval`     | Turn the gateway into an A2A server. See [A2A Agents (`spec.a2a`)](#a2a-agents-spec-a2a).                                                                                                  |
+| `a2a.agents[]` / `a2a.serviceDiscovery`                                            | Static agents (`name`, `url`) and discovery of `Agent` CRs by label selector. Both feed `A2A_AGENTS`.                                                                                      |
 | `service.{type,port,annotations}`                                                  | Kubernetes Service for the gateway. See [Gateway Service (`spec.service`)](#gateway-service-spec-service).                                                                                 |
 | `routing.{enabled,config,configMapRef}`                                            | Gateway-native round-robin model routing (`ROUTING_ENABLED` / `ROUTING_CONFIG_PATH`). Distinct from `gatewayAPI`. See [Model Routing](#model-routing).                                     |
 | `gatewayAPI.{enabled,gateway,httpRoute}`                                           | North-south traffic via the Kubernetes Gateway API (`gateway.networking.k8s.io`). Successor to the removed `ingress` field. See [Routing (Gateway API)](#routing-gateway-api).             |
@@ -188,7 +190,7 @@ These fields require operator v0.26.1 or later - older operators silently ignore
 
 ### Agent
 
-Deploys an A2A worker. Agents are dispatched to by an `Orchestrator` (or any A2A client) - the gateway itself does not call agents; it only proxies inference. The agent typically calls back into the gateway for its own LLM completions via `agent.llm.baseURL`. Source: [`api/v1alpha1/agent_types.go`](https://github.com/inference-gateway/operator/blob/main/api/v1alpha1/agent_types.go). See [A2A Integration](/a2a/) for protocol background.
+Deploys an A2A worker. Agents are dispatched to by an `Orchestrator`, by a `Gateway` with [`spec.a2a`](#a2a-agents-spec-a2a) enabled, or by any other A2A client. The agent typically calls back into the gateway for its own LLM completions via `agent.llm.baseURL`. Source: [`api/v1alpha1/agent_types.go`](https://github.com/inference-gateway/operator/blob/main/api/v1alpha1/agent_types.go). See [A2A Integration](/a2a/) for protocol background.
 
 | Field                                                                                                    | Description                                                                                                            |
 | -------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -204,7 +206,9 @@ Deploys an A2A worker. Agents are dispatched to by an `Orchestrator` (or any A2A
 | `queue.{enabled,maxSize,cleanupInterval}`                                                                | Optional task queue.                                                                                                   |
 | `env[]`                                                                                                  | Additional pod env vars.                                                                                               |
 
-The operator publishes the agent's discovered capabilities into `status.card`, which the orchestrator consumes through service discovery.
+The operator publishes the agent's discovered capabilities into `status.card`, which the orchestrator and [`Gateway.spec.a2a.serviceDiscovery`](#a2a-agents-spec-a2a) consume through service discovery.
+
+`metadata.name` doubles as the agent's alias when a `Gateway` picks the CR up through [`spec.a2a.serviceDiscovery`](#a2a-agents-spec-a2a), so keep it short and matching `^[a-z0-9_-]+$`.
 
 ### MCP
 
@@ -569,6 +573,89 @@ kubectl get gateway my-gateway -n inference-gateway -o jsonpath='{.status.mcpSer
 ]
 ```
 
+## A2A Agents (`spec.a2a`)
+
+`spec.a2a` turns the gateway itself into an [A2A](/a2a/) server: it publishes one merged agent card at `GET /.well-known/agent-card.json` and relays every `POST /a2a` call to the agent the request names. The controller renders every configured agent into the gateway pod's `A2A_AGENTS` env var as a comma-separated list of `name=url` entries, where `name` is the agent's **alias**.
+
+This block requires a gateway image with A2A server support; `spec.a2a` is ignored by older gateway versions.
+
+| Field                                           | Description                                                                                                                   |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `enabled`                                       | Toggle the gateway's A2A server (`A2A_ENABLED`, default `false`). Nothing below is emitted while this is `false`.             |
+| `agents[].name`                                 | Required. Becomes the agent's alias, and therefore its skill-id and task-id prefix.                                           |
+| `agents[].url`                                  | Required agent base URL.                                                                                                      |
+| `serviceDiscovery.{enabled,namespace,selector}` | Discover `Agent` CRs by label selector. `namespace` defaults to the `Gateway`'s own namespace; an empty selector matches all. |
+| `resourceUrl`                                   | Canonical public URL of `POST /a2a` (`A2A_RESOURCE_URL`). Defaults to the first `gatewayAPI.httpRoute` hostname.              |
+| `timeouts.client`                               | Timeout for one non-streaming call to an agent, including the card fetch (`A2A_CLIENT_TIMEOUT`, default `30s`).               |
+| `timeouts.streamIdle`                           | Idle cutoff for a relayed stream (`A2A_STREAM_IDLE_TIMEOUT`, default `5m`). `0` disables it.                                  |
+| `cardRefreshInterval`                           | How often agent cards are re-fetched in the background (`A2A_CARD_REFRESH_INTERVAL`). `0` disables the background refresh.    |
+
+Background card refresh is what retries an agent that was unreachable at startup and picks up skill changes, so leave it on unless the agent set is frozen.
+
+### Discovering `Agent` CRs
+
+With `serviceDiscovery.enabled: true` the operator lists `Agent` CRs in `serviceDiscovery.namespace` (the `Gateway`'s own namespace when unset), filtered by `serviceDiscovery.selector` (`matchLabels` and `matchExpressions` both work; a nil or empty selector matches every `Agent` in the namespace). The operator watches `Agent` resources, so creating, deleting or relabeling one re-renders `A2A_AGENTS` without a `Gateway` edit.
+
+Each discovered `Agent` contributes `<metadata.name>=<url>`, where the URL is:
+
+1. `status.card.url` - the card URL the `Agent` controller reports, preferred once it is populated; otherwise
+2. the in-cluster Service URL <code v-pre>http://&lt;name&gt;.&lt;namespace&gt;.svc.cluster.local:&lt;spec.port&gt;</code> (or `spec.card.url` when set), used while the card URL has not been reported yet.
+
+Static `agents[]` entries and discovered `Agent` CRs are unioned, deduplicated on URL, and sorted for determinism. A discovery error is logged and ignored, so a transient API failure leaves the static list in place rather than blanking it.
+
+### Alias rules
+
+A `name` (static) or `metadata.name` (discovered) is used as the alias only when it matches `^[a-z0-9_-]+$` and is unique across static and discovered agents. A name failing either check is rendered as a **bare URL** instead, and the gateway derives the alias from the URL host - the entry is never dropped.
+
+Per-agent credentials go into the URL as basic auth (`https://user:token@agent.example.com`), because the gateway does not forward the caller's bearer token to agents. Keep such URLs out of plain `Gateway` manifests you commit.
+
+### Protected resource URL (`a2a.resourceUrl`)
+
+`a2a.resourceUrl` pins the canonical public URL of `POST /a2a`, which the gateway publishes on its agent card and as the `resource` of the [RFC 9728](https://datatracker.ietf.org/doc/html/rfc9728) document at `GET /.well-known/oauth-protected-resource/a2a`. Left unset, the operator derives <code v-pre>&lt;scheme&gt;://&lt;first gatewayAPI.httpRoute hostname&gt;/a2a</code>, with `https` when `gatewayAPI.gateway.tls.enabled` is `true`.
+
+Nothing is emitted when [`spec.gatewayAPI`](#routing-gateway-api) is disabled or the first hostname is a wildcard, and the gateway then builds the URL from the request scheme and `Host` - wrong behind a proxy that rewrites either. **Set `resourceUrl` explicitly** in that case, exactly as for [`mcp.resourceUrl`](#protected-resource-url-mcp-resourceurl).
+
+### Example: static agents plus discovery
+
+```yaml
+apiVersion: core.inference-gateway.com/v1alpha1
+kind: Gateway
+metadata:
+  name: my-gateway
+  namespace: inference-gateway
+spec:
+  a2a:
+    enabled: true
+    agents:
+      - name: calendar
+        url: https://calendar-agent.example.com
+    serviceDiscovery:
+      enabled: true
+      selector:
+        matchLabels:
+          app.kubernetes.io/part-of: inference-gateway
+    timeouts:
+      client: 30s
+      streamIdle: 5m
+    cardRefreshInterval: 5m
+  gatewayAPI:
+    enabled: true
+    gateway:
+      tls:
+        enabled: true
+    httpRoute:
+      hostnames:
+        - api.inference-gateway.local
+```
+
+With an `Agent` CR named `documentation` in the same namespace matching the selector, the gateway pod receives:
+
+```bash
+A2A_ENABLED=true
+A2A_AGENTS=calendar=https://calendar-agent.example.com,documentation=http://documentation.inference-gateway.svc.cluster.local:8080
+A2A_RESOURCE_URL=https://api.inference-gateway.local/a2a
+```
+
 ## Model Routing
 
 `spec.routing` turns on the gateway's opt-in [round-robin model routing](/model-routing/): a client requests a stable logical alias (e.g. `{"model": "fast-chat"}`) and the gateway rotates round-robin through that alias's pool of upstream provider/model deployments, forwarding to the one it resolves. Operators can swap the upstreams behind an alias without touching client code.
@@ -840,7 +927,25 @@ The `Gateway` status surfaces:
 - `url` - the resolved access URL (the routing hostname when `spec.gatewayAPI` is enabled, otherwise the cluster service URL).
 - `providerSummary` - comma-separated list of enabled providers.
 - `mcpServers[]` / `mcpServerCount` - the sorted `name=url` entries (static plus discovered) the pod is configured with, mirroring `MCP_SERVERS`, and their count (`0` when MCP is disabled). See [MCP Servers (`spec.mcp`)](#mcp-servers-spec-mcp).
+- `a2aAgents[]` / `a2aAgentCount` - the sorted `name=url` entries (static plus discovered) the pod is configured with, mirroring `A2A_AGENTS`, and their count (`0` when A2A is disabled). See [A2A Agents (`spec.a2a`)](#a2a-agents-spec-a2a).
 - `conditions[]` - standard `Available` / `Progressing` / `ReplicaFailure` conditions.
+
+`kubectl get gateways` prints the two counts as the `MCPS` and `A2A` columns, so a wired-up gateway is visible without `describe`:
+
+```bash
+kubectl get gateways -n inference-gateway
+```
+
+```text
+NAME         URL                                   PORT   PROVIDERS   MCPS   A2A   AGE
+my-gateway   https://api.inference-gateway.local   8080   openai      3      2     5m
+```
+
+Read the full agent list the same way as the MCP one:
+
+```bash
+kubectl get gateway my-gateway -n inference-gateway -o jsonpath='{.status.a2aAgents}'
+```
 
 `Agent`, `MCP`, and `Orchestrator` expose the standard `metav1.Condition` slice plus a boolean `ready`. `Orchestrator` additionally exposes `discoveredAgents[]` and `discoveredAgentCount` when service discovery is enabled. See [Observability](/observability/) for end-to-end metrics and tracing setup.
 
