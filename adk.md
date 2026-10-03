@@ -861,6 +861,18 @@ Clients are unaffected - they always fetch the opaque `uri` returned on the file
 
 By default downloads are **proxied** through the artifacts HTTP server (`ARTIFACTS_SERVER_PORT`, default `8081`) for auth and logging; set `ARTIFACTS_STORAGE_BASE_URL` to serve **direct** download URLs from the storage backend instead.
 
+### Artifact retention
+
+| Variable                               | Default | Purpose                                                            |
+| -------------------------------------- | ------- | ------------------------------------------------------------------ |
+| `ARTIFACTS_RETENTION_MAX_ARTIFACTS`    | `5`     | Artifacts kept per context, oldest deleted first; `0` = unlimited. |
+| `ARTIFACTS_RETENTION_MAX_AGE`          | `168h`  | Maximum artifact age; `0` = no age limit.                          |
+| `ARTIFACTS_RETENTION_CLEANUP_INTERVAL` | `24h`   | How often cleanup runs; `0` = manual cleanup only.                 |
+
+`ARTIFACTS_RETENTION_MAX_ARTIFACTS` is a **per-context** cap: each cleanup run keeps the newest N artifacts under `{contextId}/` and deletes the rest. Both caps are enforced by that background run on the `ARTIFACTS_RETENTION_CLEANUP_INTERVAL` schedule, not at artifact creation - so a context can exceed the cap between runs, and growth is bounded by the interval as much as by the cap.
+
+Durations are Go durations: `d` is not a valid unit, so write `168h`, not `7d`.
+
 There are two ways to produce artifacts:
 
 1. **Programmatically**, from a custom handler, with the artifact helper:
