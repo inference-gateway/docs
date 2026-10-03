@@ -1019,21 +1019,23 @@ Reference them in code as `server.BuildAgentName`, etc., when constructing the `
 
 **Agent / LLM client** (`AGENT_CLIENT_` prefix)
 
-| Variable                                      | Default            | Purpose                                                 |
-| --------------------------------------------- | ------------------ | ------------------------------------------------------- |
-| `AGENT_CLIENT_PROVIDER`                       | _(unset)_          | LLM provider (`openai`, `anthropic`, ...).              |
-| `AGENT_CLIENT_MODEL`                          | _(unset)_          | Model name.                                             |
-| `AGENT_CLIENT_BASE_URL`                       | _(unset)_          | Custom LLM endpoint URL.                                |
-| `AGENT_CLIENT_API_KEY`                        | _(unset)_          | Provider API key.                                       |
-| `AGENT_CLIENT_TIMEOUT`                        | `30s`              | Per-request timeout.                                    |
-| `AGENT_CLIENT_MAX_RETRIES`                    | `3`                | Retry budget for failed LLM calls.                      |
-| `AGENT_CLIENT_MAX_CHAT_COMPLETION_ITERATIONS` | `50`               | Max tool-call/completion loop iterations.               |
-| `AGENT_CLIENT_MAX_TOKENS`                     | `4096`             | Max tokens per completion.                              |
-| `AGENT_CLIENT_TEMPERATURE`                    | `0.7`              | Sampling temperature.                                   |
-| `AGENT_CLIENT_SYSTEM_PROMPT`                  | _(default prompt)_ | System prompt prepended to conversations.               |
-| `AGENT_CLIENT_MAX_CONVERSATION_HISTORY`       | `20`               | Messages retained per context.                          |
-| `AGENT_CLIENT_ENABLE_USAGE_METADATA`          | `true`             | Attach token usage + execution stats to terminal tasks. |
-| `AGENT_CLIENT_TOOLS_CREATE_ARTIFACT`          | `false`            | Register the autonomous `create_artifact` tool.         |
+| Variable                                      | Default            | Purpose                                                         |
+| --------------------------------------------- | ------------------ | --------------------------------------------------------------- |
+| `AGENT_CLIENT_PROVIDER`                       | _(unset)_          | LLM provider (`openai`, `anthropic`, ...).                      |
+| `AGENT_CLIENT_MODEL`                          | _(unset)_          | Model name.                                                     |
+| `AGENT_CLIENT_BASE_URL`                       | _(unset)_          | Custom LLM endpoint URL.                                        |
+| `AGENT_CLIENT_API_KEY`                        | _(unset)_          | Provider API key.                                               |
+| `AGENT_CLIENT_TIMEOUT`                        | `30s`              | Per-request timeout.                                            |
+| `AGENT_CLIENT_MAX_RETRIES`                    | `3`                | Retry budget for failed LLM calls, streaming and non-streaming. |
+| `AGENT_CLIENT_MAX_CHAT_COMPLETION_ITERATIONS` | `50`               | Max tool-call/completion loop iterations.                       |
+| `AGENT_CLIENT_MAX_TOKENS`                     | `4096`             | Max tokens per completion.                                      |
+| `AGENT_CLIENT_TEMPERATURE`                    | `0.7`              | Sampling temperature.                                           |
+| `AGENT_CLIENT_SYSTEM_PROMPT`                  | _(default prompt)_ | System prompt prepended to conversations.                       |
+| `AGENT_CLIENT_MAX_CONVERSATION_HISTORY`       | `20`               | Messages retained per context.                                  |
+| `AGENT_CLIENT_ENABLE_USAGE_METADATA`          | `true`             | Attach token usage + execution stats to terminal tasks.         |
+| `AGENT_CLIENT_TOOLS_CREATE_ARTIFACT`          | `false`            | Register the autonomous `create_artifact` tool.                 |
+
+`AGENT_CLIENT_MAX_RETRIES` covers both the non-streaming `CreateChatCompletion` call and the streaming path `AgentBuilder` agents use. On the streaming path only the attempt to open the upstream SSE connection is retried - up to `AGENT_CLIENT_MAX_RETRIES` times with a one second linear backoff. Once the first delta has been forwarded, a stream that breaks fails the task: deltas are never replayed.
 
 **Capabilities** (`CAPABILITIES_` prefix)
 
