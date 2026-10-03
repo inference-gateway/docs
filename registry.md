@@ -105,6 +105,8 @@ Browsing the registry is also a good way to find reference implementations befor
 
 Open [registry.inference-gateway.com](https://registry.inference-gateway.com) and filter by category or search by keyword. Each agent card lists the OCI image (e.g. `ghcr.io/inference-gateway/google-calendar-agent:0.4.23`) and links to the source repo and docs.
 
+Alongside the **Streaming** and **Push** capability pills, a card shows the agent's **preferred A2A protocol binding** - `JSONRPC`, `GRPC`, `HTTP+JSON`, or whatever the agent declares. The value is `spec.card.supportedInterfaces[0].protocolBinding` from the agent's [ADL manifest](/adl-cli/#card), the first entry being the preferred interface; catalog entries generated before the A2A v1.0.1 alignment fall back to the pre-release `spec.card.preferredTransport` field. Cards for agents that declare neither show no binding pill.
+
 ### 2. Add the agent to your gateway
 
 Use the [Inference Gateway CLI](/cli/)'s `infer agents` commands to register the agent with your gateway. The CLI can pull and run the image locally, or just point at an already-running URL:
