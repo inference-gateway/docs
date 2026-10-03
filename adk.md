@@ -869,7 +869,7 @@ By default downloads are **proxied** through the artifacts HTTP server (`ARTIFAC
 | `ARTIFACTS_RETENTION_MAX_AGE`          | `168h`  | Maximum artifact age; `0` = no age limit.                          |
 | `ARTIFACTS_RETENTION_CLEANUP_INTERVAL` | `24h`   | How often cleanup runs; `0` = manual cleanup only.                 |
 
-`ARTIFACTS_RETENTION_MAX_ARTIFACTS` is a **per-context** cap: each cleanup run keeps the newest N artifacts under `{contextId}/` and deletes the rest. Both caps are enforced by that background run on the `ARTIFACTS_RETENTION_CLEANUP_INTERVAL` schedule, not at artifact creation - so a context can exceed the cap between runs, and growth is bounded by the interval as much as by the cap.
+`ARTIFACTS_RETENTION_MAX_ARTIFACTS` is a **per-context** cap: each cleanup run keeps the newest N artifacts under `{contextId}/` and deletes the rest. Both caps are enforced by that background run on the `ARTIFACTS_RETENTION_CLEANUP_INTERVAL` schedule, not at artifact creation - so a context can exceed the cap between runs, and growth is bounded by the interval as much as by the cap. The [Rust ADK](/rust-adk/#artifacts-configuration-reference) uses the same variable name and default but caps the store as a whole rather than per context.
 
 Durations are Go durations: `d` is not a valid unit, so write `168h`, not `7d`.
 
