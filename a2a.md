@@ -405,6 +405,8 @@ Implement the A2A protocol at the `/a2a` endpoint to handle:
 
 The v1.0.1 method names are bare PascalCase identifiers. The v0.x slash names (`message/send`, `tasks/get`, ...) are gone - an agent that still registers them answers `-32601 Method not found` to a v1.0.1 caller.
 
+Inside `params`, field names follow the normative proto3 JSON mapping of A2A spec section 1.4: a server accepts both the lowerCamelCase form (`pageSize`, `contextId`) and the proto3 form (`page_size`, `context_id`), and ignores params it does not recognize rather than rejecting the request with `-32602 Invalid params`. [Rust ADK](/rust-adk/) servers behave this way as of the current release; the other ADKs are converging on it, so do not rely on a non-Rust agent tolerating snake_case or extra fields yet.
+
 ## Best Practices
 
 ### Agent Design
