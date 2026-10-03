@@ -1,6 +1,6 @@
 ---
 title: TypeScript ADK
-description: Build A2A-compatible agents in TypeScript with the @inference-gateway/adk package. Handler registration, JSON-RPC SendMessage, SendStreamingMessage, GetTask, ListTasks, CancelTask with TaskCancellationRegistry, GetExtendedAgentCard with the extended-card vs. public-card discovery convention (capabilities.extendedAgentCard), withAuthConfig auto-registration, OIDC auth gating with -32001 envelope, SSE event sequence, CloudEvents v1.0 envelopes, STREAMING_STATUS_UPDATE_INTERVAL, DefaultBackgroundTaskHandler agentic loop with tool dispatch and usage metadata, MAX_CHAT_COMPLETION_ITERATIONS cap, reserved input_required tool, AgentBuilder fluent wiring for OpenAICompatibleAgent with Go-parity defaults, lifecycle callbacks (beforeAgent / afterAgent / beforeModel / afterModel / beforeTool / afterTool) with CallbackContext, short-circuit and chain semantics, sync vs. async, error propagation, caching and guardrail patterns, HTTPPushNotificationSender webhook delivery primitive with TaskUpdateNotification wire payload, sendTaskUpdate one-shot and deliverTaskUpdate fan-out helpers, exponential-backoff retry config, bearer / basic auth resolution, and per-task pushNotificationConfig on MessageSendConfiguration, artifact service with filesystem and MinIO/S3 storage backends and the registerArtifactsRoute download route, OpenTelemetry tracing via TelemetryProvider with OTLP spans, Prometheus metrics with a standalone /metrics server and request middleware, TLS and mutual-TLS server/client configuration, validation contract, id semantics, cancellation, and runnable client samples.
+description: Build A2A-compatible agents in TypeScript with the @inference-gateway/adk package. Handler registration, JSON-RPC SendMessage, SendStreamingMessage, GetTask, ListTasks, CancelTask with TaskCancellationRegistry, GetExtendedAgentCard with the extended-card vs. public-card discovery convention (capabilities.extendedAgentCard), withAuthConfig auto-registration, OIDC auth gating with -32001 envelope, SSE event sequence, CloudEvents v1.0 envelopes, STREAMING_STATUS_UPDATE_INTERVAL, DefaultBackgroundTaskHandler agentic loop with tool dispatch and usage metadata, MAX_CHAT_COMPLETION_ITERATIONS cap, reserved input_required tool, AgentBuilder fluent wiring for OpenAICompatibleAgent with Go-parity defaults, lifecycle callbacks (beforeAgent / afterAgent / beforeModel / afterModel / beforeTool / afterTool) with CallbackContext, short-circuit and chain semantics, sync vs. async, error propagation, caching and guardrail patterns, HTTPPushNotificationSender webhook delivery primitive with TaskUpdateNotification wire payload, sendTaskUpdate one-shot and deliverTaskUpdate fan-out helpers, exponential-backoff retry config, bearer / basic auth resolution, and per-task pushNotificationConfig on MessageSendConfiguration, the -32003 PushNotificationNotSupportedError capability gate on the TaskPushNotificationConfig methods with createPushNotificationNotSupportedHandler, artifact service with filesystem and MinIO/S3 storage backends and the registerArtifactsRoute download route, OpenTelemetry tracing via TelemetryProvider with OTLP spans, Prometheus metrics with a standalone /metrics server and request middleware, TLS and mutual-TLS server/client configuration, validation contract, id semantics, cancellation, and runnable client samples.
 ---
 
 # TypeScript ADK
@@ -2699,6 +2699,63 @@ curl -sS -X POST http://localhost:8080/ \
 Each subsequent state transition (`SUBMITTED` -> `WORKING` -> `COMPLETED` / `FAILED` / `CANCELLED` / `INPUT_REQUIRED`) produces one POST per registered config carrying the [`TaskUpdateNotification`](#wire-payload-taskupdatenotification) payload.
 
 > **Clients can register multiple configs per task** via the `CreateTaskPushNotificationConfig` JSON-RPC method; the sender's [`deliverTaskUpdate`](#delivertaskupdateconfigs-task-options---fan-out) helper handles the fan-out. The config-management handlers (`set` / `get` / `list` / `delete`) ship in `@inference-gateway/adk` alongside the sender and are exported from the server barrel.
+
+### When the card disables push notifications (`-32003`)
+
+`A2AServerBuilder.build()` reads `capabilities.pushNotifications` from the agent card. When it is anything but `true`, the four config methods (`CreateTaskPushNotificationConfig`, `GetTaskPushNotificationConfig`, `ListTaskPushNotificationConfigs`, `DeleteTaskPushNotificationConfig`) are **still registered**, and every call against them answers `-32003 PushNotificationNotSupportedError` (A2A v1.0.1 section 5.4) instead of `-32601 Method not found`. The method is part of the A2A surface and is known to the server; only the capability is missing, which is exactly the distinction the two codes draw.
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": "1",
+  "error": {
+    "code": -32003,
+    "message": "push notifications are not supported by this agent",
+    "data": [
+      {
+        "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+        "reason": "PUSH_NOTIFICATION_NOT_SUPPORTED",
+        "domain": "a2a-protocol.org"
+      }
+    ]
+  }
+}
+```
+
+`error.data` carries the `google.rpc.ErrorInfo` entry the spec attaches to the A2A error codes (section 9.5): `reason` is `PUSH_NOTIFICATION_NOT_SUPPORTED` and `domain` is always `a2a-protocol.org`. Clients should branch on `reason` rather than on the message text. The code itself is exported as `JSONRPC_ERROR_CODES.PUSH_NOTIFICATION_NOT_SUPPORTED_ERROR`.
+
+| Code     | Name                                | ErrorInfo `reason`                | Raised when                                                                       |
+| -------- | ----------------------------------- | --------------------------------- | --------------------------------------------------------------------------------- |
+| `-32003` | `PushNotificationNotSupportedError` | `PUSH_NOTIFICATION_NOT_SUPPORTED` | A push notification config method is called on a card without the capability set. |
+
+#### `createPushNotificationNotSupportedHandler()`
+
+Registering methods on an `A2AServer` directly - rather than letting `A2AServerBuilder` do it - means doing the same capability gate by hand. `createPushNotificationNotSupportedHandler()` returns the handler that throws the `-32003` envelope above, with no options:
+
+```ts
+import {
+  A2AServer,
+  TASK_PUSH_NOTIFICATION_CONFIG_DELETE_METHOD,
+  TASK_PUSH_NOTIFICATION_CONFIG_GET_METHOD,
+  TASK_PUSH_NOTIFICATION_CONFIG_LIST_METHOD,
+  TASK_PUSH_NOTIFICATION_CONFIG_SET_METHOD,
+  createPushNotificationNotSupportedHandler,
+} from '@inference-gateway/adk';
+
+declare const server: A2AServer;
+
+const notSupported = createPushNotificationNotSupportedHandler();
+for (const method of [
+  TASK_PUSH_NOTIFICATION_CONFIG_SET_METHOD,
+  TASK_PUSH_NOTIFICATION_CONFIG_GET_METHOD,
+  TASK_PUSH_NOTIFICATION_CONFIG_LIST_METHOD,
+  TASK_PUSH_NOTIFICATION_CONFIG_DELETE_METHOD,
+]) {
+  server.registerMethod(method, notSupported);
+}
+```
+
+Leaving the methods unregistered instead is a spec violation, not just a different code: a client that probes for push notification support cannot tell "this agent does not support push notifications" from "this agent speaks an older protocol" out of a bare `-32601`.
 
 ### Bridging into the state-transition pipeline (follow-up)
 
