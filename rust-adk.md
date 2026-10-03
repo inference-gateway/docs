@@ -465,6 +465,8 @@ The client exposes a typed helper for every method in the A2A specification. Eac
 
 The method column holds the A2A v1.0.1 wire names, generated from the canonical schema as the `A2aMethod` enum (`A2aMethod::SendMessage`, `A2aMethod::GetTask`, ...). Match on the enum rather than on string literals when you dispatch raw JSON-RPC yourself; the v0.x slash names (`message/send`, `tasks/get`, ...) answer `-32601 Method not found`.
 
+Request `params` follow the normative proto3 JSON mapping of A2A spec section 1.4, so the server accepts either spelling of every field name - the lowerCamelCase form (`pageSize`, `contextId`) or the proto3 form (`page_size`, `context_id`) - and ignores params it does not know instead of answering `-32602 Invalid params`. Hand-rolled clients and clients built against a newer spec revision therefore interoperate without stripping extra fields first. Method names are unaffected: they stay exact-match PascalCase.
+
 A representative `SendMessage` call, using the typed structs end-to-end:
 
 ```rust
@@ -632,6 +634,15 @@ let server = A2AServerBuilder::new()
 ```
 
 `AgentCardOverrides` exposes `with_name`, `with_description`, `with_version`, and `with_url` - `with_url` rewrites the `url` of the first entry in the card's `supportedInterfaces` list, appending a `JSONRPC` / `1.0` interface when the list is empty. See [`examples/static-agent-card/`](https://github.com/inference-gateway/rust-adk/tree/main/examples/static-agent-card) for a runnable demo.
+
+**The advertised URL** in `supportedInterfaces[0].url` is resolved at startup, highest precedence first:
+
+1. `AgentCardOverrides::with_url`
+2. `A2A_AGENT_URL`
+3. The card's own `supportedInterfaces[0].url`, when non-empty
+4. `http://localhost:<A2A_SERVER_PORT>/a2a` - `https://` when `A2A_SERVER_TLS_ENABLED=true`
+
+The same resolution fills in the URL when the card declares no `supportedInterfaces` entry at all, so an agent serving on the default port advertises `http://localhost:8080/a2a` without any configuration. Set `A2A_AGENT_URL` to the externally reachable address whenever the agent runs behind a container name, service DNS record, or ingress - clients and the gateway dial exactly what the card advertises.
 
 ### Capability-gated methods
 
@@ -1250,12 +1261,14 @@ Log verbosity is controlled by [`RUST_LOG`](https://docs.rs/tracing-subscriber/l
 
 **Server and core** - the listener and top-level toggles.
 
-| Variable                                    | Default                        | Purpose                                                      |
-| ------------------------------------------- | ------------------------------ | ------------------------------------------------------------ |
-| `A2A_SERVER_HOST`                           | `0.0.0.0`                      | Bind address for the A2A JSON-RPC server.                    |
-| `A2A_SERVER_PORT`                           | `8080`                         | Listener port.                                               |
-| `A2A_AGENT_URL`                             | `http://helloworld-agent:8080` | Public URL advertised for this agent.                        |
-| `A2A_STREAMING_STATUS_UPDATE_INTERVAL_SECS` | `1`                            | Seconds between `TaskStatusUpdateEvent`s on a streamed task. |
+| Variable                                    | Default     | Purpose                                                      |
+| ------------------------------------------- | ----------- | ------------------------------------------------------------ |
+| `A2A_SERVER_HOST`                           | `0.0.0.0`   | Bind address for the A2A JSON-RPC server.                    |
+| `A2A_SERVER_PORT`                           | `8080`      | Listener port.                                               |
+| `A2A_AGENT_URL`                             | _(derived)_ | Public URL advertised in the card - see below.               |
+| `A2A_STREAMING_STATUS_UPDATE_INTERVAL_SECS` | `1`         | Seconds between `TaskStatusUpdateEvent`s on a streamed task. |
+
+`A2A_AGENT_URL` has no fixed default - the server resolves the advertised URL at startup, see [Agent card and metadata](#agent-card-and-metadata) for the full precedence chain.
 
 **Agent (LLM client)** - these mirror the [`AgentBuilder`](#agentbuilder) setters; an explicit setter overrides the env value.
 
