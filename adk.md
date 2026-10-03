@@ -556,7 +556,7 @@ for evt := range events {
 
 ### Push-notification configuration
 
-Register webhooks the server POSTs to as a task changes state. The four methods form a CRUD cycle keyed by the task ID; server-side push requires `CAPABILITIES_PUSH_NOTIFICATIONS=true`.
+Register webhooks the server POSTs to as a task changes state. The four methods form a CRUD cycle keyed by the task ID; both the methods themselves and server-side push require `CAPABILITIES_PUSH_NOTIFICATIONS=true`, which puts `capabilities.pushNotifications: true` on the agent card.
 
 ```go
 configID := uuid.New().String()
@@ -574,6 +574,30 @@ _, _ = a2a.GetTaskPushNotificationConfig(ctx, types.GetTaskPushNotificationConfi
 _, _ = a2a.ListTaskPushNotificationConfig(ctx, types.ListTaskPushNotificationConfigParams{Parent: &taskID})
 _, _ = a2a.DeleteTaskPushNotificationConfig(ctx, types.DeleteTaskPushNotificationConfigParams{Name: &taskID})
 ```
+
+#### Capability gating
+
+A card whose `capabilities.pushNotifications` is `false` or absent is unsupported: all four methods are rejected with `-32003` (`PushNotificationNotSupportedError`) before any config is stored, per [A2A spec section 5.4](https://a2a-protocol.org/latest/specification/#54-error-handling). Like the other A2A errors, the envelope carries a `google.rpc.ErrorInfo` entry in `error.data`:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": "1",
+  "error": {
+    "code": -32003,
+    "message": "push notification is not supported",
+    "data": [
+      {
+        "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+        "reason": "PUSH_NOTIFICATION_NOT_SUPPORTED",
+        "domain": "a2a-protocol.org"
+      }
+    ]
+  }
+}
+```
+
+> **Behavior change.** Earlier versions stored and returned push-notification configs even with the capability disabled - only the outbound sender was gated. Agents that relied on that must now advertise the capability (`CAPABILITIES_PUSH_NOTIFICATIONS=true`, or `PushNotifications: &[]bool{true}[0]` on a hand-built card).
 
 `TaskPushNotificationConfig.Name` (the `set` payload) is a plain `string`, but the `get` / `list` / `delete` params are aliases for the generated request types, where `Name` and `Parent` are `*string` - pass an address, as above. The same holds for `TaskResubscriptionParams.Name` and `CancelTaskRequest.Name`; `types.TaskIdParams.ID`, used by `CancelTask`, stays a `string`.
 
@@ -873,10 +897,10 @@ Reference them in code as `server.BuildAgentName`, etc., when constructing the `
 
 **Capabilities** (`CAPABILITIES_` prefix)
 
-| Variable                          | Default | Purpose                              |
-| --------------------------------- | ------- | ------------------------------------ |
-| `CAPABILITIES_STREAMING`          | `true`  | Advertise `message/stream` support.  |
-| `CAPABILITIES_PUSH_NOTIFICATIONS` | `true`  | Advertise push-notification support. |
+| Variable                          | Default | Purpose                                                                                                                                                                    |
+| --------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CAPABILITIES_STREAMING`          | `true`  | Advertise `message/stream` support.                                                                                                                                        |
+| `CAPABILITIES_PUSH_NOTIFICATIONS` | `true`  | Advertise push-notification support. Required for the [`tasks/pushNotificationConfig/*` methods](#push-notification-configuration) - with it `false` they answer `-32003`. |
 
 `CAPABILITIES_STATE_TRANSITION_HISTORY` is gone: the A2A v1.0.1 AgentCard dropped the flag, so the ADK no longer reads it and generated configurations no longer set it.
 
