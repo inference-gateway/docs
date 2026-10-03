@@ -234,6 +234,10 @@ See [`ai-powered`](https://github.com/inference-gateway/adk/tree/main/examples/a
 
 > **Builder validation.** `Build()` returns an error unless an agent card is configured and at least one task handler is present. It also cross-checks the card's `Capabilities.Streaming` flag: a streaming-enabled card **requires** a streaming handler, and a streaming-disabled card **requires** a background handler. `WithDefaultTaskHandlers()` satisfies both. When the card advertises `PushNotifications`, the builder wires an HTTP push-notification sender automatically.
 
+### Agent card caching
+
+`/.well-known/agent-card.json` is served with HTTP caching headers per [A2A spec section 8.6](https://a2a-protocol.org/latest/specification/#86-agent-card-caching): `Cache-Control: public, max-age=300`, an `ETag` derived from the card body, and a `Last-Modified` of server start. A conditional request carrying `If-None-Match` or `If-Modified-Since` is answered with `304 Not Modified`, so polling clients revalidate cheaply. The five-minute freshness window is fixed and not configurable.
+
 The default handlers delegate to the agent registered via `WithAgent` when one is present; without an agent they fall back to a built-in reply, which is what lets the [minimal server](#minimal-server) run with no LLM wired up. Storage, authentication, telemetry, and artifacts are driven by `Config` (see the [configuration reference](#configuration-reference)) and applied during `Build()`.
 
 ## AgentBuilder
@@ -366,22 +370,70 @@ type StreamableTaskHandler interface {
 
 You can register your own (`WithBackgroundTaskHandler` / `WithStreamingTaskHandler`) or use the bundled defaults (`WithDefaultBackgroundTaskHandler` / `WithDefaultStreamingTaskHandler` / `WithDefaultTaskHandlers`). The default handlers consume the agent's event stream, drive task status transitions, attach [usage metadata](#configuration-reference) on terminal states, and handle input-required pausing automatically. Streaming handlers require an agent to be configured.
 
+### Blocking SendMessage
+
+`SendMessage` is **blocking** per [A2A spec section 3.2.2](https://a2a-protocol.org/latest/specification/#322-sendmessage): the server enqueues the task and then holds the response until the task reaches a terminal state (`completed`, `failed`, `canceled`, `rejected`) or an interrupted one (`input-required`, `auth-required`). The reply therefore carries a finished task, not a `submitted` placeholder. `types.TaskState` exposes both predicates - `IsTerminal()` and `IsInterrupted()` - for handler code that needs the same classification.
+
+A client that does not want to wait sets `configuration.returnImmediately: true`, which answers with the freshly created task right away and leaves the client to poll `GetTask` (or subscribe). `configuration.historyLength` caps the number of history messages on the returned task and is honoured by `SendMessage`, `SendStreamingMessage`, `GetTask`, and `ListTasks`:
+
+```go
+returnImmediately := true
+historyLength := 5
+
+resp, err := a2a.SendTask(ctx, types.MessageSendParams{
+	Message: types.Message{
+		MessageID: uuid.New().String(),
+		Role:      types.RoleUser,
+		Parts:     []types.Part{types.CreateTextPart("Summarise this quarter's incidents")},
+	},
+	Configuration: &types.SendMessageConfiguration{
+		ReturnImmediately: &returnImmediately,
+		HistoryLength:     &historyLength,
+	},
+})
+```
+
+> **Long-running agents.** A task that takes minutes will hold the HTTP request open for minutes, and clients hit their own read timeout first. If your handler is slow, either tell callers to set `returnImmediately: true` and poll, or use `SendStreamingMessage` so progress arrives as it happens.
+
+### Answering without a task
+
+A background handler may also implement the optional `server.MessageResponder` interface. When `RespondToMessage` returns a non-nil `Message`, `SendMessage` answers with that message directly and creates **no** task; returning `nil` falls through to the regular task flow. This suits trivial request/response exchanges where task bookkeeping buys nothing.
+
+```go
+type GreetHandler struct{ agent server.OpenAICompatibleAgent }
+
+func (h *GreetHandler) RespondToMessage(ctx context.Context, message *types.Message) (*types.Message, error) {
+	if !isGreeting(message) {
+		return nil, nil // not ours - run the normal task flow
+	}
+	return &types.Message{
+		MessageID: uuid.New().String(),
+		ContextID: message.ContextID,
+		Role:      types.RoleAgent,
+		Parts:     []types.Part{types.CreateTextPart("Hello!")},
+	}, nil
+}
+```
+
+`HandleTask`, `SetAgent`, and `GetAgent` are still required - `MessageResponder` extends the handler, it does not replace it.
+
 ## Streaming and CloudEvents
 
 Agents emit progress as [CloudEvents](https://cloudevents.io/). A `StreamableTaskHandler` returns `<-chan cloudevents.Event`; each event carries a typed payload you read with `event.DataAs(&target)`. The event types are stable string constants in the `types` package, all under the `adk.agent.*` namespace:
 
-| Constant                        | Type string                     | Emitted when                                                 |
-| ------------------------------- | ------------------------------- | ------------------------------------------------------------ |
-| `types.EventDelta`              | `adk.agent.delta`               | An incremental token/text delta is produced.                 |
-| `types.EventIterationCompleted` | `adk.agent.iteration.completed` | One chat-completion iteration finishes; carries a `Message`. |
-| `types.EventToolStarted`        | `adk.agent.tool.started`        | A tool call begins.                                          |
-| `types.EventToolCompleted`      | `adk.agent.tool.completed`      | A tool call returns successfully.                            |
-| `types.EventToolFailed`         | `adk.agent.tool.failed`         | A tool call errors.                                          |
-| `types.EventToolResult`         | `adk.agent.tool.result`         | A tool result is available.                                  |
-| `types.EventInputRequired`      | `adk.agent.input.required`      | The agent needs more input; the task pauses.                 |
-| `types.EventTaskInterrupted`    | `adk.agent.task.interrupted`    | The task is interrupted.                                     |
-| `types.EventTaskStatusChanged`  | `adk.agent.task.status.changed` | The task transitions to a new `TaskStatus` state.            |
-| `types.EventStreamFailed`       | `adk.agent.stream.failed`       | The agent stream fails.                                      |
+| Constant                         | Type string                       | Emitted when                                                              |
+| -------------------------------- | --------------------------------- | ------------------------------------------------------------------------- |
+| `types.EventDelta`               | `adk.agent.delta`                 | An incremental token/text delta is produced.                              |
+| `types.EventIterationCompleted`  | `adk.agent.iteration.completed`   | One chat-completion iteration finishes; carries a `Message`.              |
+| `types.EventToolStarted`         | `adk.agent.tool.started`          | A tool call begins.                                                       |
+| `types.EventToolCompleted`       | `adk.agent.tool.completed`        | A tool call returns successfully.                                         |
+| `types.EventToolFailed`          | `adk.agent.tool.failed`           | A tool call errors.                                                       |
+| `types.EventToolResult`          | `adk.agent.tool.result`           | A tool result is available.                                               |
+| `types.EventInputRequired`       | `adk.agent.input.required`        | The agent needs more input; the task pauses.                              |
+| `types.EventTaskInterrupted`     | `adk.agent.task.interrupted`      | The task is interrupted.                                                  |
+| `types.EventTaskStatusChanged`   | `adk.agent.task.status.changed`   | The task transitions to a new `TaskStatus` state.                         |
+| `types.EventStreamFailed`        | `adk.agent.stream.failed`         | The agent stream fails.                                                   |
+| `types.EventTaskArtifactUpdated` | `adk.agent.task.artifact.updated` | An artifact is produced or extended; carries a `TaskArtifactUpdateEvent`. |
 
 A handler typically drives the agent with `agent.RunWithStream(ctx, messages)` and reacts to the events:
 
@@ -408,6 +460,35 @@ for event := range streamChan {
 	}
 }
 ```
+
+### Streaming artifacts
+
+A streaming handler emits `types.EventTaskArtifactUpdated` with a `types.TaskArtifactUpdateEvent` payload to hand the client an artifact as it is produced. The server fills in `taskId` and `contextId`, records the update on the task via `Task.ApplyArtifactUpdate`, and forwards it to the client as an `artifactUpdate` response. Set `append: true` to add parts to an artifact already sent under the same `artifactId`, and `lastChunk: true` on the final piece:
+
+```go
+func artifactEvent(artifact types.Artifact, appendParts, lastChunk bool) cloudevents.Event {
+	event := cloudevents.NewEvent()
+	event.SetType(types.EventTaskArtifactUpdated)
+	_ = event.SetData(cloudevents.ApplicationJSON, types.TaskArtifactUpdateEvent{
+		Artifact:  artifact,
+		Append:    &appendParts,
+		LastChunk: &lastChunk,
+	})
+	return event
+}
+
+// Stream one artifact in two chunks.
+chunk := types.Artifact{
+	ArtifactID: uuid.New().String(),
+	Parts:      []types.Part{types.CreateTextPart("chunk-1 ")},
+}
+events <- artifactEvent(chunk, false, false)
+
+chunk.Parts = []types.Part{types.CreateTextPart("chunk-2")}
+events <- artifactEvent(chunk, true, true)
+```
+
+Because the update is recorded on the task, a later `GetTask` returns the assembled artifact even for a client that missed the stream. The [`tck-sut`](https://github.com/inference-gateway/adk/tree/main/examples/tck-sut) example is a reference handler covering chunked artifacts, `MessageResponder`, and interrupted-task subscription; CI runs the A2A TCK against it.
 
 ## Lifecycle callbacks
 
@@ -556,6 +637,10 @@ for evt := range events {
 }
 ```
 
+`ListTasks` and `GetTask` both accept `HistoryLength` to trim the history of the tasks they return, the same knob [`SendMessage` takes](#blocking-sendmessage).
+
+`SubscribeToTask` only works on a task that can still change: a task already in a terminal state is rejected with `-32004` (`UnsupportedOperationError`), since there is nothing left to stream. A task in an interrupted state (`input-required`, `auth-required`) **is** subscribable - the subscription follows it until it terminates.
+
 ### Push-notification configuration
 
 Register webhooks the server POSTs to as a task changes state. The four methods form a CRUD cycle keyed by the task ID; both the methods themselves and server-side push require `CAPABILITIES_PUSH_NOTIFICATIONS=true`, which puts `capabilities.pushNotifications: true` on the agent card.
@@ -576,6 +661,8 @@ _, _ = a2a.GetTaskPushNotificationConfig(ctx, types.GetTaskPushNotificationConfi
 _, _ = a2a.ListTaskPushNotificationConfig(ctx, types.ListTaskPushNotificationConfigParams{Parent: &taskID})
 _, _ = a2a.DeleteTaskPushNotificationConfig(ctx, types.DeleteTaskPushNotificationConfigParams{Name: &taskID})
 ```
+
+A config can also be registered inline with the first message: a `taskPushNotificationConfig` on `SendMessage` params is stored just as `CreateTaskPushNotificationConfig` would, saving a round trip. Deletion is idempotent - deleting a config that is already gone succeeds instead of erroring.
 
 #### Capability gating
 
@@ -924,7 +1011,7 @@ Reference them in code as `server.BuildAgentName`, etc., when constructing the `
 
 ## Examples
 
-The [`examples/`](https://github.com/inference-gateway/adk/tree/main/examples) directory ships seventeen runnable scenarios, each a self-contained Go module with its own README and (where relevant) a `docker-compose.yaml`.
+The [`examples/`](https://github.com/inference-gateway/adk/tree/main/examples) directory ships eighteen runnable scenarios, each a self-contained Go module with its own README and (where relevant) a `docker-compose.yaml`.
 
 **Without an LLM** - no provider keys required:
 
@@ -935,6 +1022,7 @@ The [`examples/`](https://github.com/inference-gateway/adk/tree/main/examples) d
 | [streaming](https://github.com/inference-gateway/adk/tree/main/examples/streaming)                 | A custom streaming handler emits CloudEvents over SSE.            |
 | [default-handlers](https://github.com/inference-gateway/adk/tree/main/examples/default-handlers)   | Built-in task processing with `WithDefaultTaskHandlers()`.        |
 | [protocol-methods](https://github.com/inference-gateway/adk/tree/main/examples/protocol-methods)   | End-to-end walk-through of every A2A JSON-RPC method.             |
+| [tck-sut](https://github.com/inference-gateway/adk/tree/main/examples/tck-sut)                     | Reference handler exercised by the A2A TCK in CI.                 |
 
 **With an LLM** - require an Inference Gateway / provider key:
 
