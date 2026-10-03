@@ -1141,9 +1141,11 @@ The artifacts subsystem is configured entirely through the `ARTIFACTS_*` environ
 | `ARTIFACTS_STORAGE_BUCKET_NAME`        | unset                   | MinIO bucket name. Created on startup if missing.                                                                                                      |
 | `ARTIFACTS_STORAGE_REGION`             | unset                   | MinIO region.                                                                                                                                          |
 | `ARTIFACTS_STORAGE_USE_SSL`            | `false`                 | Whether to use TLS when talking to the MinIO endpoint.                                                                                                 |
-| `ARTIFACTS_RETENTION_MAX_ARTIFACTS`    | `5`                     | Cap on the total number of artifacts kept by the backend.                                                                                              |
+| `ARTIFACTS_RETENTION_MAX_ARTIFACTS`    | `5`                     | Store-wide cap on artifacts kept, oldest pruned first; `0` = unlimited.                                                                                |
 | `ARTIFACTS_RETENTION_MAX_AGE`          | `168h`                  | Maximum age before an artifact is pruned.                                                                                                              |
 | `ARTIFACTS_RETENTION_CLEANUP_INTERVAL` | `24h`                   | Frequency of the retention loop.                                                                                                                       |
+
+`ARTIFACTS_RETENTION_MAX_ARTIFACTS` is **store-wide** here: each cleanup run keeps the newest N artifacts across the whole store and prunes the oldest beyond that, regardless of `contextId`. The [Go ADK](/adk/#artifact-retention) shares the variable name and the default of `5` but applies it **per context**, so the same value retains more artifacts there.
 
 Duration values (`*_TIMEOUT`, `*_MAX_AGE`, `*_CLEANUP_INTERVAL`) accept Go-style suffixes - `30s`, `15m`, `2h`, `7d` - or a bare integer interpreted as seconds. An unknown suffix such as `5w` is rejected at load time.
 
