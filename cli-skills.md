@@ -1,6 +1,6 @@
 ---
 title: Agent Skills
-description: Install, enable, and invoke Agent Skills in the Inference Gateway CLI - the on-disk SKILL.md layout, the three discovery scopes (project .infer/skills, the .agents/skills open standard, and user-global ~/.infer/skills), the built-in tmux, bug, and demo skills seeded into ~/.infer/skills on infer init (seed-if-absent), infer skills install/list/uninstall, deterministic slash-name activation with metadata-only injection, and the Read-sandbox carve-out for ~/.infer/skills.
+description: Install, enable, and invoke Agent Skills in the Inference Gateway CLI - the on-disk SKILL.md layout, the three discovery scopes (project .infer/skills, the .agents/skills open standard, and user-global ~/.infer/skills), the built-in tmux, bug, demo, and config skills seeded into ~/.infer/skills on infer init (seed-if-absent), infer skills install/list/uninstall, deterministic slash-name activation with metadata-only injection, and the Read-sandbox carve-out for ~/.infer/skills.
 ---
 
 # Agent Skills
@@ -77,15 +77,16 @@ Unknown frontmatter keys (for example Anthropic's `allowed-tools:` or Gemini's `
 
 The CLI ships a small set of **built-in skills** embedded in the binary. On `infer init` they are seeded into the user-global `~/.infer/skills/` - the same directory the [skills loader scans](#on-disk-layout) - **only if absent** ("seed-if-absent"). Once on disk they are ordinary user-scope skills: discovered, shown by `infer skills list`, and injected as lightweight metadata exactly like a skill you authored there yourself. Because seeding never overwrites an existing folder, **your edits survive** every later `infer init`.
 
-Three built-ins ship today:
+Four built-ins ship today:
 
-| Skill  | What it teaches the agent                                                                                                                                                                                                                                                                                                                                                                                                  |
-| ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `tmux` | Drive interactive terminal programs - TUIs, REPLs, pagers, a debugger, or another CLI's chat UI - that the plain [Bash tool](/cli/#bash) cannot script, by running them inside tmux and scripting them with `send-keys` / `capture-pane`. It prefers to **add a pane to the tmux session you already have open** so the work stays visible, and only falls back to a **detached session** in a headless, CI, or piped run. |
-| `bug`  | Turn a rough bug description into a reproduced, well-formed GitHub issue - see [The `bug` skill](#the-bug-skill) below.                                                                                                                                                                                                                                                                                                    |
-| `demo` | Record a short demo GIF of any project - a CLI, TUI or desktop GUI app: plan it up front, rehearse it unrecorded, record one take and convert it to a single `~/.infer/artifacts/demo.gif` - see [The `demo` skill](#the-demo-skill) below.                                                                                                                                                                                |
+| Skill    | What it teaches the agent                                                                                                                                                                                                                                                                                                                                                                                                  |
+| -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tmux`   | Drive interactive terminal programs - TUIs, REPLs, pagers, a debugger, or another CLI's chat UI - that the plain [Bash tool](/cli/#bash) cannot script, by running them inside tmux and scripting them with `send-keys` / `capture-pane`. It prefers to **add a pane to the tmux session you already have open** so the work stays visible, and only falls back to a **detached session** in a headless, CI, or piped run. |
+| `bug`    | Turn a rough bug description into a reproduced, well-formed GitHub issue - see [The `bug` skill](#the-bug-skill) below.                                                                                                                                                                                                                                                                                                    |
+| `demo`   | Record a short demo GIF of any project - a CLI, TUI or desktop GUI app: plan it up front, rehearse it unrecorded, record one take and convert it to a single `~/.infer/artifacts/demo.gif` - see [The `demo` skill](#the-demo-skill) below.                                                                                                                                                                                |
+| `config` | Change an `infer` setting from chat: resolve the request to a dotted config key, confirm the change, and write it with `infer config set` - see [The `config` skill](#the-config-skill) below.                                                                                                                                                                                                                             |
 
-Built-ins are seeded rather than published: `bug` and `demo` are **not** in the [Skills Catalog](/skills/), because they compose CLI-only tools (`AskUserQuestion`, the Computer tools, `RecordStart` / `RecordStop`) that no other agent runtime provides.
+Built-ins are seeded rather than published: `bug`, `demo` and `config` are **not** in the [Skills Catalog](/skills/), because they compose CLI-only tools and commands (`AskUserQuestion`, the Computer tools, `RecordStart` / `RecordStop`, `infer config`) that no other agent runtime provides.
 
 ### The `bug` skill
 
@@ -131,6 +132,36 @@ Where it records depends on where it runs:
 - **In CI** ([`record-demo` on the GitHub Action](/github-action/#demo-recordings)) the action provides a virtual display whose only window is the demo terminal, so screen mode captures exactly what the demo puts on it - and `~/.infer/artifacts` is the delivery channel: everything in it is embedded in the result comment, which is why a recording never needs to enter the repository.
 
 **Recording off? Degradation, not failure.** When recording is unavailable - locally the config knob above, in CI a request that did not ask for a demo - the skill says so once, never edits config, and shows the steps as commands plus captured output or screenshots instead. It is not for reproducing bugs; that is [the `bug` skill](#the-bug-skill).
+
+### The `config` skill
+
+Invoke it with `/config <request>` and describe the setting in prose - the skill finds the key so you do not have to remember the name or the YAML layout:
+
+```text
+> /config set the gateway timeout to 300
+```
+
+It also answers read-only questions (`/config what is my max_turns`) and stops there.
+
+The flow is resolve, confirm, write, reload, and **nothing is written without your explicit approval**:
+
+1. **Resolve the key.** It maps the request to one or more dotted keys (`gateway.timeout`, `agent.model`, `chat.theme`, ...) and reads each with `infer config get <key>`. An unknown key is reported as such rather than guessed; an ambiguous request gets one `AskUserQuestion` round with the candidate keys. It never runs a bare `infer config get` (or a whole `gateway` / `telemetry` section), because that would print the gateway API key and telemetry headers into the conversation.
+2. **Confirm.** It shows the change as `key: old -> new` plus the file it will be written to - `~/.infer/config.yaml` by default, or the project `.infer/config.yaml` when you asked for a project override - and waits for `Apply`. If you cancel, or there is no interactive user ([headless](/cli/#headless-mode), [channels](/cli-channels/), [scheduled](/cli/#schedule)), it changes nothing and hands you the exact `infer config set` command instead.
+3. **Apply.** It writes the value with [`infer config set`](/cli/#configuration-commands) (adding `--project` only for an override), then reads the key back. If the value still reads as before, a project config or an `INFER_*` variable [takes precedence](/cli/#configuration-precedence) - it names the winning source rather than writing again.
+4. **Hand back `/reload`.** It ends by telling you to type [`/reload`](/cli/#reloading-configuration-in-chat), and never claims the running session already uses the new value - only `/reload` knows which keys apply live.
+
+**What it refuses.** Anything that changes what the agent may do, or that carries a credential, stays with you. The skill names the file to edit by hand and never edits it itself:
+
+| Refused                                                     | Edit by hand                                                                                   |
+| ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Tool policy, bash allow-lists, approval behaviour           | [`~/.infer/tools.yaml`](/cli/#tool-configuration) - `config set tools.*` is rejected anyway    |
+| Filesystem sandbox                                          | [`~/.infer/sandbox.yaml`](/cli/#file-sandbox)                                                  |
+| MCP servers, channels, plugins, hooks, the judge            | `mcp.yaml`, `channels.yaml`, `plugins.yaml`, `hooks.yaml`, `judge.yaml` under `~/.infer/`      |
+| Secrets such as `gateway.api_key`, `telemetry.otlp.headers` | Your own terminal - the skill gives you the command so the value never enters the conversation |
+
+Settings that live in their own files (`prompts.yaml`, `computer_use.yaml`, `browser_use.yaml`, ...) are not reachable through `infer config set` either, so the skill points at the file.
+
+> **Approval prompts.** `infer config get` and `infer config set` are **not** allow-listed by default, so every call goes through the normal [approval gate](/cli/#approval-workflow) unless you add them under `tools.bash.mode.<mode>.allow`.
 
 ### Customizing a built-in
 
