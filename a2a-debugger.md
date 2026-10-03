@@ -9,6 +9,16 @@ The **A2A Debugger** is the ultimate troubleshooting and inspection tool for [Ag
 
 > **Note:** A2A Debugger is in early development. Breaking changes are expected; pin to a specific version in scripts and watch the [CHANGELOG](https://github.com/inference-gateway/a2a-debugger/blob/main/CHANGELOG.md) for releases.
 
+## Agent requirements
+
+The debugger speaks the [A2A v1.0.1](/a2a/#a2a-protocol-implementation) JSON-RPC methods (`ListTasks`, `GetTask`, `SendMessage`, `SendStreamingMessage`, `GetExtendedAgentCard`), so it needs an agent built on **[ADK](/adk/) v0.31.0 or newer**. Against an older v0.x agent - which still registers the slash method names - every call fails with `-32601`, reported as:
+
+```text
+Method not implemented by the agent
+```
+
+If you see that against every command, upgrade the agent's ADK dependency rather than downgrading the debugger.
+
 ## When to reach for it
 
 Use the A2A Debugger when you need to:
@@ -140,6 +150,8 @@ output: yaml # or json
 | `--offset`          | Number of tasks to skip                                        | `0`     |
 | `--include-history` | Include conversation history in the output                     | `false` |
 
+`--limit` and `--offset` are translated into the token-based pagination A2A v1.0.1 uses on the wire (`pageSize` / `pageToken`), so the flags stay the same but very large offsets depend on the agent honouring a numeric page token.
+
 ### `tasks get` flags
 
 | Flag               | Description                           |
@@ -225,7 +237,13 @@ Task: task-abc123 (Status: completed)
 ```bash
 $ a2a tasks submit-streaming "Hello, can you demonstrate streaming?"
 
-# ... live event output ...
+📊 Status Update: submitted
+📊 Status Update: working
+💬 Agent Message: Working on it...
+📊 Status Update: completed (Message: msg-456)
+
+💬 Agent Response:
+Sure - this reply arrived over the stream.
 
 Streaming Summary:
   Task ID: task-xyz123
@@ -237,6 +255,11 @@ Streaming Summary:
     Artifact Updates: 2
   Final Message Parts: 2
 ```
+
+Two things to know when reading that output:
+
+- **There is no `[FINAL]` marker.** `TaskStatusUpdateEvent` dropped its `final` field in A2A v1.0.1, so the end of the stream is signalled by the stream closing - which is when the summary prints.
+- **`Agent Message` lines are standalone message events**, emitted by the agent outside a status update. `Agent Response` is still the message carried on a status update.
 
 Use `--context-id <id>` to continue an existing conversation and `--raw` to dump the underlying event JSON for protocol-level debugging:
 
