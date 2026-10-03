@@ -934,12 +934,12 @@ The ADK ships a first-class **artifacts subsystem** so agents can produce downlo
 
 The subsystem has four moving parts, each behind a trait so production deployments can swap in their own backends:
 
-| Layer         | Trait / type                                                               | Default                                         |
-| ------------- | -------------------------------------------------------------------------- | ----------------------------------------------- |
-| Configuration | `ArtifactsConfig` (in `config.rs`)                                         | disabled (`ARTIFACTS_ENABLED=false`)            |
-| Storage       | `ArtifactStorage` (`store`, `retrieve`, `exists`, `delete`, `cleanup_*`)   | `FilesystemArtifactStorage`                     |
-| Service       | `ArtifactService` (`create_*_artifact`, `add_artifact_to_task`, retention) | `DefaultArtifactService`                        |
-| HTTP surface  | `ArtifactsServer` (`GET /health`, `GET /artifacts/:artifact_id/:filename`) | `0.0.0.0:8081` listener with byte-range support |
+| Layer         | Trait / type                                                                           | Default                                         |
+| ------------- | -------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| Configuration | `ArtifactsConfig` (in `config.rs`)                                                     | disabled (`ARTIFACTS_ENABLED=false`)            |
+| Storage       | `ArtifactStorage` (`store`, `retrieve`, `exists`, `delete`, `cleanup_*`)               | `FilesystemArtifactStorage`                     |
+| Service       | `ArtifactService` (`create_*_artifact`, `add_artifact_to_task`, retention)             | `DefaultArtifactService`                        |
+| HTTP surface  | `ArtifactsServer` (`GET /health`, `GET /artifacts/:context_id/:artifact_id/:filename`) | `0.0.0.0:8081` listener with byte-range support |
 
 When `ARTIFACTS_ENABLED=true`, `A2AServer::serve(...)` starts the artifacts HTTP server on its own socket alongside the main A2A JSON-RPC server and runs a background retention loop that prunes expired and over-cap blobs. The artifacts server reuses the same TLS machinery as the A2A endpoint, so it can sit behind TLS/mTLS too.
 
@@ -956,7 +956,7 @@ flowchart LR
     a2a -->|"emit_file_artifact"| svc
     svc -->|"store bytes"| store
     a2a -.->|"TaskArtifactUpdateEvent (FilePart.fileWithUri)"| client
-    client -->|"GET /artifacts/:id/:file"| artsrv
+    client -->|"GET /artifacts/:context/:id/:file"| artsrv
     artsrv -->|"retrieve"| store
 ```
 
@@ -966,11 +966,11 @@ All artifact types live behind the public exports from the crate root (`inferenc
 
 ### Storage backends
 
-`ArtifactStorage` is the pluggable backend trait. Its surface is intentionally small - `store`, `retrieve`, `exists`, `delete`, plus `cleanup_expired` / `cleanup_oldest` for the retention loop and a `url(...)` helper that builds the public URI baked into file artifacts. Two backends ship in the box.
+`ArtifactStorage` is the pluggable backend trait. Its surface is intentionally small - `store`, `retrieve`, `exists`, `delete` (each taking the `contextId` as their first argument), plus `cleanup_expired` / `cleanup_oldest` for the retention loop and a `url(...)` helper that builds the public URI baked into file artifacts. Two backends ship in the box.
 
 #### Filesystem (default)
 
-`FilesystemArtifactStorage` is the zero-config default. It lays files out under `<base_path>/<artifact_id>/<filename>` and sanitizes paths to prevent traversal. The artifacts HTTP server streams blobs back out of this directory with content-type inference, a `Content-Disposition` header, and HTTP byte-range support.
+`FilesystemArtifactStorage` is the zero-config default. It lays files out under `<base_path>/<context_id>/<artifact_id>/<filename>` and sanitizes every path segment to prevent traversal. Deleting an artifact also removes the now-empty artifact and context directories, stopping at the configured root. The artifacts HTTP server streams blobs back out of this directory with content-type inference, a `Content-Disposition` header, and HTTP byte-range support.
 
 #### MinIO (behind the `minio` Cargo feature)
 
@@ -983,7 +983,7 @@ inference-gateway-adk = { version = "0.4", features = ["minio"] }
 
 Selecting `ARTIFACTS_STORAGE_PROVIDER=minio` **without** compiling the `minio` feature is not an error - the builder logs a `warn!` and falls back to the filesystem store, so the `ARTIFACTS_STORAGE_*` env surface stays valid either way.
 
-On startup `MinioArtifactStorage::from_config` checks for the target bucket and creates it if missing. With `ARTIFACTS_STORAGE_BASE_URL` pointed at the MinIO endpoint, `url(...)` emits a path-style `http://<endpoint>/<bucket>/<artifact_id>/<filename>` so clients download **directly from MinIO**, bypassing the ADK's artifacts HTTP server entirely - the way you would offload bulk transfer in production. See [Production notes](#production-notes) for the private-bucket trade-off.
+On startup `MinioArtifactStorage::from_config` checks for the target bucket and creates it if missing. With `ARTIFACTS_STORAGE_BASE_URL` pointed at the MinIO endpoint, `url(...)` emits a path-style `http://<endpoint>/<bucket>/<context_id>/<artifact_id>/<filename>` so clients download **directly from MinIO**, bypassing the ADK's artifacts HTTP server entirely - the way you would offload bulk transfer in production. See [Production notes](#production-notes) for the private-bucket trade-off.
 
 ### The artifact service
 
@@ -991,7 +991,7 @@ On startup `MinioArtifactStorage::from_config` checks for the target bucket and 
 
 - `create_text_artifact`, `create_file_artifact`, `create_uri_artifact`, and `create_data_artifact` - mint the different `Part` kinds. File and data artifacts are persisted to storage and returned as a `FilePart` with `fileWithUri` set (data artifacts also serialize as A2A `DataPart`s).
 - `add_artifact_to_task` - attach a created `Artifact` to a stored task so it is included in `GetTask` responses.
-- `retrieve` / `exists` / `cleanup` - read-side and retention helpers used by the artifacts server and the background cleanup loop.
+- `retrieve` / `exists` / `cleanup` - read-side and retention helpers used by the artifacts server and the background cleanup loop. `create_file_artifact`, `retrieve`, and `exists` take the `contextId` the artifact belongs to.
 
 Most handlers never call the service directly; they go through the `StreamEmitter` helpers below, which wrap it.
 
@@ -999,10 +999,10 @@ Most handlers never call the service directly; they go through the `StreamEmitte
 
 `ArtifactsServer` is a standalone [Axum](https://github.com/tokio-rs/axum) app on its own socket (default `0.0.0.0:8081`), kept separate from the A2A JSON-RPC surface so bulk-download traffic does not entangle the protocol endpoint. It exposes two routes:
 
-| Route                                   | Purpose                                                                                    |
-| --------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `GET /health`                           | Liveness probe for load balancers and orchestrators.                                       |
-| `GET /artifacts/:artifact_id/:filename` | Streams a stored blob with content-type inference, `Content-Disposition`, and byte ranges. |
+| Route                                               | Purpose                                                                                    |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `GET /health`                                       | Liveness probe for load balancers and orchestrators.                                       |
+| `GET /artifacts/:context_id/:artifact_id/:filename` | Streams a stored blob with content-type inference, `Content-Disposition`, and byte ranges. |
 
 Because it reuses the A2A endpoint's `build_server_config` TLS machinery, enabling TLS/mTLS on the agent also covers the artifacts server.
 
@@ -1141,13 +1141,21 @@ The artifacts subsystem is configured entirely through the `ARTIFACTS_*` environ
 | `ARTIFACTS_STORAGE_BUCKET_NAME`        | unset                   | MinIO bucket name. Created on startup if missing.                                                                                                      |
 | `ARTIFACTS_STORAGE_REGION`             | unset                   | MinIO region.                                                                                                                                          |
 | `ARTIFACTS_STORAGE_USE_SSL`            | `false`                 | Whether to use TLS when talking to the MinIO endpoint.                                                                                                 |
-| `ARTIFACTS_RETENTION_MAX_ARTIFACTS`    | `5`                     | Store-wide cap on artifacts kept, oldest pruned first; `0` = unlimited.                                                                                |
+| `ARTIFACTS_RETENTION_MAX_ARTIFACTS`    | `5`                     | Cap on artifacts kept **per `contextId`** (matching the Go ADK); the oldest beyond the cap are pruned. `0` means unlimited.                            |
 | `ARTIFACTS_RETENTION_MAX_AGE`          | `168h`                  | Maximum age before an artifact is pruned.                                                                                                              |
 | `ARTIFACTS_RETENTION_CLEANUP_INTERVAL` | `24h`                   | Frequency of the retention loop.                                                                                                                       |
 
 `ARTIFACTS_RETENTION_MAX_ARTIFACTS` is **store-wide** here: each cleanup run keeps the newest N artifacts across the whole store and prunes the oldest beyond that, regardless of `contextId`. The [Go ADK](/adk/#artifact-retention) shares the variable name and the default of `5` but applies it **per context**, so the same value retains more artifacts there.
 
 Duration values (`*_TIMEOUT`, `*_MAX_AGE`, `*_CLEANUP_INTERVAL`) accept Go-style suffixes - `30s`, `15m`, `2h`, `7d` - or a bare integer interpreted as seconds. An unknown suffix such as `5w` is rejected at load time.
+
+### Upgrading to contextId-scoped artifacts
+
+Artifact paths used to be `/artifacts/{artifactId}/{filename}` (filesystem and MinIO keys `<artifactId>/<filename>`), and `ARTIFACTS_RETENTION_MAX_ARTIFACTS` capped the store as a whole. Both are now scoped by `contextId`. This is a breaking change with no dual-read fallback: artifacts written under the old layout are not readable after upgrading.
+
+- **Drain or wipe the artifact store** before or during the upgrade if artifacts are enabled - old blobs are unreachable and the retention loop skips keys that do not match the three-segment shape.
+- **A custom `ArtifactStorage` or `ArtifactService`** needs its `store` / `retrieve` / `exists` / `delete` / `url` and `create_file_artifact` signatures updated to take the `contextId`. Streaming handlers using `emit_file_artifact` already pass one, so they need no change.
+- **Clients that parse artifact URLs** rather than treating them as opaque need updating for the extra path segment; the bundled Rust client treats them as opaque.
 
 ### Example: filesystem backend
 
@@ -1183,7 +1191,7 @@ cd examples/artifacts-filesystem
 docker compose up --build
 ```
 
-No `.env` and no provider keys are required. The filesystem provider lays files out under `<base_path>/<artifact_id>/<filename>`; the compose stack bind-mounts the container store to `./server/artifacts-data/` so produced files are inspectable after the run. The full artifact URI is printed by the client log line beginning `received file artifact`.
+No `.env` and no provider keys are required. The filesystem provider lays files out under `<base_path>/<context_id>/<artifact_id>/<filename>`; the compose stack bind-mounts the container store to `./server/artifacts-data/` so produced files are inspectable after the run. The full artifact URI is printed by the client log line beginning `received file artifact`.
 
 ### Example: MinIO backend
 
