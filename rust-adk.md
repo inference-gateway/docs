@@ -49,7 +49,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::fmt().init();
 
     let server = A2AServerBuilder::new()
-        .with_agent_card_from_file(".well-known/agent.json", None)
+        .with_agent_card_from_file(".well-known/agent-card.json", None)
         .with_default_task_handlers()
         .build()
         .await?;
@@ -123,7 +123,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let server = A2AServerBuilder::new()
         .with_config(config)
         .with_agent(agent)
-        .with_agent_card_from_file(".well-known/agent.json", None)
+        .with_agent_card_from_file(".well-known/agent-card.json", None)
         .with_default_task_handlers()
         .build()
         .await?;
@@ -178,7 +178,7 @@ If your agent is going to receive images, `A2A_AGENT_CLIENT_MODEL` has to name a
 | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
 | `with_config(Config)`                                         | Apply a fully-loaded `Config` (port, TLS, auth, queue, telemetry, artifacts).               |
 | `with_agent(Agent)`                                           | Attach an LLM-backed agent built via `AgentBuilder`.                                        |
-| `with_agent_card(AgentCard)`                                  | Configure the card served at `/.well-known/agent.json` from an in-memory value.             |
+| `with_agent_card(AgentCard)`                                  | Configure the card served at `/.well-known/agent-card.json` from an in-memory value.        |
 | `with_agent_card_from_file(path, Option<AgentCardOverrides>)` | Load the card from a JSON file, applying optional field overrides.                          |
 | `with_gateway_url(url)`                                       | Override the Inference Gateway base URL (default `http://gateway:8080/v1`).                 |
 | `with_storage(Arc<dyn Storage>)`                              | Swap the task store (`InMemoryStorage` default; `RedisStorage` behind the `redis` feature). |
@@ -386,7 +386,7 @@ The `MCP_*` tuning knobs and their defaults are in the [environment variable ref
 
 ## Custom task handlers
 
-The server's two extension points for task execution are the `TaskHandler` trait (for `SendMessage`, the background/queue path) and `StreamableTaskHandler` (for `SendStreamingMessage`, the SSE path). The defaults wired in by `with_default_task_handlers()` delegate to the registered `Agent`; implement either trait to plug in custom logic.
+The server's two extension points for task execution are the `TaskHandler` trait (for `SendMessage`, the background/queue path) and `StreamableTaskHandler` (for `SendStreamingMessage`, the SSE path). The defaults wired in by `with_default_task_handlers()` delegate to the registered `Agent`; implement either trait to plug in custom logic. A `TaskHandler` runs on a queue worker while the `SendMessage` request waits for the task to settle - see [Blocking SendMessage](#blocking-sendmessage).
 
 ```rust
 use async_trait::async_trait;
@@ -400,7 +400,10 @@ struct EchoHandler;
 
 #[async_trait]
 impl TaskHandler for EchoHandler {
-    async fn handle(&self, task: Task, message: Message) -> anyhow::Result<Task> {
+    async fn handle_task(&self, task: Task, message: Option<Message>) -> anyhow::Result<Task> {
+        let Some(message) = message else {
+            return Ok(task);
+        };
         let reply = message
             .parts
             .iter()
@@ -423,11 +426,39 @@ impl TaskHandler for EchoHandler {
 }
 
 let server = A2AServerBuilder::new()
-    .with_agent_card_from_file(".well-known/agent.json", None)
+    .with_agent_card_from_file(".well-known/agent-card.json", None)
     .with_background_task_handler(EchoHandler)
     .build()
     .await?;
 ```
+
+### Answering without a task
+
+`TaskHandler` has a second, optional method: `handle_message`. The server calls it before it creates or continues any task, and when it returns `Some(message)` that `Message` **is** the `SendMessage` result - no task is created, nothing is enqueued, and no push notification fires (A2A spec 3.2.2). The default implementation returns `None`, which keeps the task-based flow above, so existing handlers need no change.
+
+```rust
+#[async_trait]
+impl TaskHandler for GreetHandler {
+    async fn handle_task(&self, task: Task, message: Option<Message>) -> anyhow::Result<Task> {
+        // ... the regular task flow
+    }
+
+    async fn handle_message(&self, message: &Message) -> anyhow::Result<Option<Message>> {
+        if !is_greeting(message) {
+            return Ok(None); // not ours - fall through to the task flow
+        }
+        Ok(Some(Message {
+            message_id: uuid::Uuid::new_v4().to_string(),
+            parts: vec![Part { text: Some("Hello!".to_string()), ..Default::default() }],
+            role: Role::RoleAgent,
+            task_id: None,
+            ..message.clone()
+        }))
+    }
+}
+```
+
+Reach for this when task bookkeeping buys nothing: a health ping, a capability question, a greeting. Anything the caller may want to poll, cancel, or receive artifacts from belongs in a task.
 
 Streaming handlers receive a `StreamEmitter` and push status updates and artifacts over the SSE stream as work progresses - see [Emitting artifacts from a streaming handler](#emitting-artifacts-from-a-streaming-handler) for a worked example. For runnable demos, see [`examples/streaming/`](https://github.com/inference-gateway/rust-adk/tree/main/examples/streaming) and the `TaskStateInputRequired` flow in [`examples/input-required/`](https://github.com/inference-gateway/rust-adk/tree/main/examples/input-required).
 
@@ -449,23 +480,25 @@ let health = client.get_health().await?;
 
 The client exposes a typed helper for every method in the A2A specification. Each takes a request struct and returns the matching response struct from [`inference_gateway_adk::a2a_types`](https://github.com/inference-gateway/rust-adk/blob/main/src/a2a_types.rs). Runnable end-to-end examples - one client binary per method - live in [`examples/a2a-methods/`](https://github.com/inference-gateway/rust-adk/tree/main/examples/a2a-methods).
 
-| Method                             | `A2AClient` helper                     | Request type                              | Response type                            |
-| ---------------------------------- | -------------------------------------- | ----------------------------------------- | ---------------------------------------- |
-| `SendMessage`                      | `send_message`                         | `SendMessageRequest`                      | `SendMessageResponse`                    |
-| `SendStreamingMessage`             | `send_streaming_message`               | `SendMessageRequest`                      | `SendMessageResponse`                    |
-| `GetTask`                          | `get_task`                             | `GetTaskRequest`                          | `Task`                                   |
-| `ListTasks`                        | `list_tasks`                           | `ListTasksRequest`                        | `ListTasksResponse`                      |
-| `CancelTask`                       | `cancel_task`                          | `CancelTaskRequest`                       | `Task`                                   |
-| `SubscribeToTask`                  | `resubscribe_task`                     | `SubscribeToTaskRequest`                  | `Stream<StreamResponse>` (SSE)           |
-| `CreateTaskPushNotificationConfig` | `set_task_push_notification_config`    | `SetTaskPushNotificationConfigRequest`    | `TaskPushNotificationConfig`             |
-| `GetTaskPushNotificationConfig`    | `get_task_push_notification_config`    | `GetTaskPushNotificationConfigRequest`    | `TaskPushNotificationConfig`             |
-| `ListTaskPushNotificationConfigs`  | `list_task_push_notification_configs`  | `ListTaskPushNotificationConfigRequest`   | `ListTaskPushNotificationConfigResponse` |
-| `DeleteTaskPushNotificationConfig` | `delete_task_push_notification_config` | `DeleteTaskPushNotificationConfigRequest` | `serde_json::Value`                      |
-| `GetExtendedAgentCard`             | `get_authenticated_extended_card`      | `GetExtendedAgentCardRequest`             | `AgentCard`                              |
+| Method                             | `A2AClient` helper                     | Request type                              | Response type                             |
+| ---------------------------------- | -------------------------------------- | ----------------------------------------- | ----------------------------------------- |
+| `SendMessage`                      | `send_message`                         | `SendMessageRequest`                      | `SendMessageResponse`                     |
+| `SendStreamingMessage`             | `send_streaming_message`               | `SendMessageRequest`                      | `SendMessageResponse`                     |
+| `GetTask`                          | `get_task`                             | `GetTaskRequest`                          | `Task`                                    |
+| `ListTasks`                        | `list_tasks`                           | `ListTasksRequest`                        | `ListTasksResponse`                       |
+| `CancelTask`                       | `cancel_task`                          | `CancelTaskRequest`                       | `Task`                                    |
+| `SubscribeToTask`                  | `resubscribe_task`                     | `SubscribeToTaskRequest`                  | `Stream<StreamResponse>` (SSE)            |
+| `CreateTaskPushNotificationConfig` | `set_task_push_notification_config`    | `TaskPushNotificationConfig`              | `TaskPushNotificationConfig`              |
+| `GetTaskPushNotificationConfig`    | `get_task_push_notification_config`    | `GetTaskPushNotificationConfigRequest`    | `TaskPushNotificationConfig`              |
+| `ListTaskPushNotificationConfigs`  | `list_task_push_notification_configs`  | `ListTaskPushNotificationConfigsRequest`  | `ListTaskPushNotificationConfigsResponse` |
+| `DeleteTaskPushNotificationConfig` | `delete_task_push_notification_config` | `DeleteTaskPushNotificationConfigRequest` | `serde_json::Value`                       |
+| `GetExtendedAgentCard`             | `get_authenticated_extended_card`      | `GetExtendedAgentCardRequest`             | `AgentCard`                               |
 
 The method column holds the A2A v1.0.1 wire names, generated from the canonical schema as the `A2aMethod` enum (`A2aMethod::SendMessage`, `A2aMethod::GetTask`, ...). Match on the enum rather than on string literals when you dispatch raw JSON-RPC yourself; the v0.x slash names (`message/send`, `tasks/get`, ...) answer `-32601 Method not found`.
 
 Request `params` follow the normative proto3 JSON mapping of A2A spec section 1.4, so the server accepts either spelling of every field name - the lowerCamelCase form (`pageSize`, `contextId`) or the proto3 form (`page_size`, `context_id`) - and ignores params it does not know instead of answering `-32602 Invalid params`. Hand-rolled clients and clients built against a newer spec revision therefore interoperate without stripping extra fields first. Method names are unaffected: they stay exact-match PascalCase.
+
+`POST /a2a` accepts `application/json`, any `+json` media type, and a missing `Content-Type` header. Anything else answers a JSON-RPC `-32005` (`CONTENT_TYPE_NOT_SUPPORTED`) envelope with HTTP 200 rather than a bodiless HTTP 415, so a client that sent the wrong header reads the offending type out of `error.data` like every other A2A error.
 
 A representative `SendMessage` call, using the typed structs end-to-end:
 
@@ -498,7 +531,73 @@ let response = client
 let task = response.task.expect("server returned a task");
 ```
 
-`SendMessageRequest.message` is a required value-typed `Message` - pass it directly, not wrapped in `Some(..)`. Every `tenant` field is optional (`Option<String>`), as are the resource identifiers and filters on the other request types: `name` on `CancelTaskRequest` / `SubscribeToTaskRequest` / the `pushNotificationConfig` `get`, `list` and `delete` requests, `parent` and the `page_size` / `page_token` paging fields on `ListTaskPushNotificationConfigRequest`, and `context_id`, `status` and `last_updated_after` on `ListTasksRequest`. `GetTaskRequest.name`, `SetTaskPushNotificationConfigRequest.parent` / `config_id`, and `TaskPushNotificationConfig.name` stay plain `String`.
+### Blocking SendMessage
+
+`SendMessage` is **blocking**: the server enqueues the task and holds the JSON-RPC response until that task reaches a terminal (`TaskStateCompleted`, `TaskStateFailed`, `TaskStateCanceled`, `TaskStateRejected`) or an interrupted (`TaskStateInputRequired`, `TaskStateAuthRequired`) state, per [A2A spec section 3.2.2](https://a2a-protocol.org/latest/specification/#322-sendmessage). The reply therefore carries a finished task, not a `TaskStateSubmitted` placeholder. A client written against an earlier release, which answered immediately and expected to poll from `TaskStateSubmitted`, must now pass `configuration.returnImmediately: true` to keep that behaviour.
+
+`SendMessageConfiguration` carries the three fields that tune the call:
+
+| Field                        | Type                                 | Effect                                                                                                                                                                                                                  |
+| ---------------------------- | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `returnImmediately`          | `Option<bool>`                       | `true` answers with the freshly submitted task and leaves the client to poll `GetTask` or subscribe.                                                                                                                    |
+| `historyLength`              | `Option<i32>`                        | Caps the response to the last _n_ history messages (`0` strips history entirely).                                                                                                                                       |
+| `taskPushNotificationConfig` | `Option<TaskPushNotificationConfig>` | Registers a webhook for the task inline, saving a `CreateTaskPushNotificationConfig` round trip. Leave `taskId` unset - the server fills it in with the task it just created, and generates an `id` when none is given. |
+
+```rust
+use inference_gateway_adk::a2a_types::SendMessageConfiguration;
+
+let response = client
+    .send_message(SendMessageRequest {
+        configuration: Some(SendMessageConfiguration {
+            history_length: Some(5),
+            return_immediately: Some(true),
+            ..Default::default()
+        }),
+        message,
+        metadata: None,
+        tenant: Some("example".to_string()),
+    })
+    .await?;
+```
+
+> **Long-running agents.** A task that takes minutes holds the HTTP request open for minutes, and clients usually hit their own read timeout first. The server stops waiting after 30 seconds and answers with the task's latest known state, which for a slow handler is still `TaskStateWorking`. For anything slower than that, either set `returnImmediately: true` and poll, or use `SendStreamingMessage` so progress arrives as it happens.
+
+### Continuing an existing task
+
+A `SendMessage` whose `message.taskId` names a stored task appends the message to that task's history, puts it back into `TaskStateSubmitted`, and re-runs it instead of creating a new task. This is how a client answers a task the agent paused in `TaskStateInputRequired`:
+
+```rust
+let paused = response.task.expect("server returned a task");
+
+let answer = client
+    .send_message(SendMessageRequest {
+        configuration: None,
+        message: Message {
+            context_id: paused.context_id.clone(),
+            extensions: vec![],
+            message_id: uuid::Uuid::new_v4().to_string(),
+            metadata: None,
+            parts: vec![Part {
+                text: Some("Berlin".to_string()),
+                ..Default::default()
+            }],
+            reference_task_ids: vec![],
+            role: Role::RoleUser,
+            task_id: Some(paused.id.clone()),
+        },
+        metadata: None,
+        tenant: None,
+    })
+    .await?;
+```
+
+Three things are rejected rather than silently creating a task:
+
+- an unknown `taskId` answers `-32001` (`TaskNotFound`),
+- a task already in a terminal state answers `-32004` (`UnsupportedOperation`) - it accepts no further input,
+- a `message.contextId` that disagrees with the task's own answers `-32602` (`InvalidParams`). Omitting `contextId` is fine; the server infers it from the task.
+
+`SendMessageRequest.message` is a required value-typed `Message` - pass it directly, not wrapped in `Some(..)`. Every `tenant` field is optional (`Option<String>`), as are the filters: `page_size` / `page_token` on `ListTaskPushNotificationConfigsRequest`, and `context_id`, `status` and `last_updated_after` on `ListTasksRequest`. The resource identifiers stay plain `String` - `id` on `GetTaskRequest` / `CancelTaskRequest` / `SubscribeToTaskRequest`, `task_id` and `id` on the `pushNotificationConfig` `get` and `delete` requests, and `task_id` on the `list` request.
 
 ### Sending images to an agent
 
@@ -577,38 +676,64 @@ A2A servers persist per-task webhook configurations through the four push-notifi
 ```
 
 ```rust
-use inference_gateway_adk::a2a_types::{
-    PushNotificationConfig, SetTaskPushNotificationConfigRequest, TaskPushNotificationConfig,
-};
-
-let parent = format!("tasks/{task_id}");
-let name = format!("{parent}/pushNotificationConfigs/primary");
+use inference_gateway_adk::a2a_types::TaskPushNotificationConfig;
 
 client
-    .set_task_push_notification_config(SetTaskPushNotificationConfigRequest {
-        parent: parent.clone(),
-        config_id: "primary".to_string(),
+    .set_task_push_notification_config(TaskPushNotificationConfig {
+        authentication: None,
+        id: Some("primary".to_string()),
+        task_id: Some(task_id.clone()),
         tenant: Some("example".to_string()),
-        config: TaskPushNotificationConfig {
-            name: name.clone(),
-            push_notification_config: PushNotificationConfig {
-                authentication: None,
-                id: None,
-                token: Some("shared-secret".to_string()),
-                url: "https://your-app.example/webhooks/a2a".to_string(),
-            },
-        },
+        token: Some("shared-secret".to_string()),
+        url: "https://your-app.example/webhooks/a2a".to_string(),
     })
     .await?;
 ```
 
-> **Webhook delivery is still in development.** The four control-plane methods are fully wired up and durably stored by the server, but the HTTP _sender_ that fans state changes out to the configured URLs is tracked in a follow-up ticket. Configurations attached today are picked up automatically once that sender lands.
+The same struct can ride along with the message that creates the task - see [`taskPushNotificationConfig`](#blocking-sendmessage) on `SendMessageConfiguration` - which saves the extra round trip and guarantees no state change is missed between creating the task and registering the webhook.
+
+### Webhook delivery
+
+Every task update is POSTed to each webhook registered for that task. The body is a JSON `StreamResponse` whose `task` field holds the task snapshot, which is the same payload shape the SSE stream and the Go and TypeScript ADKs use, so one receiver serves all three:
+
+```json
+{
+  "task": {
+    "id": "f81d4fae-7dec-11d0-a765-00a0c91e6bf6",
+    "contextId": "6c8f1b2e-0f25-4f28-9f61-2b8a2d1fdd0c",
+    "status": { "state": "TASK_STATE_COMPLETED", "timestamp": "2026-10-03T12:00:00Z" },
+    "history": [],
+    "artifacts": []
+  }
+}
+```
+
+Two headers are set from the stored config, each only when that field is present:
+
+| Header                     | Source           | Value                                              |
+| -------------------------- | ---------------- | -------------------------------------------------- |
+| `Authorization`            | `authentication` | `<scheme> <credentials>` from `AuthenticationInfo` |
+| `X-A2A-Notification-Token` | `token`          | The token verbatim                                 |
+
+A webhook that needs its deliveries gated must reject unauthenticated requests itself: with neither field set, the POST goes out unauthenticated.
+
+> **Delivery is at most once.** Each POST gets a 10-second timeout; a failure is logged and **not** retried, and a slow webhook never fails the task that triggered it. Treat notifications as a hint to call `GetTask`, not as the system of record - a receiver that must not miss a transition should reconcile with `GetTask` or `SubscribeToTask`.
 
 ## Agent card and metadata
 
-The agent card served at `/.well-known/agent.json` is the discovery document for your agent. Its `name`, `description`, `version`, `supportedInterfaces`, and `capabilities` come from the card JSON you hand the builder - either inline via `with_agent_card(...)` or from disk via `with_agent_card_from_file(path, overrides)`. There are no environment variables for card fields: the card is the single source of truth, and the path is the `path` argument, not a configured value.
+The agent card served at `/.well-known/agent-card.json` is the discovery document for your agent. Its `name`, `description`, `version`, `supportedInterfaces`, and `capabilities` come from the card JSON you hand the builder - either inline via `with_agent_card(...)` or from disk via `with_agent_card_from_file(path, overrides)`. There are no environment variables for card fields: the card is the single source of truth, and the path is the `path` argument, not a configured value.
 
-> **Discovery path.** As of 0.15.0 the Rust ADK still serves and fetches `/.well-known/agent.json`, while A2A v1.0.1 and the Go/TypeScript ADKs use `/.well-known/agent-card.json`. Clients that only probe the newer path need an explicit fallback against a Rust agent.
+### Card caching
+
+The card endpoint is served with HTTP caching headers per [A2A spec section 8.6](https://a2a-protocol.org/latest/specification/#86-agent-card-caching): `Cache-Control: public, max-age=300`, an `ETag` derived from the card body, and a `Last-Modified` of server start. The card is fixed for the life of the process, so a conditional request carrying a matching `If-None-Match` - or an `If-Modified-Since` equal to the advertised `Last-Modified` - is answered with `304 Not Modified` and no body. The five-minute freshness window is fixed, not configurable.
+
+```console
+$ curl -sI http://localhost:8080/.well-known/agent-card.json
+HTTP/1.1 200 OK
+cache-control: public, max-age=300
+etag: "a3f1c0d49b2e7f58"
+last-modified: Sat, 03 Oct 2026 12:00:00 GMT
+```
 
 **Runtime overrides** layer on top of whatever was loaded from disk. Pass `AgentCardOverrides` to `with_agent_card_from_file(...)`; the file supplies the baseline and each explicitly-set override wins:
 
@@ -620,7 +745,7 @@ let config: Config = envy::prefixed("A2A_").from_env()?;
 let server = A2AServerBuilder::new()
     .with_config(config)
     .with_agent_card_from_file(
-        ".well-known/agent.json",
+        ".well-known/agent-card.json",
         Some(
             AgentCardOverrides::new()
                 .with_name("Development Weather Assistant")
@@ -657,7 +782,7 @@ See [Push notifications](#push-notifications) for the config methods and [Card-d
 
 ## Authentication
 
-When `A2A_AUTH_ENABLED=true`, the server gates `POST /a2a` behind an `Authorization: Bearer <token>` header. `GET /health` and `GET /.well-known/agent.json` stay public so probes and discovery clients keep working without a credential. Tokens that fail validation get **HTTP 401** with a `WWW-Authenticate: Bearer realm="a2a"` header.
+When `A2A_AUTH_ENABLED=true`, the server gates `POST /a2a` behind an `Authorization: Bearer <token>` header. `GET /health` and `GET /.well-known/agent-card.json` stay public so probes and discovery clients keep working without a credential. Tokens that fail validation get **HTTP 401** with a `WWW-Authenticate: Bearer realm="a2a"` header.
 
 The bundled `OidcJwtVerifier`:
 
@@ -702,7 +827,7 @@ impl AuthVerifier for StaticToken {
 }
 
 let server = A2AServerBuilder::new()
-    .with_agent_card_from_file(".well-known/agent.json", None)
+    .with_agent_card_from_file(".well-known/agent-card.json", None)
     .with_default_task_handlers()
     .with_auth_verifier(std::sync::Arc::new(StaticToken("demo-token-123")))
     .build()
@@ -715,7 +840,7 @@ When auth is disabled the middleware is not attached, and `GetExtendedAgentCard`
 
 Beyond validating bearer tokens, the ADK implements the [A2A spec, section 7](https://a2a-protocol.org/latest/specification/#7-authentication-and-authorization) **card-driven** auth model: the agent card advertises _how_ to authenticate, and clients transmit credentials obtained out-of-band on every request. A2A does not run OAuth flows in-protocol.
 
-1. **Discovery** - the client fetches the public card from `/.well-known/agent.json` (always unauthenticated). The card declares `securitySchemes` (named schemes the agent accepts: `apiKey`, `http`, `oauth2`, `openIdConnect`, `mutualTLS`) and `securityRequirements` (a requirement list with OR-of-ANDs semantics - satisfying any one entry is sufficient).
+1. **Discovery** - the client fetches the public card from `/.well-known/agent-card.json` (always unauthenticated). The card declares `securitySchemes` (named schemes the agent accepts: `apiKey`, `http`, `oauth2`, `openIdConnect`, `mutualTLS`) and `securityRequirements` (a requirement list with OR-of-ANDs semantics - satisfying any one entry is sufficient).
 2. **Credential acquisition is out-of-band** - the client obtains a token/key however the chosen scheme dictates.
 3. **Transmission** - the client sends the credential (e.g. `Authorization: Bearer <token>`) on every request.
 4. **Server enforcement** - with `A2A_AUTH_ENABLED=true` the `POST /a2a` endpoint is protected; unauthenticated requests get `401` with a `WWW-Authenticate: Bearer realm="a2a"` challenge.
@@ -758,7 +883,7 @@ The extended card is served only to authenticated callers via `GetExtendedAgentC
 
 ```rust
 let server = A2AServerBuilder::new()
-    .with_agent_card_from_file(".well-known/agent.json", None)
+    .with_agent_card_from_file(".well-known/agent-card.json", None)
     .with_extended_agent_card(extended_card) // extra skills, capability detail, ...
     .with_default_task_handlers()
     .build()
@@ -909,7 +1034,7 @@ let config = Config {
 
 let server = A2AServerBuilder::new()
     .with_config(config)
-    .with_agent_card_from_file(".well-known/agent.json", None)
+    .with_agent_card_from_file(".well-known/agent-card.json", None)
     .with_default_task_handlers()
     .build()
     .await?;
@@ -1177,7 +1302,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let server = A2AServerBuilder::new()
         .with_config(config)
-        .with_agent_card_from_file(".well-known/agent.json", None)
+        .with_agent_card_from_file(".well-known/agent-card.json", None)
         .with_default_task_handlers()
         .build()
         .await?;
@@ -1242,14 +1367,14 @@ The [`examples/`](https://github.com/inference-gateway/rust-adk/tree/main/exampl
 
 **Storage and protocol coverage:**
 
-| Example                                                                                                       | What it shows                                                                                                        |
-| ------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| [queue-storage](https://github.com/inference-gateway/rust-adk/tree/main/examples/queue-storage)               | Queue-driven `SendMessage` with in-memory or Redis storage, selectable via Compose profiles.                         |
-| [a2a-methods](https://github.com/inference-gateway/rust-adk/tree/main/examples/a2a-methods)                   | One client binary per JSON-RPC method in the A2A spec, sharing a single offline server.                              |
-| [auth](https://github.com/inference-gateway/rust-adk/tree/main/examples/auth)                                 | Bearer-token auth on `POST /a2a` with public `/health` and `/.well-known/agent.json`; static-token or Keycloak OIDC. |
-| [tls](https://github.com/inference-gateway/rust-adk/tree/main/examples/tls)                                   | TLS termination via `axum-server` + `rustls`, with optional mTLS exposing the client-cert subject as the principal.  |
-| [artifacts-filesystem](https://github.com/inference-gateway/rust-adk/tree/main/examples/artifacts-filesystem) | A streaming handler emits a `FilePart` served by the standalone artifacts HTTP server, backed by an on-disk store.   |
-| [artifacts-minio](https://github.com/inference-gateway/rust-adk/tree/main/examples/artifacts-minio)           | The same flow backed by a MinIO bucket instead of the local filesystem.                                              |
+| Example                                                                                                       | What it shows                                                                                                             |
+| ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| [queue-storage](https://github.com/inference-gateway/rust-adk/tree/main/examples/queue-storage)               | Queue-driven `SendMessage` with in-memory or Redis storage, selectable via Compose profiles.                              |
+| [a2a-methods](https://github.com/inference-gateway/rust-adk/tree/main/examples/a2a-methods)                   | One client binary per JSON-RPC method in the A2A spec, sharing a single offline server.                                   |
+| [auth](https://github.com/inference-gateway/rust-adk/tree/main/examples/auth)                                 | Bearer-token auth on `POST /a2a` with public `/health` and `/.well-known/agent-card.json`; static-token or Keycloak OIDC. |
+| [tls](https://github.com/inference-gateway/rust-adk/tree/main/examples/tls)                                   | TLS termination via `axum-server` + `rustls`, with optional mTLS exposing the client-cert subject as the principal.       |
+| [artifacts-filesystem](https://github.com/inference-gateway/rust-adk/tree/main/examples/artifacts-filesystem) | A streaming handler emits a `FilePart` served by the standalone artifacts HTTP server, backed by an on-disk store.        |
+| [artifacts-minio](https://github.com/inference-gateway/rust-adk/tree/main/examples/artifacts-minio)           | The same flow backed by a MinIO bucket instead of the local filesystem.                                                   |
 
 ## Environment variable reference
 

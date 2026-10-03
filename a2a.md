@@ -398,7 +398,7 @@ Card fields worth knowing:
 
 Implement the A2A protocol at the `/a2a` endpoint to handle:
 
-- `SendMessage` - Send a message and receive response
+- `SendMessage` - Send a message and receive response. Per [A2A spec section 3.2.2](https://a2a-protocol.org/latest/specification/#322-sendmessage) the call blocks until the task settles in a terminal or interrupted state; the [Go](/adk/#blocking-sendmessage) and [Rust](/rust-adk/#blocking-sendmessage) ADK servers both do this, and a client that wants the old immediate reply passes `configuration.returnImmediately: true`
 - `SendStreamingMessage` - Send a streaming message
 - `GetTask` - Get task status (optional)
 - `CancelTask` - Cancel a running task (optional)
