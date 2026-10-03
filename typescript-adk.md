@@ -1,6 +1,6 @@
 ---
 title: TypeScript ADK
-description: Build A2A-compatible agents in TypeScript with the @inference-gateway/adk package. Handler registration, JSON-RPC SendMessage, SendStreamingMessage, GetTask, ListTasks, CancelTask with TaskCancellationRegistry, GetExtendedAgentCard with the extended-card vs. public-card discovery convention (capabilities.extendedAgentCard), withAuthConfig auto-registration, OIDC auth gating with -32001 envelope, SSE event sequence, CloudEvents v1.0 envelopes, STREAMING_STATUS_UPDATE_INTERVAL, DefaultBackgroundTaskHandler agentic loop with tool dispatch and usage metadata, MAX_CHAT_COMPLETION_ITERATIONS cap, reserved input_required tool, AgentBuilder fluent wiring for OpenAICompatibleAgent with Go-parity defaults, lifecycle callbacks (beforeAgent / afterAgent / beforeModel / afterModel / beforeTool / afterTool) with CallbackContext, short-circuit and chain semantics, sync vs. async, error propagation, caching and guardrail patterns, HTTPPushNotificationSender webhook delivery primitive with TaskUpdateNotification wire payload, sendTaskUpdate one-shot and deliverTaskUpdate fan-out helpers, exponential-backoff retry config, bearer / basic auth resolution, and per-task pushNotificationConfig on MessageSendConfiguration, the -32003 PushNotificationNotSupportedError capability gate on the TaskPushNotificationConfig methods with createPushNotificationNotSupportedHandler, artifact service with filesystem and MinIO/S3 storage backends and the registerArtifactsRoute download route, OpenTelemetry tracing via TelemetryProvider with OTLP spans, Prometheus metrics with a standalone /metrics server and request middleware, TLS and mutual-TLS server/client configuration, validation contract, id semantics, cancellation, and runnable client samples.
+description: Build A2A-compatible agents in TypeScript with the @inference-gateway/adk package. Handler registration, blocking JSON-RPC SendMessage with returnImmediately, historyLength, respondToMessage direct replies and taskId resume, SendStreamingMessage, SubscribeToTask resubscription, agent card ETag / Last-Modified caching, GetTask, ListTasks, CancelTask with TaskCancellationRegistry, GetExtendedAgentCard with the extended-card vs. public-card discovery convention (capabilities.extendedAgentCard), withAuthConfig auto-registration, OIDC auth gating with -32001 envelope, SSE event sequence, CloudEvents v1.0 envelopes, STREAMING_STATUS_UPDATE_INTERVAL, DefaultBackgroundTaskHandler agentic loop with tool dispatch and usage metadata, MAX_CHAT_COMPLETION_ITERATIONS cap, reserved input_required tool, AgentBuilder fluent wiring for OpenAICompatibleAgent with Go-parity defaults, lifecycle callbacks (beforeAgent / afterAgent / beforeModel / afterModel / beforeTool / afterTool) with CallbackContext, short-circuit and chain semantics, sync vs. async, error propagation, caching and guardrail patterns, HTTPPushNotificationSender webhook delivery primitive with the A2A StreamResponse wire payload on application/a2a+json, sendTaskUpdate one-shot and deliverTaskUpdate fan-out helpers, exponential-backoff retry config, bearer / basic auth resolution, and per-task taskPushNotificationConfig on SendMessageConfiguration, the -32003 PushNotificationNotSupportedError capability gate on the TaskPushNotificationConfig methods with createPushNotificationNotSupportedHandler, artifact service with filesystem and MinIO/S3 storage backends and the registerArtifactsRoute download route, OpenTelemetry tracing via TelemetryProvider with OTLP spans, Prometheus metrics with a standalone /metrics server and request middleware, TLS and mutual-TLS server/client configuration, validation contract, id semantics, cancellation, and runnable client samples.
 ---
 
 # TypeScript ADK
@@ -28,7 +28,7 @@ The ADK currently exposes the HTTP server core and the first A2A JSON-RPC method
 | `A2AServer` / `createA2AServer`             | Available | Hono-backed HTTP server. Serves `/.well-known/agent-card.json`, `/health`, and JSON-RPC.                          |
 | `MethodRegistry` / `registerMethod`         | Available | Per-server JSON-RPC method dispatch table.                                                                        |
 | `InMemoryTaskStorage`                       | Available | In-process task queue + active task map. Swap for a custom `TaskStorage` in production.                           |
-| `createMessageSendHandler`                  | Available | Synchronous `SendMessage` handler.                                                                                |
+| `createMessageSendHandler`                  | Available | Blocking `SendMessage` handler. Waits for a terminal/interrupted task unless `returnImmediately` is set.          |
 | `createMessageStreamHandler`                | Available | Streaming `SendStreamingMessage` handler. SSE response wrapped in CloudEvents v1.0 envelopes.                     |
 | `createTaskGetHandler`                      | Available | Synchronous `GetTask` handler. Looks up a task across active and dead-letter storage.                             |
 | `createTaskListHandler`                     | Available | Synchronous `ListTasks` handler. Filterable, keyset-paginated over `(createdAt, id)`; proto3 defaults mean unset. |
@@ -38,7 +38,7 @@ The ADK currently exposes the HTTP server core and the first A2A JSON-RPC method
 | `AgentBuilder`                              | Available | Fluent builder for an `OpenAICompatibleAgent`; defaults match the Go ADK byte-for-byte.                           |
 | `A2AServerBuilder`                          | Available | Fluent server builder; validates that the agent card's capabilities match the handlers.                           |
 | `createGetAuthenticatedExtendedCardHandler` | Available | Synchronous `GetExtendedAgentCard` handler; returns the configured extended card.                                 |
-| `HTTPPushNotificationSender`                | Available | HTTP webhook delivery primitive for `task_update` payloads, with retry / auth / fan-out helpers.                  |
+| `HTTPPushNotificationSender`                | Available | HTTP webhook delivery primitive posting A2A `StreamResponse` payloads, with retry / auth / fan-out helpers.       |
 | `ArtifactService` + storage backends        | Available | Build text/file/data artifacts; persist via filesystem, MinIO/S3, or in-memory storage.                           |
 | `registerArtifactsRoute`                    | Available | `GET /artifacts/:artifactId/:filename` download route; auto-mounted by `createA2AServer({ artifactStorage })`.    |
 | `TelemetryProvider`                         | Available | OpenTelemetry tracing; emits `adk.jsonrpc.request` server spans plus `tool.<name>` tool spans over OTLP.          |
@@ -49,12 +49,13 @@ Every method name on this page is an A2A v1.0.1 name, generated from the canonic
 
 ## The `SendMessage` JSON-RPC method
 
-`SendMessage` is the synchronous entrypoint a client uses to submit a new conversation turn to the agent. The handler:
+`SendMessage` is the blocking entrypoint a client uses to submit a new conversation turn to the agent. The handler is `async` and:
 
 1. Validates the JSON-RPC `params` payload against `MessageSendParams`.
-2. Mints a fresh task `id` (always) and, when the inbound message omits them, a fresh `contextId` and `messageId`.
-3. Constructs a `PENDING` `ManagedTask`, persists it, and enqueues it on the configured `TaskStorage`.
-4. Returns the wire-format `Task` immediately - it does **not** wait for any background worker.
+2. Offers the message to [`respondToMessage`](#direct-replies-respondtomessage), if one is configured. A returned `Message` is the response and no task is created.
+3. Resumes the paused task the message continues (by `taskId`, else the most recently updated `INPUT_REQUIRED` task on the `contextId`), or mints a fresh task `id` plus, when the inbound message omits them, a fresh `contextId` and `messageId`.
+4. Registers `configuration.taskPushNotificationConfig` against the task when one is sent inline, persists the task, and enqueues it on the configured `TaskStorage`.
+5. Waits until the task reaches a terminal (`COMPLETED`, `FAILED`, `CANCELLED`, `REJECTED`) or interrupted (`INPUT_REQUIRED`, `AUTH_REQUIRED`) state, then returns the wire-format `Task` (A2A v1.0.1 section 3.2.2). With `configuration.returnImmediately: true` it returns the enqueued task straight away.
 
 This mirrors the Go ADK's [`HandleMessageSend`](https://github.com/inference-gateway/adk) / `CreateTaskFromMessage` semantics. Examples written against the Go ADK transfer over directly.
 
@@ -98,13 +99,75 @@ await server.listen(8080, '0.0.0.0');
 
 `createMessageSendHandler(options)` accepts:
 
-| Option        | Required | Default             | Description                                                                                                   |
-| ------------- | -------- | ------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `storage`     | Yes      | -                   | Implementation of `TaskStorage` used to persist and enqueue the created task.                                 |
-| `idGenerator` | No       | `crypto.randomUUID` | UUID generator used for the new task id, and for the context/message ids when the inbound message omits them. |
-| `now`         | No       | `() => new Date()`  | Clock injection point for the task's status timestamp. Useful for deterministic tests.                        |
+| Option             | Required | Default             | Description                                                                                                   |
+| ------------------ | -------- | ------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `storage`          | Yes      | -                   | Implementation of `TaskStorage` used to persist and enqueue the created task.                                 |
+| `idGenerator`      | No       | `crypto.randomUUID` | UUID generator used for the new task id, and for the context/message ids when the inbound message omits them. |
+| `now`              | No       | `() => new Date()`  | Clock injection point for the task's status timestamp. Useful for deterministic tests.                        |
+| `respondToMessage` | No       | -                   | `MessageResponder` hook that can answer a message directly instead of creating a task.                        |
 
-Both injection points exist primarily for testability. Production code should rely on the defaults.
+`idGenerator` and `now` exist primarily for testability. Production code should rely on the defaults.
+
+### Direct replies (`respondToMessage`)
+
+Some turns need no task at all - a greeting, a capability probe, a validation error the agent can answer itself. `respondToMessage` runs before any task is created; returning a `Message` makes `SendMessage` answer with `{ message }` and skip the task flow entirely, while returning `undefined` falls through to the normal task path.
+
+```ts
+import type { MessageResponder } from '@inference-gateway/adk';
+
+const respondToMessage: MessageResponder = (message, signal) => {
+  const text = message.parts?.[0]?.text ?? '';
+  if (!text.toLowerCase().startsWith('ping')) {
+    return undefined; // fall through to the task flow
+  }
+  return {
+    messageId: crypto.randomUUID(),
+    role: 'ROLE_AGENT',
+    contextId: message.contextId,
+    parts: [{ text: 'pong' }],
+  };
+};
+
+server.registerMethod(MESSAGE_SEND_METHOD, createMessageSendHandler({ storage, respondToMessage }));
+```
+
+The hook may be sync or async and receives the request's `AbortSignal` so slow work can be cancelled when the client disconnects.
+
+### Blocking behaviour, `returnImmediately` and `historyLength`
+
+`configuration` on the request tunes how the handler returns:
+
+| Field                        | Default | Behaviour                                                                                                                                                                |
+| ---------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `returnImmediately`          | `false` | `false` waits until the task is terminal or interrupted before responding. `true` returns the freshly enqueued task without waiting.                                     |
+| `historyLength`              | unset   | Caps `history` on the returned task to the N most recent messages. Unset means no limit; `0` means return no messages.                                                   |
+| `taskPushNotificationConfig` | unset   | Registered against the task, equivalent to a separate `CreateTaskPushNotificationConfig` call. See [push notifications](#push-notifications-httppushnotificationsender). |
+
+Clients that previously relied on the handler returning instantly must now pass `returnImmediately: true`:
+
+```jsonc
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "SendMessage",
+  "params": {
+    "message": {
+      "role": "ROLE_USER",
+      "parts": [{ "text": "hello agent" }],
+    },
+    "configuration": { "returnImmediately": true, "historyLength": 10 },
+  },
+}
+```
+
+### Follow-up messages and task resume
+
+A message carrying `taskId` continues an existing task:
+
+- The task is paused (`INPUT_REQUIRED`): the message is appended, the task transitions back to `IN_PROGRESS` and is re-enqueued. Without `taskId`, the most recently updated paused task on the message's `contextId` is resumed.
+- The task is terminal: `-32004 UnsupportedOperation`.
+- The task is unknown: `-32001 TaskNotFound`.
+- The message carries a `contextId` that is not the task's: `-32602 Invalid Params`.
 
 ### Request shape (`MessageSendParams`)
 
@@ -154,7 +217,9 @@ On success the handler returns the wire-format `Task`:
 
 > **Status mapping.** The task is stored as `PENDING` in the internal `ManagedTask` model, and surfaced on the wire as `TASK_STATE_SUBMITTED`. Both refer to the same lifecycle stage: "accepted, queued, not yet processed." Clients see only the wire form.
 
-The handler returns synchronously - the task is **already enqueued** by the time the caller receives the response. Downstream processing (LLM invocation, tool calls, status transitions) happens out of band and will eventually update the stored task; clients poll subsequent updates via [`GetTask`](#the-gettask-json-rpc-method) or stream them via [`SendStreamingMessage`](#the-sendstreamingmessage-json-rpc-method).
+By default the returned task has already settled - processing (LLM invocation, tool calls, status transitions) finished before the response was written, and `status.state` is terminal or `TASK_STATE_INPUT_REQUIRED`. With `returnImmediately: true` the response is the freshly enqueued `TASK_STATE_SUBMITTED` task and clients poll subsequent updates via [`GetTask`](#the-gettask-json-rpc-method) or stream them via [`SendStreamingMessage`](#the-sendstreamingmessage-json-rpc-method).
+
+When `respondToMessage` answers the turn, the response is `{ "message": { ... } }` instead of `{ "task": { ... } }` and nothing is written to storage.
 
 ### Id semantics
 
@@ -170,14 +235,17 @@ The freshly-minted `contextId` (when applicable) is written back onto the messag
 
 ### Validation contract
 
-All validation failures surface as JSON-RPC error code `-32602 Invalid Params` with a human-readable `message`. The handler rejects:
+Most validation failures surface as JSON-RPC error code `-32602 Invalid Params` with a human-readable `message`. The handler rejects:
 
-| Failure                                               | Error message contains                      |
-| ----------------------------------------------------- | ------------------------------------------- |
-| `params` is `null`, an array, or not an object        | `expected MessageSendParams object`         |
-| `params.message` is missing, `null`, or not an object | `message is required and must be an object` |
-| `params.message.parts` is missing or not an array     | `message.parts must be a non-empty array`   |
-| `params.message.parts` is an empty array              | `message.parts must be a non-empty array`   |
+| Failure                                                | Code     | Error message contains                                   |
+| ------------------------------------------------------ | -------- | -------------------------------------------------------- |
+| `params` is `null`, an array, or not an object         | `-32602` | `expected MessageSendParams object`                      |
+| `params.message` is missing, `null`, or not an object  | `-32602` | `message is required and must be an object`              |
+| `params.message.parts` is missing or not an array      | `-32602` | `message.parts must be a non-empty array`                |
+| `params.message.parts` is an empty array               | `-32602` | `message.parts must be a non-empty array`                |
+| `message.contextId` does not match the referenced task | `-32602` | `message contextId does not match the task`              |
+| `message.taskId` names an unknown task                 | `-32001` | `task not found`                                         |
+| `message.taskId` names a task in a terminal state      | `-32004` | `task is in a terminal state and cannot accept messages` |
 
 On validation failure the handler throws **before** touching storage, so the task queue is never partially populated.
 
@@ -1133,6 +1201,38 @@ The full event-type matrix exposed on `AGENT_EVENT_TYPE` is documented in [Cloud
 <!-- GENERATED:adk-provider-table END (do not edit - run: task generate) -->
 
 Set `A2A_AGENT_CLIENT_API_KEY` to override the per-provider lookup, and `A2A_AGENT_CLIENT_BASE_URL` to point at the [Inference Gateway](https://github.com/inference-gateway/inference-gateway) (recommended - it normalizes provider quirks so the same agent code talks to every provider unchanged) or any other OpenAI-compatible endpoint. The full configuration matrix, troubleshooting checklist, and example client output live in the example's [`README.md`](https://github.com/inference-gateway/typescript-adk/blob/main/examples/ai-powered-streaming/README.md).
+
+## The `SubscribeToTask` JSON-RPC method
+
+`SubscribeToTask` re-attaches an SSE stream to a task that is already running - the recovery path for a client whose `SendStreamingMessage` connection dropped, or a second consumer that wants to watch a task it did not start. Register it with `server.registerStreamingMethod(TASK_RESUBSCRIBE_METHOD, createTaskResubscribeHandler({ storage, eventBusRegistry }))`.
+
+Semantics:
+
+- **Validation first.** `params.id` must be a non-empty string (`-32602`) and the task must exist (`-32001 TaskNotFound`). Failures answer with a regular JSON-RPC error envelope; the SSE stream is never opened.
+- **Terminal task.** Subscribing to a task that has already finished answers `-32004 UnsupportedOperation` rather than opening a stream that would immediately close.
+- **First frame is the task.** The stream opens with the task's current state (A2A v1.0.1 section 3.1.6), so a reconnecting client resynchronizes without a separate [`GetTask`](#the-gettask-json-rpc-method).
+- **Live stream when one exists.** When the producing `SendStreamingMessage` invocation still has an open event bus for the task, every subsequent event is forwarded until the bus closes. Multiple concurrent subscribers each get their own stream off the same bus.
+- **No live stream.** Without a bus (the producer was a background worker, or the server restarted), the handler follows the task in storage and emits a `statusUpdate` frame on every state change until it terminates.
+
+There is no `[DONE]` sentinel - the SSE stream simply closes after the last event.
+
+## Agent card caching headers
+
+`GET /.well-known/agent-card.json` is served with `ETag` and `Last-Modified` headers alongside the configured `Cache-Control`. A request carrying a matching `If-None-Match` answers `304 Not Modified` with an empty body, so polling clients and the [A2A Registry](/registry/) refresh the card without re-downloading it on every check.
+
+```bash
+curl -sS -D - -o /dev/null http://localhost:8080/.well-known/agent-card.json
+# HTTP/1.1 200 OK
+# ETag: "a1b2c3..."
+# Last-Modified: Thu, 28 May 2026 12:00:00 GMT
+
+curl -sS -D - -o /dev/null \
+  -H 'If-None-Match: "a1b2c3..."' \
+  http://localhost:8080/.well-known/agent-card.json
+# HTTP/1.1 304 Not Modified
+```
+
+`Last-Modified` reflects when the server process built its card, so it changes on restart even if the card content did not; `ETag` is content-derived and is the header to compare against.
 
 ## The `GetExtendedAgentCard` JSON-RPC method
 
@@ -2390,23 +2490,22 @@ try {
 
 ## Push notifications (`HTTPPushNotificationSender`)
 
-`HTTPPushNotificationSender` is the HTTP webhook delivery primitive the TypeScript ADK ships for pushing `task_update` notifications to URLs a client has registered against a task. A client that cannot keep an SSE connection open (mobile background, batch worker, server-to-server fan-out) registers one or more webhook URLs at `SendMessage` time; on every task state transition, the sender POSTs a JSON-encoded `TaskUpdateNotification` to each URL with retries, per-attempt timeouts, and exponential backoff.
+`HTTPPushNotificationSender` is the HTTP webhook delivery primitive the TypeScript ADK ships for pushing task updates to URLs a client has registered against a task. A client that cannot keep an SSE connection open (mobile background, batch worker, server-to-server fan-out) registers one or more webhook URLs at `SendMessage` time; on every task state transition, the sender POSTs an A2A `StreamResponse` (`{ task }`, `Content-Type: application/a2a+json`) to each URL with retries, per-attempt timeouts, and exponential backoff.
 
 It mirrors the Go ADK's `HTTPPushNotificationSender` in [`adk/server/push_notification_sender.go`](https://github.com/inference-gateway/adk/blob/main/server/push_notification_sender.go) - same wire payload, same auth-header resolution order, same retry classification - so a webhook receiver written against either ADK accepts deliveries from the other unchanged.
 
 > **Delivery primitive only.** This section documents the sender. It is **not yet wired into the task-state-transition pipeline automatically**. Subscribing to `TaskEventBus` `TASK_STATUS_CHANGED` and calling `deliverTaskUpdate` is a follow-up integration step - see [Bridging into the state-transition pipeline](#bridging-into-the-state-transition-pipeline-follow-up) below.
 
-### Wire payload (`TaskUpdateNotification`)
+### Wire payload (`StreamResponse`)
 
-Every POST carries a JSON body matching this shape:
+Every POST carries an A2A `StreamResponse` (A2A v1.0.1 section 4.3.3) holding the task snapshot:
 
 ```ts
-interface TaskUpdateNotification {
-  readonly type: 'task_update';
-  readonly taskId: string; // task.id
-  readonly state: TaskState; // task.status.state at the moment of emission
-  readonly timestamp: string; // RFC 3339 / ISO 8601 with a trailing 'Z'
-  readonly task: Task; // full wire-format task snapshot
+interface StreamResponse {
+  readonly artifactUpdate?: TaskArtifactUpdateEvent;
+  readonly message?: Message;
+  readonly statusUpdate?: TaskStatusUpdateEvent;
+  readonly task?: Task; // the sender populates this one
 }
 ```
 
@@ -2414,10 +2513,6 @@ Concrete example:
 
 ```json
 {
-  "type": "task_update",
-  "taskId": "9c8b8b7e-3f4a-4b6e-9a1d-1b2c3d4e5f60",
-  "state": "TASK_STATE_COMPLETED",
-  "timestamp": "2026-05-28T12:00:03.250Z",
   "task": {
     "id": "9c8b8b7e-3f4a-4b6e-9a1d-1b2c3d4e5f60",
     "contextId": "ctx-1",
@@ -2432,10 +2527,9 @@ Concrete example:
 
 Field notes:
 
-- `type` is always `'task_update'`. Reserve the value so receivers can multiplex multiple event kinds on the same endpoint later without a breaking change.
-- `state` is the wire-format `TaskState` enum (`TASK_STATE_SUBMITTED`, `TASK_STATE_WORKING`, `TASK_STATE_COMPLETED`, `TASK_STATE_FAILED`, `TASK_STATE_CANCELLED`, `TASK_STATE_INPUT_REQUIRED`, ...) - the same value visible on `task.status.state`.
-- `task` is the full wire-format task snapshot, so receivers do not need a follow-up [`GetTask`](#the-gettask-json-rpc-method) to reconstruct context.
-- `timestamp` is the moment the sender emitted the POST (`new Date().toISOString()`), not the moment the task transitioned. Receivers that need the transition time read `task.status.timestamp` instead.
+- `task` is the full wire-format task snapshot, so receivers do not need a follow-up [`GetTask`](#the-gettask-json-rpc-method) to reconstruct context. Read the state from `task.status.state` and the transition time from `task.status.timestamp`.
+- The body is posted with `Content-Type: application/a2a+json`.
+- The legacy `TaskUpdateNotification` type and its `task_update` envelope (`type` / `taskId` / `state` / `timestamp` / `task`) are **gone**. Receivers written against the old shape must read `task` off the `StreamResponse` instead.
 
 The same shape is emitted by the Go ADK, so a webhook receiver targeting one ADK accepts deliveries from the other unchanged.
 
@@ -2447,12 +2541,12 @@ Every POST is constructed as:
 
 | Header                                              | Value                                                                                                                                |
 | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `Content-Type`                                      | `application/json`                                                                                                                   |
+| `Content-Type`                                      | `application/a2a+json`                                                                                                               |
 | `Accept`                                            | `application/json`                                                                                                                   |
 | `User-Agent`                                        | `<package-name>/<package-version>` (e.g. `@inference-gateway/adk/0.x.x`). Override via `HTTPPushNotificationSenderConfig.userAgent`. |
 | `Authorization` (when an auth source is configured) | Resolved as [Auth header resolution](#auth-header-resolution) below.                                                                 |
 
-The request body is the JSON-encoded `TaskUpdateNotification`. No query parameters, no extra request envelope.
+The request body is the JSON-encoded `StreamResponse`. No query parameters, no extra request envelope.
 
 ### Constructor
 
@@ -2633,13 +2727,15 @@ The error's `cause` (when set) is the original `Error` raised by `fetch`, the `A
 
 ### Configuring push notifications per task
 
-Clients register push notifications on the initial `SendMessage` call via `SendMessageConfiguration.pushNotificationConfig`. The configuration is per-task and is the source `HTTPPushNotificationSender.deliverTaskUpdate` reads from once the [integration step](#bridging-into-the-state-transition-pipeline-follow-up) is in place.
+Clients register push notifications on the initial `SendMessage` call via `SendMessageConfiguration.taskPushNotificationConfig`. The handler stores it against the task, exactly as a separate `CreateTaskPushNotificationConfig` call would, and it is the source `HTTPPushNotificationSender.deliverTaskUpdate` reads from once the [integration step](#bridging-into-the-state-transition-pipeline-follow-up) is in place.
+
+Deleting a config via `DeleteTaskPushNotificationConfig` is **idempotent** (A2A v1.0.1 section 3.1.10): deleting a config that is already gone, or one on an unknown task, returns `null` just like a successful delete rather than an error.
 
 The `PushNotificationConfig` shape (from the generated A2A schema):
 
 ```ts
 interface PushNotificationConfig {
-  /** Webhook URL to POST every `task_update` notification to. */
+  /** Webhook URL to POST every `StreamResponse` notification to. */
   url: string;
   /** Optional unique identifier (e.g. UUID) for this config. Surfaced on `DeliveryResult.configId`. */
   id?: string;
@@ -2711,7 +2807,7 @@ curl -sS -X POST http://localhost:8080/ \
 }
 ```
 
-Each subsequent state transition (`SUBMITTED` -> `WORKING` -> `COMPLETED` / `FAILED` / `CANCELLED` / `INPUT_REQUIRED`) produces one POST per registered config carrying the [`TaskUpdateNotification`](#wire-payload-taskupdatenotification) payload.
+Each subsequent state transition (`SUBMITTED` -> `WORKING` -> `COMPLETED` / `FAILED` / `CANCELLED` / `INPUT_REQUIRED`) produces one POST per registered config carrying the [`StreamResponse`](#wire-payload-streamresponse) payload.
 
 > **Clients can register multiple configs per task** via the `CreateTaskPushNotificationConfig` JSON-RPC method; the sender's [`deliverTaskUpdate`](#delivertaskupdateconfigs-task-options---fan-out) helper handles the fan-out. The config-management handlers (`set` / `get` / `list` / `delete`) ship in `@inference-gateway/adk` alongside the sender and are exported from the server barrel.
 
@@ -2800,7 +2896,7 @@ taskEventBus.on('TASK_STATUS_CHANGED', (task) => {
 
 ### Cross-reference
 
-- **Go ADK equivalent.** `HTTPPushNotificationSender` in [`adk/server/push_notification_sender.go`](https://github.com/inference-gateway/adk/blob/main/server/push_notification_sender.go). Same `TaskUpdateNotification` shape, same auth-header resolution, same retryable-vs-non-retryable classification.
+- **Go ADK equivalent.** `HTTPPushNotificationSender` in [`adk/server/push_notification_sender.go`](https://github.com/inference-gateway/adk/blob/main/server/push_notification_sender.go). Same `StreamResponse` shape, same auth-header resolution, same retryable-vs-non-retryable classification.
 - **TypeScript source.** [`src/server/push-notification-sender.ts`](https://github.com/inference-gateway/typescript-adk/blob/main/src/server/push-notification-sender.ts) in the `inference-gateway/typescript-adk` repo.
 
 ## Artifacts
@@ -3286,7 +3382,7 @@ Setting `TLS_CLIENT_AUTH=true` is the environment-variable shorthand for `reques
 
 The TypeScript ADK is being grown in lockstep with the [Go ADK](https://github.com/inference-gateway/adk). The intent is that any A2A agent capability you can read about in the Go ADK reference applies semantically to the TypeScript ADK once the corresponding handler ships:
 
-- The handler name, params shape, id semantics, validation rules, and synchronous return contract are **identical** to the Go implementation's `HandleMessageSend` / `CreateTaskFromMessage`.
+- The handler name, params shape, id semantics, validation rules, and blocking return contract (wait for terminal/interrupted unless `returnImmediately`) are **identical** to the Go implementation's `HandleMessageSend` / `CreateTaskFromMessage`.
 - Internal storage state (`PENDING`) and wire state (`TASK_STATE_SUBMITTED`) follow the same mapping as the Go ADK.
 - `CancelTask` mirrors the Go ADK's `CancelTask` in [`adk/server/task_manager.go`](https://github.com/inference-gateway/adk/blob/main/server/task_manager.go) - same per-state branch table (`PENDING` dropped from the queue; `IN_PROGRESS` / `INPUT_REQUIRED` aborted via the shared registry; terminal / unknown surfaced as JSON-RPC `-32602`), and same dead-letter on completion. The TypeScript ADK's [`TaskCancellationRegistry`](#taskcancellationregistry) is the structural equivalent of the Go ADK's `RegisterTaskCancelFunc` / `UnregisterTaskCancelFunc` / `runningTasks` map on `DefaultTaskManager`.
 - The `SendStreamingMessage` SSE wire format - CloudEvents v1.0 envelopes, `source = 'adk/agent'`, `subject = taskId`, and the `AGENT_EVENT_TYPE.*` constants - is **byte-identical** to the Go ADK's emitter in `server/agent_streamable.go`. Client implementations target one canonical wire contract regardless of which ADK the agent is built with.
@@ -3294,13 +3390,14 @@ The TypeScript ADK is being grown in lockstep with the [Go ADK](https://github.c
 - `DefaultBackgroundTaskHandler` mirrors the Go ADK's [`DefaultBackgroundTaskHandler`](https://github.com/inference-gateway/adk/blob/main/server/task_handler.go) - same iteration cap default (`50`), same `MAX_CHAT_COMPLETION_ITERATIONS` env var name, same reserved `input_required` tool and `message` / `prompt` / `question` arg-key fallback, and the same `execution_stats` / `usage` metadata shape on `task.metadata`.
 - [`AgentBuilder`](#agent-builder-agentbuilder) mirrors the Go ADK's [`AgentBuilder`](https://github.com/inference-gateway/adk/blob/main/server/agent_builder.go) - same fluent surface (`withProvider` / `withModel` / `withTemperature` / `withTopP` / `withMaxTokens` / `withMaxIterations` / `withSystemPrompt` / `withMaxConversationHistory` / `withCallbacks` / `withToolBox` / `withLLMClient` / `build`), same defaults (`maxIterations: 50`, `maxConversationHistory: 20`), and a `systemPrompt` default that is a byte-for-byte copy of `AgentConfig.SystemPrompt` from [`server/config/config.go`](https://github.com/inference-gateway/adk/blob/main/server/config/config.go). The TS variant surfaces each LLM-config field as its own builder method instead of a single `WithConfig` call.
 - [`GetExtendedAgentCard`](#the-getextendedagentcard-json-rpc-method) mirrors the Go ADK's [`HandleGetAuthenticatedExtendedCard`](https://github.com/inference-gateway/adk/blob/main/server/task_handler.go) - same JSON-RPC method name, same optional `tenant` param, same "return the configured extended card verbatim" contract, same fail-closed behaviour when no extended card is configured (`-32601 method not found`). Both ADKs leave the public well-known card undecorated and surface auth schemes only on the extended endpoint; the public card sets `capabilities.extendedAgentCard: true` to signal availability. The TS handler is auto-registered by [`A2AServerBuilder.withAuthConfig(...)`](#via-a2aserverbuilder-withauthconfig) when paired with an authenticator, matching the Go ADK's `A2AServerBuilder.WithAuthConfig` wiring.
-- [`HTTPPushNotificationSender`](#push-notifications-httppushnotificationsender) mirrors the Go ADK's [`HTTPPushNotificationSender`](https://github.com/inference-gateway/adk/blob/main/server/push_notification_sender.go) - same `TaskUpdateNotification` JSON payload (`type` / `taskId` / `state` / `timestamp` / `task`), same auth-header resolution order (`config.token` first, then bearer / basic in `config.authentication.schemes`), and the same retryable-vs-non-retryable classification (5xx / 429 / network / per-attempt timeout retryable; 4xx and caller abort non-retryable). The TypeScript sender ships `deliverTaskUpdate` as a fan-out helper with a default concurrency cap of `8`; both ADKs' senders are delivery primitives only and depend on the lifecycle layer for invocation.
+- [`HTTPPushNotificationSender`](#push-notifications-httppushnotificationsender) mirrors the Go ADK's [`HTTPPushNotificationSender`](https://github.com/inference-gateway/adk/blob/main/server/push_notification_sender.go) - same A2A `StreamResponse` JSON payload (`{ task }`, `Content-Type: application/a2a+json`), same auth-header resolution order (`config.token` first, then bearer / basic in `config.authentication.schemes`), and the same retryable-vs-non-retryable classification (5xx / 429 / network / per-attempt timeout retryable; 4xx and caller abort non-retryable). The TypeScript sender ships `deliverTaskUpdate` as a fan-out helper with a default concurrency cap of `8`; both ADKs' senders are delivery primitives only and depend on the lifecycle layer for invocation.
 - The generated `Message`, `Task`, and `Part` types are produced from the same `inference-gateway/schemas` source of truth, regenerated via `pnpm generate:types` and pinned to a specific schema commit.
 
 Where the TypeScript ADK has not yet shipped a handler that the Go ADK has, cross-referencing the Go source is the safest reference point.
 
 ## Related resources
 
+- [`examples/tck-sut`](https://github.com/inference-gateway/typescript-adk/tree/main/examples/tck-sut) - reference server wiring the handlers on this page; CI runs the A2A v1.0.1 TCK JSON-RPC suite against it.
 - [A2A Integration](/a2a/) - protocol overview, CLI usage, custom-agent requirements.
 - [A2A Debugger](/a2a-debugger/) - inspect, stream, and replay tasks against any A2A server.
 - [A2A Registry](/registry/) - publish your built agent so others can discover and consume it.
