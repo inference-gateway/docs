@@ -2956,7 +2956,8 @@ infer config get agent.model
 # Print as JSON instead of YAML
 infer config get --format json
 
-# Set a value - parsed to the field's type (bool, integer, number, or string)
+# Set a value - parsed to the field's type (bool, integer, number, or string),
+# then validated by loading the config back before the write is kept
 infer config set agent.model deepseek/deepseek-v4-flash
 infer config set agent.max_turns 50
 infer config set agent.verbose_tools true
@@ -2976,6 +2977,13 @@ infer config set agent.model deepseek/deepseek-v4-flash --project
 
 # Recreate config.yaml from defaults
 infer config init --overwrite
+```
+
+`config set` **validates before it keeps the write.** After writing, it loads the config back; if the loader rejects the result - say `agent.reasoning_effort=bogus` - the previous file is restored and the command fails, so a bad value can never leave you with a config that stops `infer` from starting:
+
+```bash
+$ infer config set agent.reasoning_effort bogus
+agent.reasoning_effort = bogus was not saved: invalid agent.reasoning_effort "bogus": must be one of minimal, low, medium, high, xhigh, max
 ```
 
 > System prompts are **not** set via `config set` - they live in `prompts.yaml` (for example `prompts.agent.system_prompt`, and the per-mode `prompts.agent.mode_adjustment_plan` / `mode_adjustment_auto`) and are edited there. The same file holds the **tool descriptions** sent to the model under `prompts.tools.<Tool>.description` - for example `prompts.tools.RequestApproval.description`, which ships with a built-in default explaining when a judge rejection may be escalated. Any key you leave out keeps its built-in text.
@@ -3003,6 +3011,37 @@ The per-setting subcommands were removed in favor of `config get`/`config set` a
 | `config tools validate <cmd>`          | `tools validate <cmd>`                                                |
 
 See the [full configuration reference](https://github.com/inference-gateway/cli/blob/main/docs/configuration-reference.md) for detailed options.
+
+### Reloading configuration in chat
+
+`/reload` re-reads the [config files](#configuration-files) and the `INFER_*` environment in a running `infer chat`, so editing a setting no longer means restarting the session:
+
+```bash
+infer config set gateway.timeout 300
+# then, in infer chat:
+/reload
+# status line: Reloaded gateway.timeout
+```
+
+**Hot keys** - these change the running session immediately:
+
+| Key                      | Effect on reload                                                |
+| ------------------------ | --------------------------------------------------------------- |
+| `gateway.timeout`        | The next request uses the new timeout                           |
+| `agent.model`            | Switches the active model, like [`/model`](#built-in-commands)  |
+| `agent.max_turns`        | Applies from the next turn                                      |
+| `agent.max_tokens`       | Applies from the next turn                                      |
+| `agent.reasoning_effort` | Applies from the next turn, and the status bar follows          |
+| `chat.status_bar.*`      | The whole section - indicators hide or show on the next repaint |
+
+**Everything else needs a restart.** Any other changed key is named in the status line as "restart to apply" rather than silently ignored - `Reloaded agent.model · restart to apply gateway.url`. `gateway.url` and `gateway.api_key` are restart keys, and [tool policy](#tool-configuration), the [file sandbox](#file-sandbox) and approval policy never change mid-session, by design: a running agent keeps the permissions it started with.
+
+Two cases leave the session exactly as it was, with the error shown instead:
+
+- **The new config fails validation.** The previous config stays active.
+- **The agent is busy.** `/reload` reports `agent is busy, run /reload after this turn` rather than swapping config under a running turn.
+
+`/reload` is only available in `infer chat` - [headless](#headless-mode) and [scheduled](#schedule) runs load their config once at startup.
 
 ## Telemetry
 
@@ -3342,6 +3381,7 @@ These show as `command` in autocomplete:
 | `/stats`              | Summarize the session's token usage, tool outcomes, and cost (mirrors `infer stats`)                 | `/stats`                            |
 | `/traces [id]`        | Render a session's trace span tree offline (mirrors `infer traces`)                                  | `/traces`, `/traces abc-123-def`    |
 | `/voice [seconds]`    | Record the mic and transcribe to the input field (requires [speech-to-text](/cli-speech-to-text/))   | `/voice`, `/voice 8`                |
+| `/reload`             | Re-read config files and `INFER_*` env, applying the [hot keys](#reloading-configuration-in-chat)    | `/reload`                           |
 
 ### YAML Shortcuts
 
