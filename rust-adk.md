@@ -564,6 +564,16 @@ No extra wiring is needed: this works with the default task handlers and with cu
 
 A2A servers persist per-task webhook configurations through the four push-notification-config control-plane methods on `A2AClient` (`set`, `get`, `list`, `delete`). Each uses the typed structs from `a2a_types` and is exercised by a dedicated binary under [`examples/a2a-methods/`](https://github.com/inference-gateway/rust-adk/tree/main/examples/a2a-methods).
 
+> **The card must advertise the capability.** All four methods - `CreateTaskPushNotificationConfig`, `GetTaskPushNotificationConfig`, `ListTaskPushNotificationConfigs`, `DeleteTaskPushNotificationConfig` - are gated on `capabilities.pushNotifications: true` in the served agent card. Against a card that omits the flag or sets it to `false`, the server rejects every one of them with `-32003` (`PushNotificationNotSupported`) instead of storing the config. Earlier releases accepted and stored configs regardless of the card.
+
+```json
+{
+  "capabilities": {
+    "pushNotifications": true
+  }
+}
+```
+
 ```rust
 use inference_gateway_adk::a2a_types::{
     PushNotificationConfig, SetTaskPushNotificationConfigRequest, TaskPushNotificationConfig,
@@ -623,7 +633,16 @@ let server = A2AServerBuilder::new()
 
 `AgentCardOverrides` exposes `with_name`, `with_description`, `with_version`, and `with_url` - `with_url` rewrites the `url` of the first entry in the card's `supportedInterfaces` list, appending a `JSONRPC` / `1.0` interface when the list is empty. See [`examples/static-agent-card/`](https://github.com/inference-gateway/rust-adk/tree/main/examples/static-agent-card) for a runnable demo.
 
-The card's `capabilities.extendedAgentCard` flag gates `GetExtendedAgentCard`. See [Card-driven authentication flow](#card-driven-authentication-flow) for how the flag is set, the extended-card error contract, and how clients discover which schemes the agent accepts.
+### Capability-gated methods
+
+Two `capabilities` flags gate methods outright - a call whose flag is absent or `false` answers a JSON-RPC error instead of running:
+
+| Method                                                                                                                                     | Required flag                    | Error when the flag is missing            |
+| ------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------- | ----------------------------------------- |
+| `CreateTaskPushNotificationConfig`, `GetTaskPushNotificationConfig`, `ListTaskPushNotificationConfigs`, `DeleteTaskPushNotificationConfig` | `capabilities.pushNotifications` | `-32003` (`PushNotificationNotSupported`) |
+| `GetExtendedAgentCard`                                                                                                                     | `capabilities.extendedAgentCard` | `-32004` (`UnsupportedOperation`)         |
+
+See [Push notifications](#push-notifications) for the config methods and [Card-driven authentication flow](#card-driven-authentication-flow) for how the extended-card flag is set, its full error contract, and how clients discover which schemes the agent accepts.
 
 ## Authentication
 
@@ -1254,7 +1273,7 @@ Log verbosity is controlled by [`RUST_LOG`](https://docs.rs/tracing-subscriber/l
 | `A2A_AGENT_CLIENT_SYSTEM_PROMPT`                  | _(unset)_ | System prompt prepended to conversations.                                                                                |
 | `A2A_AGENT_CLIENT_ENABLE_USAGE_METADATA`          | `true`    | Attach token usage + execution stats to terminal task metadata.                                                          |
 
-**Capabilities** are not environment-configurable. The served card and the [builder's streaming-handler validation](#the-server-and-its-builder) read the `capabilities` object of your agent card JSON, so set `streaming`, `pushNotifications`, and `extendedAgentCard` there. The A2A v1.0.1 card has no `stateTransitionHistory` flag - a card still carrying it fails to deserialize into the ADK's `AgentCapabilities`.
+**Capabilities** are not environment-configurable. The served card and the [builder's streaming-handler validation](#the-server-and-its-builder) read the `capabilities` object of your agent card JSON, so set `streaming`, `pushNotifications`, and `extendedAgentCard` there. `pushNotifications` gates the [push-notification-config methods](#push-notifications) and `extendedAgentCard` gates `GetExtendedAgentCard`; a method whose flag is missing answers a JSON-RPC error rather than running. The A2A v1.0.1 card has no `stateTransitionHistory` flag - a card still carrying it fails to deserialize into the ADK's `AgentCapabilities`.
 
 **MCP client** (`MCP_` prefix) - connect the agent to [MCP servers](#mcp-client); disabled by default. Loaded under its own `MCP_` prefix (like `ARTIFACTS_`), separate from the `A2A_` `Config`.
 
