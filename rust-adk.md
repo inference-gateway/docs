@@ -465,6 +465,8 @@ The client exposes a typed helper for every method in the A2A specification. Eac
 
 The method column holds the A2A v1.0.1 wire names, generated from the canonical schema as the `A2aMethod` enum (`A2aMethod::SendMessage`, `A2aMethod::GetTask`, ...). Match on the enum rather than on string literals when you dispatch raw JSON-RPC yourself; the v0.x slash names (`message/send`, `tasks/get`, ...) answer `-32601 Method not found`.
 
+Request `params` follow the normative proto3 JSON mapping of A2A spec section 1.4, so the server accepts either spelling of every field name - the lowerCamelCase form (`pageSize`, `contextId`) or the proto3 form (`page_size`, `context_id`) - and ignores params it does not know instead of answering `-32602 Invalid params`. Hand-rolled clients and clients built against a newer spec revision therefore interoperate without stripping extra fields first. Method names are unaffected: they stay exact-match PascalCase.
+
 A representative `SendMessage` call, using the typed structs end-to-end:
 
 ```rust
