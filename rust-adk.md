@@ -623,6 +623,15 @@ let server = A2AServerBuilder::new()
 
 `AgentCardOverrides` exposes `with_name`, `with_description`, `with_version`, and `with_url` - `with_url` rewrites the `url` of the first entry in the card's `supportedInterfaces` list, appending a `JSONRPC` / `1.0` interface when the list is empty. See [`examples/static-agent-card/`](https://github.com/inference-gateway/rust-adk/tree/main/examples/static-agent-card) for a runnable demo.
 
+**The advertised URL** in `supportedInterfaces[0].url` is resolved at startup, highest precedence first:
+
+1. `AgentCardOverrides::with_url`
+2. `A2A_AGENT_URL`
+3. The card's own `supportedInterfaces[0].url`, when non-empty
+4. `http://localhost:<A2A_SERVER_PORT>/a2a` - `https://` when `A2A_SERVER_TLS_ENABLED=true`
+
+The same resolution fills in the URL when the card declares no `supportedInterfaces` entry at all, so an agent serving on the default port advertises `http://localhost:8080/a2a` without any configuration. Set `A2A_AGENT_URL` to the externally reachable address whenever the agent runs behind a container name, service DNS record, or ingress - clients and the gateway dial exactly what the card advertises.
+
 The card's `capabilities.extendedAgentCard` flag gates `GetExtendedAgentCard`. See [Card-driven authentication flow](#card-driven-authentication-flow) for how the flag is set, the extended-card error contract, and how clients discover which schemes the agent accepts.
 
 ## Authentication
@@ -1231,12 +1240,14 @@ Log verbosity is controlled by [`RUST_LOG`](https://docs.rs/tracing-subscriber/l
 
 **Server and core** - the listener and top-level toggles.
 
-| Variable                                    | Default                        | Purpose                                                      |
-| ------------------------------------------- | ------------------------------ | ------------------------------------------------------------ |
-| `A2A_SERVER_HOST`                           | `0.0.0.0`                      | Bind address for the A2A JSON-RPC server.                    |
-| `A2A_SERVER_PORT`                           | `8080`                         | Listener port.                                               |
-| `A2A_AGENT_URL`                             | `http://helloworld-agent:8080` | Public URL advertised for this agent.                        |
-| `A2A_STREAMING_STATUS_UPDATE_INTERVAL_SECS` | `1`                            | Seconds between `TaskStatusUpdateEvent`s on a streamed task. |
+| Variable                                    | Default     | Purpose                                                      |
+| ------------------------------------------- | ----------- | ------------------------------------------------------------ |
+| `A2A_SERVER_HOST`                           | `0.0.0.0`   | Bind address for the A2A JSON-RPC server.                    |
+| `A2A_SERVER_PORT`                           | `8080`      | Listener port.                                               |
+| `A2A_AGENT_URL`                             | _(derived)_ | Public URL advertised in the card - see below.               |
+| `A2A_STREAMING_STATUS_UPDATE_INTERVAL_SECS` | `1`         | Seconds between `TaskStatusUpdateEvent`s on a streamed task. |
+
+`A2A_AGENT_URL` has no fixed default - the server resolves the advertised URL at startup, see [Agent card and metadata](#agent-card-and-metadata) for the full precedence chain.
 
 **Agent (LLM client)** - these mirror the [`AgentBuilder`](#agentbuilder) setters; an explicit setter overrides the env value.
 
