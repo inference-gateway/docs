@@ -875,7 +875,46 @@ There are two ways to produce artifacts:
 
 2. **Autonomously**, by enabling the built-in `create_artifact` tool (`AGENT_CLIENT_TOOLS_CREATE_ARTIFACT=true` plus `WithDefaultToolBox()`), letting the model save content and return a download URL on its own. The default handlers automatically pass `task.ContextID`.
 
-On the client side, `a2a.GetArtifactHelper()` extracts artifacts from responses and downloads them to disk with `DownloadAllArtifacts(ctx, task, &client.DownloadConfig{OutputDir: "downloads", OrganizeByArtifactID: true})`, handling both byte-embedded and URI-referenced files.
+On the client side, `a2a.GetArtifactHelper()` extracts artifacts from responses and downloads them to disk, handling both byte-embedded and URI-referenced files:
+
+```go
+helper := a2a.GetArtifactHelper()
+
+// Blocking SendMessage: unwrap the task from the wrapped result.
+resp, err := a2a.SendTask(ctx, params)
+if err != nil {
+    log.Fatal(err)
+}
+task, err := helper.ExtractTaskFromResponse(resp)
+if err != nil {
+    log.Fatal(err)
+}
+_, _ = helper.DownloadAllArtifacts(ctx, task, &client.DownloadConfig{
+    OutputDir:            "downloads",
+    OrganizeByArtifactID: true,
+})
+
+// Streaming: artifactUpdate responses arrive as chunks, task snapshots as tasks.
+events, err := a2a.SendTaskStreaming(ctx, params)
+if err != nil {
+    log.Fatal(err)
+}
+for evt := range events {
+    if update, ok := helper.ExtractArtifactUpdateFromStreamEvent(evt.Result); ok {
+        log.Printf("artifact chunk: %s", update.Artifact.ArtifactID)
+        continue
+    }
+    task, err := helper.ExtractTaskFromResponse(&evt)
+    if err != nil {
+        continue
+    }
+    log.Printf("task %s carries %d artifacts", task.ID, helper.GetArtifactCount(task))
+}
+```
+
+`ExtractTaskFromResponse` unwraps the `task` field from a `SendMessage` or streaming result and still accepts the bare task `GetTask` returns. It returns an **error** when the result carries no task - a direct message reply, a status update, or an artifact update - so skip those events rather than treating the zero-value task as empty. `ExtractArtifactUpdateFromStreamEvent` matches an `artifactUpdate` stream response (the v0.3 `kind: artifact-update` discriminator is gone) and also accepts a bare `types.TaskArtifactUpdateEvent` or either in decoded `map[string]any` form, for a custom SSE consumer.
+
+Artifacts attached to a task without an `artifactUpdate` event never reach the stream as chunks - they appear on the task snapshot, or via `GetTask` once the task completes.
 
 The [`artifacts-filesystem`](https://github.com/inference-gateway/adk/tree/main/examples/artifacts-filesystem), [`artifacts-minio`](https://github.com/inference-gateway/adk/tree/main/examples/artifacts-minio), [`artifacts-autonomous-tool`](https://github.com/inference-gateway/adk/tree/main/examples/artifacts-autonomous-tool), and [`artifacts-with-default-handlers`](https://github.com/inference-gateway/adk/tree/main/examples/artifacts-with-default-handlers) examples cover each path; the upstream [artifacts guide](https://github.com/inference-gateway/adk/blob/main/docs/artifacts.md) has the full API.
 
