@@ -1,6 +1,6 @@
 ---
 title: TypeScript ADK
-description: Build A2A-compatible agents in TypeScript with the @inference-gateway/adk package. Handler registration, JSON-RPC message/send, message/stream, tasks/get, tasks/list, tasks/cancel with TaskCancellationRegistry, agent/getAuthenticatedExtendedCard with the extended-card vs. public-card discovery convention (capabilities.extendedAgentCard), withAuthConfig auto-registration, OIDC auth gating with -32001 envelope, SSE event sequence, CloudEvents v1.0 envelopes, STREAMING_STATUS_UPDATE_INTERVAL, DefaultBackgroundTaskHandler agentic loop with tool dispatch and usage metadata, MAX_CHAT_COMPLETION_ITERATIONS cap, reserved input_required tool, AgentBuilder fluent wiring for OpenAICompatibleAgent with Go-parity defaults, lifecycle callbacks (beforeAgent / afterAgent / beforeModel / afterModel / beforeTool / afterTool) with CallbackContext, short-circuit and chain semantics, sync vs. async, error propagation, caching and guardrail patterns, HTTPPushNotificationSender webhook delivery primitive with TaskUpdateNotification wire payload, sendTaskUpdate one-shot and deliverTaskUpdate fan-out helpers, exponential-backoff retry config, bearer / basic auth resolution, and per-task pushNotificationConfig on MessageSendConfiguration, artifact service with filesystem and MinIO/S3 storage backends and the registerArtifactsRoute download route, OpenTelemetry tracing via TelemetryProvider with OTLP spans, Prometheus metrics with a standalone /metrics server and request middleware, TLS and mutual-TLS server/client configuration, validation contract, id semantics, cancellation, and runnable client samples.
+description: Build A2A-compatible agents in TypeScript with the @inference-gateway/adk package. Handler registration, JSON-RPC SendMessage, SendStreamingMessage, GetTask, ListTasks, CancelTask with TaskCancellationRegistry, GetExtendedAgentCard with the extended-card vs. public-card discovery convention (capabilities.extendedAgentCard), withAuthConfig auto-registration, OIDC auth gating with -32001 envelope, SSE event sequence, CloudEvents v1.0 envelopes, STREAMING_STATUS_UPDATE_INTERVAL, DefaultBackgroundTaskHandler agentic loop with tool dispatch and usage metadata, MAX_CHAT_COMPLETION_ITERATIONS cap, reserved input_required tool, AgentBuilder fluent wiring for OpenAICompatibleAgent with Go-parity defaults, lifecycle callbacks (beforeAgent / afterAgent / beforeModel / afterModel / beforeTool / afterTool) with CallbackContext, short-circuit and chain semantics, sync vs. async, error propagation, caching and guardrail patterns, HTTPPushNotificationSender webhook delivery primitive with TaskUpdateNotification wire payload, sendTaskUpdate one-shot and deliverTaskUpdate fan-out helpers, exponential-backoff retry config, bearer / basic auth resolution, and per-task pushNotificationConfig on MessageSendConfiguration, artifact service with filesystem and MinIO/S3 storage backends and the registerArtifactsRoute download route, OpenTelemetry tracing via TelemetryProvider with OTLP spans, Prometheus metrics with a standalone /metrics server and request middleware, TLS and mutual-TLS server/client configuration, validation contract, id semantics, cancellation, and runnable client samples.
 ---
 
 # TypeScript ADK
@@ -28,16 +28,16 @@ The ADK currently exposes the HTTP server core and the first A2A JSON-RPC method
 | `A2AServer` / `createA2AServer`             | Available | Hono-backed HTTP server. Serves `/.well-known/agent-card.json`, `/health`, and JSON-RPC.                       |
 | `MethodRegistry` / `registerMethod`         | Available | Per-server JSON-RPC method dispatch table.                                                                     |
 | `InMemoryTaskStorage`                       | Available | In-process task queue + active task map. Swap for a custom `TaskStorage` in production.                        |
-| `createMessageSendHandler`                  | Available | Synchronous `message/send` handler.                                                                            |
-| `createMessageStreamHandler`                | Available | Streaming `message/stream` handler. SSE response wrapped in CloudEvents v1.0 envelopes.                        |
-| `createTaskGetHandler`                      | Available | Synchronous `tasks/get` handler. Looks up a task across active and dead-letter storage.                        |
-| `createTaskListHandler`                     | Available | Synchronous `tasks/list` handler. Filterable, keyset-paginated over `(createdAt, id)`.                         |
-| `createTaskCancelHandler`                   | Available | Synchronous `tasks/cancel` handler. Drops `PENDING` from the queue, aborts in-flight.                          |
-| `TaskCancellationRegistry`                  | Available | Shared `taskId -> AbortController` map bridging `tasks/cancel` and streaming handlers.                         |
+| `createMessageSendHandler`                  | Available | Synchronous `SendMessage` handler.                                                                             |
+| `createMessageStreamHandler`                | Available | Streaming `SendStreamingMessage` handler. SSE response wrapped in CloudEvents v1.0 envelopes.                  |
+| `createTaskGetHandler`                      | Available | Synchronous `GetTask` handler. Looks up a task across active and dead-letter storage.                          |
+| `createTaskListHandler`                     | Available | Synchronous `ListTasks` handler. Filterable, keyset-paginated over `(createdAt, id)`.                          |
+| `createTaskCancelHandler`                   | Available | Synchronous `CancelTask` handler. Drops `PENDING` from the queue, aborts in-flight.                            |
+| `TaskCancellationRegistry`                  | Available | Shared `taskId -> AbortController` map bridging `CancelTask` and streaming handlers.                           |
 | `DefaultBackgroundTaskHandler`              | Available | LLM-driven agentic loop with tool dispatch, history truncation, and an iteration cap.                          |
 | `AgentBuilder`                              | Available | Fluent builder for an `OpenAICompatibleAgent`; defaults match the Go ADK byte-for-byte.                        |
 | `A2AServerBuilder`                          | Available | Fluent server builder; validates that the agent card's capabilities match the handlers.                        |
-| `createGetAuthenticatedExtendedCardHandler` | Available | Synchronous `agent/getAuthenticatedExtendedCard` handler; returns the configured extended card.                |
+| `createGetAuthenticatedExtendedCardHandler` | Available | Synchronous `GetExtendedAgentCard` handler; returns the configured extended card.                              |
 | `HTTPPushNotificationSender`                | Available | HTTP webhook delivery primitive for `task_update` payloads, with retry / auth / fan-out helpers.               |
 | `ArtifactService` + storage backends        | Available | Build text/file/data artifacts; persist via filesystem, MinIO/S3, or in-memory storage.                        |
 | `registerArtifactsRoute`                    | Available | `GET /artifacts/:artifactId/:filename` download route; auto-mounted by `createA2AServer({ artifactStorage })`. |
@@ -45,9 +45,11 @@ The ADK currently exposes the HTTP server core and the first A2A JSON-RPC method
 | `MetricsRegistry` / `MetricsServer`         | Available | Prometheus `a2a_*` metrics via a standalone `/metrics` server plus a request middleware.                       |
 | TLS server / client                         | Available | HTTPS and mutual TLS for `A2AServer` and the bundled A2A client.                                               |
 
-## The `message/send` JSON-RPC method
+Every method name on this page is an A2A v1.0.1 name, generated from the canonical schema as the `A2AMethod` union in `src/types/generated/a2a.ts` and re-exported as the `*_METHOD` constants (`MESSAGE_SEND_METHOD`, `TASK_GET_METHOD`, ...). Register and dispatch with those constants rather than string literals. The v0.x slash names (`message/send`, `tasks/get`, ...) are no longer registered and answer `-32601 Method not found`.
 
-`message/send` is the synchronous entrypoint a client uses to submit a new conversation turn to the agent. The handler:
+## The `SendMessage` JSON-RPC method
+
+`SendMessage` is the synchronous entrypoint a client uses to submit a new conversation turn to the agent. The handler:
 
 1. Validates the JSON-RPC `params` payload against `MessageSendParams`.
 2. Mints a fresh task `id` (always) and, when the inbound message omits them, a fresh `contextId` and `messageId`.
@@ -56,7 +58,7 @@ The ADK currently exposes the HTTP server core and the first A2A JSON-RPC method
 
 This mirrors the Go ADK's [`HandleMessageSend`](https://github.com/inference-gateway/adk) / `CreateTaskFromMessage` semantics. Examples written against the Go ADK transfer over directly.
 
-> Need the agent's reply to land incrementally rather than after the whole turn finishes? Use [`message/stream`](#the-message-stream-json-rpc-method) instead - same JSON-RPC params, but the response is a Server-Sent Events stream of CloudEvents v1.0 frames carrying status transitions and partial-message deltas.
+> Need the agent's reply to land incrementally rather than after the whole turn finishes? Use [`SendStreamingMessage`](#the-sendstreamingmessage-json-rpc-method) instead - same JSON-RPC params, but the response is a Server-Sent Events stream of CloudEvents v1.0 frames carrying status transitions and partial-message deltas.
 
 ### Registering the handler
 
@@ -90,7 +92,7 @@ server.registerMethod(MESSAGE_SEND_METHOD, createMessageSendHandler({ storage })
 await server.listen(8080, '0.0.0.0');
 ```
 
-> **Use the exported method-name constant.** `MESSAGE_SEND_METHOD` resolves to the string `'message/send'`. Importing it (rather than hard-coding the literal) keeps the registration in lockstep with conformance tests and other consumers.
+> **Use the exported method-name constant.** `MESSAGE_SEND_METHOD` resolves to the string `'SendMessage'`. Importing it (rather than hard-coding the literal) keeps the registration in lockstep with conformance tests and other consumers.
 
 ### Handler options
 
@@ -106,7 +108,7 @@ Both injection points exist primarily for testability. Production code should re
 
 ### Request shape (`MessageSendParams`)
 
-The JSON-RPC `params` object for `message/send` is:
+The JSON-RPC `params` object for `SendMessage` is:
 
 ```ts
 interface MessageSendParams {
@@ -152,7 +154,7 @@ On success the handler returns the wire-format `Task`:
 
 > **Status mapping.** The task is stored as `PENDING` in the internal `ManagedTask` model, and surfaced on the wire as `TASK_STATE_SUBMITTED`. Both refer to the same lifecycle stage: "accepted, queued, not yet processed." Clients see only the wire form.
 
-The handler returns synchronously - the task is **already enqueued** by the time the caller receives the response. Downstream processing (LLM invocation, tool calls, status transitions) happens out of band and will eventually update the stored task; clients poll subsequent updates via [`tasks/get`](#the-tasks-get-json-rpc-method) or stream them via [`message/stream`](#the-message-stream-json-rpc-method).
+The handler returns synchronously - the task is **already enqueued** by the time the caller receives the response. Downstream processing (LLM invocation, tool calls, status transitions) happens out of band and will eventually update the stored task; clients poll subsequent updates via [`GetTask`](#the-gettask-json-rpc-method) or stream them via [`SendStreamingMessage`](#the-sendstreamingmessage-json-rpc-method).
 
 ### Id semantics
 
@@ -189,7 +191,7 @@ curl -sS -X POST http://localhost:8080/ \
   --data '{
     "jsonrpc": "2.0",
     "id": 1,
-    "method": "message/send",
+    "method": "SendMessage",
     "params": {
       "message": {
         "messageId": "client-msg",
@@ -234,7 +236,7 @@ curl -sS -X POST http://localhost:8080/ \
   --data '{
     "jsonrpc": "2.0",
     "id": 2,
-    "method": "message/send",
+    "method": "SendMessage",
     "params": {
       "message": { "messageId": "m", "role": "ROLE_USER" }
     }
@@ -254,15 +256,15 @@ curl -sS -X POST http://localhost:8080/ \
 
 The integration fixtures backing every example on this page live at [`tests/server/message-send.test.ts`](https://github.com/inference-gateway/typescript-adk/blob/main/tests/server/message-send.test.ts) in the source repo - useful as a copy-paste starting point for your own tests.
 
-## The `tasks/get` JSON-RPC method
+## The `GetTask` JSON-RPC method
 
-`tasks/get` is the synchronous lookup method a client uses to fetch a single task by id. The handler:
+`GetTask` is the synchronous lookup method a client uses to fetch a single task by id. The handler:
 
 1. Validates the JSON-RPC `params` payload against `TaskGetParams`.
 2. Calls `TaskStorage.getTask(taskId)`, which searches the active map first and then the dead-letter store.
 3. Returns the wire-format `Task` - optionally truncating `history` to the most recent `historyLength` messages.
 
-This mirrors the Go ADK's [`HandleTaskGet`](https://github.com/inference-gateway/adk/blob/main/server/task_handler.go) semantics, including the choice to surface a missing task as JSON-RPC `-32602` rather than a custom error code. To enumerate tasks rather than fetch one by id, use [`tasks/list`](#the-tasks-list-json-rpc-method) instead.
+This mirrors the Go ADK's [`HandleTaskGet`](https://github.com/inference-gateway/adk/blob/main/server/task_handler.go) semantics, including the choice to surface a missing task as JSON-RPC `-32602` rather than a custom error code. To enumerate tasks rather than fetch one by id, use [`ListTasks`](#the-listtasks-json-rpc-method) instead.
 
 ### Registering the handler
 
@@ -272,7 +274,7 @@ import { TASK_GET_METHOD, createTaskGetHandler } from '@inference-gateway/adk';
 server.registerMethod(TASK_GET_METHOD, createTaskGetHandler({ storage }));
 ```
 
-> `TASK_GET_METHOD` resolves to the string `'tasks/get'`. Use the exported constant rather than the literal so the registration stays in lockstep with conformance tests.
+> `TASK_GET_METHOD` resolves to the string `'GetTask'`. Use the exported constant rather than the literal so the registration stays in lockstep with conformance tests.
 
 ### Request and response shape
 
@@ -284,7 +286,7 @@ interface TaskGetParams {
 }
 ```
 
-On success the handler returns the wire-format `Task` - the same shape `message/send` returns - reflecting the task's current `status`, full or truncated `history`, and any `artifacts` produced so far.
+On success the handler returns the wire-format `Task` - the same shape `SendMessage` returns - reflecting the task's current `status`, full or truncated `history`, and any `artifacts` produced so far.
 
 ### Validation contract
 
@@ -299,16 +301,16 @@ All failures surface as JSON-RPC error code `-32602 Invalid Params`:
 
 The "not found" case is intentionally surfaced as `-32602` (not a custom code) to mirror the Go ADK; both ADKs return the same JSON-RPC envelope for a missing task.
 
-## The `tasks/list` JSON-RPC method
+## The `ListTasks` JSON-RPC method
 
-`tasks/list` is the synchronous enumeration method a client uses to page through stored tasks. The handler:
+`ListTasks` is the synchronous enumeration method a client uses to page through stored tasks. The handler:
 
 1. Validates the JSON-RPC `params` payload against `TaskListParams`.
 2. Calls `TaskStorage.listTasks(filter)`, which spans both active and dead-letter stores in FIFO `createdAt` order.
 3. Applies the optional `state` / `contextId` filter and a `limit`-bounded keyset slice starting from the supplied `cursor` (if any).
 4. Returns `{ tasks, nextCursor? }` - `nextCursor` is **omitted on the final page**, so clients stop paginating when it's absent.
 
-The wire format and pagination semantics match the Go ADK's task-list handler. Use [`tasks/get`](#the-tasks-get-json-rpc-method) when you already know the id of a single task.
+The wire format and pagination semantics match the Go ADK's task-list handler. Use [`GetTask`](#the-gettask-json-rpc-method) when you already know the id of a single task.
 
 ### Registering the handler
 
@@ -318,7 +320,7 @@ import { TASK_LIST_METHOD, createTaskListHandler } from '@inference-gateway/adk'
 server.registerMethod(TASK_LIST_METHOD, createTaskListHandler({ storage }));
 ```
 
-> `TASK_LIST_METHOD` resolves to the string `'tasks/list'`. Use the exported constant rather than the literal so the registration stays in lockstep with conformance tests.
+> `TASK_LIST_METHOD` resolves to the string `'ListTasks'`. Use the exported constant rather than the literal so the registration stays in lockstep with conformance tests.
 
 ### Handler options
 
@@ -369,7 +371,7 @@ This is the same property the Go ADK provides, and is the reason the cursor is k
 
 ### Validation contract
 
-All failures surface as JSON-RPC error code `-32602 Invalid Params` - the same envelope `message/send` and `tasks/get` use:
+All failures surface as JSON-RPC error code `-32602 Invalid Params` - the same envelope `SendMessage` and `GetTask` use:
 
 | Failure                                                                   | Error message contains                                    |
 | ------------------------------------------------------------------------- | --------------------------------------------------------- |
@@ -387,7 +389,7 @@ A `limit` above `maxLimit` is **not** an error - it is clamped down silently. A 
 
 ### Paginating from a client
 
-The canonical loop: keep calling `tasks/list` with the previous response's `nextCursor` until the response omits it.
+The canonical loop: keep calling `ListTasks` with the previous response's `nextCursor` until the response omits it.
 
 ```ts
 import type { Task, TaskListResult } from '@inference-gateway/adk';
@@ -402,7 +404,7 @@ do {
     body: JSON.stringify({
       jsonrpc: '2.0',
       id: crypto.randomUUID(),
-      method: 'tasks/list',
+      method: 'ListTasks',
       params: {
         state: 'TASK_STATE_COMPLETED',
         limit: 50,
@@ -426,7 +428,7 @@ curl -sS -X POST http://localhost:8080/ \
   --data '{
     "jsonrpc": "2.0",
     "id": 1,
-    "method": "tasks/list",
+    "method": "ListTasks",
     "params": { "state": "TASK_STATE_COMPLETED", "limit": 2 }
   }'
 ```
@@ -461,9 +463,9 @@ When the next call returns a `result` without `nextCursor`, the client has exhau
 
 The integration fixtures for this handler live at [`tests/server/task-list.test.ts`](https://github.com/inference-gateway/typescript-adk/blob/main/tests/server/task-list.test.ts) in the source repo.
 
-## The `tasks/cancel` JSON-RPC method
+## The `CancelTask` JSON-RPC method
 
-`tasks/cancel` is the synchronous cancellation method a client uses to stop a queued or in-flight task. The handler:
+`CancelTask` is the synchronous cancellation method a client uses to stop a queued or in-flight task. The handler:
 
 1. Validates the JSON-RPC `params` payload against `TaskCancelParams`.
 2. Looks the task up via `TaskStorage.getTask(taskId)`.
@@ -474,9 +476,9 @@ The integration fixtures for this handler live at [`tests/server/task-list.test.
    - unknown `taskId` -> rejects the call with a JSON-RPC `-32602` "task not found" error.
 4. Returns the wire-format `Task` reflecting the post-cancellation state.
 
-This mirrors the Go ADK's `CancelTask` in [`adk/server/task_manager.go`](https://github.com/inference-gateway/adk/blob/main/server/task_manager.go), including the choice to surface "cannot cancel" cases as `-32602` (same envelope as `tasks/get` and `tasks/list`) rather than a custom error code.
+This mirrors the Go ADK's `CancelTask` in [`adk/server/task_manager.go`](https://github.com/inference-gateway/adk/blob/main/server/task_manager.go), including the choice to surface "cannot cancel" cases as `-32602` (same envelope as `GetTask` and `ListTasks`) rather than a custom error code.
 
-> **Signal, don't wait.** The state transition and dead-letter write are synchronous, but the call does **not** wait for the aborted handler to fully unwind. The handler observes `signal.aborted`, finishes any cleanup it wants, and returns at its own pace. Clients that need to confirm the handler has finished should poll [`tasks/get`](#the-tasks-get-json-rpc-method) for a task whose stored state has settled.
+> **Signal, don't wait.** The state transition and dead-letter write are synchronous, but the call does **not** wait for the aborted handler to fully unwind. The handler observes `signal.aborted`, finishes any cleanup it wants, and returns at its own pace. Clients that need to confirm the handler has finished should poll [`GetTask`](#the-gettask-json-rpc-method) for a task whose stored state has settled.
 
 ### Registering the handler
 
@@ -492,11 +494,11 @@ const registry = new TaskCancellationRegistry();
 server.registerMethod(TASK_CANCEL_METHOD, createTaskCancelHandler({ storage, registry }));
 ```
 
-> `TASK_CANCEL_METHOD` resolves to the string `'tasks/cancel'`. Use the exported constant rather than the literal so the registration stays in lockstep with conformance tests.
+> `TASK_CANCEL_METHOD` resolves to the string `'CancelTask'`. Use the exported constant rather than the literal so the registration stays in lockstep with conformance tests.
 
-The same `registry` instance must be supplied to every long-running handler (streaming or background) that should be cancellable through `tasks/cancel`. See [`TaskCancellationRegistry`](#taskcancellationregistry) below for the registration / unregistration contract handlers must follow.
+The same `registry` instance must be supplied to every long-running handler (streaming or background) that should be cancellable through `CancelTask`. See [`TaskCancellationRegistry`](#taskcancellationregistry) below for the registration / unregistration contract handlers must follow.
 
-When the server is constructed via [`A2AServerBuilder`](#wiring-into-a2aserverbuilder), the builder creates a single `TaskCancellationRegistry`, wires it into the streaming handler, and registers `tasks/cancel` automatically. Manual registration as above is only needed when assembling an `A2AServer` directly.
+When the server is constructed via [`A2AServerBuilder`](#wiring-into-a2aserverbuilder), the builder creates a single `TaskCancellationRegistry`, wires it into the streaming handler, and registers `CancelTask` automatically. Manual registration as above is only needed when assembling an `A2AServer` directly.
 
 ### Handler options
 
@@ -519,7 +521,7 @@ interface TaskCancelParams {
 }
 ```
 
-`taskId` mirrors the [`tasks/get`](#the-tasks-get-json-rpc-method) field name (the Go ADK's `types.TaskIdParams` uses `id`, but the TypeScript ADK uses `taskId` across the entire `tasks/*` family for consistency).
+`taskId` mirrors the [`GetTask`](#the-gettask-json-rpc-method) field name (the Go ADK's `types.TaskIdParams` uses `id`, but the TypeScript ADK uses `taskId` across the entire task-method family for consistency).
 
 ### Response shape
 
@@ -537,11 +539,11 @@ On success the handler returns the wire-format `Task` whose `status.state` is `T
 }
 ```
 
-The cancelled task is moved into the dead-letter store, so a subsequent [`tasks/get`](#the-tasks-get-json-rpc-method) call returns the same record (with `status.state = 'TASK_STATE_CANCELLED'`).
+The cancelled task is moved into the dead-letter store, so a subsequent [`GetTask`](#the-gettask-json-rpc-method) call returns the same record (with `status.state = 'TASK_STATE_CANCELLED'`).
 
 ### State-machine behaviour
 
-The handler's branch table - the canonical reference for what `tasks/cancel` does for each inbound state:
+The handler's branch table - the canonical reference for what `CancelTask` does for each inbound state:
 
 | Current task state                             | Queue effect                 | Registry effect                            | Stored state after | Dead-letter | Response                                                      |
 | ---------------------------------------------- | ---------------------------- | ------------------------------------------ | ------------------ | ----------- | ------------------------------------------------------------- |
@@ -551,11 +553,11 @@ The handler's branch table - the canonical reference for what `tasks/cancel` doe
 | `COMPLETED` / `FAILED` / `CANCELLED`           | No change                    | Not invoked                                | Unchanged          | Unchanged   | JSON-RPC `-32602` `task cannot be cancelled in state <state>` |
 | Unknown `taskId`                               | No change                    | Not invoked                                | -                  | -           | JSON-RPC `-32602` `task not found`                            |
 
-The abort reason supplied by the handler is a `DOMException('Task cancelled via tasks/cancel', 'AbortError')`. Downstream executors that read `signal.reason` after the abort see this exact instance, so log lines and surfaced errors can distinguish "client disconnected" (the streaming handler's own abort path) from "cancelled via `tasks/cancel`" (this handler's abort path).
+The abort reason supplied by the handler is a `DOMException('Task cancelled via CancelTask', 'AbortError')`. Downstream executors that read `signal.reason` after the abort see this exact instance, so log lines and surfaced errors can distinguish "client disconnected" (the streaming handler's own abort path) from "cancelled via `CancelTask`" (this handler's abort path).
 
 ### Validation contract
 
-All failures surface as JSON-RPC error code `-32602 Invalid Params` - the same envelope every other `tasks/*` method uses:
+All failures surface as JSON-RPC error code `-32602 Invalid Params` - the same envelope every other task method uses:
 
 | Failure                                        | Error message contains                              |
 | ---------------------------------------------- | --------------------------------------------------- |
@@ -569,7 +571,7 @@ All failures surface as JSON-RPC error code `-32602 Invalid Params` - the same e
 
 ### `TaskCancellationRegistry`
 
-`TaskCancellationRegistry` is the shared `taskId -> AbortController` map that bridges `tasks/cancel` and any long-running handler (streaming, future background worker, custom). It is exported from the server entry of `@inference-gateway/adk` so advanced consumers can plug their own handlers into the cancel pipeline.
+`TaskCancellationRegistry` is the shared `taskId -> AbortController` map that bridges `CancelTask` and any long-running handler (streaming, future background worker, custom). It is exported from the server entry of `@inference-gateway/adk` so advanced consumers can plug their own handlers into the cancel pipeline.
 
 The class is single-threaded by virtue of JavaScript's execution model - all mutations are atomic between awaits, so no internal locking is required. It mirrors the Go ADK's `RegisterTaskCancelFunc` / `UnregisterTaskCancelFunc` / `runningTasks` map on `DefaultTaskManager` in [`adk/server/task_manager.go`](https://github.com/inference-gateway/adk/blob/main/server/task_manager.go).
 
@@ -592,7 +594,7 @@ const registry = new TaskCancellationRegistry();
 
 #### Lifecycle contract for handlers
 
-Any handler that owns a long-running task and wants to be cancellable through `tasks/cancel` must register its controller before work starts and unregister it on exit so the map never leaks past task completion:
+Any handler that owns a long-running task and wants to be cancellable through `CancelTask` must register its controller before work starts and unregister it on exit so the map never leaks past task completion:
 
 ```ts
 import { TaskCancellationRegistry } from '@inference-gateway/adk';
@@ -626,11 +628,11 @@ function createCustomExecutor(registry: TaskCancellationRegistry): StreamingTask
 
 `unregister` is idempotent: calling it after `cancel()` (or after a different handler took over the same id) returns `false` rather than throwing. That makes the `finally` block above safe regardless of which side of the race finished first.
 
-The bundled streaming handler ([`createMessageStreamHandler`](#the-message-stream-json-rpc-method)) follows this contract internally when wired through [`A2AServerBuilder`](#wiring-into-a2aserverbuilder), so the example above is only relevant when assembling custom executors or non-streaming background handlers that need to participate in cancellation.
+The bundled streaming handler ([`createMessageStreamHandler`](#the-sendstreamingmessage-json-rpc-method)) follows this contract internally when wired through [`A2AServerBuilder`](#wiring-into-a2aserverbuilder), so the example above is only relevant when assembling custom executors or non-streaming background handlers that need to participate in cancellation.
 
 ### Runnable example
 
-Cancel a task that another client has just enqueued via `message/send`:
+Cancel a task that another client has just enqueued via `SendMessage`:
 
 ```bash
 curl -sS -X POST http://localhost:8080/ \
@@ -638,7 +640,7 @@ curl -sS -X POST http://localhost:8080/ \
   --data '{
     "jsonrpc": "2.0",
     "id": 1,
-    "method": "tasks/cancel",
+    "method": "CancelTask",
     "params": {
       "taskId": "9c8b8b7e-3f4a-4b6e-9a1d-1b2c3d4e5f60"
     }
@@ -678,7 +680,7 @@ curl -sS -X POST http://localhost:8080/ \
   --data '{
     "jsonrpc": "2.0",
     "id": 2,
-    "method": "tasks/cancel",
+    "method": "CancelTask",
     "params": { "taskId": "9c8b8b7e-3f4a-4b6e-9a1d-1b2c3d4e5f60" }
   }'
 ```
@@ -709,9 +711,9 @@ And against an unknown id:
 
 The integration fixtures backing every assertion above (per-state branch coverage, registry interaction, dead-letter persistence, conformance over the JSON-RPC wire) live at [`tests/server/task-cancel.test.ts`](https://github.com/inference-gateway/typescript-adk/blob/main/tests/server/task-cancel.test.ts) and the registry's own unit tests at [`tests/server/task-cancellation.test.ts`](https://github.com/inference-gateway/typescript-adk/blob/main/tests/server/task-cancellation.test.ts) in the source repo.
 
-## The `message/stream` JSON-RPC method
+## The `SendStreamingMessage` JSON-RPC method
 
-`message/stream` is the streaming counterpart to `message/send`. The JSON-RPC `params` are structurally identical to `MessageSendParams` - the difference is the response: instead of a single JSON-RPC envelope, the server holds the HTTP connection open and emits an `text/event-stream` response carrying [CloudEvents v1.0](https://github.com/cloudevents/spec/blob/v1.0.2/cloudevents/spec.md) envelopes that narrate the task's lifecycle from `WORKING` through to a terminal state.
+`SendStreamingMessage` is the streaming counterpart to `SendMessage`. The JSON-RPC `params` are structurally identical to `MessageSendParams` - the difference is the response: instead of a single JSON-RPC envelope, the server holds the HTTP connection open and emits an `text/event-stream` response carrying [CloudEvents v1.0](https://github.com/cloudevents/spec/blob/v1.0.2/cloudevents/spec.md) envelopes that narrate the task's lifecycle from `WORKING` through to a terminal state.
 
 The wire format is **byte-identical to the Go ADK's emitter** in `server/agent_streamable.go`. Both ADKs default to `source = 'adk/agent'` for every CloudEvents envelope so cross-language consumers can dedupe / route on a single value. A client that streams correctly against one ADK streams correctly against the other.
 
@@ -734,7 +736,7 @@ const card: AgentCard = {
 };
 ```
 
-Clients that respect the agent card MUST NOT issue `message/stream` against an agent that advertises `streaming: false`.
+Clients that respect the agent card MUST NOT issue `SendStreamingMessage` against an agent that advertises `streaming: false`.
 
 ### Registering the handler
 
@@ -776,7 +778,7 @@ server.registerStreamingMethod(
 await server.listen(8080, '0.0.0.0');
 ```
 
-> **Use the exported method-name constant.** `MESSAGE_STREAM_METHOD` resolves to the string `'message/stream'`. Importing it (rather than hard-coding the literal) keeps the registration in lockstep with conformance tests and other consumers.
+> **Use the exported method-name constant.** `MESSAGE_STREAM_METHOD` resolves to the string `'SendStreamingMessage'`. Importing it (rather than hard-coding the literal) keeps the registration in lockstep with conformance tests and other consumers.
 
 #### Executor contract
 
@@ -813,14 +815,14 @@ The executor MUST NOT yield `PENDING` or attempt to re-enter terminal states.
 
 ### Event sequence
 
-Every successful `message/stream` invocation emits frames in this order:
+Every successful `SendStreamingMessage` invocation emits frames in this order:
 
 1. **`adk.agent.task.status.changed`** with `status.state = 'TASK_STATE_WORKING'`, `final: false` - the task has transitioned out of `PENDING`.
 2. **Zero or more `adk.agent.delta`** frames - partial assistant messages, in the order the executor yields them. Each frame carries a `Message` whose `role` is typically `ROLE_AGENT`.
 3. **Optional periodic `adk.agent.task.status.changed`** frames with `status.state = 'TASK_STATE_WORKING'`, `final: false` - re-emitted every `statusUpdateIntervalMs` while the task is `IN_PROGRESS`. Acts as an application-level heartbeat distinct from the transport-level SSE comment heartbeat.
 4. **Stream-ending `adk.agent.task.status.changed`** - exactly one of:
    - **Terminal**: `status.state in {'TASK_STATE_COMPLETED', 'TASK_STATE_FAILED', 'TASK_STATE_CANCELLED'}`, `final: true`. The stream then closes.
-   - **Input required**: `status.state = 'TASK_STATE_INPUT_REQUIRED'`, `final: false`. The task is paused (not done); the stream still closes so the client can submit a follow-up `message/send` against the same `contextId`.
+   - **Input required**: `status.state = 'TASK_STATE_INPUT_REQUIRED'`, `final: false`. The task is paused (not done); the stream still closes so the client can submit a follow-up `SendMessage` against the same `contextId`.
 
 Clients should treat any `task.status.changed` frame as the stream's final application-level frame and stop reading once they have seen it. After the final frame the server closes the underlying TCP connection.
 
@@ -900,7 +902,7 @@ The full list of streaming event-type constants exposed on `AGENT_EVENT_TYPE` (i
 | `AGENT_EVENT_TYPE.TASK_INTERRUPTED`    | `adk.agent.task.interrupted`    |
 | `AGENT_EVENT_TYPE.STREAM_FAILED`       | `adk.agent.stream.failed`       |
 
-`message/stream` itself emits only `DELTA` and `TASK_STATUS_CHANGED`. The remaining types are reserved for higher-level agent loops (tool dispatch, iteration tracking) layered on top of the streaming transport.
+`SendStreamingMessage` itself emits only `DELTA` and `TASK_STATUS_CHANGED`. The remaining types are reserved for higher-level agent loops (tool dispatch, iteration tracking) layered on top of the streaming transport.
 
 ### `STREAMING_STATUS_UPDATE_INTERVAL` environment variable
 
@@ -921,25 +923,25 @@ When the originating HTTP request is cancelled (browser navigates away, `fetch` 
 1. Aborts the `AbortSignal` it passed to the executor via `StreamingExecutorContext.signal`. Executors that propagate the signal to downstream calls (LLM provider, tool invocation, database query) unwind promptly.
 2. Transitions the task to `TASK_STATE_CANCELLED` and persists the transition through `TaskStorage`.
 3. Emits a final `adk.agent.task.status.changed` frame with `status.state = 'TASK_STATE_CANCELLED'` and `final: true` (best-effort; if the underlying socket is already gone, the frame is dropped silently).
-4. Closes the SSE stream and moves the task into the dead-letter map for later inspection via `tasks/get`.
+4. Closes the SSE stream and moves the task into the dead-letter map for later inspection via `GetTask`.
 
 The executor is expected to observe the abort cooperatively. The handler does not forcibly terminate generator iteration; long-running executor work that ignores the signal will keep running until it naturally yields or returns.
 
-### External cancellation via `tasks/cancel`
+### External cancellation via `CancelTask`
 
-`message/stream` also participates in the shared [`TaskCancellationRegistry`](#taskcancellationregistry) so an unrelated client can cancel a running stream by issuing a [`tasks/cancel`](#the-tasks-cancel-json-rpc-method) call against the same `taskId`. When the streaming handler is wired through [`A2AServerBuilder`](#wiring-into-a2aserverbuilder), the wiring is automatic - the builder constructs a single `TaskCancellationRegistry`, passes it to both handlers, and the streaming handler registers its internal `AbortController` against `task.id` before invoking the executor and unregisters it once the task settles.
+`SendStreamingMessage` also participates in the shared [`TaskCancellationRegistry`](#taskcancellationregistry) so an unrelated client can cancel a running stream by issuing a [`CancelTask`](#the-canceltask-json-rpc-method) call against the same `taskId`. When the streaming handler is wired through [`A2AServerBuilder`](#wiring-into-a2aserverbuilder), the wiring is automatic - the builder constructs a single `TaskCancellationRegistry`, passes it to both handlers, and the streaming handler registers its internal `AbortController` against `task.id` before invoking the executor and unregisters it once the task settles.
 
-The end-to-end sequence when an external `tasks/cancel` arrives mid-stream:
+The end-to-end sequence when an external `CancelTask` arrives mid-stream:
 
-1. The cancel handler calls `registry.cancel(taskId, reason)`, aborting the streaming handler's controller (the `reason` is a `DOMException('Task cancelled via tasks/cancel', 'AbortError')`).
+1. The cancel handler calls `registry.cancel(taskId, reason)`, aborting the streaming handler's controller (the `reason` is a `DOMException('Task cancelled via CancelTask', 'AbortError')`).
 2. The streaming handler observes the abort on `StreamingExecutorContext.signal`, lets the executor unwind, and emits the final `adk.agent.task.status.changed` frame with `status.state = 'TASK_STATE_CANCELLED'` and `final: true`.
-3. The cancel handler also writes the task to the dead-letter store synchronously, before the streaming handler's own cleanup runs. The streaming handler's cleanup respects an existing dead-letter entry rather than overwriting it, so the timestamp on the stored task reflects when `tasks/cancel` was received, not when the executor finished unwinding.
+3. The cancel handler also writes the task to the dead-letter store synchronously, before the streaming handler's own cleanup runs. The streaming handler's cleanup respects an existing dead-letter entry rather than overwriting it, so the timestamp on the stored task reflects when `CancelTask` was received, not when the executor finished unwinding.
 
 The result is byte-identical to a client-side abort from the streaming consumer's perspective - the same `TASK_STATE_CANCELLED` SSE frame, the same dead-letter record - so clients do not need a separate code path for "I aborted my own stream" vs. "someone else cancelled my task."
 
 ### Validation and JSON-RPC error mapping
 
-Validation runs **synchronously, before any SSE response is opened.** Failures surface as a regular JSON-RPC error envelope (HTTP 200 with `Content-Type: application/json`), and the SSE stream is never opened - clients that see a JSON response back from `message/stream` should treat it as a hard failure of the entire call.
+Validation runs **synchronously, before any SSE response is opened.** Failures surface as a regular JSON-RPC error envelope (HTTP 200 with `Content-Type: application/json`), and the SSE stream is never opened - clients that see a JSON response back from `SendStreamingMessage` should treat it as a hard failure of the entire call.
 
 | Failure                                               | JSON-RPC `error.code`     | `error.message` contains                    |
 | ----------------------------------------------------- | ------------------------- | ------------------------------------------- |
@@ -952,7 +954,7 @@ Errors that surface mid-stream (executor throws, storage write fails) are conver
 
 ### Minimal client sample
 
-Consuming a `message/stream` response with the platform `fetch` API and a tiny SSE parser:
+Consuming a `SendStreamingMessage` response with the platform `fetch` API and a tiny SSE parser:
 
 ```ts
 type CloudEventFrame = {
@@ -983,7 +985,7 @@ async function streamMessage(baseUrl: string): Promise<void> {
     body: JSON.stringify({
       jsonrpc: '2.0',
       id: 1,
-      method: 'message/stream',
+      method: 'SendStreamingMessage',
       params: {
         message: {
           messageId: crypto.randomUUID(),
@@ -999,7 +1001,7 @@ async function streamMessage(baseUrl: string): Promise<void> {
   if (!contentType.startsWith('text/event-stream')) {
     // Validation failed before the stream opened - JSON-RPC error envelope.
     const body = await res.json();
-    throw new Error(`message/stream rejected: ${JSON.stringify(body.error)}`);
+    throw new Error(`SendStreamingMessage rejected: ${JSON.stringify(body.error)}`);
   }
   if (res.body === null) throw new Error('no response body');
 
@@ -1038,7 +1040,7 @@ async function streamMessage(baseUrl: string): Promise<void> {
           return;
         }
         if (status.status.state === 'TASK_STATE_INPUT_REQUIRED') {
-          // Paused, awaiting a follow-up message/send against the same contextId.
+          // Paused, awaiting a follow-up SendMessage against the same contextId.
           console.log(`\n[task ${status.taskId} -> INPUT_REQUIRED]`);
           return;
         }
@@ -1055,16 +1057,16 @@ Integration tests covering every conformance assertion above (event ordering, en
 
 ### End-to-end runnable example
 
-The [`examples/ai-powered-streaming/`](https://github.com/inference-gateway/typescript-adk/tree/main/examples/ai-powered-streaming) folder in the source repo is the canonical runnable counterpart of every assertion above. It wires `OpenAICompatibleLLMClient` + `DefaultToolBox` (weather + time tools) into `DefaultStreamingTaskHandler`, registers `message/stream` via [`createMessageStreamHandler`](#registering-the-handler), and ships a `client.ts` that consumes the SSE response, decodes the CloudEvents v1.0 envelopes, and prints `delta` tokens and tool events as they arrive. It mirrors the Go ADK's [`examples/ai-powered-streaming/`](https://github.com/inference-gateway/adk/tree/main/examples/ai-powered-streaming) for cross-language consistency.
+The [`examples/ai-powered-streaming/`](https://github.com/inference-gateway/typescript-adk/tree/main/examples/ai-powered-streaming) folder in the source repo is the canonical runnable counterpart of every assertion above. It wires `OpenAICompatibleLLMClient` + `DefaultToolBox` (weather + time tools) into `DefaultStreamingTaskHandler`, registers `SendStreamingMessage` via [`createMessageStreamHandler`](#registering-the-handler), and ships a `client.ts` that consumes the SSE response, decodes the CloudEvents v1.0 envelopes, and prints `delta` tokens and tool events as they arrive. It mirrors the Go ADK's [`examples/ai-powered-streaming/`](https://github.com/inference-gateway/adk/tree/main/examples/ai-powered-streaming) for cross-language consistency.
 
 What the example covers, by file:
 
-| File                                                                                                                       | Role                                                                                                                                                                                        |
-| -------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`server.ts`](https://github.com/inference-gateway/typescript-adk/blob/main/examples/ai-powered-streaming/server.ts)       | Boots an `A2AServer` with `capabilities.streaming = true`, registers `message/stream` via `createMessageStreamHandler`, and drives the loop with `DefaultStreamingTaskHandler.asHandler()`. |
-| [`client.ts`](https://github.com/inference-gateway/typescript-adk/blob/main/examples/ai-powered-streaming/client.ts)       | Plain `fetch`-based SSE consumer. Decodes each CloudEvents v1.0 frame inline, accumulates `delta` text, and surfaces `tool.*` and `task.status.changed` transitions live.                   |
-| [`.env.example`](https://github.com/inference-gateway/typescript-adk/blob/main/examples/ai-powered-streaming/.env.example) | Per-provider configuration template. Set `A2A_AGENT_CLIENT_PROVIDER`, `A2A_AGENT_CLIENT_MODEL`, and the matching `<PROVIDER>_API_KEY` to switch models without touching code.               |
-| [`README.md`](https://github.com/inference-gateway/typescript-adk/blob/main/examples/ai-powered-streaming/README.md)       | Full walkthrough: layout, running it, configuration matrix, expected event order, troubleshooting, and "how the pieces fit together."                                                       |
+| File                                                                                                                       | Role                                                                                                                                                                                              |
+| -------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`server.ts`](https://github.com/inference-gateway/typescript-adk/blob/main/examples/ai-powered-streaming/server.ts)       | Boots an `A2AServer` with `capabilities.streaming = true`, registers `SendStreamingMessage` via `createMessageStreamHandler`, and drives the loop with `DefaultStreamingTaskHandler.asHandler()`. |
+| [`client.ts`](https://github.com/inference-gateway/typescript-adk/blob/main/examples/ai-powered-streaming/client.ts)       | Plain `fetch`-based SSE consumer. Decodes each CloudEvents v1.0 frame inline, accumulates `delta` text, and surfaces `tool.*` and `task.status.changed` transitions live.                         |
+| [`.env.example`](https://github.com/inference-gateway/typescript-adk/blob/main/examples/ai-powered-streaming/.env.example) | Per-provider configuration template. Set `A2A_AGENT_CLIENT_PROVIDER`, `A2A_AGENT_CLIENT_MODEL`, and the matching `<PROVIDER>_API_KEY` to switch models without touching code.                     |
+| [`README.md`](https://github.com/inference-gateway/typescript-adk/blob/main/examples/ai-powered-streaming/README.md)       | Full walkthrough: layout, running it, configuration matrix, expected event order, troubleshooting, and "how the pieces fit together."                                                             |
 
 #### Expected event order
 
@@ -1083,8 +1085,8 @@ For a single user prompt that triggers one tool call before the final answer, th
 
 Other terminal states are possible:
 
-- `state=TASK_STATE_INPUT_REQUIRED` if the LLM invokes the reserved [`input_required`](#reserved-input_required-tool) tool. An `adk.agent.input.required` frame carrying the prompt precedes the terminal status frame; the task stays in storage so a subsequent `message/stream` or `message/send` against the same `contextId` resumes it.
-- `state=TASK_STATE_CANCELLED` if the client disconnects, the server shuts down, or [`tasks/cancel`](#the-tasks-cancel-json-rpc-method) fires during the run.
+- `state=TASK_STATE_INPUT_REQUIRED` if the LLM invokes the reserved [`input_required`](#reserved-input_required-tool) tool. An `adk.agent.input.required` frame carrying the prompt precedes the terminal status frame; the task stays in storage so a subsequent `SendStreamingMessage` or `SendMessage` against the same `contextId` resumes it.
+- `state=TASK_STATE_CANCELLED` if the client disconnects, the server shuts down, or [`CancelTask`](#the-canceltask-json-rpc-method) fires during the run.
 - `state=TASK_STATE_FAILED` if the iteration cap is hit or the executor throws. The terminal frame embeds the error text in `status.message`.
 
 The full event-type matrix exposed on `AGENT_EVENT_TYPE` is documented in [CloudEvents v1.0 envelope shape](#cloudevents-v10-envelope-shape).
@@ -1117,9 +1119,9 @@ The full event-type matrix exposed on `AGENT_EVENT_TYPE` is documented in [Cloud
 
 Set `A2A_AGENT_CLIENT_API_KEY` to override the per-provider lookup, and `A2A_AGENT_CLIENT_BASE_URL` to point at the [Inference Gateway](https://github.com/inference-gateway/inference-gateway) (recommended - it normalizes provider quirks so the same agent code talks to every provider unchanged) or any other OpenAI-compatible endpoint. The full configuration matrix, troubleshooting checklist, and example client output live in the example's [`README.md`](https://github.com/inference-gateway/typescript-adk/blob/main/examples/ai-powered-streaming/README.md).
 
-## The `agent/getAuthenticatedExtendedCard` JSON-RPC method
+## The `GetExtendedAgentCard` JSON-RPC method
 
-`agent/getAuthenticatedExtendedCard` is the synchronous lookup an authenticated client uses to fetch the **extended** agent card - a richer descriptor that lives alongside the public `/.well-known/agent-card.json` and carries metadata the agent only exposes once the caller has proven who they are. The handler:
+`GetExtendedAgentCard` is the synchronous lookup an authenticated client uses to fetch the **extended** agent card - a richer descriptor that lives alongside the public `/.well-known/agent-card.json` and carries metadata the agent only exposes once the caller has proven who they are. The handler:
 
 1. Validates the JSON-RPC `params` payload against `GetAuthenticatedExtendedCardParams` (every field optional; `params` itself may be omitted).
 2. Returns the configured extended `AgentCard` verbatim - it does **not** mutate, filter, or re-decorate the card.
@@ -1186,7 +1188,7 @@ What the builder does at `build()` time when both `withAuthenticator(...)` and `
 
 1. Calls `decorateAgentCardWithAuth(card, authConfig)` to produce the **extended** card - the public card plus an `openIdConnectSecurityScheme` entry (`securitySchemes.oidc`) pointing at `<issuerUrl>/.well-known/openid-configuration`, and a matching `securityRequirements` entry naming the same scheme.
 2. Clones the **public** card and sets `capabilities.extendedAgentCard: true` on the clone (the original card stays untouched, auth schemes never appear on the public card).
-3. Constructs the `A2AServer` with both `card` (public) and `extendedCard`, which causes the server to auto-register `agent/getAuthenticatedExtendedCard` against the extended card.
+3. Constructs the `A2AServer` with both `card` (public) and `extendedCard`, which causes the server to auto-register `GetExtendedAgentCard` against the extended card.
 4. Wires the authenticator's middleware on the JSON-RPC route, so the handler's "trust upstream auth" contract holds.
 
 > **Behavior change vs. prior versions.** Earlier releases of the TypeScript ADK decorated the **public** card with auth schemes when `withAuthConfig(...)` was supplied. Current releases leave the public card undecorated; auth schemes live only on the extended card. Clients that relied on parsing `securitySchemes` from the well-known card must either switch to fetching the extended card after authentication, or look for the `capabilities.extendedAgentCard: true` flag and then negotiate. The Go ADK has always behaved this way; the TS ADK is now aligned.
@@ -1244,7 +1246,7 @@ server.registerMethod(
 );
 ```
 
-> **Use the exported method-name constant.** `GET_AUTHENTICATED_EXTENDED_CARD_METHOD` resolves to the string `'agent/getAuthenticatedExtendedCard'`. Importing it (rather than hard-coding the literal) keeps the registration in lockstep with conformance tests and other consumers.
+> **Use the exported method-name constant.** `GET_AUTHENTICATED_EXTENDED_CARD_METHOD` resolves to the string `'GetExtendedAgentCard'`. Importing it (rather than hard-coding the literal) keeps the registration in lockstep with conformance tests and other consumers.
 
 ### Handler options
 
@@ -1319,7 +1321,7 @@ When the server is built **without** an extended card configured, the method is 
   "id": 1,
   "error": {
     "code": -32601,
-    "message": "method not found: agent/getAuthenticatedExtendedCard"
+    "message": "method not found: GetExtendedAgentCard"
   }
 }
 ```
@@ -1360,7 +1362,7 @@ curl -sS -X POST http://localhost:8080/ \
   --data '{
     "jsonrpc": "2.0",
     "id": 1,
-    "method": "agent/getAuthenticatedExtendedCard"
+    "method": "GetExtendedAgentCard"
   }'
 ```
 
@@ -1407,7 +1409,7 @@ curl -sS -X POST http://localhost:8080/ \
   --data '{
     "jsonrpc": "2.0",
     "id": 2,
-    "method": "agent/getAuthenticatedExtendedCard",
+    "method": "GetExtendedAgentCard",
     "params": { "tenant": "acme-prod" }
   }'
 ```
@@ -1422,7 +1424,7 @@ curl -sS -i -X POST http://localhost:8080/ \
   --data '{
     "jsonrpc": "2.0",
     "id": 3,
-    "method": "agent/getAuthenticatedExtendedCard"
+    "method": "GetExtendedAgentCard"
   }'
 ```
 
@@ -1610,7 +1612,7 @@ The handler reserves the tool name `input_required` (exported as `INPUT_REQUIRED
 1. Skips the configured `ToolBox` entirely - the tool is **never** dispatched through `toolBox.execute`.
 2. Extracts a human-readable prompt from the `arguments` blob (see below).
 3. Appends a `ROLE_AGENT` message carrying the prompt to `task.messages`.
-4. Transitions the task to `TASK_STATE_INPUT_REQUIRED` and returns. The originating `message/send` task is now paused; the client resumes by submitting a follow-up `message/send` against the same `contextId`.
+4. Transitions the task to `TASK_STATE_INPUT_REQUIRED` and returns. The originating `SendMessage` task is now paused; the client resumes by submitting a follow-up `SendMessage` against the same `contextId`.
 
 Prompt extraction from `arguments`:
 
@@ -1744,7 +1746,7 @@ const server = new A2AServerBuilder()
 await server.listen(8080, '0.0.0.0');
 ```
 
-Because the agent card above advertises `capabilities.streaming: false`, the builder only requires a background handler. To support `message/stream` as well, add `.withStreamingTaskHandler(...)` and flip the capability to `true` - the builder validates the handler-vs-capability pairing at `build()` time and throws `A2AServerBuilderError` on a mismatch.
+Because the agent card above advertises `capabilities.streaming: false`, the builder only requires a background handler. To support `SendStreamingMessage` as well, add `.withStreamingTaskHandler(...)` and flip the capability to `true` - the builder validates the handler-vs-capability pairing at `build()` time and throws `A2AServerBuilderError` on a mismatch.
 
 > **Why `asHandler()` instead of passing `handler` directly?** The builder type signature is `withBackgroundTaskHandler(handler: BackgroundTaskHandler)`, where `BackgroundTaskHandler` is a plain function. `asHandler()` returns a closure that forwards each invocation to `handler.handle(context)`, so the same handler instance (and its accumulated usage tracker state) serves every dequeued task.
 >
@@ -2350,7 +2352,7 @@ const server = new A2AServerBuilder()
 await server.listen(8080, '0.0.0.0');
 ```
 
-The full, runnable counterpart - including the `adaptLLMClient` helper from [Bridging to `DefaultBackgroundTaskHandler`](#bridging-to-defaultbackgroundtaskhandler), an in-process dequeue worker that drives `handler.handle(...)`, and a matching client - lives at [`examples/ai-powered/`](https://github.com/inference-gateway/typescript-adk/tree/main/examples/ai-powered) in the source repo. It mirrors the Go ADK's [`examples/ai-powered/`](https://github.com/inference-gateway/adk/tree/main/examples/ai-powered) for cross-language consistency. For the streaming variant of the same agent (SSE response, live `delta` / `tool.*` frames, same provider matrix), see [End-to-end runnable example](#end-to-end-runnable-example) under `message/stream`.
+The full, runnable counterpart - including the `adaptLLMClient` helper from [Bridging to `DefaultBackgroundTaskHandler`](#bridging-to-defaultbackgroundtaskhandler), an in-process dequeue worker that drives `handler.handle(...)`, and a matching client - lives at [`examples/ai-powered/`](https://github.com/inference-gateway/typescript-adk/tree/main/examples/ai-powered) in the source repo. It mirrors the Go ADK's [`examples/ai-powered/`](https://github.com/inference-gateway/adk/tree/main/examples/ai-powered) for cross-language consistency. For the streaming variant of the same agent (SSE response, live `delta` / `tool.*` frames, same provider matrix), see [End-to-end runnable example](#end-to-end-runnable-example) under `SendStreamingMessage`.
 
 ### `AgentBuilderError`
 
@@ -2373,7 +2375,7 @@ try {
 
 ## Push notifications (`HTTPPushNotificationSender`)
 
-`HTTPPushNotificationSender` is the HTTP webhook delivery primitive the TypeScript ADK ships for pushing `task_update` notifications to URLs a client has registered against a task. A client that cannot keep an SSE connection open (mobile background, batch worker, server-to-server fan-out) registers one or more webhook URLs at `message/send` time; on every task state transition, the sender POSTs a JSON-encoded `TaskUpdateNotification` to each URL with retries, per-attempt timeouts, and exponential backoff.
+`HTTPPushNotificationSender` is the HTTP webhook delivery primitive the TypeScript ADK ships for pushing `task_update` notifications to URLs a client has registered against a task. A client that cannot keep an SSE connection open (mobile background, batch worker, server-to-server fan-out) registers one or more webhook URLs at `SendMessage` time; on every task state transition, the sender POSTs a JSON-encoded `TaskUpdateNotification` to each URL with retries, per-attempt timeouts, and exponential backoff.
 
 It mirrors the Go ADK's `HTTPPushNotificationSender` in [`adk/server/push_notification_sender.go`](https://github.com/inference-gateway/adk/blob/main/server/push_notification_sender.go) - same wire payload, same auth-header resolution order, same retry classification - so a webhook receiver written against either ADK accepts deliveries from the other unchanged.
 
@@ -2417,12 +2419,12 @@ Field notes:
 
 - `type` is always `'task_update'`. Reserve the value so receivers can multiplex multiple event kinds on the same endpoint later without a breaking change.
 - `state` is the wire-format `TaskState` enum (`TASK_STATE_SUBMITTED`, `TASK_STATE_WORKING`, `TASK_STATE_COMPLETED`, `TASK_STATE_FAILED`, `TASK_STATE_CANCELLED`, `TASK_STATE_INPUT_REQUIRED`, ...) - the same value visible on `task.status.state`.
-- `task` is the full wire-format task snapshot, so receivers do not need a follow-up [`tasks/get`](#the-tasks-get-json-rpc-method) to reconstruct context.
+- `task` is the full wire-format task snapshot, so receivers do not need a follow-up [`GetTask`](#the-gettask-json-rpc-method) to reconstruct context.
 - `timestamp` is the moment the sender emitted the POST (`new Date().toISOString()`), not the moment the task transitioned. Receivers that need the transition time read `task.status.timestamp` instead.
 
 The same shape is emitted by the Go ADK, so a webhook receiver targeting one ADK accepts deliveries from the other unchanged.
 
-Notifications are emitted **on every task state transition** - exactly the same set of transitions the SSE [`message/stream`](#the-message-stream-json-rpc-method) handler reports, so push receivers see the same lifecycle as streaming receivers without needing to keep a connection open.
+Notifications are emitted **on every task state transition** - exactly the same set of transitions the SSE [`SendStreamingMessage`](#the-sendstreamingmessage-json-rpc-method) handler reports, so push receivers see the same lifecycle as streaming receivers without needing to keep a connection open.
 
 ### Outbound request shape
 
@@ -2616,7 +2618,7 @@ The error's `cause` (when set) is the original `Error` raised by `fetch`, the `A
 
 ### Configuring push notifications per task
 
-Clients register push notifications on the initial `message/send` call via `SendMessageConfiguration.pushNotificationConfig`. The configuration is per-task and is the source `HTTPPushNotificationSender.deliverTaskUpdate` reads from once the [integration step](#bridging-into-the-state-transition-pipeline-follow-up) is in place.
+Clients register push notifications on the initial `SendMessage` call via `SendMessageConfiguration.pushNotificationConfig`. The configuration is per-task and is the source `HTTPPushNotificationSender.deliverTaskUpdate` reads from once the [integration step](#bridging-into-the-state-transition-pipeline-follow-up) is in place.
 
 The `PushNotificationConfig` shape (from the generated A2A schema):
 
@@ -2642,7 +2644,7 @@ interface AuthenticationInfo {
 
 #### Minimal example
 
-`message/send` with a registered webhook:
+`SendMessage` with a registered webhook:
 
 ```bash
 curl -sS -X POST http://localhost:8080/ \
@@ -2650,7 +2652,7 @@ curl -sS -X POST http://localhost:8080/ \
   --data '{
     "jsonrpc": "2.0",
     "id": 1,
-    "method": "message/send",
+    "method": "SendMessage",
     "params": {
       "message": {
         "messageId": "client-msg",
@@ -2669,7 +2671,7 @@ curl -sS -X POST http://localhost:8080/ \
   }'
 ```
 
-`message/send` returns the freshly minted `Task` as usual; the registered config is persisted alongside the task and consulted on every state transition:
+`SendMessage` returns the freshly minted `Task` as usual; the registered config is persisted alongside the task and consulted on every state transition:
 
 ```json
 {
@@ -2696,7 +2698,7 @@ curl -sS -X POST http://localhost:8080/ \
 
 Each subsequent state transition (`SUBMITTED` -> `WORKING` -> `COMPLETED` / `FAILED` / `CANCELLED` / `INPUT_REQUIRED`) produces one POST per registered config carrying the [`TaskUpdateNotification`](#wire-payload-taskupdatenotification) payload.
 
-> **Clients can register multiple configs per task** via the `tasks/pushNotificationConfig/set` JSON-RPC method; the sender's [`deliverTaskUpdate`](#delivertaskupdateconfigs-task-options---fan-out) helper handles the fan-out. The config-management handlers (`set` / `get` / `list` / `delete`) ship in `@inference-gateway/adk` alongside the sender and are exported from the server barrel.
+> **Clients can register multiple configs per task** via the `CreateTaskPushNotificationConfig` JSON-RPC method; the sender's [`deliverTaskUpdate`](#delivertaskupdateconfigs-task-options---fan-out) helper handles the fan-out. The config-management handlers (`set` / `get` / `list` / `delete`) ship in `@inference-gateway/adk` alongside the sender and are exported from the server barrel.
 
 ### Bridging into the state-transition pipeline (follow-up)
 
@@ -2981,7 +2983,7 @@ With a started, enabled provider, each POST to the JSON-RPC endpoint emits a ser
 
 | Attribute                | Value                                          |
 | ------------------------ | ---------------------------------------------- |
-| `adk.jsonrpc.method`     | The JSON-RPC method (e.g. `message/send`).     |
+| `adk.jsonrpc.method`     | The JSON-RPC method (e.g. `SendMessage`).      |
 | `adk.jsonrpc.request_id` | The JSON-RPC request id (coerced to a string). |
 
 Errors are recorded on the span via `recordSpanError`. Node auto-instrumentations (HTTP, etc.) are enabled by default through `@opentelemetry/sdk-node`.
@@ -3214,12 +3216,12 @@ The TypeScript ADK is being grown in lockstep with the [Go ADK](https://github.c
 
 - The handler name, params shape, id semantics, validation rules, and synchronous return contract are **identical** to the Go implementation's `HandleMessageSend` / `CreateTaskFromMessage`.
 - Internal storage state (`PENDING`) and wire state (`TASK_STATE_SUBMITTED`) follow the same mapping as the Go ADK.
-- `tasks/cancel` mirrors the Go ADK's `CancelTask` in [`adk/server/task_manager.go`](https://github.com/inference-gateway/adk/blob/main/server/task_manager.go) - same per-state branch table (`PENDING` dropped from the queue; `IN_PROGRESS` / `INPUT_REQUIRED` aborted via the shared registry; terminal / unknown surfaced as JSON-RPC `-32602`), and same dead-letter on completion. The TypeScript ADK's [`TaskCancellationRegistry`](#taskcancellationregistry) is the structural equivalent of the Go ADK's `RegisterTaskCancelFunc` / `UnregisterTaskCancelFunc` / `runningTasks` map on `DefaultTaskManager`.
-- The `message/stream` SSE wire format - CloudEvents v1.0 envelopes, `source = 'adk/agent'`, `subject = taskId`, and the `AGENT_EVENT_TYPE.*` constants - is **byte-identical** to the Go ADK's emitter in `server/agent_streamable.go`. Client implementations target one canonical wire contract regardless of which ADK the agent is built with.
+- `CancelTask` mirrors the Go ADK's `CancelTask` in [`adk/server/task_manager.go`](https://github.com/inference-gateway/adk/blob/main/server/task_manager.go) - same per-state branch table (`PENDING` dropped from the queue; `IN_PROGRESS` / `INPUT_REQUIRED` aborted via the shared registry; terminal / unknown surfaced as JSON-RPC `-32602`), and same dead-letter on completion. The TypeScript ADK's [`TaskCancellationRegistry`](#taskcancellationregistry) is the structural equivalent of the Go ADK's `RegisterTaskCancelFunc` / `UnregisterTaskCancelFunc` / `runningTasks` map on `DefaultTaskManager`.
+- The `SendStreamingMessage` SSE wire format - CloudEvents v1.0 envelopes, `source = 'adk/agent'`, `subject = taskId`, and the `AGENT_EVENT_TYPE.*` constants - is **byte-identical** to the Go ADK's emitter in `server/agent_streamable.go`. Client implementations target one canonical wire contract regardless of which ADK the agent is built with.
 - `STREAMING_STATUS_UPDATE_INTERVAL` shares its name, default (`1s`), and accepted format with the Go ADK's `server/config/config.go`.
 - `DefaultBackgroundTaskHandler` mirrors the Go ADK's [`DefaultBackgroundTaskHandler`](https://github.com/inference-gateway/adk/blob/main/server/task_handler.go) - same iteration cap default (`50`), same `MAX_CHAT_COMPLETION_ITERATIONS` env var name, same reserved `input_required` tool and `message` / `prompt` / `question` arg-key fallback, and the same `execution_stats` / `usage` metadata shape on `task.metadata`.
 - [`AgentBuilder`](#agent-builder-agentbuilder) mirrors the Go ADK's [`AgentBuilder`](https://github.com/inference-gateway/adk/blob/main/server/agent_builder.go) - same fluent surface (`withProvider` / `withModel` / `withTemperature` / `withTopP` / `withMaxTokens` / `withMaxIterations` / `withSystemPrompt` / `withMaxConversationHistory` / `withCallbacks` / `withToolBox` / `withLLMClient` / `build`), same defaults (`maxIterations: 50`, `maxConversationHistory: 20`), and a `systemPrompt` default that is a byte-for-byte copy of `AgentConfig.SystemPrompt` from [`server/config/config.go`](https://github.com/inference-gateway/adk/blob/main/server/config/config.go). The TS variant surfaces each LLM-config field as its own builder method instead of a single `WithConfig` call.
-- [`agent/getAuthenticatedExtendedCard`](#the-agent-getauthenticatedextendedcard-json-rpc-method) mirrors the Go ADK's [`HandleGetAuthenticatedExtendedCard`](https://github.com/inference-gateway/adk/blob/main/server/task_handler.go) - same JSON-RPC method name, same optional `tenant` param, same "return the configured extended card verbatim" contract, same fail-closed behaviour when no extended card is configured (`-32601 method not found`). Both ADKs leave the public well-known card undecorated and surface auth schemes only on the extended endpoint; the public card sets `capabilities.extendedAgentCard: true` to signal availability. The TS handler is auto-registered by [`A2AServerBuilder.withAuthConfig(...)`](#via-a2aserverbuilder-withauthconfig) when paired with an authenticator, matching the Go ADK's `A2AServerBuilder.WithAuthConfig` wiring.
+- [`GetExtendedAgentCard`](#the-getextendedagentcard-json-rpc-method) mirrors the Go ADK's [`HandleGetAuthenticatedExtendedCard`](https://github.com/inference-gateway/adk/blob/main/server/task_handler.go) - same JSON-RPC method name, same optional `tenant` param, same "return the configured extended card verbatim" contract, same fail-closed behaviour when no extended card is configured (`-32601 method not found`). Both ADKs leave the public well-known card undecorated and surface auth schemes only on the extended endpoint; the public card sets `capabilities.extendedAgentCard: true` to signal availability. The TS handler is auto-registered by [`A2AServerBuilder.withAuthConfig(...)`](#via-a2aserverbuilder-withauthconfig) when paired with an authenticator, matching the Go ADK's `A2AServerBuilder.WithAuthConfig` wiring.
 - [`HTTPPushNotificationSender`](#push-notifications-httppushnotificationsender) mirrors the Go ADK's [`HTTPPushNotificationSender`](https://github.com/inference-gateway/adk/blob/main/server/push_notification_sender.go) - same `TaskUpdateNotification` JSON payload (`type` / `taskId` / `state` / `timestamp` / `task`), same auth-header resolution order (`config.token` first, then bearer / basic in `config.authentication.schemes`), and the same retryable-vs-non-retryable classification (5xx / 429 / network / per-attempt timeout retryable; 4xx and caller abort non-retryable). The TypeScript sender ships `deliverTaskUpdate` as a fan-out helper with a default concurrency cap of `8`; both ADKs' senders are delivery primitives only and depend on the lifecycle layer for invocation.
 - The generated `Message`, `Task`, and `Part` types are produced from the same `inference-gateway/schemas` source of truth, regenerated via `pnpm generate:types` and pinned to a specific schema commit.
 
