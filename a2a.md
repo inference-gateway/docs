@@ -407,6 +407,8 @@ The v1.0.1 method names are bare PascalCase identifiers. The v0.x slash names (`
 
 Inside `params`, field names follow the normative proto3 JSON mapping of A2A spec section 1.4: a server accepts both the lowerCamelCase form (`pageSize`, `contextId`) and the proto3 form (`page_size`, `context_id`), and ignores params it does not recognize rather than rejecting the request with `-32602 Invalid params`. [Rust ADK](/rust-adk/) servers behave this way as of the current release; the other ADKs are converging on it, so do not rely on a non-Rust agent tolerating snake_case or extra fields yet.
 
+The same mapping governs values: an optional field carrying its proto3 default is equivalent to omitting it, so a `ListTasks` call with `pageToken: ""` asks for the first page, `pageSize: 0` asks for the server's default page size, and `status: ""` / `contextId: ""` apply no filter. The [Go](/adk/) and [TypeScript](/typescript-adk/#the-listtasks-json-rpc-method) ADK servers both accept these, which is what lets a client serialize every field unconditionally on its first call.
+
 ## Best Practices
 
 ### Agent Design

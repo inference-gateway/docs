@@ -23,27 +23,27 @@ pnpm add @inference-gateway/adk
 
 The ADK currently exposes the HTTP server core and the first A2A JSON-RPC method handler:
 
-| Surface                                     | Status    | Notes                                                                                                          |
-| ------------------------------------------- | --------- | -------------------------------------------------------------------------------------------------------------- |
-| `A2AServer` / `createA2AServer`             | Available | Hono-backed HTTP server. Serves `/.well-known/agent-card.json`, `/health`, and JSON-RPC.                       |
-| `MethodRegistry` / `registerMethod`         | Available | Per-server JSON-RPC method dispatch table.                                                                     |
-| `InMemoryTaskStorage`                       | Available | In-process task queue + active task map. Swap for a custom `TaskStorage` in production.                        |
-| `createMessageSendHandler`                  | Available | Synchronous `SendMessage` handler.                                                                             |
-| `createMessageStreamHandler`                | Available | Streaming `SendStreamingMessage` handler. SSE response wrapped in CloudEvents v1.0 envelopes.                  |
-| `createTaskGetHandler`                      | Available | Synchronous `GetTask` handler. Looks up a task across active and dead-letter storage.                          |
-| `createTaskListHandler`                     | Available | Synchronous `ListTasks` handler. Filterable, keyset-paginated over `(createdAt, id)`.                          |
-| `createTaskCancelHandler`                   | Available | Synchronous `CancelTask` handler. Drops `PENDING` from the queue, aborts in-flight.                            |
-| `TaskCancellationRegistry`                  | Available | Shared `taskId -> AbortController` map bridging `CancelTask` and streaming handlers.                           |
-| `DefaultBackgroundTaskHandler`              | Available | LLM-driven agentic loop with tool dispatch, history truncation, and an iteration cap.                          |
-| `AgentBuilder`                              | Available | Fluent builder for an `OpenAICompatibleAgent`; defaults match the Go ADK byte-for-byte.                        |
-| `A2AServerBuilder`                          | Available | Fluent server builder; validates that the agent card's capabilities match the handlers.                        |
-| `createGetAuthenticatedExtendedCardHandler` | Available | Synchronous `GetExtendedAgentCard` handler; returns the configured extended card.                              |
-| `HTTPPushNotificationSender`                | Available | HTTP webhook delivery primitive for `task_update` payloads, with retry / auth / fan-out helpers.               |
-| `ArtifactService` + storage backends        | Available | Build text/file/data artifacts; persist via filesystem, MinIO/S3, or in-memory storage.                        |
-| `registerArtifactsRoute`                    | Available | `GET /artifacts/:artifactId/:filename` download route; auto-mounted by `createA2AServer({ artifactStorage })`. |
-| `TelemetryProvider`                         | Available | OpenTelemetry tracing; emits `adk.jsonrpc.request` server spans plus `tool.<name>` tool spans over OTLP.       |
-| `MetricsRegistry` / `MetricsServer`         | Available | Prometheus `a2a_*` metrics via a standalone `/metrics` server plus a request middleware.                       |
-| TLS server / client                         | Available | HTTPS and mutual TLS for `A2AServer` and the bundled A2A client.                                               |
+| Surface                                     | Status    | Notes                                                                                                             |
+| ------------------------------------------- | --------- | ----------------------------------------------------------------------------------------------------------------- |
+| `A2AServer` / `createA2AServer`             | Available | Hono-backed HTTP server. Serves `/.well-known/agent-card.json`, `/health`, and JSON-RPC.                          |
+| `MethodRegistry` / `registerMethod`         | Available | Per-server JSON-RPC method dispatch table.                                                                        |
+| `InMemoryTaskStorage`                       | Available | In-process task queue + active task map. Swap for a custom `TaskStorage` in production.                           |
+| `createMessageSendHandler`                  | Available | Synchronous `SendMessage` handler.                                                                                |
+| `createMessageStreamHandler`                | Available | Streaming `SendStreamingMessage` handler. SSE response wrapped in CloudEvents v1.0 envelopes.                     |
+| `createTaskGetHandler`                      | Available | Synchronous `GetTask` handler. Looks up a task across active and dead-letter storage.                             |
+| `createTaskListHandler`                     | Available | Synchronous `ListTasks` handler. Filterable, keyset-paginated over `(createdAt, id)`; proto3 defaults mean unset. |
+| `createTaskCancelHandler`                   | Available | Synchronous `CancelTask` handler. Drops `PENDING` from the queue, aborts in-flight.                               |
+| `TaskCancellationRegistry`                  | Available | Shared `taskId -> AbortController` map bridging `CancelTask` and streaming handlers.                              |
+| `DefaultBackgroundTaskHandler`              | Available | LLM-driven agentic loop with tool dispatch, history truncation, and an iteration cap.                             |
+| `AgentBuilder`                              | Available | Fluent builder for an `OpenAICompatibleAgent`; defaults match the Go ADK byte-for-byte.                           |
+| `A2AServerBuilder`                          | Available | Fluent server builder; validates that the agent card's capabilities match the handlers.                           |
+| `createGetAuthenticatedExtendedCardHandler` | Available | Synchronous `GetExtendedAgentCard` handler; returns the configured extended card.                                 |
+| `HTTPPushNotificationSender`                | Available | HTTP webhook delivery primitive for `task_update` payloads, with retry / auth / fan-out helpers.                  |
+| `ArtifactService` + storage backends        | Available | Build text/file/data artifacts; persist via filesystem, MinIO/S3, or in-memory storage.                           |
+| `registerArtifactsRoute`                    | Available | `GET /artifacts/:artifactId/:filename` download route; auto-mounted by `createA2AServer({ artifactStorage })`.    |
+| `TelemetryProvider`                         | Available | OpenTelemetry tracing; emits `adk.jsonrpc.request` server spans plus `tool.<name>` tool spans over OTLP.          |
+| `MetricsRegistry` / `MetricsServer`         | Available | Prometheus `a2a_*` metrics via a standalone `/metrics` server plus a request middleware.                          |
+| TLS server / client                         | Available | HTTPS and mutual TLS for `A2AServer` and the bundled A2A client.                                                  |
 
 Every method name on this page is an A2A v1.0.1 name, generated from the canonical schema as the `A2AMethod` union in `src/types/generated/a2a.ts` and re-exported as the `*_METHOD` constants (`MESSAGE_SEND_METHOD`, `TASK_GET_METHOD`, ...). Register and dispatch with those constants rather than string literals. The v0.x slash names (`message/send`, `tasks/get`, ...) are no longer registered and answer `-32601 Method not found`.
 
@@ -307,8 +307,8 @@ The "not found" case is intentionally surfaced as `-32602` (not a custom code) t
 
 1. Validates the JSON-RPC `params` payload against `TaskListParams`.
 2. Calls `TaskStorage.listTasks(filter)`, which spans both active and dead-letter stores in FIFO `createdAt` order.
-3. Applies the optional `state` / `contextId` filter and a `limit`-bounded keyset slice starting from the supplied `cursor` (if any).
-4. Returns `{ tasks, nextCursor? }` - `nextCursor` is **omitted on the final page**, so clients stop paginating when it's absent.
+3. Applies the optional `status` / `contextId` filter and a `pageSize`-bounded keyset slice starting from the supplied `pageToken` (if any).
+4. Returns `{ tasks, pageSize, totalSize, nextPageToken }` - `nextPageToken` is **empty on the final page**, so clients stop paginating when it's `""`.
 
 The wire format and pagination semantics match the Go ADK's task-list handler. Use [`GetTask`](#the-gettask-json-rpc-method) when you already know the id of a single task.
 
@@ -326,36 +326,50 @@ server.registerMethod(TASK_LIST_METHOD, createTaskListHandler({ storage }));
 
 `createTaskListHandler(options)` accepts:
 
-| Option         | Required | Default | Description                                                                                                                                      |
-| -------------- | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `storage`      | Yes      | -       | Implementation of `TaskStorage` used to enumerate tasks.                                                                                         |
-| `defaultLimit` | No       | `100`   | Page size when the caller omits `limit`. Clamped to `[1, maxLimit]` at construction time so a misconfiguration cannot silently exceed the cap.   |
-| `maxLimit`     | No       | `100`   | Hard cap on page size. Requests with `limit` above this are clamped down silently (consistent with the Go ADK's pagination caps - not an error). |
+| Option         | Required | Default | Description                                                                                                                                           |
+| -------------- | -------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `storage`      | Yes      | -       | Implementation of `TaskStorage` used to enumerate tasks.                                                                                              |
+| `defaultLimit` | No       | `100`   | Page size when the caller omits `pageSize` or sends `0`. Clamped to `[1, maxLimit]` at construction time so a misconfiguration cannot exceed the cap. |
+| `maxLimit`     | No       | `100`   | Hard cap on page size. Requests with `pageSize` above this are clamped down silently (consistent with the Go ADK's pagination caps - not an error).   |
 
 Both `defaultLimit` and `maxLimit` must be positive integers; otherwise the factory throws at registration time.
 
-### Request shape (`TaskListParams`)
+### Request shape (`ListTasksRequest`)
 
 ```ts
-interface TaskListParams {
-  readonly state?: TaskState; // filter by status.state (e.g., 'TASK_STATE_COMPLETED')
+interface ListTasksRequest {
+  readonly status?: TaskState; // filter by status.state (e.g., 'TASK_STATE_COMPLETED')
   readonly contextId?: string; // filter by contextId
-  readonly limit?: number; // positive integer; clamped to maxLimit
-  readonly cursor?: string; // opaque continuation token from a previous nextCursor
-  readonly metadata?: Struct; // free-form per-call metadata
+  readonly pageSize?: number; // non-negative integer; clamped to maxLimit
+  readonly pageToken?: string; // opaque continuation token from a previous nextPageToken
 }
 ```
 
 All fields are optional - a request with no params returns the first page of every task in storage.
 
-> **Treat `cursor` as opaque.** The handler encodes the `(createdAt, id)` of the last item on the previous page as a base64url JSON envelope. The encoding is an implementation detail and may change in any release; clients must round-trip `nextCursor` verbatim and never parse, mutate, or construct one by hand.
+#### Default-valued params mean "unset"
 
-### Response shape (`TaskListResult`)
+Per the proto3 JSON mapping of A2A spec section 1.4, a field carrying its proto3 default value is equivalent to omitting it. Go ADK clients serialize all four fields on their first call, so the handler treats each default as "unset" rather than rejecting it:
+
+| Sent value      | Meaning                                                     |
+| --------------- | ----------------------------------------------------------- |
+| `pageToken: ""` | First page - same as omitting `pageToken`.                  |
+| `pageSize: 0`   | Use the server's default page size (`defaultLimit`, `100`). |
+| `status: ""`    | No status filter - tasks in every state are returned.       |
+| `contextId: ""` | No context filter - tasks from every context are returned.  |
+
+This matches the Go ADK server, which has always read an empty page token as the first page.
+
+> **Treat `pageToken` as opaque.** The handler encodes the `(createdAt, id)` of the last item on the previous page as a base64url JSON envelope. The encoding is an implementation detail and may change in any release; clients must round-trip `nextPageToken` verbatim and never parse, mutate, or construct one by hand.
+
+### Response shape (`ListTasksResponse`)
 
 ```ts
-interface TaskListResult {
-  readonly tasks: Task[]; // wire-format tasks, up to `limit` entries
-  readonly nextCursor?: string; // omitted on the last page - stop when absent
+interface ListTasksResponse {
+  readonly tasks: Task[]; // wire-format tasks, up to `pageSize` entries
+  readonly pageSize: number; // the effective page size the server applied
+  readonly totalSize: number; // total tasks matching the filter, across all pages
+  readonly nextPageToken: string; // "" on the last page - stop when empty
 }
 ```
 
@@ -364,38 +378,37 @@ interface TaskListResult {
 The handler uses **keyset pagination on `(createdAt, id)`** rather than offset/limit. The guarantees:
 
 - **Stable under concurrent inserts.** Tasks created between page fetches appear on later pages without shifting items on earlier ones.
-- **Stable under concurrent deletes.** If the task referenced by the cursor is deleted, pagination resumes from the first task strictly after that `(createdAt, id)` keypair - the response is well-defined even if the cursor's task no longer exists.
+- **Stable under concurrent deletes.** If the task referenced by the page token is deleted, pagination resumes from the first task strictly after that `(createdAt, id)` keypair - the response is well-defined even if the token's task no longer exists.
 - **No duplicates, no skips.** Each task appears at most once across the full pagination, regardless of insert/delete activity.
 
-This is the same property the Go ADK provides, and is the reason the cursor is keyset-encoded rather than a numeric offset.
+This is the same property the Go ADK provides, and is the reason the page token is keyset-encoded rather than a numeric offset.
 
 ### Validation contract
 
 All failures surface as JSON-RPC error code `-32602 Invalid Params` - the same envelope `SendMessage` and `GetTask` use:
 
-| Failure                                                                   | Error message contains                                    |
-| ------------------------------------------------------------------------- | --------------------------------------------------------- |
-| `params` is `null`, an array, or not an object                            | `expected TaskListParams object`                          |
-| `state` present but not a non-empty string                                | `state must be a non-empty string`                        |
-| `contextId` present but not a non-empty string                            | `contextId must be a non-empty string`                    |
-| `limit` present but not a positive integer (`0`, negatives, non-integers) | `limit must be a positive integer`                        |
-| `cursor` present but not a non-empty string                               | `cursor must be a non-empty string`                       |
-| `cursor` cannot be base64url-decoded                                      | `cursor is not a valid base64url string`                  |
-| `cursor` decodes to invalid JSON                                          | `cursor payload is not valid JSON`                        |
-| `cursor` decodes to something other than the `{ createdAt, id }` envelope | `cursor payload is malformed` / `missing required fields` |
-| `metadata` present but not an object                                      | `metadata must be an object`                              |
+| Failure                                                                      | Error message contains                                    |
+| ---------------------------------------------------------------------------- | --------------------------------------------------------- |
+| `params` is `null`, an array, or not an object                               | `expected ListTasksRequest object`                        |
+| `status` present but not a string                                            | `status must be a string`                                 |
+| `contextId` present but not a string                                         | `contextId must be a string`                              |
+| `pageSize` present but not a non-negative integer (negatives, non-integers)  | `pageSize must be a non-negative integer`                 |
+| `pageToken` present but not a string                                         | `pageToken must be a string`                              |
+| `pageToken` cannot be base64url-decoded                                      | `cursor is not a valid base64url string`                  |
+| `pageToken` decodes to invalid JSON                                          | `cursor payload is not valid JSON`                        |
+| `pageToken` decodes to something other than the `{ createdAt, id }` envelope | `cursor payload is malformed` / `missing required fields` |
 
-A `limit` above `maxLimit` is **not** an error - it is clamped down silently. A `state` value that doesn't match any stored task yields an empty `tasks` array, also not an error.
+A `pageSize` above `maxLimit` is **not** an error - it is clamped down silently. Neither are the proto3 defaults (`pageToken: ""`, `pageSize: 0`, `status: ""`, `contextId: ""`) - see [default-valued params](#default-valued-params-mean-unset). A `status` value that doesn't match any stored task yields an empty `tasks` array, also not an error.
 
 ### Paginating from a client
 
-The canonical loop: keep calling `ListTasks` with the previous response's `nextCursor` until the response omits it.
+The canonical loop: keep calling `ListTasks` with the previous response's `nextPageToken` until it comes back empty. Passing the empty token straight through on the first call is fine - that is the first page.
 
 ```ts
-import type { Task, TaskListResult } from '@inference-gateway/adk';
+import type { ListTasksResponse, Task } from '@inference-gateway/adk';
 
 const all: Task[] = [];
-let cursor: string | undefined;
+let pageToken = '';
 
 do {
   const res = await fetch('http://localhost:8080/', {
@@ -406,19 +419,19 @@ do {
       id: crypto.randomUUID(),
       method: 'ListTasks',
       params: {
-        state: 'TASK_STATE_COMPLETED',
-        limit: 50,
-        ...(cursor !== undefined ? { cursor } : {}),
+        status: 'TASK_STATE_COMPLETED',
+        pageSize: 50,
+        pageToken,
       },
     }),
   });
-  const { result } = (await res.json()) as { result: TaskListResult };
+  const { result } = (await res.json()) as { result: ListTasksResponse };
   all.push(...result.tasks);
-  cursor = result.nextCursor;
-} while (cursor !== undefined);
+  pageToken = result.nextPageToken;
+} while (pageToken !== '');
 ```
 
-The same flow works against a `curl` loop or any JSON-RPC client - the cursor is a string, full stop.
+The same flow works against a `curl` loop or any JSON-RPC client - the page token is a string, full stop.
 
 A single-page request looks like:
 
@@ -429,7 +442,7 @@ curl -sS -X POST http://localhost:8080/ \
     "jsonrpc": "2.0",
     "id": 1,
     "method": "ListTasks",
-    "params": { "state": "TASK_STATE_COMPLETED", "limit": 2 }
+    "params": { "status": "TASK_STATE_COMPLETED", "pageSize": 2 }
   }'
 ```
 
@@ -454,12 +467,14 @@ Response (first page, with a continuation token):
         "history": []
       }
     ],
-    "nextCursor": "eyJjcmVhdGVkQXQiOiIyMDI2LTA1LTI2VDEyOjAwOjAxLjAwMFoiLCJpZCI6ImFiMTIifQ"
+    "pageSize": 2,
+    "totalSize": 5,
+    "nextPageToken": "eyJjcmVhdGVkQXQiOiIyMDI2LTA1LTI2VDEyOjAwOjAxLjAwMFoiLCJpZCI6ImFiMTIifQ"
   }
 }
 ```
 
-When the next call returns a `result` without `nextCursor`, the client has exhausted the listing.
+When the next call returns a `result` with an empty `nextPageToken`, the client has exhausted the listing.
 
 The integration fixtures for this handler live at [`tests/server/task-list.test.ts`](https://github.com/inference-gateway/typescript-adk/blob/main/tests/server/task-list.test.ts) in the source repo.
 
