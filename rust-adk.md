@@ -232,7 +232,7 @@ let agent = AgentBuilder::new()
 | `with_max_tokens(u32)`                             | Token ceiling per completion. Applies to non-streaming completions only - the gateway SDK omits `max_tokens` from streaming requests.                                |
 | `with_temperature(f64)`                            | Sampling temperature (`0.0` - `2.0`), sent with streaming and non-streaming completions alike. Leave it unset to keep the gateway default.                           |
 | `with_system_prompt(s)`                            | System prompt prepended to every conversation.                                                                                                                       |
-| `with_enable_usage_metadata(bool)`                 | Override whether terminal tasks carry token usage + execution stats (default from config, `true`).                                                                   |
+| `with_enable_usage_metadata(bool)`                 | Override whether terminal tasks carry token usage + execution stats as the [usage extension](#usage-metadata) (default from config, `true`).                         |
 | `with_max_conversation_history(u32)`               | Max conversation-history messages retained (default `20`).                                                                                                           |
 | `with_toolbox(Vec<ChatCompletionTool>)`            | Declare the tool schema advertised to the model.                                                                                                                     |
 | `with_tool_handler(name, h)`                       | Register a `ToolHandler` for a named tool.                                                                                                                           |
@@ -464,9 +464,27 @@ Reach for this when task bookkeeping buys nothing: a health ping, a capability q
 
 Streaming handlers receive a `StreamEmitter` and push status updates and artifacts over the SSE stream as work progresses - see [Emitting artifacts from a streaming handler](#emitting-artifacts-from-a-streaming-handler) for a worked example. For runnable demos, see [`examples/streaming/`](https://github.com/inference-gateway/rust-adk/tree/main/examples/streaming) and the `TaskStateInputRequired` flow in [`examples/input-required/`](https://github.com/inference-gateway/rust-adk/tree/main/examples/input-required).
 
+### Usage metadata
+
+With `enable_usage_metadata` on (`A2A_AGENT_CLIENT_ENABLE_USAGE_METADATA`, default `true`), the default handlers attach the task's token usage and execution stats to its metadata on terminal states. The ADK publishes them as the [usage extension](/a2a/#usage-extension):
+
+- `build()` declares the extension in the agent card and the extended card, with `required: false`.
+- A request activates it with the `A2A-Extensions` header, and the response echoes the URI. Tasks returned to a request that did not activate it leave the keys out, and push notifications never carry them. The stored task always keeps them.
+- The keys are `USAGE_METADATA_KEY` and `EXECUTION_STATS_METADATA_KEY`, both prefixed by `USAGE_EXTENSION_URI`. `Task::without_extension(uri)` drops an extension's keys from a task.
+
+`A2AClient` activates extensions through `ClientConfig::extensions`, sent as the `A2A-Extensions` header on every request:
+
+```rust
+use inference_gateway_adk::{A2AClient, ClientConfig, USAGE_EXTENSION_URI};
+
+let mut config = ClientConfig::new("http://localhost:8080");
+config.extensions = vec![USAGE_EXTENSION_URI.to_string()];
+let client = A2AClient::with_config(config)?;
+```
+
 ## A2AClient
 
-`A2AClient` is the typed client for talking to an A2A server. Construct it with a base URL, or with a `ClientConfig` for explicit timeout and retry control:
+`A2AClient` is the typed client for talking to an A2A server. Construct it with a base URL, or with a `ClientConfig` for explicit timeout and retry control and the [extensions](#usage-metadata) every request activates:
 
 ```rust
 use inference_gateway_adk::A2AClient;
@@ -1421,7 +1439,7 @@ Log verbosity is controlled by [`RUST_LOG`](https://docs.rs/tracing-subscriber/l
 | `A2A_AGENT_CLIENT_MAX_TOKENS`                     | `4096`    | Max tokens per completion. Non-streaming completions only - the gateway SDK omits `max_tokens` from streaming requests.  |
 | `A2A_AGENT_CLIENT_TEMPERATURE`                    | _(unset)_ | Sampling temperature, `0.0` - `2.0`. Sent with streaming and non-streaming completions; unset keeps the gateway default. |
 | `A2A_AGENT_CLIENT_SYSTEM_PROMPT`                  | _(unset)_ | System prompt prepended to conversations.                                                                                |
-| `A2A_AGENT_CLIENT_ENABLE_USAGE_METADATA`          | `true`    | Attach token usage + execution stats to terminal task metadata.                                                          |
+| `A2A_AGENT_CLIENT_ENABLE_USAGE_METADATA`          | `true`    | Serve the [usage extension](#usage-metadata) on terminal tasks.                                                          |
 
 **Capabilities** are not environment-configurable. The served card and the [builder's streaming-handler validation](#the-server-and-its-builder) read the `capabilities` object of your agent card JSON, so set `streaming`, `pushNotifications`, and `extendedAgentCard` there. `pushNotifications` gates the [push-notification-config methods](#push-notifications) and `extendedAgentCard` gates `GetExtendedAgentCard`; a method whose flag is missing answers a JSON-RPC error rather than running. The A2A v1.0.1 card has no `stateTransitionHistory` flag - a card still carrying it fails to deserialize into the ADK's `AgentCapabilities`.
 
