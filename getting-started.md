@@ -30,20 +30,23 @@ Send a request to the Inference Gateway:
 
 ```bash
 curl -X POST http://localhost:8080/v1/chat/completions \
--d '{
-"model": "deepseek/deepseek-v4-flash",
-"messages": [
-        {
-            "role": "system",
-            "content": "You are a helpful assistant."
-        },
-        {
-            "role": "user",
-            "content": "Hello, world!"
-        }
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "openai/gpt-5.6-luna",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a helpful assistant."
+      },
+      {
+        "role": "user",
+        "content": "Hello, world!"
+      }
     ]
-}
+  }'
 ```
+
+The model id is always `<provider>/<model>`, so switching providers is a one-word change: set `ANTHROPIC_API_KEY` in the Docker step and ask for `anthropic/claude-opus-4-8`, or set `GOOGLE_API_KEY` and ask for `google/gemini-3-flash`. The gateway returns `400 Bad Request` if the provider in the model id has no API key configured.
 
 ## Next steps
 

@@ -47,32 +47,32 @@ Content-Type: application/json
   "object": "list",
   "data": [
     {
-      "id": "gpt-5",
+      "id": "openai/gpt-5.6-sol",
       "object": "model",
       "created": 1741879542,
       "owned_by": "openai",
       "served_by": "openai",
     },
     {
-      "id": "claude-opus-4-8",
+      "id": "anthropic/claude-opus-5-5",
       "object": "model",
       "created": 1741879542,
       "owned_by": "anthropic",
       "served_by": "anthropic",
     },
     {
-      "id": "llama-3.3-70b-versatile",
+      "id": "zai/glm-5.3",
       "object": "model",
       "created": 1741879542,
-      "owned_by": "Meta",
-      "served_by": "groq",
+      "owned_by": "zai",
+      "served_by": "zai",
     }
     ...
   ]
 }
 ```
 
-The response body conforms to the `ListModelsResponse` schema, where `data` is an array of `Model` objects.
+The response body conforms to the `ListModelsResponse` schema, where `data` is an array of `Model` objects. Every `id` is namespaced as `<provider>/<model>` - that is the exact string to pass as `model` in a request.
 
 **Examples with `include`:**
 
@@ -105,7 +105,7 @@ Content-Type: application/json
   "object": "list",
   "data": [
     {
-      "id": "llama-3.1-8b-instruct",
+      "id": "llamacpp/llama-3.1-8b-instruct",
       "object": "model",
       "created": 1741879542,
       "owned_by": "Meta",
@@ -146,7 +146,7 @@ Content-Type: application/json
   "object": "list",
   "data": [
     {
-      "id": "gpt-5",
+      "id": "openai/gpt-6-astra",
       "object": "model",
       "created": 1741879542,
       "owned_by": "openai",
@@ -161,7 +161,7 @@ Content-Type: application/json
       }
     },
     {
-      "id": "gpt-5-mini",
+      "id": "openai/gpt-5.6-luna",
       "object": "model",
       "created": 1741879542,
       "owned_by": "openai",
@@ -177,7 +177,7 @@ Content-Type: application/json
 }
 ```
 
-In this example, `gpt-5` carries provider-published rates while `gpt-5-mini` fell back to the community table (`source: "community"`; community entries omit `updated_at`).
+In this example, `openai/gpt-5.6-sol` carries provider-published rates while `openai/gpt-5.6-luna` fell back to the community table (`source: "community"`; community entries omit `updated_at`).
 
 Example response for subscription-gated Ollama Cloud models with `include=pricing`:
 
@@ -236,7 +236,7 @@ Get a list of available models for a specific provider. The `include` parameter 
 GET /v1/models?provider={provider}
 ```
 
-where `{provider}` is one of: `openai`, `anthropic`, `cohere`, `groq`, `cloudflare`, `ollama`, `ollama_cloud`, `google`, `deepseek`, `mistral`, `minimax`, `moonshot`, `nvidia`.
+where `{provider}` is one of: `openai`, `anthropic`, `cohere`, `groq`, `cloudflare`, `ollama`, `ollama_cloud`, `google`, `deepseek`, `mistral`, `minimax`, `moonshot`, `nvidia`, `llamacpp`, `zai`, `elevenlabs`.
 
 **Query Parameters:**
 
@@ -248,7 +248,7 @@ where `{provider}` is one of: `openai`, `anthropic`, `cohere`, `groq`, `cloudfla
 **Example:**
 
 ```http
-GET /v1/models?provider=deepseek&include=pricing,context_window
+GET /v1/models?provider=anthropic&include=pricing,context_window
 ```
 
 **Response** (`ListModelsResponse`):
@@ -258,22 +258,25 @@ Status: 200 OK
 Content-Type: application/json
 
 {
-  "provider": "openai",
+  "provider": "anthropic",
   "object": "list",
   "data": [
     {
-      "id": "gpt-5",
+      "id": "anthropic/claude-opus-5-5",
       "object": "model",
       "created": 1741879542,
-      "owned_by": "openai",
-      "served_by": "openai",
-    },
-    {
-      "id": "gpt-5-mini",
-      "object": "model",
-      "created": 1741879542,
-      "owned_by": "openai",
-      "served_by": "openai",
+      "owned_by": "anthropic",
+      "served_by": "anthropic",
+      "context_window": {
+        "tokens": 200000,
+        "source": "community"
+      },
+      "pricing": {
+        "currency": "USD",
+        "input_per_token": "0.00001500",
+        "output_per_token": "0.00007500",
+        "source": "community"
+      }
     }
   ]
 }
