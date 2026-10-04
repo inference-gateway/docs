@@ -490,7 +490,7 @@ If you also export traces to Jaeger, the `request_id` field doubles as a correla
 
 ## CLI Telemetry
 
-The [Inference Gateway CLI](/cli/) records OpenTelemetry signals (metrics, traces, and logs) for every session. Data is written to local files under `~/.infer/telemetry/` and can optionally be exported to an OTLP/HTTP collector.
+The [Inference Gateway CLI](/cli/) records OpenTelemetry signals (metrics and traces) for every session. Data is written to local files under `~/.infer/telemetry/` and can optionally be exported to an OTLP/HTTP collector. Telemetry is on by default and `telemetry.enabled: false` (`INFER_TELEMETRY_ENABLED=false`) turns it off entirely.
 
 ### Local files
 
@@ -498,7 +498,6 @@ The [Inference Gateway CLI](/cli/) records OpenTelemetry signals (metrics, trace
 | ------- | ------------------------------------------------ | -------------------------------------------------------------------------- |
 | Metrics | `~/.infer/telemetry/\<session-id\>.jsonl`        | Token usage, tool outcomes, session duration, and cost (delta temporality) |
 | Traces  | `~/.infer/telemetry/\<session-id\>-traces.jsonl` | One root span per session, child spans for each LLM turn and tool call     |
-| Logs    | `~/.infer/telemetry/\<session-id\>-logs.jsonl`   | Structured log entries emitted during the session                          |
 
 Traces are recorded locally per session, so you can render a session's span tree offline - no collector required - with [`infer traces`](/cli/#viewing-traces):
 
@@ -513,20 +512,20 @@ Pass `--list` to enumerate sessions that have trace files, or `--format json` fo
 
 ### OTLP/HTTP export
 
-All three signals can be exported to an OpenTelemetry Collector by setting the standard OTel environment variables:
+Both signals can be exported to an OpenTelemetry Collector by setting the standard OTel environment variables:
 
 ```bash
 export OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
 export OTEL_SERVICE_NAME=infer-cli
 ```
 
-Per-signal endpoint overrides (`OTEL_EXPORTER_OTLP_METRICS_ENDPOINT`, `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`, `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT`) take precedence over the base endpoint. Headers are configured via `OTEL_EXPORTER_OTLP_HEADERS`.
+Per-signal endpoint overrides (`OTEL_EXPORTER_OTLP_METRICS_ENDPOINT`, `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`) take precedence over the base endpoint. Headers are configured via `OTEL_EXPORTER_OTLP_HEADERS`. The CLI builds no OTel log provider, so `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT` has no effect.
 
 ### Trace context propagation to subprocesses
 
 When telemetry is enabled (the default), the CLI propagates its active trace context into the processes it spawns, using open standards so **any OpenTelemetry-instrumented tool participates with zero custom code**:
 
-- **Environment variables.** The Bash tool (and skill scripts) and headless subagents receive `TRACEPARENT` / `TRACESTATE` ([W3C Trace Context](https://www.w3.org/TR/trace-context/), parented on the current `execute_tool` span) and `BAGGAGE` ([W3C Baggage](https://www.w3.org/TR/baggage/): `infer.session.id`, `infer.tool.call.id`). Nothing is set when telemetry is disabled.
+- **Environment variables.** The Bash tool (and skill scripts) and headless subagents receive `TRACEPARENT` / `TRACESTATE` ([W3C Trace Context](https://www.w3.org/TR/trace-context/), parented on the current `execute_tool` span) and `BAGGAGE` ([W3C Baggage](https://www.w3.org/TR/baggage/): `session.id`, `gen_ai.tool.call.id`, renamed with `telemetry.attr_session_id_key` / `telemetry.attr_tool_call_id_key`). Nothing is set when telemetry is disabled.
 - **Sink selection is automatic.** With an OTLP endpoint configured (`telemetry.otlp.endpoint` or `OTEL_EXPORTER_OTLP_ENDPOINT`), the endpoint and headers pass through to children so their spans stitch in the remote backend. With no endpoint (the default), the CLI runs an ephemeral localhost OTLP/HTTP receiver per session and persists received spans into the local per-session trace store, where they appear in `infer traces` / `/traces` nested under the tool span.
 - **Third-party spans just work.** An [`otel-cli`](https://github.com/equinix-labs/otel-cli) call inside a Bash tool step - `otel-cli exec --name "go test" -- go test ./...` - lands as a child of `execute_tool Bash`; OpenTelemetry-SDK-instrumented programs nest the same way.
 - **Subagents and remote A2A.** A headless subagent nests under the caller's `execute_tool Agent` span (one cross-process trace). Outbound A2A requests carry `traceparent` / `tracestate` / `baggage` HTTP headers; remote spans stitch via a **shared collector** both sides export to, not the local store.
@@ -535,7 +534,7 @@ See [Trace context propagation to subprocesses](/cli/#trace-context-propagation-
 
 ### Example collector setup
 
-To receive all three signals from the CLI, configure an OpenTelemetry Collector with OTLP/HTTP receivers:
+To receive both signals from the CLI, configure an OpenTelemetry Collector with OTLP/HTTP receivers:
 
 ```yaml
 receivers:
@@ -561,9 +560,6 @@ service:
       receivers: [otlp]
       processors: [batch]
       exporters: [otlp/jaeger, debug]
-    logs:
-      receivers: [otlp]
-      exporters: [debug]
 
 processors:
   batch:

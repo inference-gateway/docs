@@ -2589,7 +2589,7 @@ Two-layer configuration system with precedence from highest to lowest:
 | Priority    | Source                | Example                                  |
 | ----------- | --------------------- | ---------------------------------------- |
 | 1 (Highest) | Environment Variables | `INFER_GATEWAY_URL`, `INFER_AGENT_MODEL` |
-| 2           | Command Line Flags    | `--model`, `--debug`                     |
+| 2           | Command Line Flags    | `--model`, `-v, --verbose`               |
 | 3           | Project Config        | `.infer/config.yaml`                     |
 | 4           | User Config           | `~/.infer/config.yaml`                   |
 | 5 (Lowest)  | Built-in Defaults     | Internal defaults                        |
@@ -2727,7 +2727,7 @@ logging:
     max_size_mb: 1024 # Threshold in MB; files exceeding this are gzip-compressed and truncated (default: 1024 = 1 GB)
 ```
 
-- **logging.debug**: Enable debug logging for verbose output
+- **logging.debug**: Enable debug logging for verbose output (`INFER_LOGGING_DEBUG`). There is no `--debug` flag - the only verbosity flag is the global `-v, --verbose`.
 - **logging.dir**: Override the log directory. Defaults to `~/.infer/logs` (`INFER_LOGGING_DIR`) - CLI and gateway logs are machine-scoped and never written to the project directory.
 - **logging.stdout**: Also write logs to stdout/stderr in addition to the log file (default: `false`)
 - **logging.archive.enabled**: Enable automatic log archiving (default: `true`). When enabled, log files exceeding the size threshold are gzip-compressed to a timestamped `.gz` archive and the original file is truncated so logging continues at the same path. The check runs at process startup. Set via `INFER_LOGGING_ARCHIVE_ENABLED`.
@@ -2781,7 +2781,7 @@ client:
     enabled: true
     max_attempts: 5 # maximum number of retry attempts (default: 5)
     retryable_status_codes: [408, 429, 500, 502, 503, 504] # transient errors only
-    initial_backoff_sec: 1
+    initial_backoff_sec: 5
     max_backoff_sec: 60
     backoff_multiplier: 2
 ```
@@ -2792,7 +2792,7 @@ client:
 - **client.retry.enabled**: Enable automatic retries for failed requests (default: `true`).
 - **client.retry.max_attempts**: Maximum number of retry attempts (default: `5`). Set via `INFER_CLIENT_RETRY_MAX_ATTEMPTS`.
 - **client.retry.retryable_status_codes**: HTTP status codes that trigger retries (default: `[408, 429, 500, 502, 503, 504]`); non-transient errors such as 401 fail fast with their real message. Set via `INFER_CLIENT_RETRY_RETRYABLE_STATUS_CODES`.
-- **client.retry.initial_backoff_sec**: Initial delay between retries in seconds (default: `1`).
+- **client.retry.initial_backoff_sec**: Initial delay between retries in seconds (default: `5`).
 - **client.retry.max_backoff_sec**: Maximum delay between retries in seconds (default: `60`).
 - **client.retry.backoff_multiplier**: Backoff multiplier for exponential delay (default: `2`).
 
@@ -3045,17 +3045,16 @@ Two cases leave the session exactly as it was, with the error shown instead:
 
 ## Telemetry
 
-The CLI records OpenTelemetry signals (metrics, traces, and logs) for every session. Telemetry is **always on** when the CLI runs - there is no opt-out switch. Data is written to local files under `~/.infer/telemetry/` and can optionally be exported to an OTLP/HTTP collector.
+The CLI records OpenTelemetry signals (metrics and traces) for every session. Telemetry is **on by default** and is turned off with `telemetry.enabled: false` (`INFER_TELEMETRY_ENABLED=false`) - no files are written, nothing is exported, and no trace context is passed to child processes. Data is written to local files under `~/.infer/telemetry/` and can optionally be exported to an OTLP/HTTP collector.
 
 ### Local files
 
-All three signals write per-session JSONL files to `~/.infer/telemetry/`:
+Both signals write per-session JSONL files to `~/.infer/telemetry/`:
 
 | Signal  | File pattern                                     | Description                                                                |
 | ------- | ------------------------------------------------ | -------------------------------------------------------------------------- |
 | Metrics | `~/.infer/telemetry/\<session-id\>.jsonl`        | Token usage, tool outcomes, session duration, and cost (delta temporality) |
 | Traces  | `~/.infer/telemetry/\<session-id\>-traces.jsonl` | One root span per session, child spans for each LLM turn and tool call     |
-| Logs    | `~/.infer/telemetry/\<session-id\>-logs.jsonl`   | Structured log entries emitted during the session                          |
 
 The `\<session-id\>` is the same UUID that appears in the CLI's session output and conversation storage. Local files use the OTLP/semconv JSON format as-is - no custom encoding.
 
@@ -3083,22 +3082,17 @@ No prompt or response content is recorded in spans. Failed spans carry `error.ty
 
 Spans emitted by subprocesses - Bash tool commands, [skill](/cli-skills/) scripts, and headless subagents - are ingested and nested under their originating `execute_tool` span, so a single trace can span multiple processes. See [Trace context propagation to subprocesses](#trace-context-propagation-to-subprocesses).
 
-### Logs
-
-The CLI emits structured log entries as OTel log records. Each entry includes a timestamp, severity level, message, and contextual fields such as `session_id`, `model`, and `request_id`.
-
 ### OTLP/HTTP export
 
-All three signals can be exported to an OpenTelemetry Collector or any OTLP/HTTP-compatible backend by setting the standard OpenTelemetry environment variables:
+Both signals can be exported to an OpenTelemetry Collector or any OTLP/HTTP-compatible backend by setting the standard OpenTelemetry environment variables:
 
 ```bash
-# Base endpoint (all signals append their own path: /v1/metrics, /v1/traces, /v1/logs)
+# Base endpoint (each signal appends its own path: /v1/metrics, /v1/traces)
 export OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
 
 # Optional: per-signal endpoint overrides (takes precedence over the base)
 export OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=http://otel-collector:4318/v1/metrics
 export OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://otel-collector:4318/v1/traces
-export OTEL_EXPORTER_OTLP_LOGS_ENDPOINT=http://otel-collector:4318/v1/logs
 
 # Headers (e.g. for authentication)
 export OTEL_EXPORTER_OTLP_HEADERS="Authorization=Bearer%20my-token"
@@ -3108,7 +3102,7 @@ export OTEL_SERVICE_NAME=infer-cli
 export OTEL_RESOURCE_ATTRIBUTES="deployment.environment=production,actor=ci-bot"
 ```
 
-When `OTEL_EXPORTER_OTLP_ENDPOINT` is set, the CLI exports all three signals to that endpoint. Per-signal env vars (`OTEL_EXPORTER_OTLP_METRICS_ENDPOINT`, `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`, `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT`) override the base for that signal. Headers and timeouts follow the standard OTel exporter env-var spec.
+When `OTEL_EXPORTER_OTLP_ENDPOINT` is set, the CLI exports both signals to that endpoint. Per-signal env vars (`OTEL_EXPORTER_OTLP_METRICS_ENDPOINT`, `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`) override the base for that signal. Headers and timeouts follow the standard OTel exporter env-var spec. The CLI builds no OTel log provider, so `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT` has no effect.
 
 Local file export is **always active** regardless of OTLP configuration - remote export is additive, not a replacement.
 
@@ -3135,7 +3129,7 @@ When set, the receiver binds to that address at startup (instead of a random loo
 
 ### Example: OpenTelemetry Collector
 
-To receive all three signals from the CLI, configure an OpenTelemetry Collector with OTLP/HTTP receivers:
+To receive both signals from the CLI, configure an OpenTelemetry Collector with OTLP/HTTP receivers:
 
 ```yaml
 receivers:
@@ -3161,9 +3155,6 @@ service:
       receivers: [otlp]
       processors: [batch]
       exporters: [otlp/jaeger, debug]
-    logs:
-      receivers: [otlp]
-      exporters: [debug]
 
 processors:
   batch:
@@ -3189,7 +3180,9 @@ The [Bash tool](#command-execution) (and therefore [skill](/cli-skills/) scripts
 | Variable                     | Standard                                                  | Contents                                                                                     |
 | ---------------------------- | --------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
 | `TRACEPARENT` / `TRACESTATE` | [W3C Trace Context](https://www.w3.org/TR/trace-context/) | The current trace, parented on the active `execute_tool` span, so child spans nest under it. |
-| `BAGGAGE`                    | [W3C Baggage](https://www.w3.org/TR/baggage/)             | `infer.session.id` and `infer.tool.call.id`, for correlating child spans back to the call.   |
+| `BAGGAGE`                    | [W3C Baggage](https://www.w3.org/TR/baggage/)             | `session.id` and `gen_ai.tool.call.id`, for correlating child spans back to the call.        |
+
+The two baggage member names are configurable: `telemetry.attr_session_id_key` and `telemetry.attr_tool_call_id_key` override `session.id` and `gen_ai.tool.call.id` respectively.
 
 #### Where child spans are sent (OTLP sink selection)
 
@@ -3286,10 +3279,10 @@ See the [example README](https://github.com/inference-gateway/cli/tree/main/exam
   cat ~/.infer/telemetry/\<session-id\>-traces.jsonl | jq .
   ```
 
-- **`infer stats`** - aggregates metrics from local files into a summary of tool outcomes, token usage, and sessions. Trace and log files are excluded from the aggregate. The per-tool **Avg** column renders microseconds (for example `432us`) when the mean duration is below 1ms and milliseconds otherwise, so fast tools no longer collapse to `0ms`. In `infer stats --format json` the matching `avg_ms` field can be fractional (for example `0.432`) rather than an integer. The same applies to `infer insights` and the [`/stats`](#telemetry-shortcuts) shortcut.
+- **`infer stats`** - aggregates metrics from local files into a summary of tool outcomes, token usage, and sessions. Trace files are excluded from the aggregate. The per-tool **Avg** column renders microseconds (for example `432us`) when the mean duration is below 1ms and milliseconds otherwise, so fast tools no longer collapse to `0ms`. In `infer stats --format json` the matching `avg_ms` field can be fractional (for example `0.432`) rather than an integer. The same applies to `infer insights` and the [`/stats`](#telemetry-shortcuts) shortcut.
 - **`infer traces`** - renders the span tree of a session from its local trace file. See [Viewing traces](#viewing-traces).
 - **`infer insights`** - analyzes past sessions for repeatable workflows and recurring tool failures. The verbatim error and log samples it collects are **redacted before the model call** - PEM private-key blocks, GitHub token shapes, and the values of provider-secret env vars (plain and JSON-escaped) are replaced with `[redacted]`, in the digest and in the saved report alike. See [Insights Shortcut](#insights-shortcut).
-- **Remote backend** - when OTLP export is configured, data appears in your collector's configured backend (Jaeger for traces, your metrics store, your log aggregator).
+- **Remote backend** - when OTLP export is configured, data appears in your collector's configured backend (Jaeger for traces, your metrics store).
 
 ### Viewing traces
 
@@ -4539,8 +4532,8 @@ infer config get
 # Verify gateway status
 infer status
 
-# Debug mode
-infer --debug chat
+# Debug logging (logging.debug)
+INFER_LOGGING_DEBUG=true infer chat
 ```
 
 ### Permission Issues
