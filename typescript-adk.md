@@ -1,6 +1,6 @@
 ---
 title: TypeScript ADK
-description: Build A2A-compatible agents in TypeScript with the @inference-gateway/adk package. Handler registration, blocking JSON-RPC SendMessage with returnImmediately, historyLength, respondToMessage direct replies and taskId resume, SendStreamingMessage, SubscribeToTask resubscription, agent card ETag / Last-Modified caching, GetTask, ListTasks, CancelTask with TaskCancellationRegistry, GetExtendedAgentCard with the extended-card vs. public-card discovery convention (capabilities.extendedAgentCard), withAuthConfig auto-registration, OIDC auth gating with -32001 envelope, SSE event sequence, CloudEvents v1.0 envelopes, STREAMING_STATUS_UPDATE_INTERVAL, DefaultBackgroundTaskHandler agentic loop with tool dispatch and usage metadata, MAX_CHAT_COMPLETION_ITERATIONS cap, reserved input_required tool, AgentBuilder fluent wiring for OpenAICompatibleAgent with Go-parity defaults, lifecycle callbacks (beforeAgent / afterAgent / beforeModel / afterModel / beforeTool / afterTool) with CallbackContext, short-circuit and chain semantics, sync vs. async, error propagation, caching and guardrail patterns, HTTPPushNotificationSender webhook delivery primitive with the A2A StreamResponse wire payload on application/a2a+json, sendTaskUpdate one-shot and deliverTaskUpdate fan-out helpers, exponential-backoff retry config, bearer / basic auth resolution, and per-task taskPushNotificationConfig on SendMessageConfiguration, the -32003 PushNotificationNotSupportedError capability gate on the TaskPushNotificationConfig methods with createPushNotificationNotSupportedHandler, artifact service with filesystem and MinIO/S3 storage backends and the registerArtifactsRoute download route, OpenTelemetry tracing via TelemetryProvider with OTLP spans, Prometheus metrics with a standalone /metrics server and request middleware, TLS and mutual-TLS server/client configuration, validation contract, id semantics, cancellation, and runnable client samples.
+description: Build A2A-compatible agents in TypeScript with the @inference-gateway/adk package. Handler registration, blocking JSON-RPC SendMessage with returnImmediately, historyLength, respondToMessage direct replies and taskId resume, SendStreamingMessage, SubscribeToTask resubscription, agent card ETag / Last-Modified caching, GetTask, ListTasks, CancelTask with TaskCancellationRegistry, GetExtendedAgentCard with the extended-card vs. public-card discovery convention (capabilities.extendedAgentCard), withAuthConfig auto-registration, OIDC auth gating with -32001 envelope, SSE event sequence, CloudEvents v1.0 envelopes, STREAMING_STATUS_UPDATE_INTERVAL, DefaultBackgroundTaskHandler agentic loop with tool dispatch and usage metadata, MAX_CHAT_COMPLETION_ITERATIONS cap, reserved input_required tool, AgentBuilder fluent wiring for OpenAICompatibleAgent with Go-parity defaults, lifecycle callbacks (beforeAgent / afterAgent / beforeModel / afterModel / beforeTool / afterTool) with CallbackContext, short-circuit and chain semantics, sync vs. async, error propagation, caching and guardrail patterns, HTTPPushNotificationSender webhook delivery primitive with the A2A StreamResponse wire payload on application/a2a+json, sendTaskUpdate one-shot and deliverTaskUpdate fan-out helpers, exponential-backoff retry config, bearer / basic auth resolution, and per-task taskPushNotificationConfig on SendMessageConfiguration, the -32003 PushNotificationNotSupportedError capability gate on the TaskPushNotificationConfig methods with createPushNotificationNotSupportedHandler, artifact service with filesystem and MinIO/S3 storage backends and the registerArtifactsRoute download route, OpenTelemetry tracing via TelemetryProvider with OTLP spans, Prometheus metrics with a standalone /metrics server and request middleware, TLS and mutual-TLS server/client configuration, validation contract, id semantics, cancellation, the full environment-variable reference (build metadata, AUTH_*, A2A_MCP_*, logging, task retention, handler knobs, Redis) and runtime dependency breakdown, and runnable client samples.
 ---
 
 # TypeScript ADK
@@ -46,6 +46,102 @@ The ADK currently exposes the HTTP server core and the first A2A JSON-RPC method
 | TLS server / client                         | Available | HTTPS and mutual TLS for `A2AServer` and the bundled A2A client.                                                  |
 
 Every method name on this page is an A2A v1.0.1 name, generated from the canonical schema as the `A2AMethod` union in `src/types/generated/a2a.ts` and re-exported as the `*_METHOD` constants (`MESSAGE_SEND_METHOD`, `TASK_GET_METHOD`, ...). Register and dispatch with those constants rather than string literals. The v0.x slash names (`message/send`, `tasks/get`, ...) are no longer registered and answer `-32601 Method not found`.
+
+## Configuration and environment variables
+
+Most of the ADK is configured **programmatically** - through `A2AServerConfig`, `A2AClientConfig`, the handler option objects, and `LoadAgentCardOptions`. On top of that, several subsystems fall back to environment variables when no explicit config is passed: build metadata, auth, MCP, logging, task retention, the metrics server, telemetry, TLS, and Redis storage. Every `loadXFromEnv` helper accepts an explicit `env` map, so `process.env` is only the default and tests can inject their own.
+
+Boolean variables accept `1` / `true` / `yes` / `on` (trimmed, case-insensitive) as truthy. Everything else, including unset, is false. The MCP duration variables accept a plain millisecond integer or a Go-style duration string (`30s`, `5m`, `1m30s`).
+
+### Runtime dependencies
+
+The package ships **22 runtime dependencies**. `hono` and `@hono/node-server` are the HTTP core, and the rest back opt-in subsystems: the OpenTelemetry SDK, exporters, resources and semantic conventions for tracing and metrics, `prom-client` for the Prometheus endpoint, `pino` and `pino-pretty` for logging, `jose` for OIDC token verification, `ajv` for tool-schema validation, `@modelcontextprotocol/sdk` for the MCP bridge, `@aws-sdk/client-s3` and `@aws-sdk/s3-request-presigner` for the MinIO/S3 artifact backend, and `@inference-gateway/sdk` for LLM calls. Importing only the server core still installs all of them, but the ones you never wire up stay unloaded at runtime.
+
+`ioredis` is the one exception: it is an **optional peer dependency**, installed by you only when you use [`RedisTaskStorage`](#redis-task-storage).
+
+### Build-time agent metadata
+
+Mirrors the Go ADK's `BuildAgentName` / `BuildAgentDescription` / `BuildAgentVersion` LD flags. Values are read from `process.env` **once at first import** and frozen into `buildMetadata`. An empty string means "not injected", so `applyBuildMetadata(card)` is safe to call unconditionally.
+
+| Variable                  | Default   | Purpose                                                   |
+| ------------------------- | --------- | --------------------------------------------------------- |
+| `BUILD_AGENT_NAME`        | _(empty)_ | Overrides `card.name` when non-empty, read at module load |
+| `BUILD_AGENT_DESCRIPTION` | _(empty)_ | Overrides `card.description` when non-empty               |
+| `BUILD_AGENT_VERSION`     | _(empty)_ | Overrides `card.version` when non-empty                   |
+
+Bundle-time injection works too: substitute `process.env.BUILD_AGENT_NAME` with `tsup`'s `define` option instead of setting the variable at runtime.
+
+Separately, any `${SOME_ENV_VAR}` placeholder inside an agent-card JSON file passed to `loadAgentCardFromFile` / `loadAgentCardFromJSON` is resolved against `options.env` (defaulting to `process.env`) at load time. A missing variable throws `AgentCardLoadError` - there is no silent fallback.
+
+### Authentication (`loadAuthConfigFromEnv`)
+
+| Variable             | Default   | Purpose                                       |
+| -------------------- | --------- | --------------------------------------------- |
+| `AUTH_ENABLED`       | `false`   | Enables OIDC bearer-token verification        |
+| `AUTH_ISSUER_URL`    | _(empty)_ | OIDC issuer URL used for discovery and JWKS   |
+| `AUTH_CLIENT_ID`     | _(empty)_ | OAuth2 client id, also the expected JWT `aud` |
+| `AUTH_CLIENT_SECRET` | _(empty)_ | OAuth2 client secret                          |
+
+When `AUTH_ENABLED` is truthy and any of the other three is empty, the authenticator factory **throws** so the server fails closed instead of degrading to a no-op. See [OIDC auth gating](#via-a2aserverbuilder-withauthconfig) for the wiring.
+
+### MCP tool bridge (`loadMCPConfigFromEnv`)
+
+| Variable                     | Default  | Purpose                                              |
+| ---------------------------- | -------- | ---------------------------------------------------- |
+| `A2A_MCP_ENABLED`            | `false`  | Enables the MCP tool bridge                          |
+| `A2A_MCP_SERVERS`            | _(none)_ | Comma-separated MCP server base URLs                 |
+| `A2A_MCP_ENDPOINT`           | `/mcp`   | Path appended to each server URL                     |
+| `A2A_MCP_REFRESH_INTERVAL`   | `5m`     | How often the remote tool catalog is refreshed       |
+| `A2A_MCP_DIAL_TIMEOUT`       | `30s`    | Init and list-tools timeout per server               |
+| `A2A_MCP_CALL_TIMEOUT`       | `30s`    | Per-tool-call timeout                                |
+| `A2A_MCP_MAX_RETRIES`        | `0`      | Max initial connection attempts, `0` retries forever |
+| `A2A_MCP_RETRY_INTERVAL`     | `2s`     | Initial connection backoff, doubles each attempt     |
+| `A2A_MCP_RETRY_MAX_INTERVAL` | `30s`    | Backoff ceiling                                      |
+
+"Enabled with no servers" is a no-op. The defaults match the Go ADK's MCP client, so an agent behaves the same in either language.
+
+### Logging
+
+| Variable                         | Default   | Purpose                                                                            |
+| -------------------------------- | --------- | ---------------------------------------------------------------------------------- |
+| `DEBUG`                          | _(unset)_ | Any value other than empty, `false` or `0` sets the default log level to `debug`   |
+| `NODE_ENV`                       | _(unset)_ | `production` switches the default output from pretty to JSON                       |
+| `SERVER_DISABLE_HEALTHCHECK_LOG` | `true`    | Suppresses health-check request logs, set `false` / `0` / `no` / `off` to log them |
+
+### Task retention and cleanup (`loadCleanupOptionsFromEnv`)
+
+| Variable                       | Default  | Purpose                                            |
+| ------------------------------ | -------- | -------------------------------------------------- |
+| `MAX_RETAINED_COMPLETED_TASKS` | `100`    | Completed tasks kept before the oldest are evicted |
+| `MAX_RETAINED_FAILED_TASKS`    | `50`     | Failed tasks kept before the oldest are evicted    |
+| `CLEANUP_INTERVAL_MS`          | `300000` | How often the background cleanup sweep runs        |
+
+### Handler and tool knobs
+
+| Variable                             | Default | Purpose                                                                                        |
+| ------------------------------------ | ------- | ---------------------------------------------------------------------------------------------- |
+| `MAX_CHAT_COMPLETION_ITERATIONS`     | `50`    | Tool-calling loop ceiling, see [the cap](#max_chat_completion_iterations-environment-variable) |
+| `STREAMING_STATUS_UPDATE_INTERVAL`   | `1000`  | Throttle between streaming status updates, `0` disables throttling                             |
+| `AGENT_CLIENT_TOOLS_CREATE_ARTIFACT` | `false` | Auto-registers the reserved `create_artifact` tool (`true` or `1` only)                        |
+
+### Redis task storage
+
+`redisConnectOptionsFromEnv()` reads `REDIS_URL` first and returns it alone when set. Otherwise it assembles the discrete fields and leaves anything unset to the ioredis defaults.
+
+| Variable         | Default         | Purpose                                 |
+| ---------------- | --------------- | --------------------------------------- |
+| `REDIS_URL`      | _(unset)_       | Full connection URL, wins over the rest |
+| `REDIS_HOST`     | ioredis default | Hostname                                |
+| `REDIS_PORT`     | ioredis default | Port                                    |
+| `REDIS_PASSWORD` | ioredis default | Password                                |
+| `REDIS_DB`       | ioredis default | Database index                          |
+
+### Documented elsewhere on this page
+
+- **Metrics server** - `METRICS_ENABLED` / `METRICS_HOST` / `METRICS_PORT` / `METRICS_PATH` and the three timeout variables, in [`MetricsConfig` and environment variables](#metricsconfig-and-environment-variables).
+- **Telemetry** - `TELEMETRY_ENABLED` and the standard `OTEL_*` variables, in [`TelemetryConfig` and environment variables](#telemetryconfig-and-environment-variables).
+- **TLS** - `TLS_*` for the server in [TLS server](#tls-server) and `CLIENT_TLS_*` for the outbound client in [TLS client](#tls-client).
+- **Artifacts** - `ARTIFACTS_*` and `MINIO_*`, in [Artifact environment variables](#artifact-environment-variables).
 
 ## The `SendMessage` JSON-RPC method
 
