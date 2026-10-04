@@ -54,14 +54,14 @@ Content-Type: application/json
       "served_by": "openai",
     },
     {
-      "id": "anthropic/claude-opus-4-8",
+      "id": "anthropic/claude-opus-5-5",
       "object": "model",
       "created": 1741879542,
       "owned_by": "anthropic",
       "served_by": "anthropic",
     },
     {
-      "id": "zai/glm-5.2",
+      "id": "zai/glm-5.3",
       "object": "model",
       "created": 1741879542,
       "owned_by": "zai",
@@ -146,7 +146,7 @@ Content-Type: application/json
   "object": "list",
   "data": [
     {
-      "id": "openai/gpt-5",
+      "id": "openai/gpt-6-astra",
       "object": "model",
       "created": 1741879542,
       "owned_by": "openai",
@@ -161,7 +161,7 @@ Content-Type: application/json
       }
     },
     {
-      "id": "openai/gpt-5-mini",
+      "id": "openai/gpt-5.6-luna",
       "object": "model",
       "created": 1741879542,
       "owned_by": "openai",
@@ -177,7 +177,7 @@ Content-Type: application/json
 }
 ```
 
-In this example, `openai/gpt-5` carries provider-published rates while `openai/gpt-5-mini` fell back to the community table (`source: "community"`; community entries omit `updated_at`).
+In this example, `openai/gpt-5` carries provider-published rates while `openai/gpt-5.6-luna` fell back to the community table (`source: "community"`; community entries omit `updated_at`).
 
 Example response for subscription-gated Ollama Cloud models with `include=pricing`:
 
@@ -262,7 +262,7 @@ Content-Type: application/json
   "object": "list",
   "data": [
     {
-      "id": "anthropic/claude-opus-4-8",
+      "id": "anthropic/claude-opus-5-5",
       "object": "model",
       "created": 1741879542,
       "owned_by": "anthropic",

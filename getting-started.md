@@ -32,7 +32,7 @@ Send a request to the Inference Gateway:
 curl -X POST http://localhost:8080/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "openai/gpt-5",
+    "model": "openai/gpt-5.6-luna",
     "messages": [
       {
         "role": "system",
