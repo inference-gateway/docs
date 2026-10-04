@@ -23,7 +23,7 @@ Inference Gateway offers a unified API layer to interact with multiple LLM provi
 
 ## Development
 
-This documentation site is built with **VitePress** 1.x and Vue 3, and uses [Bun](https://bun.sh) (>= 1.2) as the runtime, package manager, and script runner.
+This documentation site is built with **VitePress** 1.x and Vue 3, and uses [Bun](https://bun.sh) (>= 1.3.13) as the runtime, package manager, and script runner.
 
 ```bash
 # Install dependencies
@@ -46,7 +46,7 @@ bun run format:check
 bun test
 ```
 
-A [go-task](https://taskfile.dev) `Taskfile.yml` mirrors these scripts - every `bun run <name>` has an equivalent `task <name>` (run `task` with no args to list them). It also exposes the docs generator: `task generate` rebuilds the provider-specific sections of `configuration.md`, `supported-providers.md`, `rust-adk.md`, and `typescript-adk.md` from the canonical [`inference-gateway/schemas`](https://github.com/inference-gateway/schemas) OpenAPI schema, and `task generate:check` fails if those sections have drifted. Those sections sit between `GENERATED:*` markers and should not be edited by hand.
+A [go-task](https://taskfile.dev) `Taskfile.yml` mirrors these scripts - every `bun run <name>` has an equivalent `task <name>` (run `task` with no args to list them). It also exposes the docs generator: `task generate` rebuilds the provider-specific sections of `configuration.md`, `supported-providers.md`, `rust-adk.md`, `typescript-adk.md`, and `sdks.md` from the canonical [`inference-gateway/schemas`](https://github.com/inference-gateway/schemas) OpenAPI schema, and `task generate:check` fails if those sections have drifted. Those sections sit between `GENERATED:*` markers and should not be edited by hand.
 
 You can use **flox** for a consistent development environment (configured in `.flox/env/manifest.toml`).
 
