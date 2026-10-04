@@ -147,10 +147,10 @@ Deploys the gateway proxy. Source: [`api/v1alpha1/gateway_types.go`](https://git
 | `replicas`                                                                         | Pod count (1-100, default `1`).                                                                                                                                                            |
 | `image`                                                                            | Container image, default `ghcr.io/inference-gateway/inference-gateway:latest`.                                                                                                             |
 | `environment`                                                                      | One of `development`, `staging`, `production` (default `production`).                                                                                                                      |
-| `server.port` / `server.host` / `server.timeouts` / `server.tls`                   | HTTP server settings.                                                                                                                                                                      |
+| `server.port` / `server.host` / `server.timeouts` / `server.tls`                   | HTTP server settings. See [Gateway Server (`spec.server`)](#gateway-server-spec-server).                                                                                                   |
 | `auth.enabled` / `auth.provider` / `auth.oidc`                                     | Authentication. `provider` is `oidc`, `jwt`, or `basic`. See [Authentication (OIDC)](#authentication-oidc).                                                                                |
 | `providers[]`                                                                      | Each item: `name`, `enabled`, and an `env` list of `corev1.EnvVar`. Provider keys are passed through unchanged.                                                                            |
-| `telemetry.enabled` / `telemetry.metrics.{enabled,port}`                           | OpenTelemetry metrics.                                                                                                                                                                     |
+| `telemetry.enabled` / `telemetry.metrics.{enabled,port}`                           | OpenTelemetry metrics. `metrics.port` configures the gateway process - see [Gateway Server (`spec.server`)](#gateway-server-spec-server).                                                  |
 | `telemetry.traces.exporter.otlp.endpoint`                                          | Tracing. With `telemetry.enabled: true`, it sets `TELEMETRY_TRACING_ENABLED=true` and `TELEMETRY_TRACING_OTLP_ENDPOINT` on the gateway container.                                          |
 | `mcp.enabled` / `mcp.expose` / `mcp.resourceUrl` / `mcp.toolMode` / `mcp.timeouts` | MCP client configuration. See [MCP Servers (`spec.mcp`)](#mcp-servers-spec-mcp).                                                                                                           |
 | `mcp.servers[]` / `mcp.serviceDiscovery`                                           | Static MCP servers (`name`, `url`, `healthCheck`) and discovery of `MCP` CRs by label selector. Both feed `MCP_SERVERS`.                                                                   |
@@ -165,6 +165,75 @@ Deploys the gateway proxy. Source: [`api/v1alpha1/gateway_types.go`](https://git
 | `resources.requests` / `resources.limits`                                          | CPU and memory.                                                                                                                                                                            |
 
 Provider env vars referenced via Secrets follow the standard `valueFrom.secretKeyRef` pattern - see [Configuration](/configuration/) for the full list of variables each provider accepts.
+
+### Gateway Server (`spec.server`)
+
+`spec.server.host`, `spec.server.port` and `spec.telemetry.metrics.port` configure the **gateway process itself**, not just the Deployment ports, probes and Service. The controller emits them as `SERVER_HOST`, `SERVER_PORT` and `TELEMETRY_METRICS_PORT` on the gateway container, so any value in the CRD's `1024`-`65535` range works - not only the defaults:
+
+```yaml
+apiVersion: core.inference-gateway.com/v1alpha1
+kind: Gateway
+metadata:
+  name: my-gateway
+  namespace: inference-gateway
+spec:
+  server:
+    host: 0.0.0.0
+    port: 9000
+  telemetry:
+    enabled: true
+    metrics:
+      enabled: true
+      port: 9465
+```
+
+| Field                    | Env var                  | Default   | Notes                                                                                        |
+| ------------------------ | ------------------------ | --------- | -------------------------------------------------------------------------------------------- |
+| `server.host`            | `SERVER_HOST`            | `0.0.0.0` | Bind address. Keep the default - a loopback address makes kubelet probes fail.               |
+| `server.port`            | `SERVER_PORT`            | `8080`    | Also used for the `http` container port, the liveness and readiness probes, and the Service. |
+| `telemetry.metrics.port` | `TELEMETRY_METRICS_PORT` | `9464`    | Emitted only when both `telemetry.enabled` and `telemetry.metrics.enabled` are `true`.       |
+
+Operators older than the release that wired these variables up only shaped the Deployment and Service, so a non-default port left the gateway listening on `8080`/`9464` while the probes targeted the new port and the pod never became Ready.
+
+#### TLS (`spec.server.tls`)
+
+With `spec.server.tls.enabled: true` the controller mounts the certificate material into the pod and points `SERVER_TLS_CERT_PATH` and `SERVER_TLS_KEY_PATH` at the mounted files. The gateway then also exposes the `https` container port `8443`.
+
+`certificateRef` and `keyRef` are both `SecretKeySelector`s (`name` plus `key`). Each is mounted from its own Secret, under its own directory:
+
+```yaml
+spec:
+  server:
+    tls:
+      enabled: true
+      certificateRef:
+        name: my-certs
+        key: server.pem
+      keyRef:
+        name: my-keys
+        key: server-key.pem
+```
+
+```sh
+SERVER_TLS_CERT_PATH=/app/tls/cert/server.pem
+SERVER_TLS_KEY_PATH=/app/tls/key/server-key.pem
+```
+
+When a reference is unset, the controller falls back to the conventional `inference-gateway-tls` Secret mounted at `/app/tls` with the standard `tls.crt` / `tls.key` keys - the shape cert-manager produces:
+
+```yaml
+spec:
+  server:
+    tls:
+      enabled: true
+```
+
+```sh
+SERVER_TLS_CERT_PATH=/app/tls/tls.crt
+SERVER_TLS_KEY_PATH=/app/tls/tls.key
+```
+
+The fallback Secret must exist in the Gateway's namespace, otherwise the pod stays pending on the missing volume. Setting only one of the two references mounts both that reference and the fallback Secret, so the unset side keeps its `/app/tls` path.
 
 ### Gateway Service (`spec.service`)
 
