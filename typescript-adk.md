@@ -1855,7 +1855,7 @@ const inputRequiredTool = {
 
 Reserve this tool by exposing it via your `ToolBox.list()` implementation - the handler does **not** advertise it automatically. The Go ADK uses the same reserved name, so the prompt-extraction conventions transfer between implementations.
 
-### Usage metadata (`setEnableUsageMetadata`)
+### Usage metadata
 
 Usage tracking is off by default. Toggle it with `setEnableUsageMetadata(true)`:
 
@@ -1865,17 +1865,17 @@ handler.setEnableUsageMetadata(true);
 handler.isUsageMetadataEnabled(); // true
 ```
 
-When enabled, every terminal transition (`COMPLETED`, `INPUT_REQUIRED`, `FAILED`, `CANCELLED`) merges the accumulated metadata into `task.metadata`:
+When enabled, every terminal transition (`COMPLETED`, `INPUT_REQUIRED`, `FAILED`, `CANCELLED`) merges the accumulated metadata into `task.metadata`, under the keys of the [usage extension](/a2a/#usage-extension) (`EXECUTION_STATS_METADATA_KEY` and `USAGE_METADATA_KEY`):
 
 ```jsonc
 {
   "metadata": {
-    "execution_stats": {
+    "https://github.com/inference-gateway/schemas/tree/main/a2a/extensions/usage/v1/execution_stats": {
       "iterations": 3,
       "tool_calls": 5,
       "failed_tools": 1,
     },
-    "usage": {
+    "https://github.com/inference-gateway/schemas/tree/main/a2a/extensions/usage/v1/usage": {
       "prompt_tokens": 1240,
       "completion_tokens": 318,
       "total_tokens": 1558,
@@ -1902,6 +1902,25 @@ Edge-case behaviour:
 - If `setEnableUsageMetadata(true)` is called but the handler returns before the first iteration (already-terminal task on entry), no metadata is attached because there is nothing to report.
 
 The underlying counters are exposed as the `UsageTracker` class for direct use in tests and downstream tooling that wants to surface a running tally between iterations.
+
+The extension is inactive by default. The server activates the extensions a request lists in its `A2A-Extensions` header that the served card declares, hands them to every method as `MethodContext.activatedExtensions`, and echoes them in the response header. Tasks and terminal status updates returned to a request that did not activate the usage extension leave its keys out, and push notifications never carry them. The stored task always keeps them. `withoutExtension(value, uri)` drops an extension's keys from a task or status update.
+
+Declare the extension on the card you serve with `withUsageExtension(card)`, and have clients send the header:
+
+```ts
+import {
+  USAGE_EXTENSION_URI,
+  createA2AClient,
+  createA2AServer,
+  withUsageExtension,
+} from '@inference-gateway/adk';
+
+const server = createA2AServer({ card: withUsageExtension(card) });
+const client = createA2AClient({
+  baseURL: 'http://localhost:8080',
+  headers: { 'A2A-Extensions': USAGE_EXTENSION_URI },
+});
+```
 
 ### Wiring into `A2AServerBuilder`
 
@@ -3483,7 +3502,7 @@ The TypeScript ADK is being grown in lockstep with the [Go ADK](https://github.c
 - `CancelTask` mirrors the Go ADK's `CancelTask` in [`adk/server/task_manager.go`](https://github.com/inference-gateway/adk/blob/main/server/task_manager.go) - same per-state branch table (`PENDING` dropped from the queue; `IN_PROGRESS` / `INPUT_REQUIRED` aborted via the shared registry; terminal / unknown surfaced as JSON-RPC `-32602`), and same dead-letter on completion. The TypeScript ADK's [`TaskCancellationRegistry`](#taskcancellationregistry) is the structural equivalent of the Go ADK's `RegisterTaskCancelFunc` / `UnregisterTaskCancelFunc` / `runningTasks` map on `DefaultTaskManager`.
 - The `SendStreamingMessage` SSE wire format - CloudEvents v1.0 envelopes, `source = 'adk/agent'`, `subject = taskId`, and the `AGENT_EVENT_TYPE.*` constants - is **byte-identical** to the Go ADK's emitter in `server/agent_streamable.go`. Client implementations target one canonical wire contract regardless of which ADK the agent is built with.
 - `STREAMING_STATUS_UPDATE_INTERVAL` shares its name, default (`1s`), and accepted format with the Go ADK's `server/config/config.go`.
-- `DefaultBackgroundTaskHandler` mirrors the Go ADK's [`DefaultBackgroundTaskHandler`](https://github.com/inference-gateway/adk/blob/main/server/task_handler.go) - same iteration cap default (`50`), same `MAX_CHAT_COMPLETION_ITERATIONS` env var name, same reserved `input_required` tool and `message` / `prompt` / `question` arg-key fallback, and the same `execution_stats` / `usage` metadata shape on `task.metadata`.
+- `DefaultBackgroundTaskHandler` mirrors the Go ADK's [`DefaultBackgroundTaskHandler`](https://github.com/inference-gateway/adk/blob/main/server/task_handler.go) - same iteration cap default (`50`), same `MAX_CHAT_COMPLETION_ITERATIONS` env var name, same reserved `input_required` tool and `message` / `prompt` / `question` arg-key fallback, and the same [usage extension](/a2a/#usage-extension) keys on `task.metadata`.
 - [`AgentBuilder`](#agent-builder-agentbuilder) mirrors the Go ADK's [`AgentBuilder`](https://github.com/inference-gateway/adk/blob/main/server/agent_builder.go) - same fluent surface (`withProvider` / `withModel` / `withTemperature` / `withTopP` / `withMaxTokens` / `withMaxIterations` / `withSystemPrompt` / `withMaxConversationHistory` / `withCallbacks` / `withToolBox` / `withLLMClient` / `build`), same defaults (`maxIterations: 50`, `maxConversationHistory: 20`), and a `systemPrompt` default that is a byte-for-byte copy of `AgentConfig.SystemPrompt` from [`server/config/config.go`](https://github.com/inference-gateway/adk/blob/main/server/config/config.go). The TS variant surfaces each LLM-config field as its own builder method instead of a single `WithConfig` call.
 - [`GetExtendedAgentCard`](#the-getextendedagentcard-json-rpc-method) mirrors the Go ADK's [`HandleGetAuthenticatedExtendedCard`](https://github.com/inference-gateway/adk/blob/main/server/task_handler.go) - same JSON-RPC method name, same optional `tenant` param, same "return the configured extended card verbatim" contract, same fail-closed behaviour when no extended card is configured (`-32601 method not found`). Both ADKs leave the public well-known card undecorated and surface auth schemes only on the extended endpoint; the public card sets `capabilities.extendedAgentCard: true` to signal availability. The TS handler is auto-registered by [`A2AServerBuilder.withAuthConfig(...)`](#via-a2aserverbuilder-withauthconfig) when paired with an authenticator, matching the Go ADK's `A2AServerBuilder.WithAuthConfig` wiring.
 - [`HTTPPushNotificationSender`](#push-notifications-httppushnotificationsender) mirrors the Go ADK's [`HTTPPushNotificationSender`](https://github.com/inference-gateway/adk/blob/main/server/push_notification_sender.go) - same A2A `StreamResponse` JSON payload (`{ task }`, `Content-Type: application/a2a+json`), same auth-header resolution order (`config.token` first, then bearer / basic in `config.authentication.schemes`), and the same retryable-vs-non-retryable classification (5xx / 429 / network / per-attempt timeout retryable; 4xx and caller abort non-retryable). The TypeScript sender ships `deliverTaskUpdate` as a fan-out helper with a default concurrency cap of `8`; both ADKs' senders are delivery primitives only and depend on the lifecycle layer for invocation.

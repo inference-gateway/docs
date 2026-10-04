@@ -417,6 +417,30 @@ Inside `params`, field names follow the normative proto3 JSON mapping of A2A spe
 
 The same mapping governs values: an optional field carrying its proto3 default is equivalent to omitting it, so a `ListTasks` call with `pageToken: ""` asks for the first page, `pageSize: 0` asks for the server's default page size, and `status: ""` / `contextId: ""` apply no filter. The [Go](/adk/) and [TypeScript](/typescript-adk/#the-listtasks-json-rpc-method) ADK servers both accept these, which is what lets a client serialize every field unconditionally on its first call.
 
+### Usage Extension
+
+The A2A specification has no field for token usage. Agents built with the ADKs report it through the [usage extension](https://github.com/inference-gateway/schemas/tree/main/a2a/extensions/usage/v1), an optional extension the agent declares in its card:
+
+```json
+{
+  "capabilities": {
+    "extensions": [
+      {
+        "uri": "https://github.com/inference-gateway/schemas/tree/main/a2a/extensions/usage/v1",
+        "required": false
+      }
+    ]
+  }
+}
+```
+
+Like every A2A extension, it is inactive by default. A client activates it per request by listing the URI in the `A2A-Extensions` header, and the agent echoes the URI in the response header. Only then does a returned task carry the extension's two metadata keys, namespaced by the URI:
+
+- `<URI>/usage` - `prompt_tokens`, `completion_tokens` and `total_tokens`, summed over every LLM call of the task. It is absent when no call reported usage, which a client must treat as unknown rather than zero.
+- `<URI>/execution_stats` - `iterations`, `messages`, `tool_calls` and `failed_tools`.
+
+The CLI activates the extension on every A2A request, so a finished A2A task shows the tokens the agent spent in the subagent list and the task view. A task from an agent that does not serve the extension shows its tool counts without a token figure. The [Go](/adk/#usage-metadata), [Rust](/rust-adk/#usage-metadata) and [TypeScript](/typescript-adk/#usage-metadata) ADKs serve it.
+
 ## Best Practices
 
 ### Agent Design

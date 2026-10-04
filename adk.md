@@ -368,7 +368,7 @@ type StreamableTaskHandler interface {
 - **`TaskHandler`** backs `SendMessage` and background queue processing. It runs the task to a terminal state and returns the updated `Task`.
 - **`StreamableTaskHandler`** backs `SendStreamingMessage`. It returns a channel of [CloudEvents](#streaming-and-cloudevents) that the protocol handler forwards to the client as Server-Sent Events; close the channel when streaming is complete.
 
-You can register your own (`WithBackgroundTaskHandler` / `WithStreamingTaskHandler`) or use the bundled defaults (`WithDefaultBackgroundTaskHandler` / `WithDefaultStreamingTaskHandler` / `WithDefaultTaskHandlers`). The default handlers consume the agent's event stream, drive task status transitions, attach [usage metadata](#configuration-reference) on terminal states, and handle input-required pausing automatically. Streaming handlers require an agent to be configured.
+You can register your own (`WithBackgroundTaskHandler` / `WithStreamingTaskHandler`) or use the bundled defaults (`WithDefaultBackgroundTaskHandler` / `WithDefaultStreamingTaskHandler` / `WithDefaultTaskHandlers`). The default handlers consume the agent's event stream, drive task status transitions, attach [usage metadata](#usage-metadata) on terminal states, and handle input-required pausing automatically. Streaming handlers require an agent to be configured.
 
 ### Blocking SendMessage
 
@@ -416,6 +416,29 @@ func (h *GreetHandler) RespondToMessage(ctx context.Context, message *types.Mess
 ```
 
 `HandleTask`, `SetAgent`, and `GetAgent` are still required - `MessageResponder` extends the handler, it does not replace it.
+
+### Usage metadata
+
+With `AGENT_CLIENT_ENABLE_USAGE_METADATA` on (the default), the default handlers count the tokens every LLM call of a task spends and how the agent loop ran, and attach both to the task once it reaches a terminal or interrupted state. The ADK publishes them as the [usage extension](/a2a/#usage-extension):
+
+- The server declares the extension in the agent card it serves, with `required: false`. Your card needs no change.
+- A request activates it with the `A2A-Extensions` header, and the response echoes the URI. Tasks returned to a request that did not activate it leave the keys out, and push notifications never carry them. The stored task always keeps them.
+- The keys are `types.UsageMetadataKey` (`prompt_tokens`, `completion_tokens`, `total_tokens`) and `types.ExecutionStatsMetadataKey` (`iterations`, `messages`, `tool_calls`, `failed_tools`). `Task.WithoutExtension(uri)` drops an extension's keys from a task.
+
+Streaming completions ask for `stream_options.include_usage`, and the agent counts the usage from the final chunk, so streamed tasks report their tokens too.
+
+A client activates the extension through its headers and reads the keys from the task metadata:
+
+```go
+cfg := client.DefaultConfig("http://localhost:8080")
+cfg.Headers["A2A-Extensions"] = types.UsageExtensionURI
+a2a := client.NewClientWithConfig(cfg)
+
+usage, ok := (*task.Metadata)[types.UsageMetadataKey].(map[string]any)
+if ok {
+	fmt.Println("tokens:", usage["total_tokens"])
+}
+```
 
 ## Streaming and CloudEvents
 
@@ -1032,7 +1055,7 @@ Reference them in code as `server.BuildAgentName`, etc., when constructing the `
 | `AGENT_CLIENT_TEMPERATURE`                    | `0.7`              | Sampling temperature.                                           |
 | `AGENT_CLIENT_SYSTEM_PROMPT`                  | _(default prompt)_ | System prompt prepended to conversations.                       |
 | `AGENT_CLIENT_MAX_CONVERSATION_HISTORY`       | `20`               | Messages retained per context.                                  |
-| `AGENT_CLIENT_ENABLE_USAGE_METADATA`          | `true`             | Attach token usage + execution stats to terminal tasks.         |
+| `AGENT_CLIENT_ENABLE_USAGE_METADATA`          | `true`             | Serve the [usage extension](#usage-metadata) on terminal tasks. |
 | `AGENT_CLIENT_TOOLS_CREATE_ARTIFACT`          | `false`            | Register the autonomous `create_artifact` tool.                 |
 
 `AGENT_CLIENT_MAX_RETRIES` covers both the non-streaming `CreateChatCompletion` call and the streaming path `AgentBuilder` agents use. On the streaming path only the attempt to open the upstream SSE connection is retried - up to `AGENT_CLIENT_MAX_RETRIES` times with a one second linear backoff. Once the first delta has been forwarded, a stream that breaks fails the task: deltas are never replayed.
