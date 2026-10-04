@@ -31,10 +31,10 @@ kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/downloa
 kubectl apply -f https://github.com/inference-gateway/operator/releases/latest/download/install.yaml
 ```
 
-For production, pin to a release rather than `latest` (the current release is `v0.26.0`):
+For production, pin to a release rather than `latest` (the current release is `v0.27.0`):
 
 ```bash
-kubectl apply -f https://github.com/inference-gateway/operator/releases/download/v0.26.0/install.yaml
+kubectl apply -f https://github.com/inference-gateway/operator/releases/download/v0.27.0/install.yaml
 ```
 
 ### GitOps
@@ -51,7 +51,7 @@ spec:
   project: default
   source:
     repoURL: https://github.com/inference-gateway/operator
-    targetRevision: v0.26.0
+    targetRevision: v0.27.0
     path: manifests
   destination:
     server: https://kubernetes.default.svc
@@ -76,7 +76,7 @@ spec:
   interval: 1h
   url: https://github.com/inference-gateway/operator
   ref:
-    tag: v0.26.0
+    tag: v0.27.0
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
@@ -184,7 +184,7 @@ spec:
       service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
 ```
 
-These fields require operator v0.26.1 or later - older operators silently ignore `type` and `annotations` and create the Service as the API server default (`ClusterIP`, no annotations).
+These fields require operator v0.27.0 or later - older operators silently ignore `type` and `annotations` and create the Service as the API server default (`ClusterIP`, no annotations).
 
 `annotations` are authoritative on the operator-owned Service: the reconcile loop matches the Service's annotations to `spec.service.annotations` exactly, so removing a key from the spec removes it from the Service.
 
@@ -954,7 +954,7 @@ kubectl get gateway my-gateway -n inference-gateway -o jsonpath='{.status.a2aAge
 Delete custom resources before uninstalling the operator so finalizers can run:
 
 ```bash
-kubectl delete gateway,agent,mcp,orchestrator --all -A
+kubectl delete gateway,agent,mcp,orchestrator,gpu --all -A
 kubectl delete -f https://github.com/inference-gateway/operator/releases/latest/download/install.yaml
 ```
 
