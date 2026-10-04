@@ -176,7 +176,7 @@ If your agent is going to receive images, `A2A_AGENT_CLIENT_MODEL` has to name a
 
 | Method                                                        | Purpose                                                                                     |
 | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `with_config(Config)`                                         | Apply a fully-loaded `Config` (port, TLS, auth, queue, telemetry, artifacts).               |
+| `with_config(Config)`                                         | Apply a fully-loaded `Config` - see the note below for what is actually consumed.           |
 | `with_agent(Agent)`                                           | Attach an LLM-backed agent built via `AgentBuilder`.                                        |
 | `with_agent_card(AgentCard)`                                  | Configure the card served at `/.well-known/agent-card.json` from an in-memory value.        |
 | `with_agent_card_from_file(path, Option<AgentCardOverrides>)` | Load the card from a JSON file, applying optional field overrides.                          |
@@ -190,6 +190,8 @@ If your agent is going to receive images, `A2A_AGENT_CLIENT_MODEL` has to name a
 | `with_workers(n)`                                             | Number of background queue workers (defaults to `A2A_QUEUE_WORKERS`).                       |
 | `with_auth_verifier(Arc<dyn AuthVerifier>)`                   | Plug in a custom verifier (overrides `A2A_AUTH_ENABLED`).                                   |
 | `with_artifact_service(Arc<dyn ArtifactService>)`             | Supply a custom artifact service / storage backend.                                         |
+
+**What `with_config` consumes.** The agent-card URL fallback, TLS, auth, queue, the usage-metadata flag and artifacts. `server_config.port` only feeds the default advertised URL `http(s)://localhost:<port>/a2a` - it never binds a listener, which is always the `SocketAddr` you pass to `A2AServer::serve`. `telemetry_config` is read only by `telemetry::init`, which you call yourself.
 
 > **Builder validation.** `build()` returns an error unless an agent card is configured and at least one task handler is present. It also cross-checks the card's `capabilities.streaming` flag: a streaming-enabled card requires a streaming handler, and a streaming-disabled card requires a background handler. `with_default_task_handlers()` satisfies both.
 
@@ -904,12 +906,12 @@ The error contract (spec 3.3.4) for `GetExtendedAgentCard`:
 
 When `A2A_SERVER_TLS_ENABLED=true`, `A2AServer::serve` swaps its plaintext listener for [`axum-server`](https://github.com/programatik29/axum-server) backed by [`rustls`](https://github.com/rustls/rustls) 0.23 (with the `ring` crypto provider) and serves the same router over HTTPS. Rustls was chosen over native-tls because it is pure Rust - avoiding the OpenSSL toolchain on container builds - and because it gives programmatic access to the negotiated connection, which is what makes the mTLS subject extraction below tractable.
 
-| Variable                        | Default | Purpose                                                                                                                                                       |
-| ------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `A2A_SERVER_TLS_ENABLED`        | `false` | When `true`, `A2AServer::serve` binds an HTTPS listener.                                                                                                      |
-| `A2A_SERVER_TLS_CERT_PATH`      | (empty) | PEM file with the server certificate chain.                                                                                                                   |
-| `A2A_SERVER_TLS_KEY_PATH`       | (empty) | PEM file with the server private key (PKCS#1, PKCS#8, or SEC1).                                                                                               |
-| `A2A_SERVER_TLS_CLIENT_CA_PATH` | (unset) | When set, the server requires mTLS and trusts client certificates signed by any CA in this PEM bundle - the `MutualTlsSecurityScheme` the A2A spec describes. |
+| Variable                        | Default | Purpose                                                                                                                                                                                                                                                                                                                                                                                                         |
+| ------------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `A2A_SERVER_TLS_ENABLED`        | `false` | When `true`, `A2AServer::serve` binds an HTTPS listener.                                                                                                                                                                                                                                                                                                                                                        |
+| `A2A_SERVER_TLS_CERT_PATH`      | (empty) | PEM file with the server certificate chain.                                                                                                                                                                                                                                                                                                                                                                     |
+| `A2A_SERVER_TLS_KEY_PATH`       | (empty) | PEM file with the server private key (PKCS#1, PKCS#8, or SEC1).                                                                                                                                                                                                                                                                                                                                                 |
+| `A2A_SERVER_TLS_CLIENT_CA_PATH` | (unset) | When set, the server requires mTLS and trusts client certificates signed by any CA in this PEM bundle - the `MutualTlsSecurityScheme` the A2A spec describes. Leave it out entirely for plain TLS: any value, an empty string included, makes `TlsConfig::client_ca_path` `Some(..)` and turns mTLS on, so `A2A_SERVER_TLS_CLIENT_CA_PATH=""` fails at startup trying to read a certificate from an empty path. |
 
 When mTLS is enabled, the TLS acceptor parses the peer's leaf certificate and exposes it to handlers as an `axum::Extension<PeerCert>` - the same plumbing pattern the bearer-token middleware uses for `AuthenticatedPrincipal`. The wrapped `ClientCertPrincipal` carries the subject DN, the Common Name (when present), the issuer DN, and the raw DER bytes of the leaf:
 
@@ -1130,8 +1132,8 @@ The artifacts subsystem is configured entirely through the `ARTIFACTS_*` environ
 | `ARTIFACTS_ENABLED`                    | `false`                 | Master switch. When `true`, `A2AServer::serve(...)` spawns the artifacts server and retention loop.                                                    |
 | `ARTIFACTS_SERVER_HOST`                | `0.0.0.0`               | Bind address of the artifacts HTTP server.                                                                                                             |
 | `ARTIFACTS_SERVER_PORT`                | `8081`                  | Port of the artifacts HTTP server.                                                                                                                     |
-| `ARTIFACTS_SERVER_READ_TIMEOUT`        | `30s`                   | Per-request read timeout.                                                                                                                              |
-| `ARTIFACTS_SERVER_WRITE_TIMEOUT`       | `30s`                   | Per-response write timeout.                                                                                                                            |
+| `ARTIFACTS_SERVER_READ_TIMEOUT`        | `30s`                   | Parsed but not yet applied - `ArtifactsServer` sets no read timeout.                                                                                   |
+| `ARTIFACTS_SERVER_WRITE_TIMEOUT`       | `30s`                   | Parsed but not yet applied - `ArtifactsServer` sets no write timeout.                                                                                  |
 | `ARTIFACTS_STORAGE_PROVIDER`           | `filesystem`            | `filesystem` or `minio`. The `minio` provider requires the `minio` Cargo feature; without it, requests fall back to filesystem storage with a `warn!`. |
 | `ARTIFACTS_STORAGE_BASE_PATH`          | `./artifacts`           | On-disk root for the `filesystem` provider.                                                                                                            |
 | `ARTIFACTS_STORAGE_BASE_URL`           | `http://localhost:8081` | Public URL prefix baked into file artifact URIs. Point it at wherever the artifacts server (or MinIO endpoint) is externally reachable.                |
@@ -1396,12 +1398,12 @@ Log verbosity is controlled by [`RUST_LOG`](https://docs.rs/tracing-subscriber/l
 
 **Server and core** - the listener and top-level toggles.
 
-| Variable                                    | Default     | Purpose                                                      |
-| ------------------------------------------- | ----------- | ------------------------------------------------------------ |
-| `A2A_SERVER_HOST`                           | `0.0.0.0`   | Bind address for the A2A JSON-RPC server.                    |
-| `A2A_SERVER_PORT`                           | `8080`      | Listener port.                                               |
-| `A2A_AGENT_URL`                             | _(derived)_ | Public URL advertised in the card - see below.               |
-| `A2A_STREAMING_STATUS_UPDATE_INTERVAL_SECS` | `1`         | Seconds between `TaskStatusUpdateEvent`s on a streamed task. |
+| Variable                                    | Default     | Purpose                                                                                                                       |
+| ------------------------------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `A2A_SERVER_HOST`                           | `0.0.0.0`   | Inert - `ServerConfig::host` is never read. The bind address comes solely from the `SocketAddr` passed to `A2AServer::serve`. |
+| `A2A_SERVER_PORT`                           | `8080`      | Feeds the default advertised URL `http(s)://localhost:<port>/a2a`; it does not bind the listener either.                      |
+| `A2A_AGENT_URL`                             | _(derived)_ | Public URL advertised in the card - see below.                                                                                |
+| `A2A_STREAMING_STATUS_UPDATE_INTERVAL_SECS` | `1`         | Seconds between `TaskStatusUpdateEvent`s on a streamed task.                                                                  |
 
 `A2A_AGENT_URL` has no fixed default - the server resolves the advertised URL at startup, see [Agent card and metadata](#agent-card-and-metadata) for the full precedence chain.
 
@@ -1459,12 +1461,12 @@ Log verbosity is controlled by [`RUST_LOG`](https://docs.rs/tracing-subscriber/l
 
 **TLS and mTLS** - see [TLS and mTLS](#tls-and-mtls).
 
-| Variable                        | Default   | Purpose                                                        |
-| ------------------------------- | --------- | -------------------------------------------------------------- |
-| `A2A_SERVER_TLS_ENABLED`        | `false`   | Terminate TLS on the A2A listener.                             |
-| `A2A_SERVER_TLS_CERT_PATH`      | _(empty)_ | PEM file with the server certificate chain.                    |
-| `A2A_SERVER_TLS_KEY_PATH`       | _(empty)_ | PEM file with the server private key.                          |
-| `A2A_SERVER_TLS_CLIENT_CA_PATH` | _(unset)_ | Trusted client-CA bundle; presence flips the server into mTLS. |
+| Variable                        | Default   | Purpose                                                                                                                      |
+| ------------------------------- | --------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `A2A_SERVER_TLS_ENABLED`        | `false`   | Terminate TLS on the A2A listener.                                                                                           |
+| `A2A_SERVER_TLS_CERT_PATH`      | _(empty)_ | PEM file with the server certificate chain.                                                                                  |
+| `A2A_SERVER_TLS_KEY_PATH`       | _(empty)_ | PEM file with the server private key.                                                                                        |
+| `A2A_SERVER_TLS_CLIENT_CA_PATH` | _(omit)_  | Trusted client-CA bundle. Any value, an empty string included, flips the server into mTLS - omit the variable for plain TLS. |
 
 **Telemetry** - OpenTelemetry OTLP **trace** export; see [Telemetry](#telemetry) for `telemetry::init` usage and the emitted spans. Traces-only over HTTP/protobuf, behind the optional `telemetry` Cargo feature. `A2A_TELEMETRY_ENABLED` is the sole switch, matching the [Go ADK](/adk#telemetry); `A2A_OTEL_TRACES_EXPORTER=none` opts the trace signal out while telemetry stays enabled.
 
