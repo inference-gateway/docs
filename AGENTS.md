@@ -1,6 +1,6 @@
 # AGENTS.md
 
-VitePress documentation site for [Inference Gateway](https://github.com/inference-gateway/inference-gateway). Content is plain Markdown; TypeScript/Vue only for site config and components.
+VitePress documentation site for [Inference Gateway](https://github.com/inference-gateway/inference-gateway). Content is plain Markdown - TypeScript/Vue only for site config and components.
 
 ## Commands
 
@@ -16,11 +16,11 @@ Use Bun (>= 1.3, pinned in `.bun-version`). Every `bun run <name>` has a `task <
 
 ## Conventions
 
-- Pages are root-level `*.md` files; each maps to a clean URL. Add `title` and `description` frontmatter, then register the page in `themeConfig.sidebar` in `.vitepress/config.ts`.
+- Pages are root-level `*.md` files. Each maps to a clean URL. Add `title` and `description` frontmatter, then register the page in `themeConfig.sidebar` in `.vitepress/config.ts`.
 - Markdown: ATX headings, dash bullets, 2-space nested indent. Prettier: 2-space indent, single quotes, semicolons, trailing commas, 100-col width. Lowercase route-oriented filenames (`browser-agent.md`).
 - CLI features are documented inside `cli.md` as a section of that page, not as a new `cli-*.md` page. Link to them with an anchor (`/cli/#custom-tools`). The existing standalone `cli-*.md` pages are the exception, not the pattern - do not add more without being asked.
 - For Vue-sensitive placeholders or GitHub Actions expressions, use `<code v-pre>...</code>` instead of backticks.
-- Do not reference GitHub issues or pull requests in doc content: no tracker numbers or links (the `repo#<number>` shorthand, or URLs to `/issues/` or `/pull/` pages). Describe the behavior or change itself; provenance belongs in the generated `CHANGELOG.md`.
+- Do not reference GitHub issues or pull requests in doc content: no tracker numbers or links (the `repo#<number>` shorthand, or URLs to `/issues/` or `/pull/` pages). Describe the behavior or change itself. Provenance belongs in the generated `CHANGELOG.md`.
 
 ## Code Readability
 
@@ -31,6 +31,8 @@ Use Bun (>= 1.3, pinned in `.bun-version`). Every `bun run <name>` has a `task <
 - No comments above modules, packages, or files.
 - Tool directives are not comments and stay where the tool needs them (lint suppressions, build
   tags, compiler pragmas, code generation markers).
+- No semicolons in documentation prose (Markdown files, doc comments): split the sentence or use
+  a dash instead.
 
 ## Generated content — do not hand-edit
 
@@ -39,7 +41,7 @@ Sections between `GENERATED:*` markers in `supported-providers.md`, `configurati
 `task generate` / `generate:check` fetch the schema over the network. To regen offline:
 
 1. `gh api "repos/inference-gateway/schemas/contents/openapi.yaml?ref=main" -H "Accept: application/vnd.github.raw" > .schema.yaml`
-2. `bun scripts/generate-provider-docs.mjs --schema-file=.schema.yaml` (use the `--schema-file=` form; the `SCHEMA_FILE=` env form can be blocked)
+2. `bun scripts/generate-provider-docs.mjs --schema-file=.schema.yaml` (use the `--schema-file=` form - the `SCHEMA_FILE=` env form can be blocked)
 3. `bunx prettier --write` the regenerated files, then `bun test`
 4. Delete `.schema.yaml` (untracked, trips `format:check`)
 
