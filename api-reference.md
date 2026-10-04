@@ -177,7 +177,7 @@ Content-Type: application/json
 }
 ```
 
-In this example, `openai/gpt-5` carries provider-published rates while `openai/gpt-5.6-luna` fell back to the community table (`source: "community"`; community entries omit `updated_at`).
+In this example, `openai/gpt-5.6-sol` carries provider-published rates while `openai/gpt-5.6-luna` fell back to the community table (`source: "community"`; community entries omit `updated_at`).
 
 Example response for subscription-gated Ollama Cloud models with `include=pricing`:
 
