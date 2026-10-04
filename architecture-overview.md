@@ -13,7 +13,7 @@ A unified OpenAI-compatible request enters the gateway and passes through a midd
 
 <FlowDiagram flow="request" />
 
-The pipeline order matches the binary: `cmd/gateway/main.go` registers the auth, guardrails, and MCP middlewares in exactly this sequence before the `/v1/*` handlers. The gateway is stateless - replicas scale horizontally behind any load balancer, and per-request state (tool-call iteration, MCP context) lives in the request lifecycle, not the process. See [Supported Providers](/supported-providers/) for the full provider matrix: OpenAI, DeepSeek, Anthropic, Cohere, Groq, Cloudflare, Ollama, Ollama Cloud, Google, Mistral, MiniMax, Moonshot, and Nvidia.
+The pipeline order matches the binary: `cmd/gateway/main.go` registers the auth, guardrails, and MCP middlewares in exactly this sequence before the `/v1/*` handlers. The gateway is stateless - replicas scale horizontally behind any load balancer, and per-request state (tool-call iteration, MCP context) lives in the request lifecycle, not the process. See [Supported Providers](/supported-providers/) for the full provider matrix: OpenAI, DeepSeek, Anthropic, Cohere, Groq, Cloudflare, Ollama, Ollama Cloud, Google, Mistral, MiniMax, Moonshot, Nvidia, llama.cpp, Z-AI, and ElevenLabs.
 
 ## Kubernetes Setup
 
