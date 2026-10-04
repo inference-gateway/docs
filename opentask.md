@@ -60,7 +60,7 @@ Right-click the extension icon and select **Options** (or navigate to the extens
 
 ## CLI bridge protocol
 
-The [Inference Gateway CLI](/cli/) can drive **your real browser** through OpenTask instead of a Playwright-launched one, and mirror the chat conversation into the extension sidepanel. The rest of this page is the wire contract the extension implements.
+The [Inference Gateway CLI](/cli/) can drive **your real browser** through OpenTask instead of a Playwright-launched one, and mirror the chat conversation into the extension sidepanel. The bridge itself works on every build; the side-panel chat and the [Install workflow](#usage) flow that streams through it are Chrome and Edge only, because Firefox and Safari have no side panel. The rest of this page is the wire contract the extension implements.
 
 > **Note:** Every frame is a single JSON text message with a `type` discriminator. Unknown `type` values are ignored on both sides, so the protocol is forward-compatible by contract.
 
@@ -87,9 +87,11 @@ The extension connects to [`infer daemon`](/cli/#daemon) - the one hub that also
      token: <shared secret; infer init seeds one>
    ```
 
-4. Paste both into the extension options.
+4. Paste both into the extension options, under **Orchestrator -> CLI Bridge**.
 
-The panel then lists the daemon's threads - a thread is a project directory plus a conversation - and shows the live stream of whichever one you open. A standalone `infer chat` or `infer headless` with `backend: extension` reaches the browser as another daemon client (`client: "browser"` in the handshake) and starts `infer daemon` itself on the first browser call when none is running. The daemon needs the port to be free - if another process holds it, the daemon's boot fails with the port named rather than retrying.
+5. Connect. On Chrome and Edge, open the side panel and click **Connect**. On Firefox and Safari there is no Connect button - the bridge dials the daemon on its own as soon as the shared token is saved, so saving the token is the last step.
+
+On Chrome and Edge the panel then lists the daemon's threads - a thread is a project directory plus a conversation - and shows the live stream of whichever one you open. A standalone `infer chat` or `infer headless` with `backend: extension` reaches the browser as another daemon client (`client: "browser"` in the handshake) and starts `infer daemon` itself on the first browser call when none is running. The daemon needs the port to be free - if another process holds it, the daemon's boot fails with the port named rather than retrying.
 
 ### Transport
 
