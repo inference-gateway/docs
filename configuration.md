@@ -191,6 +191,44 @@ const mcpSettings = [
   { variable: 'MCP_DISABLE_HEALTHCHECK_LOGS', description: 'Disable health check log messages to reduce noise', defaultValue: 'true' },
 ];
 
+const a2aSettings = [
+  {
+    variable: 'A2A_ENABLED',
+    description:
+      'Expose the gateway as an A2A server that delegates every call to the agents in A2A_AGENTS: GET /.well-known/agent-card.json, POST /a2a and GET /a2a/agents. When disabled the routes return 404 and nothing A2A-related runs',
+    defaultValue: 'false',
+  },
+  {
+    variable: 'A2A_AGENTS',
+    description:
+      'Comma-separated list of A2A agents as alias=url, e.g. research=http://research-agent:8080. Without alias= the alias is derived from the URL host. Aliases must match ^[a-z0-9_-]+$ and be unique; they prefix the skill ids on the gateway card, name the tenant of the per-agent interface, and prefix every task id the gateway hands out as <alias>:<task id>. Per-agent credentials go in the url as basic auth',
+    defaultValue: '""',
+  },
+  {
+    variable: 'A2A_RESOURCE_URL',
+    description:
+      'Canonical public URL of POST /a2a, e.g. https://gateway.example.com/a2a. Published as the url of the gateway agent card interfaces and as the resource of the OAuth 2.0 Protected Resource Metadata (RFC 9728) document served at /.well-known/oauth-protected-resource/a2a. Defaults to the request scheme (honouring X-Forwarded-Proto) and Host with /a2a appended; set it behind an ingress that rewrites either',
+    defaultValue: '""',
+  },
+  {
+    variable: 'A2A_CLIENT_TIMEOUT',
+    description: 'Timeout for one non-streaming call to an agent, including the agent card fetch',
+    defaultValue: '30s',
+  },
+  {
+    variable: 'A2A_STREAM_IDLE_TIMEOUT',
+    description:
+      'Idle cutoff for a relayed SendStreamingMessage or SubscribeToTask stream: the relay closes when the agent sends nothing for this long. 0 disables the cutoff',
+    defaultValue: '5m',
+  },
+  {
+    variable: 'A2A_CARD_REFRESH_INTERVAL',
+    description:
+      'Interval at which agent cards are re-fetched in the background so unreachable agents are retried and skill changes picked up. Cards are always fetched once at startup; 0 disables the background refresh',
+    defaultValue: '5m',
+  },
+];
+
 const loggingSettings = [
   { variable: 'ENVIRONMENT', description: 'Log verbosity is derived from the deployment environment: development selects zap\'s development config (debug level and human-readable output), any other value selects the JSON production config (info level)', defaultValue: 'production' },
 ];
@@ -427,6 +465,21 @@ Use `MCP_INCLUDE_TOOLS` and `MCP_EXCLUDE_TOOLS` to control exactly which discove
 
 `MCP_INCLUDE_TOOLS` takes precedence over `MCP_EXCLUDE_TOOLS`: when both are set, the allowlist is applied and the denylist is ignored. Both match either the bare tool name or the namespaced <code v-pre>&lt;alias&gt;_&lt;tool name&gt;</code> form, so use the namespaced form to single out one server when several expose the same tool name.
 
+### Agent2Agent (A2A) Settings
+
+These settings turn the gateway into an [A2A](/a2a/) server that relays to downstream agents:
+
+<ConfigTable :rows="a2aSettings" />
+
+With `A2A_ENABLED=true` the gateway registers `GET /.well-known/agent-card.json`, `POST /a2a`, `GET /a2a/agents` and `GET /.well-known/oauth-protected-resource/a2a`. Left at the default `false` the routes are not registered at all and answer `404`. Every A2A JSON-RPC call on `POST /a2a` is relayed to the agent the request names, resolved by alias from `A2A_AGENTS`.
+
+```bash
+A2A_ENABLED=true
+A2A_AGENTS="research=http://research-agent:8080,http://mock-agent:8080"
+```
+
+On Kubernetes the [Operator](/operator/#a2a-agents-spec-a2a) renders `A2A_AGENTS` for you from `spec.a2a.agents[]` and `spec.a2a.serviceDiscovery`, and mirrors the result in `status.a2aAgents`.
+
 ### Logging and Debugging
 
 These settings control logging and debugging behavior:
@@ -528,6 +581,13 @@ MCP_POLLING_ENABLED=true
 MCP_POLLING_INTERVAL=30s
 MCP_POLLING_TIMEOUT=5s
 MCP_DISABLE_HEALTHCHECK_LOGS=true
+# Agent2Agent (A2A)
+A2A_ENABLED=false
+A2A_AGENTS=
+A2A_RESOURCE_URL=
+A2A_CLIENT_TIMEOUT=30s
+A2A_STREAM_IDLE_TIMEOUT=5m
+A2A_CARD_REFRESH_INTERVAL=5m
 # Authentication
 AUTH_ENABLED=false
 AUTH_OIDC_ISSUER=

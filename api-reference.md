@@ -1263,6 +1263,95 @@ Returns `404` unless `AUTH_ENABLED=true` and the MCP endpoint is exposed (`MCP_E
 
 There are none. The gateway registers no `/v1/mcp/*` routes, so a request there falls through to the `404` handler. Discover tools with the `tools/list` method of [`POST /mcp`](#mcp-server-json-rpc) - it returns the tools of the healthy servers and skips unreachable ones - and point probes at [`GET /health`](#health-check).
 
+### A2A Server (JSON-RPC)
+
+Expose the gateway itself as an [A2A](/a2a/) server that relays to the agents in `A2A_AGENTS`. Requires gateway v0.58.0 or newer and `A2A_ENABLED=true`. While A2A is disabled the routes below are not registered at all, so they answer `404`. Like `/mcp`, A2A lives at the **root**, not under `/v1`.
+
+| Route                                           | Purpose                                                     |
+| ----------------------------------------------- | ----------------------------------------------------------- |
+| `GET /.well-known/agent-card.json`              | The merged agent card of every registered agent             |
+| `POST /a2a`                                     | JSON-RPC endpoint relaying each call to the agent it names  |
+| `GET /a2a/agents`                               | Diagnostic view of the registry: alias, URL, reachability   |
+| `GET /.well-known/oauth-protected-resource/a2a` | RFC 9728 metadata for `POST /a2a` (requires `AUTH_ENABLED`) |
+
+#### Agent card
+
+```http
+GET /.well-known/agent-card.json
+```
+
+One card for the gateway, merged from the cards fetched from each configured agent. Every agent's skills appear with their id prefixed <code v-pre>&lt;alias&gt;_&lt;skill id&gt;</code>, the input and output modes are the union across agents, and `streaming` / `pushNotifications` are advertised only when every agent supports them. `supportedInterfaces` lists the gateway's `/a2a` URL once without a `tenant` plus once per agent alias as the `tenant`, so a client can address a single agent by picking its interface. Cards are fetched at startup and re-fetched every `A2A_CARD_REFRESH_INTERVAL`, so an agent that was down at startup is picked up later.
+
+#### A2A JSON-RPC
+
+```http
+POST /a2a
+```
+
+The request body is a single JSON-RPC 2.0 request. A notification (no `id`) is acknowledged with `202` and dropped. The gateway keeps no tasks, messages, or events of its own - it resolves the target agent, forwards the call, and prefixes every task id it returns as <code v-pre>&lt;alias&gt;:&lt;task id&gt;</code> so a later `GetTask` routes back to the same agent.
+
+| Method                                                                                                                                     | Relayed to                             |
+| ------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------- |
+| `SendMessage`, `GetTask`, `CancelTask`, `ListTasks`                                                                                        | The named agent                        |
+| `SendStreamingMessage`, `SubscribeToTask`                                                                                                  | The named agent, response streamed SSE |
+| `CreateTaskPushNotificationConfig`, `GetTaskPushNotificationConfig`, `ListTaskPushNotificationConfigs`, `DeleteTaskPushNotificationConfig` | The named agent                        |
+| `GetExtendedAgentCard`                                                                                                                     | The named agent                        |
+
+The agent is named by `params.tenant`, by `params.message.metadata.agent`, or implicitly by the <code v-pre>&lt;alias&gt;:</code> prefix of a task id the gateway issued. When several of these are present they must agree, otherwise the call fails with `-32602`. `ListTasks` is the one exception - with no agent named it fans out to every agent and merges the results.
+
+```http
+POST /a2a
+Content-Type: application/json
+
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "SendMessage",
+  "params": {
+    "message": {
+      "messageId": "m1",
+      "role": "ROLE_USER",
+      "parts": [{ "text": "Summarize the latest release notes" }],
+      "metadata": { "agent": "research" }
+    }
+  }
+}
+```
+
+The two streaming methods pipe the agent's SSE stream through unchanged, each event re-emitted under the client's request `id`. A stream is closed once the agent sends nothing for `A2A_STREAM_IDLE_TIMEOUT` (`0` disables the cutoff). Non-streaming calls are bounded by `A2A_CLIENT_TIMEOUT`.
+
+Protocol errors are returned with HTTP `200` and a JSON-RPC error envelope: `-32700` parse error, `-32600` invalid request (wrong `jsonrpc` version, missing method, or a body over `SERVER_MAX_REQUEST_BODY_SIZE`), `-32601` method not found, `-32602` invalid params (no agent named, an unknown alias, or conflicting agent hints), `-32603` internal error from the upstream agent. The endpoint is covered by the gateway's global auth, so with `AUTH_ENABLED=true` it requires a bearer token.
+
+#### Agent registry
+
+```http
+GET /a2a/agents
+```
+
+```json
+{
+  "agents": [
+    {
+      "alias": "research",
+      "url": "http://research-agent:8080",
+      "reachable": true,
+      "lastSeen": "2026-10-04T10:12:03Z",
+      "card": { "name": "research-agent", "version": "0.3.1" }
+    }
+  ]
+}
+```
+
+The diagnostic view of the in-memory registry, in `A2A_AGENTS` order. `card` is omitted for an agent whose card has never been fetched, and `reachable` plus `lastSeen` reflect the last refresh. A dead agent is never fatal - the gateway starts without it and retries on every refresh.
+
+#### A2A Protected Resource Metadata
+
+```http
+GET /.well-known/oauth-protected-resource/a2a
+```
+
+The [RFC 9728](https://datatracker.ietf.org/doc/html/rfc9728) Protected Resource Metadata document for `POST /a2a`, with the same `resource` / `authorization_servers` / `bearer_methods_supported` shape as [the MCP one](#mcp-protected-resource-metadata). Served without a token. Returns `404` unless `AUTH_ENABLED=true`. `resource` is `A2A_RESOURCE_URL` when set, otherwise the request scheme (honouring `X-Forwarded-Proto`) and `Host` with `/a2a` appended - the same value the agent card publishes.
+
 ### Health Check
 
 Check if the Inference Gateway service is running.

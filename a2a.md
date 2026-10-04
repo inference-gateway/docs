@@ -1,6 +1,6 @@
 ---
 title: A2A Integration
-description: Agent-to-Agent (A2A) protocol support in Inference Gateway. Coordinate multiple specialized agents from any chat completion, with CLI integration and custom-agent guidance.
+description: Agent-to-Agent (A2A) protocol support in Inference Gateway. Delegate to specialized agents from a CLI chat session, or expose the gateway itself as an A2A server, with custom-agent guidance.
 ---
 
 # Agent-To-Agent (A2A) Integration
@@ -78,6 +78,14 @@ When a user makes a request:
 3. **Task Decomposition**: The request is broken down into tasks for specific agents
 4. **Agent Coordination**: Multiple agents are called simultaneously or sequentially
 5. **Result Integration**: Results from all agents are integrated into a coherent response
+
+This coordination lives in the [CLI](/cli/), not in the gateway's `/v1/chat/completions` handler - the gateway injects no A2A tools into chat completions, only [MCP](/mcp/) tools.
+
+## The Gateway as an A2A Server
+
+Separately from the CLI delegating to agents, the gateway can be an A2A server itself. With `A2A_ENABLED=true` it serves one merged agent card at `GET /.well-known/agent-card.json` and relays every JSON-RPC call on `POST /a2a` to the agent named in the request, resolved by alias from `A2A_AGENTS`. Any A2A client then talks to a single endpoint instead of to each agent directly, and the gateway's auth, telemetry, and guardrails apply to the relayed calls.
+
+Requires gateway v0.58.0 or newer. See the [A2A settings](/configuration/#agent2agent-a2a-settings) for the environment variables, the [API reference](/api-reference/#a2a-server-json-rpc) for the routes and methods, and [A2A Agents (`spec.a2a`)](/operator/#a2a-agents-spec-a2a) for configuring it declaratively on Kubernetes.
 
 ## Using A2A with the Inference Gateway CLI
 
