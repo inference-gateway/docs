@@ -826,10 +826,9 @@ kubectl exec -it inference-gateway-pod -- curl http://mcp-server:8081/mcp
 
 #### Tool Execution Timeouts
 
-Increase timeout values:
+Tool calls are bounded by `MCP_CLIENT_TIMEOUT` and the request context, not by `MCP_REQUEST_TIMEOUT` (which covers startup initialization and `tools/list` discovery):
 
 ```bash
-MCP_REQUEST_TIMEOUT=30s
 MCP_CLIENT_TIMEOUT=30s
 ```
 

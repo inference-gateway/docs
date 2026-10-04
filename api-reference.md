@@ -735,7 +735,7 @@ curl -X POST http://localhost:8080/v1/audio/speech \
   -d '{"model":"local/qwen3-tts","input":"Hallo vom Inference Gateway.","voice":"default","language":"de","response_format":"wav"}'
 ```
 
-**Assets and cache.** The binary and weights are fetched in the background on first use and cached in fixed, non-configurable locations shared with the [CLI](/cli-text-to-speech/): GGUF models in `~/.infer/models/tts`, binaries in `~/.infer/bin`. A `llama-tts` already on `PATH` wins; otherwise the binary comes from the [inference-gateway/binaries](https://github.com/inference-gateway/binaries) release assets and is sha256-verified against the published `checksums.txt`. Downloads write to a temp file and atomically rename, so a CLI and a gateway downloading at the same time never corrupt the cache.
+**Assets and cache.** The binary and weights are fetched in the background at startup when `AUDIO_ENABLED=true`, and on demand otherwise, then cached in fixed, non-configurable locations shared with the [CLI](/cli-text-to-speech/): GGUF models in `~/.infer/models/tts`, binaries in `~/.infer/bin`. A `llama-tts` already on `PATH` wins; otherwise the binary comes from the [inference-gateway/binaries](https://github.com/inference-gateway/binaries) release assets and is sha256-verified against the published `checksums.txt`. A cached `llama-tts` is replaced when its sha256 no longer matches the latest release's `checksums.txt`; a binary found on `PATH` and already present GGUF weights are never re-downloaded, whether they came from an earlier run, the CLI, a mounted volume, or a pre-baked image layer. Downloads write to a temp file and atomically rename, so a CLI and a gateway downloading at the same time never corrupt the cache.
 
 **While assets are downloading**, the endpoint answers `503 Service Unavailable` with a `Retry-After` header and download progress in the body rather than holding the request open. Boot and chat routes are never blocked; a failed download is retried in the background on the next request.
 
@@ -748,11 +748,11 @@ With `AUDIO_LOCAL_AUTO_DOWNLOAD=false` the gateway never downloads anything and 
 
 **Tuning** (see [Configuration](/configuration/#general-settings)):
 
-| Variable                      | Default | Effect                                                                 |
-| ----------------------------- | ------- | ---------------------------------------------------------------------- |
-| `AUDIO_LOCAL_AUTO_DOWNLOAD`   | `true`  | Allow on-demand download of the binary and weights                     |
-| `AUDIO_LOCAL_MAX_CONCURRENCY` | `2`     | Concurrent syntheses; requests beyond the limit queue rather than fail |
-| `AUDIO_LOCAL_TIMEOUT`         | `300`   | Per-request synthesis timeout in seconds, surfaced as `504`            |
+| Variable                      | Default | Effect                                                                                    |
+| ----------------------------- | ------- | ----------------------------------------------------------------------------------------- |
+| `AUDIO_LOCAL_AUTO_DOWNLOAD`   | `true`  | Allow fetching the binary and weights - in the background at startup, on demand otherwise |
+| `AUDIO_LOCAL_MAX_CONCURRENCY` | `2`     | Concurrent syntheses; requests beyond the limit queue rather than fail                    |
+| `AUDIO_LOCAL_TIMEOUT`         | `300`   | Per-request synthesis timeout in seconds, surfaced as `504`                               |
 
 **Known ceiling.** Each request pays model and graph initialization (roughly 1s warm, slower cold or on GPU) and there is no cross-request batching - fine for agent speech, not for bulk synthesis. The local path is a stopgap until llama.cpp ships server-side TTS, after which the gateway can proxy to `llama-server` instead.
 
