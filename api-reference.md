@@ -47,7 +47,7 @@ Content-Type: application/json
   "object": "list",
   "data": [
     {
-      "id": "openai/gpt-5",
+      "id": "openai/gpt-5.6-sol",
       "object": "model",
       "created": 1741879542,
       "owned_by": "openai",
