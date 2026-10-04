@@ -1770,7 +1770,7 @@ client = client.
 
 ### Retry and backoff
 
-Retries are on by default: every request method runs through an exponential-backoff loop that retries transient transport errors plus the retryable status codes `408`, `429`, `500`, `502`, `503`, and `504`. On a `429` the client honors the response's `Retry-After` header (seconds or an HTTP-date) instead of its computed backoff. Tune or disable all of this through `ClientOptions.RetryConfig`.
+Retries are on by default: every request method runs through an exponential-backoff loop that retries transient transport errors plus the retryable status codes `408`, `429`, `500`, `502`, `503`, and `504`. On a `429` the client reads the response's `Retry-After` header (seconds or an HTTP-date) and waits that long instead of its computed backoff, but only while the requested wait is at most `MaxBackoffSec`. Tune or disable all of this through `ClientOptions.RetryConfig`.
 
 | Field                  | Type                                                | Default                        | Purpose                                                                                                                        |
 | ---------------------- | --------------------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
@@ -1800,6 +1800,22 @@ client := sdk.NewClient(&sdk.ClientOptions{
 ```
 
 Leave `RetryConfig` nil to inherit the defaults above, or set `Enabled: false` to turn retries off entirely.
+
+#### Rate limits and the quota wall
+
+A `Retry-After` longer than `MaxBackoffSec` (when `MaxBackoffSec` is greater than 0) is treated as a quota wall: the client stops without retrying and returns a `*sdk.RateLimitError` instead of sleeping through a wait it was never configured to tolerate. The error carries the gateway's `StatusCode`, its `Message` (the `{"error": ...}` message, or the raw body when the response is not JSON) and `RetryAfter`, so callers can schedule their own retry.
+
+```go
+resp, err := client.GenerateContent(ctx, sdk.Openai, "openai/gpt-4o", messages)
+
+var rateLimitErr *sdk.RateLimitError
+if errors.As(err, &rateLimitErr) {
+    log.Printf("rate limited: %s, retry in %s", rateLimitErr.Message, rateLimitErr.RetryAfter)
+    return
+}
+```
+
+A `429` without a `Retry-After` header, or with one inside `MaxBackoffSec`, is retried as usual.
 
 #### Cancellation preserves the underlying error
 
