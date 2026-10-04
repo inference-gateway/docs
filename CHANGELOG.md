@@ -2,6 +2,61 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.21](https://github.com/inference-gateway/docs/compare/0.9.20...0.9.21) (2026-10-04)
+
+### 📚 Documentation
+
+* a2a-debugger needs adk v0.31.0 agents ([#951](https://github.com/inference-gateway/docs/issues/951)) ([9c3802e](https://github.com/inference-gateway/docs/commit/9c3802e8f879202d184556147cd81e7520f75a34))
+* **a2a:** document the usage extension ([#982](https://github.com/inference-gateway/docs/issues/982)) ([e8fdae2](https://github.com/inference-gateway/docs/commit/e8fdae28828bc6341932eb926be408f960a5977e))
+* add typescript adk env var and dependency reference ([#974](https://github.com/inference-gateway/docs/issues/974)) ([5c65abf](https://github.com/inference-gateway/docs/commit/5c65abfa7a87c45ebc72089e1cc17f8eb0a08da9))
+* **agents:** add code readability guidelines ([#960](https://github.com/inference-gateway/docs/issues/960)) ([f501b37](https://github.com/inference-gateway/docs/commit/f501b373dbd12f22a052e5dfe22f471e44665434))
+* blocking SendMessage and StreamResponse push payload ([#935](https://github.com/inference-gateway/docs/issues/935)) ([0b06c96](https://github.com/inference-gateway/docs/commit/0b06c96a158d6c777f639cda54e50e9e51dec4c7))
+* blocking SendMessage, MessageResponder, artifact events ([#934](https://github.com/inference-gateway/docs/issues/934)) ([d95fc53](https://github.com/inference-gateway/docs/commit/d95fc53edc9df9bcca3672602e2f84a4d638b1ff))
+* bump operator pins to v0.27.0, add gpu to cleanup ([#963](https://github.com/inference-gateway/docs/issues/963)) ([c01c5da](https://github.com/inference-gateway/docs/commit/c01c5da77a5df6d947c9c28283c323c3fa5212ce))
+* **cli:** read not-found hints and repeated-failure match ([#900](https://github.com/inference-gateway/docs/issues/900)) ([98051c4](https://github.com/inference-gateway/docs/commit/98051c4b7e78cb8bcb85d6b8ebb1623599852eb9))
+* **cli:** show subagents in plan mode and fill the remaining subagent gaps ([#898](https://github.com/inference-gateway/docs/issues/898)) ([f15ea4b](https://github.com/inference-gateway/docs/commit/f15ea4b7d7ccd2756d55c37ff6ae78b3f97c6d27))
+* correct adl-cli acronym naming examples ([#980](https://github.com/inference-gateway/docs/issues/980)) ([23a8a9c](https://github.com/inference-gateway/docs/commit/23a8a9cea85654ac1d25b8df393abca969460032))
+* correct cli telemetry signals, opt-out and defaults ([#964](https://github.com/inference-gateway/docs/issues/964)) ([95d9c74](https://github.com/inference-gateway/docs/commit/95d9c74ac36389a0fc33c4858fdd9331878ffa69))
+* correct inert rust-adk config claims ([#979](https://github.com/inference-gateway/docs/issues/979)) ([06b08ab](https://github.com/inference-gateway/docs/commit/06b08abeb9e2bf8512147ae2240835bf88d2a96e))
+* correct mcp request timeout and tts download scope ([#969](https://github.com/inference-gateway/docs/issues/969)) ([df5a357](https://github.com/inference-gateway/docs/commit/df5a3576a10e20cf6ce4458cbafe1f6e4affb273))
+* document -32003 push notification capability gate ([#931](https://github.com/inference-gateway/docs/issues/931)) ([f1d1ae7](https://github.com/inference-gateway/docs/commit/f1d1ae7f4740a98e4a41e15908320449f103cd46))
+* document /reload and the config built-in skill ([#923](https://github.com/inference-gateway/docs/issues/923)) ([96d6c2f](https://github.com/inference-gateway/docs/commit/96d6c2faea3dde925550052cf9fb45122337a818))
+* document A2A v1.0.1 client behavior in the CLI ([#908](https://github.com/inference-gateway/docs/issues/908)) ([29c9481](https://github.com/inference-gateway/docs/commit/29c9481aaeb008dc1ab787f2734a5ec020772447))
+* document gateway server ports and TLS refs ([#970](https://github.com/inference-gateway/docs/issues/970)) ([89a9e3f](https://github.com/inference-gateway/docs/commit/89a9e3f6a2161b22a3af7d06afe260eb5093e7a0))
+* document gateway spec.a2a and agent discovery ([#953](https://github.com/inference-gateway/docs/issues/953)) ([28b2731](https://github.com/inference-gateway/docs/commit/28b27318edb5de564710774c9a78bc4db418044c))
+* document go sdk 429 quota wall and RateLimitError ([#972](https://github.com/inference-gateway/docs/issues/972)) ([3873cb7](https://github.com/inference-gateway/docs/commit/3873cb7d6ef20a2457b4fde76cb53650b6ff8c36))
+* document rust-adk agent card URL resolution ([#926](https://github.com/inference-gateway/docs/issues/926)) ([9fdac74](https://github.com/inference-gateway/docs/commit/9fdac745ca0b444df83d4b4c650afd9865049801))
+* document sandbox.yaml and drop tools.sandbox keys ([#907](https://github.com/inference-gateway/docs/issues/907)) ([2d52cee](https://github.com/inference-gateway/docs/commit/2d52cee0e8d2a987e94fb3caf7b6d1c1114e2e23))
+* document the gateway A2A server ([#965](https://github.com/inference-gateway/docs/issues/965)) ([980dc65](https://github.com/inference-gateway/docs/commit/980dc65049feeca34e1f915b81a8fb93e176da37))
+* document the per-project media root ([#911](https://github.com/inference-gateway/docs/issues/911)) ([6865a9d](https://github.com/inference-gateway/docs/commit/6865a9da128af3504e6cb7f3706de614a25ec3a3))
+* document the userspace tools.yaml policy file ([#915](https://github.com/inference-gateway/docs/issues/915)) ([e8eecdc](https://github.com/inference-gateway/docs/commit/e8eecdcb30b5121c599879e76ec86f16540c2f5d))
+* document vendor block and pinned ADK versions ([#906](https://github.com/inference-gateway/docs/issues/906)) ([3d08671](https://github.com/inference-gateway/docs/commit/3d0867189fd9c4eb1f2d257c289249148c69cabc))
+* fix quickstart curl and prefixed model ids ([#966](https://github.com/inference-gateway/docs/issues/966)) ([08512df](https://github.com/inference-gateway/docs/commit/08512dffca1afc72fe9d6751a6a211e2ec0169e1))
+* gate push config methods on card capability ([#922](https://github.com/inference-gateway/docs/issues/922)) ([78a2ef9](https://github.com/inference-gateway/docs/commit/78a2ef9105b0d459d13fb30897c917ec2d5cff12))
+* go adk artifact retention per-context cap ([#943](https://github.com/inference-gateway/docs/issues/943)) ([4c64837](https://github.com/inference-gateway/docs/commit/4c64837453c083eacbdae0f6c6fbddeafa1fc3b3))
+* go adk client artifact extraction for a2a v1.0 ([#941](https://github.com/inference-gateway/docs/issues/941)) ([9cb57a6](https://github.com/inference-gateway/docs/commit/9cb57a6235fa567065758793df9bb19320f1ff2a))
+* headless keep-alive subagents and agent defaults ([#895](https://github.com/inference-gateway/docs/issues/895)) ([866cbcf](https://github.com/inference-gateway/docs/commit/866cbcf04d35e1ee742258c43b9a3f509bbbf839))
+* ListTasks accepts proto3 default page params ([#930](https://github.com/inference-gateway/docs/issues/930)) ([7be4a33](https://github.com/inference-gateway/docs/commit/7be4a33b2b446e0d7f068df7413c99d413ee93ef))
+* max retries covers adk streaming path ([#945](https://github.com/inference-gateway/docs/issues/945)) ([9fc0a3e](https://github.com/inference-gateway/docs/commit/9fc0a3ee53dd770820b8fe1e7fa30a83329fd13b))
+* note dim-at-zero icons in subagent run stats ([#913](https://github.com/inference-gateway/docs/issues/913)) ([26f34aa](https://github.com/inference-gateway/docs/commit/26f34aadb2598ee4031398ee4a560198a905d01e))
+* note firefox/safari bridge auto-connect in opentask ([#976](https://github.com/inference-gateway/docs/issues/976)) ([56e890e](https://github.com/inference-gateway/docs/commit/56e890ea6da0bbf9cf4125e95df232f10a1f60ce))
+* note orchestrator a2a.agents[] takes plain urls ([#968](https://github.com/inference-gateway/docs/issues/968)) ([bd89997](https://github.com/inference-gateway/docs/commit/bd89997894f345a4df9619adf73528d822dc90bd))
+* note proto3 param names and ignored unknown params ([#925](https://github.com/inference-gateway/docs/issues/925)) ([0509dbc](https://github.com/inference-gateway/docs/commit/0509dbcec277904864a4dacf44c3769fd274468e))
+* note pushNotifications capability gates config methods ([#927](https://github.com/inference-gateway/docs/issues/927)) ([a8793d7](https://github.com/inference-gateway/docs/commit/a8793d7190d503806a136fc3070b5f504dcb2373))
+* registry cards show preferred protocol binding ([#938](https://github.com/inference-gateway/docs/issues/938)) ([0d9a9f5](https://github.com/inference-gateway/docs/commit/0d9a9f5333855b420f39bf914783025db897352f))
+* rust adk blocking sendmessage and push delivery ([#939](https://github.com/inference-gateway/docs/issues/939)) ([783c168](https://github.com/inference-gateway/docs/commit/783c168ac780a812414d2ff5c0daf6e2eec2ef09))
+* rust-adk max artifacts 0 means unlimited ([#949](https://github.com/inference-gateway/docs/issues/949)) ([dd92128](https://github.com/inference-gateway/docs/commit/dd92128771052ebac6fb3f3a0dee40be1410fe3e))
+* scope rust adk artifact paths by contextid ([#950](https://github.com/inference-gateway/docs/issues/950)) ([4f35230](https://github.com/inference-gateway/docs/commit/4f35230d6c31c119a5c8f2780037f89c06d8f722))
+* sync readme dev section with tooling config ([#967](https://github.com/inference-gateway/docs/issues/967)) ([ff6a220](https://github.com/inference-gateway/docs/commit/ff6a22055212bbc39d9c3adf05d1ec3f3a205325))
+* update ADK pages for A2A v1.0.1 AgentCard ([#902](https://github.com/inference-gateway/docs/issues/902)) ([f474473](https://github.com/inference-gateway/docs/commit/f4744738a459d749ed9e0af168785c82c732eff0))
+* update card reference for A2A v1.0.1 shape ([#899](https://github.com/inference-gateway/docs/issues/899)) ([d3bdd76](https://github.com/inference-gateway/docs/commit/d3bdd7652bc04d5c3f30e027c77b63f4de67563e))
+* use a2a v1.0.1 jsonrpc method names ([#924](https://github.com/inference-gateway/docs/issues/924)) ([46859cc](https://github.com/inference-gateway/docs/commit/46859cca37ec5c33e435d1ffb6eab64ab6208298))
+
+### 🔧 Miscellaneous
+
+* **deps-dev:** bump @types/node from 26.6.2 to 26.6.3 in the bun group ([#981](https://github.com/inference-gateway/docs/issues/981)) ([f5dfa81](https://github.com/inference-gateway/docs/commit/f5dfa8184a997e029ae83f6ae1d3242257d04c78))
+* **deps:** bump claude-code 2.1.283 -> 2.1.285 ([#909](https://github.com/inference-gateway/docs/issues/909)) ([14e6ea9](https://github.com/inference-gateway/docs/commit/14e6ea9d39d6ffb43e7ea75c320cc7e754c989b3))
+
 ## [0.9.20](https://github.com/inference-gateway/docs/compare/0.9.19...0.9.20) (2026-10-01)
 
 ### 📚 Documentation
