@@ -1461,12 +1461,25 @@ Custom acronyms for better code generation naming:
 
 ```yaml
 acronyms:
-  - api
-  - json
-  - xml
-  - url
-  - http
+  - n8n
+  - mqtt
 ```
+
+Tool identifiers are generated with a `<Name>Tool` suffix, so acronyms change how each tool name is camel-cased:
+
+| Tool name            | Without custom acronyms | With `["n8n", "mqtt"]` |
+| -------------------- | ----------------------- | ---------------------- |
+| `get_n8n_docs`       | `GetN8nDocsTool`        | `GetN8NDocsTool`       |
+| `publish_mqtt_event` | `PublishMqttEventTool`  | `PublishMQTTEventTool` |
+
+These acronyms are recognised by default and do not need declaring:
+
+- **Common**: id, api, url, uri, json, xml, sql, html, css, js, ui, uuid
+- **Network**: http, https, tcp, udp, ip, dns, tls, ssl
+- **Tech**: cpu, gpu, ram, io, os, db
+- **Units**: mb, gb, kb
+
+Your custom acronyms extend these defaults and take precedence over them.
 
 ### Artifacts
 
