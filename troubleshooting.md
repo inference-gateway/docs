@@ -67,7 +67,7 @@ MCP_SERVERS=filesystem=http://mcp-tools:8081/mcp,search=http://mcp-search:8082/m
 # Connection timeouts
 MCP_CLIENT_TIMEOUT=10s          # default 5s   - bump if servers are slow
 MCP_DIAL_TIMEOUT=5s              # default 3s
-MCP_REQUEST_TIMEOUT=15s          # default 5s   - applies to initialize + tool calls
+MCP_REQUEST_TIMEOUT=15s          # default 5s   - startup init and tools/list discovery
 MCP_RESPONSE_HEADER_TIMEOUT=5s   # default 3s
 
 # Reconnection
