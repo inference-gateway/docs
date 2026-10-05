@@ -4259,6 +4259,22 @@ infer chat
 
 See [A2A documentation](/a2a/) for creating custom agents, or use the [ADL CLI](/adl-cli/) to scaffold new A2A agents from YAML definitions.
 
+#### Agent Credentials
+
+An agent that protects its `/a2a` endpoint gets an `auth` block in its `agents.yaml` entry - a static bearer token or an OIDC client-credentials grant, with the secret read from an environment variable named in the block. See [authenticating to A2A agents](/a2a/#authenticating-to-a2a-agents) for the fields.
+
+**Which requests carry them:** every request the CLI makes to that agent. The agent card fetch, task submission, background task polling, task cancellation, and the liveness probe behind `infer agents status` all send the `Authorization: Bearer` header.
+
+**Where they go:** credentials are matched by the scheme, host and port of the agent's configured `url` and are sent only to that origin. Another origin, a redirect target, and another service on the same host do not receive them.
+
+**What the model sees on failure:** a missing environment variable, a failed token request, or a `401`/`403` from the agent is reported to the model as one line, without the response body:
+
+```text
+Authentication failed for A2A agent "billing": 401 Unauthorized
+```
+
+A background task whose polling is rejected ends as failed. `infer agents show` prints the mode and the variable name, so a missing variable is visible without exposing a secret.
+
 #### A2A Liveness Probes
 
 When A2A agents are configured, the CLI periodically re-probes them for the lifetime of the session instead of checking them only once at startup. This means an agent that was down at startup turns green automatically when it becomes reachable, and an agent that goes down mid-session is reflected in the `A2A: X/Y` indicator and the a2a rows of the [`/agents` view](#agents-view).
