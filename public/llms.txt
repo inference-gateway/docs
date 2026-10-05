@@ -1,0 +1,81 @@
+# Inference Gateway
+
+> Inference Gateway is an open-source, cloud-native proxy that unifies multiple LLM providers behind a single OpenAI-compatible API. Around it sit a CLI agent, a desktop app, Agent-to-Agent (A2A) agents and SDKs, and a Kubernetes operator.
+
+## Getting Started
+
+- [Introduction](https://docs.inference-gateway.com/): What Inference Gateway is and why to use it
+- [Getting Started](https://docs.inference-gateway.com/getting-started/): Install with Docker, Docker Compose, or Kubernetes and send a first chat completion
+- [Architecture Overview](https://docs.inference-gateway.com/architecture-overview/): Request flow through auth and the proxy layer to upstream providers
+
+## Core Concepts
+
+- [Configuration](https://docs.inference-gateway.com/configuration/): Environment variable reference for server, providers, MCP, telemetry, and auth
+- [Authentication](https://docs.inference-gateway.com/authentication/): OpenID Connect setup and JWT validation
+- [Supported Providers](https://docs.inference-gateway.com/supported-providers/): Provider matrix with auth modes, default URLs, and request examples
+- [Model Routing](https://docs.inference-gateway.com/model-routing/): Route a model alias to a pool of upstream deployments
+
+## Kubernetes
+
+- [Operator](https://docs.inference-gateway.com/operator/): Manage the gateway, agents, and MCP servers through Custom Resources
+
+## Model Context Protocol
+
+- [MCP Integration](https://docs.inference-gateway.com/mcp/): Connect the gateway to MCP servers for automatic tool discovery
+
+## Agent-To-Agent (A2A)
+
+- [A2A Integration](https://docs.inference-gateway.com/a2a/): Delegate to A2A agents or expose the gateway as an A2A server
+- [A2A Debugger](https://docs.inference-gateway.com/a2a-debugger/): CLI for inspecting, streaming, and replaying tasks on A2A servers
+- [A2A Registry](https://docs.inference-gateway.com/registry/): Discover and publish containerized A2A agents
+
+## A2A Agents
+
+- [n8n Agent](https://docs.inference-gateway.com/n8n-agent/): Turn natural-language requests into validated n8n workflows
+- [Grafana Agent](https://docs.inference-gateway.com/grafana-agent/): Generate PromQL queries and Grafana dashboards
+- [Mock Agent](https://docs.inference-gateway.com/mock-agent/): Zero-config agent for testing A2A clients
+- [Browser Agent](https://docs.inference-gateway.com/browser-agent/): Playwright-based browser automation and web testing
+- [Documentation Agent](https://docs.inference-gateway.com/documentation-agent/): Fetch version-scoped library documentation
+
+## Agent Development Kit (ADK)
+
+- [Go ADK](https://docs.inference-gateway.com/adk/): Reference ADK for building A2A agents in Go
+- [TypeScript ADK](https://docs.inference-gateway.com/typescript-adk/): Build A2A agents in TypeScript
+- [Rust ADK](https://docs.inference-gateway.com/rust-adk/): Build A2A agents in Rust
+
+## Agent Definition Language (ADL)
+
+- [ADL Overview](https://docs.inference-gateway.com/adl/): Declarative YAML format for defining A2A agents
+- [ADL CLI](https://docs.inference-gateway.com/adl-cli/): Generate Go, Rust, or TypeScript agents from ADL files
+- [ADL Specification](https://adl.inference-gateway.com): Canonical ADL spec
+
+## Skills
+
+- [Using Skills (CLI)](https://docs.inference-gateway.com/cli-skills/): Install, enable, and invoke Agent Skills in the CLI
+- [Skills Catalog](https://docs.inference-gateway.com/skills/): Browse and contribute Agent Skills
+
+## API Reference
+
+- [REST API](https://docs.inference-gateway.com/api-reference/): Chat completions, streaming, tool calls, vision, and the proxy endpoint
+- [SDKs](https://docs.inference-gateway.com/sdks/): Python, TypeScript, Go, and Rust SDKs
+
+## Tools
+
+- [Desktop App](https://docs.inference-gateway.com/desktop/): Provider-agnostic native AI client
+- [CLI](https://docs.inference-gateway.com/cli/): The infer CLI for chat, autonomous agents, MCP, and A2A
+- [Command Hooks](https://docs.inference-gateway.com/cli-hooks/): Run shell commands at agent-loop hook points
+- [Judge Mode](https://docs.inference-gateway.com/cli-judge-mode/): Let an LLM judge answer tool-approval gates
+- [Channels](https://docs.inference-gateway.com/cli-channels/): Control the CLI agent remotely over Telegram
+- [Scheduling](https://docs.inference-gateway.com/cli-scheduling/): Run CLI jobs on a cron schedule locally or in GitHub Actions
+- [Speech-to-Text](https://docs.inference-gateway.com/cli-speech-to-text/): Offline transcription with whisper.cpp
+- [Text-to-Speech](https://docs.inference-gateway.com/cli-text-to-speech/): Synthesize speech via the gateway or a local model
+- [Text-to-Video](https://docs.inference-gateway.com/cli-text-to-video/): Render video clips and avatar videos
+- [GitHub Action](https://docs.inference-gateway.com/github-action/): Run the agent from GitHub Actions
+- [OpenTask Extension](https://docs.inference-gateway.com/opentask/): Browser extension bridging GitHub and the CLI
+
+## Guides
+
+- [Examples](https://docs.inference-gateway.com/examples/): End-to-end Docker Compose and Kubernetes examples
+- [IDEs](https://docs.inference-gateway.com/ides/): Use the gateway from VSCode and Cursor
+- [Observability](https://docs.inference-gateway.com/observability/): Metrics, traces, logs, and Grafana dashboards
+- [Troubleshooting](https://docs.inference-gateway.com/troubleshooting/): Fixes for common auth, MCP, and provider errors
