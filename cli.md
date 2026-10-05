@@ -388,6 +388,23 @@ The selected indicator is highlighted as an **accent-colored pill**.
 | A2A       | `A2A: X/Y`                               | `X` is the number of connected A2A agents, `Y` is the total number of configured agents. Opens the [`/agents` view](#agents-view). When [liveness probes](#a2a-liveness-probes) are enabled, `X` counts down as agents fail and counts back up when they recover - the indicator stays live for the session lifetime. |
 | Theme     | `Theme`                                  | Opens the theme selector to change the TUI color scheme.                                                                                                                                                                                                                                                              |
 | Reconnect | `Reconnecting...` / `Reconnecting (N/M)` | Shown in red when the stream has stalled and the CLI is reconnecting. `N` is the current attempt, `M` is `client.retry.max_attempts`. Input is blocked until the stream recovers or all attempts are exhausted.                                                                                                       |
+| Duration  | `3s` / `1m5s`                            | The time the agent has worked in this session, next to the cost indicator. Whole seconds only. Nothing is rendered before the session's first run.                                                                                                                                                                    |
+
+##### Session working time
+
+The duration indicator behaves like a stopwatch: it counts while the agent works, holds when the agent reaches a terminal state - completed, cancelled or failed - and resumes with the next run. A user interrupt stops the counter. While an approval or a question waits on you the display holds and then catches up once it is answered, so the waiting time counts.
+
+The total is **saved with the session**, so [resuming a session](#resuming-a-session-session-id) continues its count. `/new`, a new session and a cleared conversation reset it to zero, the same way they reset the cost.
+
+It is on by default and turned off like any other indicator:
+
+```yaml
+# .infer/config.yaml
+chat:
+  status_bar:
+    indicators:
+      duration: false # Hide the time the agent has worked in this session (default: true)
+```
 
 #### Background job list
 
