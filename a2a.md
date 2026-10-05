@@ -183,6 +183,69 @@ Agents can be configured at two levels:
 - **Project-level**: `.infer/agents.yaml` - Agents specific to the current project
 - **Userspace**: `~/.infer/agents.yaml` - Global agents available across all projects (use `--userspace` flag)
 
+### Authenticating to A2A Agents
+
+An agent that protects its `/a2a` endpoint needs credentials. Give its entry in `agents.yaml` an `auth` block and the CLI sends an `Authorization: Bearer` header on every request to that agent. There are no `infer agents add` flags for credentials, so edit `agents.yaml` directly.
+
+The `auth` block never holds a secret. It names the environment variable the secret is read from, which keeps `agents.yaml` safe to commit - `infer agents show` prints the mode and the variable name, never the value.
+
+Set exactly one mode per agent, `token_env` or `oidc`, not both.
+
+#### Static bearer token
+
+```yaml
+# .infer/agents.yaml
+agents:
+  - name: research
+    url: https://research.example.com
+    auth:
+      token_env: RESEARCH_AGENT_TOKEN
+```
+
+```bash
+export RESEARCH_AGENT_TOKEN=...
+```
+
+- **`auth.token_env`** (required for this mode): name of the environment variable holding the static bearer token.
+
+Write the variable name, not `${RESEARCH_AGENT_TOKEN}` - substitution would put the secret itself into the field.
+
+#### OIDC client credentials
+
+```yaml
+# .infer/agents.yaml
+agents:
+  - name: billing
+    url: https://billing.example.com
+    auth:
+      oidc:
+        client_id: infer
+        client_secret_env: BILLING_AGENT_CLIENT_SECRET
+        audience: billing-agent # optional
+        issuer_url: https://idp.example.com/realms/agents # optional
+```
+
+- **`auth.oidc.client_id`** (required for this mode): client of the client-credentials grant.
+- **`auth.oidc.client_secret_env`** (required for this mode): name of the environment variable holding that client's secret.
+- **`auth.oidc.audience`** (optional): sent as the `audience` parameter of the token request.
+- **`auth.oidc.issuer_url`** (optional): pins the issuer and acts as a fallback, see below.
+
+The entry holds only the client. You do not configure where the token comes from: as the A2A protocol defines, the agent declares it in the `securitySchemes` of its [agent card](#agent-card) and the CLI reads it from there.
+
+- An `openIdConnect` scheme gives the OpenID Connect discovery URL, whose document names the token endpoint.
+- An `oauth2` scheme with a `clientCredentials` flow gives the token URL directly.
+
+The scopes the card's `securityRequirements` list for that scheme are requested with the token. A token is fetched once per process, reused across requests, and refreshed shortly before it expires.
+
+`issuer_url` does two things:
+
+- **Pin.** The client secret goes to the token endpoint the card names. With `issuer_url` set, the CLI refuses a card pointing anywhere outside that issuer before the secret is sent, so a tampered card cannot collect it.
+- **Fallback.** An agent whose card declares no security scheme cannot say where its tokens come from. The CLI then discovers the token endpoint from `issuer_url`. Without it, such an agent fails with an authentication error.
+
+The [a2a-auth example](https://github.com/inference-gateway/cli/tree/main/examples/a2a-auth) runs both modes against `mock-agent`, one agent behind a bearer token and one behind OIDC with Keycloak, with a mock model and no API key.
+
+See [A2A Integration](/cli/#a2a-integration) for which requests carry the credentials and the error a rejected request produces.
+
 ### Delegating Tasks to A2A Agents
 
 Within the CLI, you can delegate specialized tasks to A2A agents. The CLI handles agent discovery, coordination, and result integration automatically.
