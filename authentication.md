@@ -85,6 +85,8 @@ Each identity provider ships as a Docker Compose example and a matching Kubernet
 
 The three cloud examples hold only what differs from the Keycloak one - the `AUTH_*` values, an env template with the provider's ids, and a one-command `get-token.sh` - so read the Keycloak example first.
 
+The same providers protect A2A agents on the CLI side, where an agent's credentials come from an environment variable, a file on disk, a command such as `gcloud auth print-identity-token`, or an OIDC client-credentials grant. See [Authenticating to A2A Agents](/a2a/#authenticating-to-a2a-agents).
+
 ## Rejected requests
 
 A rejected request gets HTTP `401` with a JSON body and an [RFC 6750](https://www.rfc-editor.org/rfc/rfc6750#section-3) `WWW-Authenticate` challenge. The challenge tells you which case you hit:
