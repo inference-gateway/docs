@@ -596,6 +596,69 @@ The wire names in the middle column are the A2A v1.0.1 methods, generated from t
 
 Configuration helpers (`SetTimeout`, `SetHTTPClient`, `GetBaseURL`, `SetLogger`, `GetLogger`) and `GetArtifactHelper()` round out the interface.
 
+### Error handling
+
+Client errors are typed, so a failure is matched with `errors.Is` / `errors.As` instead of by its message text. Two shapes come out of the `types` package:
+
+```go
+import (
+	"errors"
+	"fmt"
+	"net/http"
+
+	"github.com/inference-gateway/adk/types"
+)
+
+resp, err := a2a.GetTask(ctx, types.GetTaskRequest{ID: taskID})
+if err != nil {
+	switch {
+	case errors.Is(err, types.ErrTaskNotFound):
+		return fmt.Errorf("task %s expired or was never created", taskID)
+	case errors.Is(err, types.ErrUnsupportedOperation):
+		return errors.New("agent rejected the operation in this task state")
+	}
+
+	var rpcErr *types.JSONRPCError
+	if errors.As(err, &rpcErr) {
+		return fmt.Errorf("A2A error %d: %s", rpcErr.Code, rpcErr.Message)
+	}
+
+	var statusErr *types.HTTPStatusError
+	if errors.As(err, &statusErr) && statusErr.StatusCode == http.StatusUnauthorized {
+		return refreshTokenAndRetry()
+	}
+
+	return err
+}
+```
+
+`*types.JSONRPCError` implements `error`, and its `Unwrap` maps the wire code to a sentinel, which is what makes `errors.Is` work:
+
+| Sentinel                                  | Code     |
+| ----------------------------------------- | -------- |
+| `types.ErrParseError`                     | `-32700` |
+| `types.ErrInvalidRequest`                 | `-32600` |
+| `types.ErrMethodNotFound`                 | `-32601` |
+| `types.ErrInvalidParams`                  | `-32602` |
+| `types.ErrInternalError`                  | `-32603` |
+| `types.ErrServerError`                    | `-32000` |
+| `types.ErrTaskNotFound`                   | `-32001` |
+| `types.ErrTaskNotCancelable`              | `-32002` |
+| `types.ErrPushNotificationNotSupported`   | `-32003` |
+| `types.ErrUnsupportedOperation`           | `-32004` |
+| `types.ErrExtendedAgentCardNotConfigured` | `-32007` |
+| `types.ErrVersionNotSupported`            | `-32009` |
+
+An unrecognized code unwraps to `nil`, so no sentinel matches, but `errors.As` still yields the `*types.JSONRPCError` with its raw `Code`.
+
+`*types.HTTPStatusError` covers unexpected HTTP statuses from the JSON-RPC endpoint, the agent card endpoint, the health endpoint, and artifact downloads - the cases that never produce a JSON-RPC envelope. It carries:
+
+- `StatusCode` - read this for auth failures (`401` missing or expired credentials, `403` a token that authenticates but is not authorized for the agent). See [Client-side flow](#client-side-flow) for the discovery-then-retry sequence this feeds.
+- `Operation` - which request failed (`agent card`, `health check`, `artifact download`), empty for the JSON-RPC endpoint.
+- `Body` - the raw response body, when the endpoint returned one.
+
+Message text is unchanged from earlier versions, so existing string matching keeps working - but the typed form is the supported way to branch on a failure.
+
 ### Sending images to an agent
 
 A user message can carry image file parts alongside its text. The agent forwards them to the configured LLM as OpenAI-compatible `image_url` content parts, so a vision-capable model can read a screenshot, a diagram, or a captcha:
