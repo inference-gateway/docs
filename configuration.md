@@ -12,7 +12,7 @@ const generalSettings = [
   { variable: 'IMAGES_ENABLED', description: 'Enable the Images API (POST /v1/images/generations and /v1/images/edits). When disabled, the endpoints return a 404', defaultValue: 'false' },
   { variable: 'AUDIO_ENABLED', description: 'Enable the Audio API (POST /v1/audio/speech, /v1/audio/sfx and /v1/audio/music). When disabled, the endpoints return a 404. Speech is served by the openai and elevenlabs providers and by the local llama-tts engine (local/qwen3-tts); sound effects and music are served by elevenlabs only; llamacpp speech is a work in progress and not supported yet', defaultValue: 'false' },
   { variable: 'VIDEOS_ENABLED', description: 'Enable the Videos API (POST /v1/videos, GET /v1/videos/{video_id} and GET /v1/videos/{video_id}/content). When disabled, the endpoints return a 404', defaultValue: 'false' },
-  { variable: 'AUDIO_LOCAL_AUTO_DOWNLOAD', description: 'Allow fetching the llama-tts binary and GGUF models, in the background at startup when the Audio API is enabled and on demand otherwise. A cached llama-tts is replaced when its sha256 no longer matches the latest release checksums.txt - a binary found on PATH and already present GGUF weights are never re-downloaded, whether written by an earlier run, the CLI, a mounted volume, or a pre-baked image layer. When false, the gateway serves only from the existing cache or PATH and returns an actionable error when assets are missing', defaultValue: 'true' },
+  { variable: 'AUDIO_LOCAL_AUTO_DOWNLOAD', description: 'Allow downloading the llama-tts binary and GGUF models, in the background at startup when the Audio API is enabled. The pinned GGUF models are treated as done once present in the cache, whoever wrote them (an earlier run, the CLI, a mounted volume, a pre-baked image layer), while a cached binary whose sha256 differs from the latest release is replaced. A llama-tts found on PATH is left alone - upgrading it is left to the operator. When false, the gateway serves only from the existing cache or PATH and returns an actionable error when assets are missing', defaultValue: 'true' },
   { variable: 'AUDIO_LOCAL_MAX_CONCURRENCY', description: 'Maximum concurrent local syntheses; requests beyond the limit queue rather than fail', defaultValue: '2' },
   { variable: 'AUDIO_LOCAL_TIMEOUT', description: 'Timeout in seconds for a single local synthesis, surfaced as a 504', defaultValue: '300' },
   { variable: 'DEBUG_CONTENT_TRUNCATE_WORDS', description: 'Number of words to truncate per content section in debug logs (development mode only)', defaultValue: '10' },
@@ -54,7 +54,6 @@ const serverSettings = [
 ];
 
 const clientSettings = [
-  { variable: 'CLIENT_TIMEOUT', description: 'Client timeout', defaultValue: '30s' },
   { variable: 'CLIENT_MAX_IDLE_CONNS', description: 'Maximum idle connections', defaultValue: '20' },
   { variable: 'CLIENT_MAX_IDLE_CONNS_PER_HOST', description: 'Maximum idle connections per host', defaultValue: '20' },
   { variable: 'CLIENT_IDLE_CONN_TIMEOUT', description: 'Idle connection timeout', defaultValue: '30s' },
@@ -179,7 +178,7 @@ const mcpSettings = [
   { variable: 'MCP_TLS_HANDSHAKE_TIMEOUT', description: 'MCP client TLS handshake timeout', defaultValue: '3s' },
   { variable: 'MCP_RESPONSE_HEADER_TIMEOUT', description: 'MCP client response header timeout', defaultValue: '3s' },
   { variable: 'MCP_EXPECT_CONTINUE_TIMEOUT', description: 'MCP client expect continue timeout', defaultValue: '1s' },
-  { variable: 'MCP_REQUEST_TIMEOUT', description: 'Timeout for MCP server startup initialization and each server tools/list discovery call. Tool calls are not bounded by it; they use MCP_CLIENT_TIMEOUT and the request context', defaultValue: '5s' },
+  { variable: 'MCP_REQUEST_TIMEOUT', description: 'Timeout for one MCP discovery request: the startup server discovery and each tools/list refresh. Tool calls are bounded by MCP_CLIENT_TIMEOUT instead', defaultValue: '5s' },
   { variable: 'MCP_MAX_RETRIES', description: 'Maximum number of connection retry attempts', defaultValue: '3' },
   { variable: 'MCP_RETRY_INTERVAL', description: 'Interval between connection retry attempts', defaultValue: '5s' },
   { variable: 'MCP_INITIAL_BACKOFF', description: 'Initial backoff duration for exponential backoff retry', defaultValue: '1s' },
@@ -605,7 +604,6 @@ SERVER_IDLE_TIMEOUT=120s
 SERVER_TLS_CERT_PATH=
 SERVER_TLS_KEY_PATH=
 # Client settings
-CLIENT_TIMEOUT=30s
 CLIENT_MAX_IDLE_CONNS=20
 CLIENT_MAX_IDLE_CONNS_PER_HOST=20
 CLIENT_IDLE_CONN_TIMEOUT=30s
