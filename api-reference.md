@@ -748,11 +748,11 @@ With `AUDIO_LOCAL_AUTO_DOWNLOAD=false` the gateway never downloads anything and 
 
 **Tuning** (see [Configuration](/configuration/#general-settings)):
 
-| Variable                      | Default | Effect                                                                                    |
-| ----------------------------- | ------- | ----------------------------------------------------------------------------------------- |
-| `AUDIO_LOCAL_AUTO_DOWNLOAD`   | `true`  | Allow fetching the binary and weights - in the background at startup, on demand otherwise |
-| `AUDIO_LOCAL_MAX_CONCURRENCY` | `2`     | Concurrent syntheses; requests beyond the limit queue rather than fail                    |
-| `AUDIO_LOCAL_TIMEOUT`         | `300`   | Per-request synthesis timeout in seconds, surfaced as `504`                               |
+| Variable                      | Default | Effect                                                                 |
+| ----------------------------- | ------- | ---------------------------------------------------------------------- |
+| `AUDIO_LOCAL_AUTO_DOWNLOAD`   | `true`  | Allow downloading the binary and weights, in the background at startup |
+| `AUDIO_LOCAL_MAX_CONCURRENCY` | `2`     | Concurrent syntheses; requests beyond the limit queue rather than fail |
+| `AUDIO_LOCAL_TIMEOUT`         | `300`   | Per-request synthesis timeout in seconds, surfaced as `504`            |
 
 **Known ceiling.** Each request pays model and graph initialization (roughly 1s warm, slower cold or on GPU) and there is no cross-request batching - fine for agent speech, not for bulk synthesis. The local path is a stopgap until llama.cpp ships server-side TTS, after which the gateway can proxy to `llama-server` instead.
 
