@@ -65,7 +65,7 @@ The default value is `otlp` in the TypeScript ADK and `prometheus` in the Go ADK
 
 The following metrics are exported when `TELEMETRY_ENABLED=true`. Metrics follow the [OpenTelemetry GenAI semantic conventions](https://opentelemetry.io/docs/specs/semconv/gen-ai/).
 
-Every series carries a `source` label: `gateway` for gateway-observed traffic, or a client-supplied value for pushed metrics.
+Every `gen_ai_*` and `inference_gateway_*` series carries a `source` label: `gateway` for gateway-observed traffic, or a client-supplied value for pushed metrics. The `a2a_*` series carry only their own labels, listed below.
 
 ### Metric set
 
@@ -78,6 +78,8 @@ Every series carries a `source` label: `gateway` for gateway-observed traffic, o
 | `gen_ai_client_operation_time_to_first_chunk_seconds` | Histogram | Time to first chunk (push-only)                                         |
 | `gen_ai_server_time_to_first_token_seconds`           | Histogram | Time to first token (push-only)                                         |
 | `inference_gateway_tool_calls_total`                  | Counter   | Total function/tool calls                                               |
+| `a2a_requests_total`                                  | Counter   | A2A calls relayed to agents; `alias`, `method`, `status`                |
+| `a2a_request_duration_seconds`                        | Histogram | Relayed A2A call duration (streaming: time to open); `alias`, `method`  |
 
 `inference_gateway_tool_calls_total` counts tool calls from both surfaces that run MCP tools: the agent loop behind `/v1/chat/completions`, and a `tools/call` on [`POST /mcp`](/mcp/#gateway-as-an-mcp-server). Calls over `/mcp` carry `source=gateway`, `gen_ai_tool_type=mcp` and the namespaced <code v-pre>mcp_&lt;alias&gt;_&lt;tool&gt;</code> name, with an empty provider and model - no model is involved in that path. Only names that resolve to an advertised, allowed tool are counted, so a client cannot inflate label cardinality with arbitrary strings. Each call also opens an `execute_tool <name>` span.
 
@@ -85,14 +87,17 @@ Every series carries a `source` label: `gateway` for gateway-observed traffic, o
 
 | Label                   | Applies to                           | Description                                                                                                                  |
 | ----------------------- | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
-| `gen_ai_provider_name`  | All metrics                          | LLM provider (openai, anthropic, etc.)                                                                                       |
-| `gen_ai_request_model`  | All metrics                          | Model name (gpt-4o, claude-sonnet-4, etc.)                                                                                   |
-| `gen_ai_operation_name` | All metrics                          | Operation (e.g. `chat`)                                                                                                      |
+| `gen_ai_provider_name`  | `gen_ai_*`, `inference_gateway_*`    | LLM provider (openai, anthropic, etc.)                                                                                       |
+| `gen_ai_request_model`  | `gen_ai_*`, `inference_gateway_*`    | Model name (gpt-4o, claude-sonnet-4, etc.)                                                                                   |
+| `gen_ai_operation_name` | `gen_ai_*`, `inference_gateway_*`    | Operation (e.g. `chat`)                                                                                                      |
 | `gen_ai_token_type`     | `gen_ai_client_token_usage`          | `input` or `output`                                                                                                          |
 | `gen_ai_tool_type`      | `inference_gateway_tool_calls_total` | Tool type: `mcp` or `standard_tool_use` for gateway-observed calls, client-supplied (e.g. `a2a`, `function`) for pushed ones |
 | `gen_ai_tool_name`      | `inference_gateway_tool_calls_total` | Fully qualified tool identifier                                                                                              |
 | `error_type`            | Duration histograms                  | HTTP status string, present only on errors                                                                                   |
-| `source`                | All metrics                          | `gateway` for gateway-observed, client-supplied for pushed                                                                   |
+| `source`                | `gen_ai_*`, `inference_gateway_*`    | `gateway` for gateway-observed, client-supplied for pushed                                                                   |
+| `alias`                 | `a2a_*`                              | Configured agent alias the call was relayed to                                                                               |
+| `method`                | `a2a_*`                              | A2A JSON-RPC method (e.g. `message/send`)                                                                                    |
+| `status`                | `a2a_requests_total`                 | `ok`, or the JSON-RPC error code returned to the client                                                                      |
 
 ### Histogram bucket boundaries
 
