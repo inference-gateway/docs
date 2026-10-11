@@ -104,11 +104,9 @@ The workflow uploads the run's conversation `*.jsonl` files plus everything the 
 - First poll after `initial_delay` (default `1m`), then every `poll_interval` (default `10m`).
 - Each artifact gets up to `max_attempts` download attempts (default `3`), after which it is skipped.
 - A rate-limited GitHub API call pauses polling for `rate_limit_backoff` (default `1h`).
-- **jsonl storage backend only.** Pull-back is skipped on other storage backends.
+- **jsonl storage backend only.** On any other storage backend the poller does not start, so neither the conversations nor the other files are pulled back.
 
 Set `artifacts.enabled: false` to turn the poller off.
-
-> Non-jsonl artifact pull-back is also supported.
 
 ### Out of scope in the first cut
 
