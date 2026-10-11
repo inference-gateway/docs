@@ -1,6 +1,6 @@
 ---
 title: Mock Agent
-description: The Mock Agent is a zero-config A2A agent for testing and development. It runs a mock LLM client - no API keys required - and exposes echo, delay, error, random_data, and validate tools plus connectivity-check, error-injection, and load-simulation skills to exercise A2A clients, gateways, and the A2A Debugger.
+description: The Mock Agent is a zero-config A2A agent for testing and development. It runs a mock LLM client - no API keys required - and exposes echo, delay, error, random_data, validate, and simulate_tool_call tools plus connectivity-check, error-injection, and load-simulation skills to exercise A2A clients, gateways, and the A2A Debugger.
 ---
 
 # Mock Agent
@@ -42,12 +42,11 @@ You can also call the tools directly - the skills exist to make the common scena
 
 The agent advertises the following on its A2A agent card (`GET /.well-known/agent-card.json`):
 
-| Capability               | Value   | Notes                                                   |
-| ------------------------ | ------- | ------------------------------------------------------- |
-| Streaming                | `true`  | Status and artifact events stream as the task runs.     |
-| Push notifications       | `false` | -                                                       |
-| State transition history | `false` | -                                                       |
-| Artifacts                | enabled | Artifact support is on, so tools can attach test files. |
+| Capability         | Value   | Notes                                                   |
+| ------------------ | ------- | ------------------------------------------------------- |
+| Streaming          | `true`  | Status and artifact events stream as the task runs.     |
+| Push notifications | `false` | -                                                       |
+| Artifacts          | enabled | Artifact support is on, so tools can attach test files. |
 
 ## Skills
 
@@ -61,18 +60,23 @@ The agent ships three [Agent Skills](/skills/), loaded into the system prompt as
 
 ## Tools
 
-The agent exposes five purpose-built mock tools plus the `read` built-in from the ADK runtime:
+The agent exposes six purpose-built mock tools - `echo`, `delay`, `error`, `random_data`, `validate`, and `simulate_tool_call` - plus the `read` built-in from the ADK runtime:
 
-| Tool          | Source   | Purpose                                                             | Key parameters                                                                        |
-| ------------- | -------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| `echo`        | mock     | Echo back the input message - the simplest connectivity check.      | `message` (required)                                                                  |
-| `delay`       | mock     | Simulate slow responses with a configurable delay.                  | `duration_seconds` (default `2`), `message`                                           |
-| `error`       | mock     | Simulate error conditions for testing error handling.               | `error_type` (required: `validation`/`timeout`/`internal`/`not_found`), `message`     |
-| `random_data` | mock     | Generate random test data.                                          | `data_type` (required: `uuid`/`email`/`name`/`number`/`json`), `count` (default `1`)  |
-| `validate`    | mock     | Validate input against common patterns.                             | `input` (required), `validation_type` (required: `email`/`url`/`json`/`uuid`/`phone`) |
-| `read`        | built-in | Read a file from disk; used to load a skill's `SKILL.md` on demand. | `file_path`, `offset`, `limit`                                                        |
+| Tool                 | Source   | Purpose                                                                                     | Key parameters                                                                                                                                                                                                                                                                |
+| -------------------- | -------- | ------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `echo`               | mock     | Echo back the input message - the simplest connectivity check.                              | `message` (required)                                                                                                                                                                                                                                                          |
+| `delay`              | mock     | Simulate slow responses with a configurable delay.                                          | `duration_seconds` (default `2`), `message`                                                                                                                                                                                                                                   |
+| `error`              | mock     | Simulate error conditions for testing error handling.                                       | `error_type` (required: `validation`/`timeout`/`internal`/`not_found`), `message`                                                                                                                                                                                             |
+| `random_data`        | mock     | Generate random test data.                                                                  | `data_type` (required: `uuid`/`email`/`name`/`number`/`json`), `count` (default `1`)                                                                                                                                                                                          |
+| `validate`           | mock     | Validate input against common patterns.                                                     | `input` (required), `validation_type` (required: `email`/`url`/`json`/`uuid`/`phone`)                                                                                                                                                                                         |
+| `simulate_tool_call` | mock     | Simulate one tool call for load, latency, and failure testing - emits an instrumented span. | `name` (tool name reported as `gen_ai.tool.name` and the span suffix, `tool.<name>`), `duration_ms` (simulated latency in milliseconds, default `100`, capped at `60000`), `fail` (when `true`, marks the emitted span with error status - non-fatal, the workload continues) |
+| `read`               | built-in | Read a file from disk; used to load a skill's `SKILL.md` on demand.                         | `file_path`, `offset`, `limit`                                                                                                                                                                                                                                                |
 
-The five mock tools are implemented in Go in the agent itself; `read` is provided by the ADK runtime.
+The six mock tools are implemented in Go in the agent itself; `read` is provided by the ADK runtime.
+
+### Driving multi-tool-call workloads
+
+The mock LLM routes on deterministic keywords rather than model reasoning, so you can shape a workload from the prompt. A message containing `simulate N tool calls` drives `simulate_tool_call` once per call, with cycled tool names and varied latencies - add `with a failure`, `all should fail`, or `slow` to inject error statuses or larger delays. Setting `MOCK_TOOL_CALLS=read,search:300!,read` applies a default workload to every task, where each entry is `name[:duration_ms][!]`, and `MOCK_TOOL_CALL_DURATION_MS` sets the per-call latency for entries that omit `:duration_ms`. Explicit `read <path>` requests and the skill triggers still take precedence. See [Simulating Tool Calls](https://github.com/inference-gateway/mock-agent/blob/main/docs/simulating-tool-calls.md) in the agent repository for the full matrix.
 
 ## Runtime and dependencies
 
