@@ -318,6 +318,7 @@ infer version
 - Cost tracking in status bar
 - Collapsible thinking blocks
 - GitHub issue references - type `#` to insert and expand `#N` tokens (see below)
+- Opt-in next-step suggestions as ghost text in the empty input (see below)
 
 #### Prompt History Search (`Ctrl+R`)
 
@@ -331,6 +332,46 @@ infer version
 > **Muscle memory:** `Ctrl+R` used to toggle raw/rendered markdown. That toggle moved to **Ctrl+M**, with **Alt+M** as a fallback. Terminals without the [Kitty keyboard protocol](https://sw.kovidgoyal.net/kitty/keyboard-protocol/) report `Ctrl+M` as `Enter`, so use `Alt+M` there.
 
 Both actions are rebindable in `.infer/keybindings.yaml` - `text_editing_history_search` for the search and `display_toggle_raw_format` for the markdown toggle. `infer keybindings list` prints the current bindings.
+
+#### Next-Step Suggestions
+
+When `chat.suggestions.enabled` is on, the CLI offers a **one-line next step** as dim ghost text in the empty chat input after an assistant turn completes. It is **opt in** and off by default:
+
+```bash
+infer config set chat.suggestions.enabled true
+# then /reload in a running chat
+```
+
+The request is sent about two seconds after the turn completes, and only when the UI stayed quiet for that window - empty input, no typing, no autocomplete popup, no overlay form, no busy turn, no queued messages. So it costs **at most one small LLM call per completed turn**.
+
+| Key                   | Action                                          |
+| --------------------- | ----------------------------------------------- |
+| `Tab` / `Right` arrow | Accept the suggestion into the input - not sent |
+| `Esc`                 | Dismiss it and cancel the in-flight request     |
+| Typing / a new turn   | Same - dismisses it and cancels the request     |
+
+The call is **silent-fail**: a timeout, an error or a non-conforming answer leaves the input untouched and logs at debug level, so a flaky suggestion model never interrupts the chat.
+
+```yaml
+# .infer/config.yaml
+chat:
+  suggestions:
+    enabled: true
+    model: '' # Empty falls back to the active chat model, then agent.model
+    context_messages: 4 # Recent non-hidden messages grounding the suggestion
+    max_tokens: 512 # Output cap - an answer that hits it is discarded, not truncated
+    timeout: 10 # Seconds before the request is abandoned
+```
+
+| Key                                 | Default | Description                                                                                                                        |
+| ----------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `chat.suggestions.enabled`          | `false` | Master switch for the ghost-text suggestion                                                                                        |
+| `chat.suggestions.model`            | `''`    | Model for the suggestion call. Empty falls back to the model the chat is using, then `agent.model` - a cheap, fast model fits here |
+| `chat.suggestions.context_messages` | `4`     | How many recent non-hidden conversation messages ground the suggestion                                                             |
+| `chat.suggestions.max_tokens`       | `512`   | Output token cap. Reasoning models spend thinking tokens against it                                                                |
+| `chat.suggestions.timeout`          | `10`    | Seconds before the suggestion request is abandoned                                                                                 |
+
+Each key has an `INFER_*` override - `INFER_CHAT_SUGGESTIONS_ENABLED`, `INFER_CHAT_SUGGESTIONS_MODEL`, `INFER_CHAT_SUGGESTIONS_CONTEXT_MESSAGES`, `INFER_CHAT_SUGGESTIONS_MAX_TOKENS` and `INFER_CHAT_SUGGESTIONS_TIMEOUT`. The system prompt lives in `prompts.yaml` under `chat.suggestions.system_prompt` and is overridden with `INFER_PROMPTS_CHAT_SUGGESTIONS_SYSTEM_PROMPT`.
 
 #### GitHub Issue References (`#`)
 
@@ -2954,6 +2995,14 @@ export INFER_REMINDERS_ENABLED=true
 # (supersede the deprecated INFER_PROMPTS_AGENT_SYSTEM_PROMPT_PLAN / _AUTO)
 export INFER_PROMPTS_AGENT_MODE_ADJUSTMENT_PLAN="Investigate first; do not propose edits."
 export INFER_PROMPTS_AGENT_MODE_ADJUSTMENT_AUTO="Confirm before any irreversible operation."
+
+# Opt-in next-step suggestions (see Next-Step Suggestions)
+export INFER_CHAT_SUGGESTIONS_ENABLED="true"
+export INFER_CHAT_SUGGESTIONS_MODEL="deepseek/deepseek-v4-flash"  # empty falls back to the chat model
+export INFER_CHAT_SUGGESTIONS_CONTEXT_MESSAGES="4"
+export INFER_CHAT_SUGGESTIONS_MAX_TOKENS="512"
+export INFER_CHAT_SUGGESTIONS_TIMEOUT="10"
+export INFER_PROMPTS_CHAT_SUGGESTIONS_SYSTEM_PROMPT="Suggest one short next step."
 ```
 
 ### Configuration Commands
