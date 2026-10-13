@@ -2820,6 +2820,10 @@ Tool settings live outside `config.yaml`, in [`~/.infer/tools.yaml`](#tool-confi
 - Cloudflare D1 - external SQLite-compatible store over HTTP (for ephemeral CI runners)
 - In-memory - temporary sessions
 
+**Message Queue:**
+
+- `queue.type` picks the queue backend (`memory` default, `sqlite`, `postgres`, `redis`), `queue.name` scopes it and `queue.poll_interval` sets the cross-process wake-up cadence - see [Message Queue](#message-queue)
+
 **Conversation Features:**
 
 - Automatic history with search
@@ -2969,6 +2973,11 @@ export INFER_LOGGING_ARCHIVE_ENABLED="true"
 export INFER_LOGGING_ARCHIVE_MAX_SIZE_MB="1024"
 export INFER_CLIENT_STALL_THRESHOLD_SEC="30"  # seconds without stream progress before reconnecting (0 disables)
 export GITHUB_TOKEN="your-github-token"  # used by the gh CLI credential chain for GitHub operations
+
+# Message queue backend (see Message Queue): memory (default), sqlite, postgres or redis
+export INFER_QUEUE_TYPE="redis"
+export INFER_QUEUE_NAME="my-shared-queue"  # empty scopes the queue to this process's session id
+export INFER_QUEUE_POLL_INTERVAL="2s"
 
 # Append a few commands onto the bash allowed-list baseline (comma- or newline-separated)
 export INFER_TOOLS_BASH_ALLOW_APPEND="git commit,git push"
@@ -3793,6 +3802,8 @@ infer chat
 - **Cloudflare D1**: External SQLite over Cloudflare's HTTP query API
 - **In-memory**: Temporary sessions
 
+The [message queue](#message-queue) is configured separately through `queue.*` and reuses these same `storage.<type>` connection settings when it runs on a durable backend.
+
 **Features:**
 
 - Automatic conversation history
@@ -3921,6 +3932,77 @@ storage:
 - **Schema parity.** The D1 driver runs the SQLite migrations verbatim over HTTP, so the `conversations` and `session_groups` tables stay byte-for-byte compatible with the SQLite backend - either side can initialise the database.
 - **UTC timestamps.** Timestamps are stored as UTC RFC3339 so `ORDER BY updated_at DESC` sorts stably across runners in any timezone and external reads stay unambiguous.
 - **Secret handling.** `api_token` follows the existing plaintext-config + env-override convention (like the Postgres password) and is never logged - inject it via `INFER_STORAGE_D1_API_TOKEN`.
+
+### Message Queue
+
+The message queue holds messages waiting for the agent to pick up on its next availability - text typed while a turn is running, background-job completion notes, and work pushed in by other processes. Its backend is configurable, independently of [conversation storage](#conversation-management):
+
+| Backend            | Survives a restart | Shareable across processes | Connection settings |
+| ------------------ | ------------------ | -------------------------- | ------------------- |
+| `memory` (default) | no                 | no                         | -                   |
+| `sqlite`           | yes                | yes                        | `storage.sqlite`    |
+| `postgres`         | yes                | yes                        | `storage.postgres`  |
+| `redis`            | yes                | yes                        | `storage.redis`     |
+
+```yaml
+# .infer/config.yaml
+queue:
+  type: redis # memory (default), sqlite, postgres or redis
+  name: '' # queue scope, empty means this process's session id
+  poll_interval: 2s # cross-process wake-up cadence, durable backends only
+```
+
+- **queue.type** (`INFER_QUEUE_TYPE`): backend for the queue, default `memory`. It is deliberately separate from `storage.type` - the storage default `jsonl` is not a queue backend, and following `storage.type` would silently make the default queue durable. `jsonl` and `d1` are rejected by config validation. Non-memory backends reuse the matching `storage.<type>` connection settings, so a queue never grows a second host/port/password block.
+- **queue.name** (`INFER_QUEUE_NAME`): the queue scope, resolved once at startup. Empty means this process's session id, so two local sessions never take each other's typed messages - but a new session is a new scope, so nothing carries over a restart. Set the same explicit name on every process that should consume the work, and on every external producer.
+- **queue.poll_interval** (`INFER_QUEUE_POLL_INTERVAL`): how often a durable backend is polled for entries written by someone else, default `2s`. An idle agent is woken within that interval, so producers never talk to infer directly.
+
+**Semantics:**
+
+- FIFO per scope, oldest message first.
+- A drain takes every message out in one atomic step, so two processes draining at the same time never receive the same message.
+- Delivery is at-most-once, as with the process-local queue: a drained message lost to a crash before it reaches the conversation is gone. Ack and redelivery are out of scope.
+- An unreachable backend fails startup with an error naming the backend - it never silently falls back to `memory`.
+- `chat.status_bar.indicators.queue` gates the [status-bar indicator](#status-indicator-row). The memory queue hides it while empty, a durable backend is always visible and names the backend (`redis`, or `redis 3 queued` while work waits), rendered in the error color while the backend is unreachable.
+
+#### Feeding the queue from outside infer
+
+External producers enqueue by writing one JSON record to the configured backend:
+
+| Field        | Type              | Notes                                                                                                  |
+| ------------ | ----------------- | ------------------------------------------------------------------------------------------------------ |
+| `role`       | string            | SDK role of the message, `"user"` for user work                                                        |
+| `content`    | JSON              | the SDK message content - a plain text message is a JSON string                                        |
+| `source`     | string            | one of `composer`, `stdin`, `a2a`, `shell`, `subagent`, `job`; use `a2a` for work another agent pushes |
+| `request_id` | string            | free-form producer-supplied id for tracing and ordering, empty allowed                                 |
+| `queued_at`  | RFC3339 timestamp | when the producer created the entry                                                                    |
+
+**Redis** keeps one list per queue scope at `infer:queue:<name>`, oldest entry at the head:
+
+```bash
+redis-cli RPUSH infer:queue:my-shared-queue '{
+  "role": "user",
+  "content": "run the nightly regression checks",
+  "source": "a2a",
+  "request_id": "nightly-2026-10-12",
+  "queued_at": "2026-10-12T20:00:00Z"
+}'
+```
+
+`RPUSH` appends to the tail and infer consumes from the head, so producers never prepend. `LRANGE infer:queue:<name> 0 -1` reads the queue without consuming it.
+
+**SQLite and PostgreSQL** share the `message_queue` table (`queue_name`, `role`, `content`, `source`, `request_id`, `queued_at`, plus an `id` sequence key that defines the FIFO order and must not be set by hand). The consumer drains it with a single `DELETE ... RETURNING` statement, which on PostgreSQL locks rows with `FOR UPDATE SKIP LOCKED`:
+
+```sql
+INSERT INTO message_queue (queue_name, role, content, source, request_id, queued_at)
+VALUES (
+  'my-shared-queue',
+  'user',
+  '"run the nightly regression checks"',
+  'a2a',
+  'nightly-2026-10-12',
+  NOW()
+);
+```
 
 ### Persistent Memory
 
