@@ -3438,18 +3438,19 @@ A `command` always wins over a YAML `shortcut` of the same name, so a stale shor
 
 These show as `command` in autocomplete:
 
-| Shortcut              | Description                                                                                          | Example                             |
-| --------------------- | ---------------------------------------------------------------------------------------------------- | ----------------------------------- |
-| `/model [name] [msg]` | Switch the active model, or run one message with another model                                       | `/model deepseek/deepseek-v4-flash` |
-| `/init`               | Fill the input with the AGENTS.md project-analysis prompt                                            | `/init`                             |
-| `/install-opentask`   | Ask the agent to install or update the [`infer-action` workflow](#github-action-setup) and open a PR | `/install-opentask`                 |
-| `/agents`             | View every configured agent - local Markdown presets and remote A2A agents - with their state        | `/agents`                           |
-| `/tasks`              | View background work (A2A tasks, shells, subagents) with live status and captured output             | `/tasks`                            |
-| `/tools`              | View a filterable list of tools available in the current agent mode, including MCP tools             | `/tools`                            |
-| `/stats`              | Summarize the session's token usage, tool outcomes, and cost (mirrors `infer stats`)                 | `/stats`                            |
-| `/traces [id]`        | Render a session's trace span tree offline (mirrors `infer traces`)                                  | `/traces`, `/traces abc-123-def`    |
-| `/voice [seconds]`    | Record the mic and transcribe to the input field (requires [speech-to-text](/cli-speech-to-text/))   | `/voice`, `/voice 8`                |
-| `/reload`             | Re-read config files and `INFER_*` env, applying the [hot keys](#reloading-configuration-in-chat)    | `/reload`                           |
+| Shortcut              | Description                                                                                        | Example                             |
+| --------------------- | -------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| `/model [name] [msg]` | Switch the active model, or run one message with another model                                     | `/model deepseek/deepseek-v4-flash` |
+| `/init`               | Fill the input with the AGENTS.md project-analysis prompt                                          | `/init`                             |
+| `/agents`             | View every configured agent - local Markdown presets and remote A2A agents - with their state      | `/agents`                           |
+| `/tasks`              | View background work (A2A tasks, shells, subagents) with live status and captured output           | `/tasks`                            |
+| `/tools`              | View a filterable list of tools available in the current agent mode, including MCP tools           | `/tools`                            |
+| `/stats`              | Summarize the session's token usage, tool outcomes, and cost (mirrors `infer stats`)               | `/stats`                            |
+| `/traces [id]`        | Render a session's trace span tree offline (mirrors `infer traces`)                                | `/traces`, `/traces abc-123-def`    |
+| `/voice [seconds]`    | Record the mic and transcribe to the input field (requires [speech-to-text](/cli-speech-to-text/)) | `/voice`, `/voice 8`                |
+| `/reload`             | Re-read config files and `INFER_*` env, applying the [hot keys](#reloading-configuration-in-chat)  | `/reload`                           |
+
+Installing the [`infer-action` workflow](#github-action-setup) is not one of them - it is the `opentask` catalog skill, mentioned as `/opentask <context>` in a normal chat turn. A `/name` no command or shortcut answers for is sent to the agent as an ordinary message, so a skill mention or a typo never dead-ends.
 
 ### YAML Shortcuts
 
@@ -3568,27 +3569,27 @@ Recording stops automatically a couple of seconds after you stop speaking (`spee
 
 ### GitHub Action Setup
 
-`/install-opentask [owner/repo] [extra context...]` asks the agent to install or update the [`infer-action` GitHub Action](/github-action/) workflow in a repository and open a pull request with it. It is not a wizard - the shortcut submits a task into the conversation, so the run streams like any other turn and every write goes through normal tool approval.
+Installing or updating the [`infer-action` GitHub Action](/github-action/) workflow has no dedicated CLI surface - it is the agent's job. Mention the `opentask` [catalog skill](/cli-skills/#the-skills-catalog-and-agentskillsrepository) as `/opentask <context>` in a normal chat turn and the run streams like any other turn, with every write going through normal tool approval.
 
 > For a full reference of `infer-action` inputs, outputs, and workflow recipes (PR review, scheduled summaries, release notes), see the [GitHub Action documentation](/github-action/).
 
-With no argument it targets the repository of the current checkout; pass `owner/repo` to target another one. Anything after the repository is handed to the agent as workflow configuration, for example a model or a timeout to use.
+Say what you want in the context: the repository to target if it is not the current checkout, and any workflow configuration such as a model or a timeout.
 
 ```bash
 infer chat
-> /install-opentask
-> /install-opentask my-org/my-service model: deepseek/deepseek-v4-flash
+> /opentask install the GitHub Action workflow
+> /opentask install the workflow in my-org/my-service, model: deepseek/deepseek-v4-flash
 ```
 
 **What the agent does:**
 
-1. Reads the `opentask` catalog skill, which carries the canonical `infer-action` workflow and its example workflows - it works from the skill rather than fetching docs over the network.
+1. Reads the `opentask` skill, which carries the canonical `infer-action` workflow and its example workflows - it works from the skill rather than fetching docs over the network.
 2. Adds a git worktree under `/tmp` when the target is the current checkout, or shallow-clones the target repository, so your working branch is never touched.
 3. Checks out the fixed branch `infer/install-github-action`, on top of the remote branch if one already exists.
 4. Creates or updates `.github/workflows/tasks.yml`, following both the skill's canonical workflow and the repository's existing CI conventions.
 5. Summarizes the diff, then commits, pushes, and opens or updates the pull request - asking for your approval on the push and on the PR.
 
-Re-running the shortcut updates that same branch and pull request instead of opening a duplicate.
+Asking again updates that same branch and pull request instead of opening a duplicate.
 
 **Prerequisites:** the [GitHub CLI](https://cli.github.com) installed and authenticated (`gh auth login`), with write access to the target repository.
 
