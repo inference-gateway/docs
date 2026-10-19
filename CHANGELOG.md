@@ -2,6 +2,35 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.22](https://github.com/inference-gateway/docs/compare/0.9.21...0.9.22) (2026-10-19)
+
+### 📚 Documentation
+
+* **a2a:** document per-agent credentials in the CLI ([#987](https://github.com/inference-gateway/docs/issues/987)) ([f61efae](https://github.com/inference-gateway/docs/commit/f61efaea207a276852087c12953456294d2c30bc))
+* **a2a:** document token_file, token_command and oidc scopes ([#993](https://github.com/inference-gateway/docs/issues/993)) ([8c41cf2](https://github.com/inference-gateway/docs/commit/8c41cf2dbc5f09d423ca847f796413a33b1b9ce2))
+* add llms.txt index for LLM crawlers ([#984](https://github.com/inference-gateway/docs/issues/984)) ([f3f3331](https://github.com/inference-gateway/docs/commit/f3f33316c970716f49da4ffdf972a2ef6345719f))
+* add simulate_tool_call to the mock-agent tool surface ([#1003](https://github.com/inference-gateway/docs/issues/1003)) ([f199416](https://github.com/inference-gateway/docs/commit/f19941646e4696789391b33f4335a0c913a80b57))
+* **adk:** document typed A2A client errors ([#990](https://github.com/inference-gateway/docs/issues/990)) ([089ab08](https://github.com/inference-gateway/docs/commit/089ab08b9df16a99f0782bfa81a5e8d71cc16dde))
+* **cli:** document session working time indicator ([#986](https://github.com/inference-gateway/docs/issues/986)) ([2839b2b](https://github.com/inference-gateway/docs/commit/2839b2bff9100e9903885bfd3528b6a8e17b2aa7))
+* **cli:** re-record the subagents demo on v0.227.0 ([#994](https://github.com/inference-gateway/docs/issues/994)) ([c53a8bf](https://github.com/inference-gateway/docs/commit/c53a8bfdc51410b745d17cedc9451be52d74178c))
+* desktop first-run init and silent windows spawns ([#1016](https://github.com/inference-gateway/docs/issues/1016)) ([a893347](https://github.com/inference-gateway/docs/commit/a893347e65e8b13a84e7edaebdbc8c07c50ba6d0))
+* document chat.suggestions next-step suggestions ([#1006](https://github.com/inference-gateway/docs/issues/1006)) ([9992201](https://github.com/inference-gateway/docs/commit/9992201c8fe640feb0e2eb532572ef15e695673f))
+* document message queue backends ([#1009](https://github.com/inference-gateway/docs/issues/1009)) ([68b6d5e](https://github.com/inference-gateway/docs/commit/68b6d5e5b78c583c5020e8a49edae85ed07a4418))
+* document the daemon-hosted A2A server ([#1014](https://github.com/inference-gateway/docs/issues/1014)) ([27fe040](https://github.com/inference-gateway/docs/commit/27fe040c96827a994109f50ff92b7c55c8af7619))
+* drop /install-opentask for the opentask skill ([#1013](https://github.com/inference-gateway/docs/issues/1013)) ([372f56d](https://github.com/inference-gateway/docs/commit/372f56d0ccfa782f82e05eec222aa952dd08b3ab))
+* drop removed CLIENT_TIMEOUT, fix two descriptions ([#998](https://github.com/inference-gateway/docs/issues/998)) ([9f90854](https://github.com/inference-gateway/docs/commit/9f90854754519a5121aec78c785614cfe4f45d60))
+* fix contradicting artifact pull-back note ([#1004](https://github.com/inference-gateway/docs/issues/1004)) ([edcf4e4](https://github.com/inference-gateway/docs/commit/edcf4e45b0e4ac1a5d166142b439ad1862cc3e1e))
+* scope the source label claim to gen_ai and gateway series ([#997](https://github.com/inference-gateway/docs/issues/997)) ([36a214e](https://github.com/inference-gateway/docs/commit/36a214e5d6bc0f83dfc44425edfa96ac1044e313))
+
+### 🔧 Miscellaneous
+
+* **deps-dev:** bump the bun group with 2 updates ([#1002](https://github.com/inference-gateway/docs/issues/1002)) ([f7c0c5a](https://github.com/inference-gateway/docs/commit/f7c0c5af13ad1e66f384379dfdd05caaf331f1cf))
+* **deps-dev:** bump the bun group with 4 updates ([#1011](https://github.com/inference-gateway/docs/issues/1011)) ([b52e290](https://github.com/inference-gateway/docs/commit/b52e290c0476e24fa999224ccbe402f4f480ca48))
+* **deps:** bump actions/create-github-app-token ([#1010](https://github.com/inference-gateway/docs/issues/1010)) ([c465a28](https://github.com/inference-gateway/docs/commit/c465a28a76fdcd9f52f297ea27fb39924dd8a113))
+* **deps:** bump actions/setup-node ([#1001](https://github.com/inference-gateway/docs/issues/1001)) ([c0dcf1d](https://github.com/inference-gateway/docs/commit/c0dcf1dfcf303ed1d987ec6684c806b8d6e2cecf))
+* **deps:** bump claude-code 2.1.285 -> 2.1.289 ([#988](https://github.com/inference-gateway/docs/issues/988)) ([9f5b494](https://github.com/inference-gateway/docs/commit/9f5b4948aa7029251622172b2aa28e9a9c2a5e35))
+* **deps:** bump infer CLI v0.221.1 -> v0.226.0 ([#991](https://github.com/inference-gateway/docs/issues/991)) ([844cd4f](https://github.com/inference-gateway/docs/commit/844cd4fff1474c14a20d9b3e0e56e24a712bde5b))
+
 ## [0.9.21](https://github.com/inference-gateway/docs/compare/0.9.20...0.9.21) (2026-10-04)
 
 ### 📚 Documentation
