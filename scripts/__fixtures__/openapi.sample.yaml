@@ -25,6 +25,7 @@ components:
         - nvidia
         - llamacpp
         - zai
+        - webwright
         - elevenlabs
       x-provider-configs:
         openai:
@@ -173,6 +174,16 @@ components:
               path: /chat/completions
         zai:
           url: https://api.z.ai/api/coding/paas/v4
+          auth_type: bearer
+          endpoints:
+            models:
+              method: GET
+              path: /models
+            chat:
+              method: POST
+              path: /chat/completions
+        webwright:
+          url: https://webwright.ai/v1
           auth_type: bearer
           endpoints:
             models:
