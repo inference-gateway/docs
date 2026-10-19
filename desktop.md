@@ -11,7 +11,9 @@ The app is open-source at [github.com/inference-gateway/desktop](https://github.
 
 ## How it works
 
-On first run, the app downloads the `infer` CLI binary and installs it to `~/.infer/bin/infer`. The CLI manages the gateway server and routes requests to whatever provider you configure. The gateway binary lands at `~/.infer/bin/inference-gateway`, and config lives under `~/.infer/`.
+On first run, the app downloads the `infer` CLI binary, installs it to `~/.infer/bin/infer`, and runs [`infer init`](/cli/#configuration) to seed the userspace baseline - `~/.infer/config.yaml` and the rest of the userspace config. The CLI manages the gateway server and routes requests to whatever provider you configure. The gateway binary lands at `~/.infer/bin/inference-gateway`, and config lives under `~/.infer/`.
+
+On Windows the app spawns every child process - the CLI, the gateway, `git`, `gh`, `ffmpeg` - without a console window, so no terminal flashes while the app works. The CLI's own child processes are not covered by this yet.
 
 Agents run through [`infer daemon`](/cli/#daemon), the CLI's hub. The app starts the daemon, connects to its AG-UI WebSocket binding as a `desktop` client, and asks it for a thread per conversation - it does not spawn a CLI process per prompt. The same daemon serves the [OpenTask browser extension](/opentask/) and the messaging channels, so all of them see one event stream, one approval contract and [one log](/cli/#the-daemon-log).
 
