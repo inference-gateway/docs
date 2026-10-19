@@ -296,6 +296,24 @@ The [a2a-auth example](https://github.com/inference-gateway/cli/tree/main/exampl
 
 See [A2A Integration](/cli/#a2a-integration) for which requests carry the credentials and the error a rejected request produces.
 
+#### Extra headers
+
+An agent that needs something other than an `auth` block - a plain shared secret, a trace header, a tenant id - gets a `headers` map instead. Every key is sent on every request to that agent, and the values are expanded from the environment when `agents.yaml` is loaded, with both `$VAR` and `${VAR}` accepted:
+
+```yaml
+# .infer/agents.yaml
+agents:
+  - name: peer
+    url: http://127.0.0.1:8090
+    headers:
+      Authorization: Bearer ${PEER_TOKEN}
+      X-Custom-Trace: trace-plain
+```
+
+A variable that is not set expands to the empty string, so the header is sent empty rather than failing. An `auth` block also sets `Authorization`, so with both configured the `auth` credential wins.
+
+This is how one `infer` authenticates to another: point the entry at the peer's [daemon-hosted A2A server](/cli/#hosting-an-a2a-server) and put its `a2a.server.token` in `PEER_TOKEN`.
+
 ### Delegating Tasks to A2A Agents
 
 Within the CLI, you can delegate specialized tasks to A2A agents. The CLI handles agent discovery, coordination, and result integration automatically.

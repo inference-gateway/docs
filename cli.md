@@ -941,6 +941,16 @@ The full per-event reference lives with the CLI source, in [`docs/ag-ui-output.m
 infer headless "Summarize the open PRs" --result-file /tmp/result.json
 ```
 
+#### Running the task as a plain prompt (`--prompt-only`)
+
+`infer headless --prompt-only <task>` sends the task text to the model as a plain prompt. Nothing in it is intercepted first: a leading `!` or `!!` is not run as a direct shell call, and a leading `/` is not resolved as a [shortcut](#shortcuts) - both reach the model as ordinary text.
+
+```bash
+infer headless --prompt-only "/compact is the command I mean to document"
+```
+
+Use it whenever the task text comes from somewhere you do not control, so an untrusted caller cannot turn a prompt into a shell command. The [daemon's A2A server](#hosting-an-a2a-server) always sets it for the tasks it serves.
+
 #### Keeping the session alive (`--keep-alive`)
 
 `infer headless --keep-alive <task>` does not exit when the task turn ends. It keeps the process and the session alive and reads further work from stdin: each [`run_agent_input`](#serve-worker---serve) frame runs as **another turn in the same session**, so follow-ups keep the accumulated context instead of starting over. Every finished turn is reported as one `subagent_turn` line on stdout, and closing stdin (**EOF**) ends the run.
@@ -1070,7 +1080,7 @@ Closing stdin (**EOF**) lets the running turn and any queued `run_agent_input` f
 
 ## Daemon
 
-`infer daemon` is the long-lived hub every external client connects to. One process owns the outside world: the AG-UI WebSocket binding that the [desktop app](/desktop/) and the [OpenTask browser extension](/opentask/) dial into, the [messaging channels](/cli-channels/), the [scheduler](/cli-scheduling/), and the heartbeat. Clients do not spawn `infer headless` themselves - they ask the daemon for a thread, and the daemon runs it.
+`infer daemon` is the long-lived hub every external client connects to. One process owns the outside world: the AG-UI WebSocket binding that the [desktop app](/desktop/) and the [OpenTask browser extension](/opentask/) dial into, the [messaging channels](/cli-channels/), the [scheduler](/cli-scheduling/), the heartbeat, and the [A2A server](#hosting-an-a2a-server) peer agents task it through. Clients do not spawn `infer headless` themselves - they ask the daemon for a thread, and the daemon runs it.
 
 ```text
 desktop app -----+
@@ -1088,14 +1098,15 @@ scheduler / heartbeat ----------------------------+
 
 ### What the daemon runs
 
-| Subsystem           | What it does                                                                                                                                                                |
-| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Binding**         | Serves `ws://127.0.0.1:<port>/ws` (default `52789`) for the extension and the desktop app, behind an `Origin` check and a token. On its own `daemon.binding.enabled` switch |
-| **Session workers** | One long-lived [`infer headless --serve`](#serve-worker---serve) process per thread, spawned in the thread's project directory, speaking AG-UI over stdio                   |
-| **Channels**        | Telegram and other [messaging channels](/cli-channels/), each sender mapped to its own thread                                                                               |
-| **Scheduler**       | Cron jobs from the [local scheduler backend](/cli-scheduling/), run as threads instead of one-off processes                                                                 |
-| **Heartbeat**       | Periodic self-checks and the artifact poller that pulls conversations back from the [GitHub backend](/cli-scheduling/#github-backend)                                       |
-| **Logging**         | Collects worker, one-shot job, channel and connection logs into [one daemon log](#the-daemon-log)                                                                           |
+| Subsystem           | What it does                                                                                                                                                                       |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Binding**         | Serves `ws://127.0.0.1:<port>/ws` (default `52789`) for the extension and the desktop app, behind an `Origin` check and a token. On its own `daemon.binding.enabled` switch        |
+| **Session workers** | One long-lived [`infer headless --serve`](#serve-worker---serve) process per thread, spawned in the thread's project directory, speaking AG-UI over stdio                          |
+| **Channels**        | Telegram and other [messaging channels](/cli-channels/), each sender mapped to its own thread                                                                                      |
+| **Scheduler**       | Cron jobs from the [local scheduler backend](/cli-scheduling/), run as threads instead of one-off processes                                                                        |
+| **Heartbeat**       | Periodic self-checks and the artifact poller that pulls conversations back from the [GitHub backend](/cli-scheduling/#github-backend)                                              |
+| **A2A server**      | Serves this agent to peer agents over A2A, one headless run per task. Off by default, on its own `a2a.server.enabled` switch - see [hosting an A2A server](#hosting-an-a2a-server) |
+| **Logging**         | Collects worker, one-shot job, channel and connection logs into [one daemon log](#the-daemon-log)                                                                                  |
 
 ### Starting the daemon
 
@@ -1227,6 +1238,44 @@ Approvals have one contract on every transport. The daemon sends CUSTOM `approva
 ### Browser use through the daemon
 
 There is one real browser, so only the daemon binds the extension port. `browser_command` lines from the session workers are routed to the extension connection and each `browser_result` goes back to its worker by `id`. Commands from every source - session workers, the desktop app and `browser` clients - are serialized rather than interleaved on the same tab, and a command a client posts on the socket is answered only on that connection. Every non-extension client is told the state of that connection by the [`browser_extension_status`](/opentask/#browser-extension-status) frame - on connect, and on each attach or detach. With no extension connected, browser tools fail with `no browser extension connected on port <port>`; a command the extension does not finish in time fails with `timed out waiting for the browser extension to <action>`. The command and result shapes are documented in the [OpenTask bridge protocol](/opentask/#browser-commands-daemon-extension).
+
+### Hosting an A2A server
+
+The daemon can also face the other way: instead of only calling [A2A agents](#a2a-integration), it serves **this** agent to peers over A2A. With `a2a.server.enabled: true` it hosts an ADK A2A server, and every task a peer sends runs as **one headless run** in the daemon's working directory - so the project's `.infer/` config, tools, skills and sandbox apply to it.
+
+```yaml
+# .infer/config.yaml
+a2a:
+  server:
+    enabled: true
+    host: 127.0.0.1 # default
+    port: 8090 # default
+    mode: standard # default - standard, plan, auto or auto-with-judge
+    # token: set it through INFER_A2A_SERVER_TOKEN, not here
+```
+
+| Setting   | Default     | Environment variable       | Description                                                           |
+| --------- | ----------- | -------------------------- | --------------------------------------------------------------------- |
+| `enabled` | `false`     | `INFER_A2A_SERVER_ENABLED` | Host the A2A server in `infer daemon`                                 |
+| `host`    | `127.0.0.1` | `INFER_A2A_SERVER_HOST`    | Bind address. Loopback by default                                     |
+| `port`    | `8090`      | `INFER_A2A_SERVER_PORT`    | Bind port                                                             |
+| `token`   | _(empty)_   | `INFER_A2A_SERVER_TOKEN`   | The bearer token every caller must present. **Required** when enabled |
+| `mode`    | `standard`  | `INFER_A2A_SERVER_MODE`    | The [agent mode](#agent-modes) served tasks run in                    |
+
+The token is **required**: with the server enabled and no token set, the daemon refuses to boot rather than exposing an unauthenticated coding agent. It is a credential, so set it through `INFER_A2A_SERVER_TOKEN` (from `.env`, for example) instead of writing it into `config.yaml`. A loopback bind is not protection on its own - a local web page can reach `127.0.0.1`. Treat `mode: auto` as handing unrestricted shell access to every holder of that token.
+
+**What a peer sees:**
+
+- The **agent card** at `/.well-known/agent-card.json`, advertising one `coding_task` skill, `text/plain` in and out, no streaming and no push notifications, and the bearer scheme a caller needs.
+- `message/send` plus `tasks/get`, `tasks/list` and `tasks/cancel`, with tasks kept in an in-memory store (nothing survives a daemon restart).
+- A **one-at-a-time queue**: tasks are accepted immediately but run one after another, never concurrently. Each run is bounded by `a2a.task.agent_mode_max_wait_seconds`, so a hung run cannot hold the queue.
+- `tasks/cancel` cancels the run itself and the task ends as `canceled`.
+
+A completed task's status message is the run's **final assistant message**. A task whose message carries file or data parts is refused - served tasks are text only.
+
+**Sessions:** the A2A `contextId` becomes the session the run stores its conversation under, so a peer that reuses one `contextId` across tasks continues the **same session** and keeps the accumulated context. A `contextId` is limited to letters, digits, `_` and `-` (up to 128 characters), because it becomes a storage key.
+
+Served tasks always run with [`--prompt-only`](#running-the-task-as-a-plain-prompt---prompt-only), so task text is never interpreted as a shortcut or a direct call.
 
 ### The daemon log
 
