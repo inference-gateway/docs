@@ -810,7 +810,7 @@ Three principles to follow:
      contents: read
    ```
 
-3. **Prefer a GitHub App over the default `GITHUB_TOKEN` for cross-repo or higher-trust workflows.** The CLI's `/install-opentask` shortcut wires the workflow up for you (see the [CLI docs](/cli/#github-action-setup)). Using an App token lets PRs created by the agent trigger downstream CI - PRs opened with the default `GITHUB_TOKEN` do not, by GitHub design.
+3. **Prefer a GitHub App over the default `GITHUB_TOKEN` for cross-repo or higher-trust workflows.** Asking the CLI agent to install the workflow wires this up for you (see the [CLI docs](/cli/#github-action-setup)). Using an App token lets PRs created by the agent trigger downstream CI - PRs opened with the default `GITHUB_TOKEN` do not, by GitHub design.
 
 Additional hardening:
 
@@ -821,7 +821,7 @@ Additional hardening:
 
 ## CLI integration
 
-The CLI ships the [`/install-opentask`](/cli/#github-action-setup) shortcut, which hands the install to the agent: it writes `.github/workflows/tasks.yml` from the `opentask` skill's canonical workflow on a dedicated branch and opens a pull request for review. Use it for first-time setup; come back to this page when you need to customise inputs, write recipes by hand, or harden secrets handling beyond the defaults.
+The install is a plain chat turn in the CLI: mention the `opentask` catalog skill as `/opentask install the GitHub Action workflow` and the agent writes `.github/workflows/tasks.yml` from the skill's canonical workflow on a dedicated branch, then opens a pull request for review. See [GitHub Action setup](/cli/#github-action-setup) for the full flow. Use it for first-time setup, and come back to this page when you need to customise inputs, write recipes by hand, or harden secrets handling beyond the defaults.
 
 ## Related
 
