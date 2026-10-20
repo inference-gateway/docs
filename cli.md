@@ -552,12 +552,12 @@ Select a range with `space`/`v`, navigate, then apply to stage just those lines 
 
 Toggle between modes anytime during chat using **Shift+Tab**.
 
-| Mode                   | Tools                                    | Approval                            | Best For                                            |
-| ---------------------- | ---------------------------------------- | ----------------------------------- | --------------------------------------------------- |
-| **Standard** (Default) | All configured                           | Required for Write/Edit/Delete/Bash | General development, collaborative coding           |
-| **Plan** (Read-Only)   | Read, Grep, Tree and read-only subagents | None                                | Code reviews, architecture analysis, planning       |
-| **Auto-Accept** (YOLO) | All configured                           | None - immediate execution          | Trusted environments, rapid prototyping, automation |
-| **Auto+Judge**         | All configured                           | An LLM judge answers every gate     | Unattended CI/headless runs that still want a gate  |
+| Mode                   | Tools                                                                                                | Approval                             | Best For                                            |
+| ---------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------ | --------------------------------------------------- |
+| **Standard** (Default) | All configured                                                                                       | Required for Write/Edit/Delete/Bash  | General development, collaborative coding           |
+| **Plan**               | Read, Grep, Tree, read-only subagents, plus writes and Bash inside the [scratchpad](#the-scratchpad) | Standard rules inside the scratchpad | Code reviews, architecture analysis, planning       |
+| **Auto-Accept** (YOLO) | All configured                                                                                       | None - immediate execution           | Trusted environments, rapid prototyping, automation |
+| **Auto+Judge**         | All configured                                                                                       | An LLM judge answers every gate      | Unattended CI/headless runs that still want a gate  |
 
 ### Standard Mode
 
@@ -571,7 +571,7 @@ infer chat
 
 ### Plan Mode
 
-Analysis and planning without execution. Safe exploration of unfamiliar codebases.
+Analysis and planning, with your working tree read-only until the plan is approved. `Write`, `Edit`, `MultiEdit`, `Delete` and `Bash` do execute while planning, but only inside one directory - the [scratchpad](#the-scratchpad) - so the agent can copy a file in, try the change, build or test it, and write a plan backed by evidence instead of guesswork.
 
 ```bash
 infer chat
@@ -583,6 +583,30 @@ infer chat
 While planning, the agent can pause to ask you up to four multiple-choice clarifying questions with the [`AskUserQuestion`](#askuserquestion) tool, then fold your answers into the plan it submits for approval. The same tool is available in the other interactive modes, where the answers come back mid-task instead.
 
 When the investigation spans several areas, the agent can fan it out to [local subagents](#local-subagents-agent-tool) that explore in parallel. In plan mode every subagent runs read-only, whatever its preset or tool allowlist says, so a delegated subagent may explore the repository but never change it. Ask for it directly ("Use 5 subagents to search this project for docs gaps and drift, then plan the fixes") and watch them work from the [background job list](#background-job-list) under the composer.
+
+#### The scratchpad
+
+Plan mode gets exactly one writable directory:
+
+```text
+~/.infer/projects/<project-slug>/tmp/scratchpad
+```
+
+It is the only location `Write`, `Edit`, `MultiEdit`, `Delete` and `Bash` may touch while planning. Every other path stays read-only, whatever your [sandbox configuration](#file-sandbox) allows and whatever you granted in another mode. Bash runs with its working directory pinned there, so verification touches only scratch copies.
+
+How it behaves:
+
+- **Lazily created** on the first write or the first plan-mode command.
+- **Outside the git working tree**, so nothing leaks into commits. It is wiped by `/reset` along with the other runtime directories.
+- **Survives plan approval** into the fresh session that executes the plan, so the executing agent can still read what was verified.
+- **A write outside it is a plain error** naming the scratchpad path. No grant can unlock plan mode, so the rejection does not offer the usual sandbox-grant approval prompt. `../` traversal out of the scratchpad, and a symlink inside it pointing outside, are rejected the same way.
+
+The built-in plan-mode guidance names the scratchpad and tells the model to copy files in rather than edit originals, verify there, report what it proved under the plan's `## Verification` section, and keep the scratchpad out of `## Files to Modify` - it is never part of the change.
+
+Two limits worth knowing:
+
+- Writing inside the scratchpad still goes through the normal [approval rules](#approval-workflow), so a scratch write can still prompt you in Standard-style gating.
+- The pinned working directory applies to every plan-mode command, including the baseline ones - `git status` in plan mode reports on the scratchpad, not on your project. An allow-listed command can also still reach outside the scratchpad through an absolute path argument: the file tools are the hard boundary, the shell is allowed-list plus approval.
 
 #### How mode instructions are delivered
 
@@ -610,7 +634,7 @@ When the plan is ready, the agent calls [`RequestPlanApproval`](#requestplanappr
 | **Approve Each Step** | `s`           | **Standard**    | Executes the plan but prompts for approval on each Write/Edit/Delete/Bash action. |
 | **Reject**            | `n`           | -               | Ends the session; reply with feedback and the agent re-iterates the plan.         |
 
-> **The default Accept enables [Auto-Accept mode](#auto-accept-mode)** - unrestricted execution with no per-action approval. Pick **Approve Each Step** to accept the plan but keep the [Standard-mode](#standard-mode) approval gate on every action. The plan file stays on disk whichever you choose; rejecting a plan does not delete it.
+> **The default Accept enables [Auto-Accept mode](#auto-accept-mode)** - unrestricted execution with no per-action approval. Pick **Approve Each Step** to accept the plan but keep the [Standard-mode](#standard-mode) approval gate on every action. The plan file stays on disk whichever you choose; rejecting a plan does not delete it. The [scratchpad](#the-scratchpad) is left in place too, so the session that executes the plan can read whatever was verified there.
 
 ### Auto-Accept Mode
 
@@ -1590,6 +1614,8 @@ When tools are enabled, LLMs have access to a comprehensive suite across multipl
 
 ### File System Tools
 
+In [Plan Mode](#plan-mode), `Write`, `Edit`, `MultiEdit` and `Delete` execute only inside the [scratchpad](#the-scratchpad) - every other path stays read-only until the plan is approved.
+
 #### Read
 
 Read a file from the local filesystem with an optional line range. Handles text files and PDFs.
@@ -1684,7 +1710,7 @@ tools:
           - pwd( .*)?
           - git status( .*)?
           - git diff( .*)?
-      plan: # read-only analysis - usually adds nothing
+      plan: # commands run pinned to the scratchpad - empty by default
         allow: []
       standard: # default interactive mode
         allow:
@@ -1694,9 +1720,24 @@ tools:
           - .* # unrestricted sentinel
 ```
 
-- **Default-deny.** Out of the box only `mode.auto` ships the `.*` sentinel; `mode.plan` and `mode.standard` add nothing on top of `mode.all`, so they reduce to the read-only baseline. GitHub _writes_ (`gh issue/pr create|edit|comment`), `git push`, and `git commit` are **not** in the defaults - they fall through to approval until you add them.
+- **Default-deny.** Out of the box only `mode.auto` ships the `.*` sentinel; `mode.plan` and `mode.standard` add nothing on top of `mode.all`, so they reduce to the baseline. In plan mode those baseline commands run with their working directory pinned to the [scratchpad](#the-scratchpad), not the project - see the opt-in below. GitHub _writes_ (`gh issue/pr create|edit|comment`), `git push`, and `git commit` are **not** in the defaults - they fall through to approval until you add them.
 - **Full-command matching.** Each entry matches the **whole** command, so a bare token like `gh` allows only `gh` - never `gh issue list`. Opt into arguments explicitly with a pattern (`gh issue.*`, `npm (install|test|run).*`); the default entries use a `( .*)?` suffix to allow trailing arguments.
 - **The `.*` sentinel** means _unrestricted_: any single command runs and the clean-command guard below is skipped. It is the default for `mode.auto` (chat's [Auto-Accept mode](#auto-accept-mode), toggled with Shift+Tab) and is an explicit opt-in - **never** a headless default.
+
+Since plan-mode commands run in the scratchpad on scratch copies, verification builds and tests are reasonable to let run unattended there:
+
+```yaml
+# ~/.infer/tools.yaml - opt into unattended verification in plan mode
+tools:
+  bash:
+    mode:
+      plan:
+        allow:
+          - go build.*
+          - go test.*
+```
+
+Allowed-list entries for commands that create paths (`mkdir`, `ln -s`) pass through the scratchpad gate as well, so an absolute path into the project falls through to approval instead of auto-running.
 
 ##### Clean-command guard
 
