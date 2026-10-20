@@ -692,11 +692,14 @@ In the `ag-ui` format the same contract holds one level up: one `TEXT_MESSAGE_ST
 
 **Exit codes:**
 
-| Code | Meaning                     |
-| ---- | --------------------------- |
-| 0    | Task completed successfully |
-| 1    | Task failed                 |
-| 2    | Max turns exhausted         |
+| Code | Meaning                                              |
+| ---- | ---------------------------------------------------- |
+| 0    | Task completed successfully                          |
+| 1    | Task failed                                          |
+| 2    | Max turns exhausted (`agent.max_turns`)              |
+| 3    | Time budget exhausted (`agent.max_duration_minutes`) |
+
+Codes `2` and `3` are both "stopped early, not broken" - a harness can tell out of turns from out of time and salvage the work in progress instead of treating the run as a failure.
 
 **Headless behavior:**
 
@@ -2846,6 +2849,7 @@ logging:
 - System prompt (`prompts.agent.system_prompt`) and per-mode adjustments (`mode_adjustment_plan` / `mode_adjustment_auto`, delivered by the [mode-change reminder](#how-mode-instructions-are-delivered))
 - System reminders interval
 - Max turns and tokens
+- `agent.max_duration_minutes` (`INFER_AGENT_MAX_DURATION_MINUTES`): wall-clock budget for one run in minutes, default `0` (no budget). Once spent, the run ends **after the current tool call** rather than mid-call, so the work so far stays on disk and `infer headless` exits `3`. It is the clock-based companion to `agent.max_turns` - a slow run (a flash-tier model, browser use) can burn an hour inside its turn budget, and only a wall-clock limit bounds that. Pair it with the [`elapsed_minutes`](#trigger-catalog) reminder trigger to have the agent start wrapping up before the budget runs out
 - Parallel tool execution (default: 5 concurrent)
 - Project instructions: `agent.agents_md.*` injects the root `AGENTS.md` and points at nested ones (see [How AGENTS.md reaches the model](#how-agents-md-reaches-the-model))
 
@@ -2936,7 +2940,7 @@ reminders:
 | `hook`      | string  | When the reminder fires. One of `pre_tool` (before each tool call) or `post_tool` (after each tool call completes).                                                                |
 | `trigger`   | string  | Condition under which the reminder fires. See [Trigger catalog](#trigger-catalog) below.                                                                                           |
 | `text`      | string  | The reminder text injected into the conversation. Supports `os.ExpandEnv` environment variable interpolation (`$VAR` or `${VAR}`).                                                 |
-| `threshold` | integer | `on_repeated_failure` only (required, > 0). Number of consecutive failures of the same call before the reminder fires.                                                             |
+| `threshold` | integer | Required (> 0) for `on_repeated_failure` - consecutive failures of the same call before the reminder fires - and for `elapsed_minutes`, where it is the number of minutes.         |
 | `guidance`  | map     | `on_mode_change` only. Maps a mode key (`standard`, `plan`, `auto`) to the text substituted for the `{guidance}` placeholder in `text`. Omitted keys keep their built-in defaults. |
 
 #### Trigger catalog
@@ -2945,6 +2949,7 @@ reminders:
 | --------------------- | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `always`              | Any              | Fire on every hook invocation.                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | `on_failure`          | `post_tool`      | Fire only when the tool call that just ran failed (returned an error). Requires `hook: post_tool`; validation rejects other hooks.                                                                                                                                                                                                                                                                                                                                    |
+| `elapsed_minutes`     | Any              | Fire once, when the run has been going `threshold` wall-clock minutes. Requires `threshold` > 0. The clock-based twin of `turns_before_max` - set it below [`agent.max_duration_minutes`](#configuration) so the agent is told to wrap up while it still has budget left.                                                                                                                                                                                             |
 | `on_mode_change`      | Any              | Fire when the [agent mode](#agent-modes) changes (Shift+Tab). Used by the built-in `mode-change-reminder`, which is the **sole carrier** of mode-specific instructions - see [How mode instructions are delivered](#how-mode-instructions-are-delivered).                                                                                                                                                                                                             |
 | `on_repeated_failure` | `post_tool`      | Fire when the same tool call has failed `threshold` times in a row (built-in default `3`). Matching is on **normalized** arguments, not the raw string: `offset`, `limit`, key order and whitespace are ignored, so retries that only change pagination or re-serialize the same arguments still count toward the threshold. `Read` matches on the `file_path` alone. A success with the same key resets the counter. Requires `hook: post_tool` and `threshold` > 0. |
 
@@ -3149,14 +3154,15 @@ infer config set gateway.timeout 300
 
 **Hot keys** - these change the running session immediately:
 
-| Key                      | Effect on reload                                                |
-| ------------------------ | --------------------------------------------------------------- |
-| `gateway.timeout`        | The next request uses the new timeout                           |
-| `agent.model`            | Switches the active model, like [`/model`](#built-in-commands)  |
-| `agent.max_turns`        | Applies from the next turn                                      |
-| `agent.max_tokens`       | Applies from the next turn                                      |
-| `agent.reasoning_effort` | Applies from the next turn, and the status bar follows          |
-| `chat.status_bar.*`      | The whole section - indicators hide or show on the next repaint |
+| Key                          | Effect on reload                                                |
+| ---------------------------- | --------------------------------------------------------------- |
+| `gateway.timeout`            | The next request uses the new timeout                           |
+| `agent.model`                | Switches the active model, like [`/model`](#built-in-commands)  |
+| `agent.max_turns`            | Applies from the next turn                                      |
+| `agent.max_duration_minutes` | Applies from the next turn                                      |
+| `agent.max_tokens`           | Applies from the next turn                                      |
+| `agent.reasoning_effort`     | Applies from the next turn, and the status bar follows          |
+| `chat.status_bar.*`          | The whole section - indicators hide or show on the next repaint |
 
 **Everything else needs a restart.** Any other changed key is named in the status line as "restart to apply" rather than silently ignored - `Reloaded agent.model · restart to apply gateway.url`. `gateway.url` and `gateway.api_key` are restart keys, and [tool policy](#tool-configuration), the [file sandbox](#file-sandbox) and approval policy never change mid-session, by design: a running agent keeps the permissions it started with.
 

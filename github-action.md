@@ -69,6 +69,7 @@ The action composes a default set of [CLI system reminders](/cli/#system-reminde
 
 - **Periodic context nudge** - a `pre_stream` reminder on an interval that keeps the agent focused on the task.
 - **Turns-before-max wrap-up** - a `turns_before_max` reminder that fires near the turn limit, prompting the agent to wrap up.
+- **Time-budget wrap-up** - when [`time-budget-minutes`](#time-budget) is set, an `elapsed_minutes` reminder that fires at 80% of the budget, prompting the agent to wrap up before the clock runs out. Absent when the input is empty.
 - **Post-tool failure nudge** - a `post_tool` / `on_failure` reminder that fires only after a failed tool call on writable runs, reminding the agent to retry or ask the user.
 - **Memory nudges** - when `memory-repo` is set, the CLI's built-in `memory-consult` and `memory-hygiene` reminders are re-emitted.
 - **Demo recording pointer** - when [`record-demo`](#demo-recordings) is `true`, a `pre_stream` / `once` reminder named `infer-action-record-demo` fires on the first turn, telling the agent to read and follow the CLI's built-in `demo` skill for the recording procedure.
@@ -87,7 +88,35 @@ To override the composed default and supply your own full set of reminders, use 
           text: "A failed call means the change did not happen"
 ```
 
-See the [CLI reminders documentation](/cli/#system-reminders) for the full YAML schema, trigger catalog (`always`, `interval`, `turns_before_max`, `once`, `on_failure`), and the `INFER_REMINDERS_CONFIG` / `--reminders-file` / `on_failure` trigger reference.
+See the [CLI reminders documentation](/cli/#system-reminders) for the full YAML schema, trigger catalog (`always`, `interval`, `turns_before_max`, `elapsed_minutes`, `once`, `on_failure`), and the `INFER_REMINDERS_CONFIG` / `--reminders-file` / `on_failure` trigger reference.
+
+### Time budget
+
+`max-turns` is counted in turns, not minutes. A slow run - a flash-tier model, heavy browser use - can spend the job's `timeout-minutes` long before its wrap-up turn arrives, and GitHub then kills the job mid-tool-call: the salvage step never runs, and the spinner comment is never replaced.
+
+`time-budget-minutes` adds the clock. It takes whole minutes and sets the CLI's [`agent.max_duration_minutes`](/cli/#configuration):
+
+```yaml
+jobs:
+  infer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: inference-gateway/infer-action@main
+        with:
+          max-turns: 150
+          time-budget-minutes: 45
+```
+
+- **At 80%** the composed wrap-up reminder fires on the CLI's `elapsed_minutes` trigger, telling the agent to finish and commit what it has.
+- **At 100%** the CLI ends the run after the current tool call and exits `3`. Because the job itself is still alive, the salvage and report steps run as usual - the work in progress becomes a draft PR and the result comment is posted.
+- The run is reported like the turn limit (`exit-code` `2`): stopped early, the exit code passed through, `timed-out` set to `true`, and a warning rather than a failed job.
+
+Guidance:
+
+- Keep the budget **under the job's `timeout-minutes`**, with room for the salvage and report steps - otherwise GitHub kills the job first and the budget never gets a chance to fire.
+- Keep it **under 60** when `github-token` comes from `create-github-app-token`. That token lives one hour, and the salvage and report steps need it to push the branch and post the comment.
+- Empty (the default) leaves today's behaviour unchanged. Requires CLI >= v0.232.0.
 
 ### System prompt override
 
@@ -158,6 +187,7 @@ The table below covers the most commonly used inputs. The complete, always-curre
 | `apt`                   | No       | `''`                                                                                             | Newline- or space-separated list of apt packages to install before the agent runs. Installed via `DEBIAN_FRONTEND=noninteractive sudo apt-get install -y`. Debian/Ubuntu runners only - on other OS families the step prints an error and fails. Packages are cached across runs (keyed on OS, architecture, and the package list); a cache failure falls back to a plain install. A plain `run:` step before the action is the portable alternative.                                                                                                |
 | `languages`             | No       | `''`                                                                                             | Newline- or space-separated list of languages whose toolchains to install before the agent runs. Supported: `go`, `rust`, `node` (alias `typescript`), `python`. Empty = no language setup steps. See [Language toolchains](#language-toolchains).                                                                                                                                                                                                                                                                                                   |
 | `max-turns`             | No       | `150`                                                                                            | Maximum agent iterations - acts as a runaway-cost guard.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `time-budget-minutes`   | No       | `''`                                                                                             | Wall-clock budget for the agent run, in whole minutes. Sets the CLI's `agent.max_duration_minutes` (`INFER_AGENT_MAX_DURATION_MINUTES`). At 80% of the budget a wrap-up reminder fires on the CLI's `elapsed_minutes` trigger; at 100% the CLI ends the run after the current tool call and exits `3`, so the salvage and report steps still run inside the job. Empty = off. Requires CLI >= v0.232.0. See [Time budget](#time-budget).                                                                                                             |
 | `custom-instructions`   | No       | `''`                                                                                             | Extra instructions appended to the default system prompt (does **not** replace the defaults).                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | `system-prompt-issue`   | No       | `''`                                                                                             | Overrides the action's bundled system prompt for issue-driven runs. Substitutes `{{issueNumber}}`. See [System prompt override](#system-prompt-override).                                                                                                                                                                                                                                                                                                                                                                                            |
 | `system-prompt-pr`      | No       | `''`                                                                                             | Overrides the action's bundled system prompt for PR-driven runs (non-fork). Substitutes `{{prNumber}}`, `{{headRef}}`. See [System prompt override](#system-prompt-override).                                                                                                                                                                                                                                                                                                                                                                        |
@@ -264,16 +294,16 @@ Requires a reasonably recent `inference-gateway/infer-action` release; referenci
 
 ## Outputs
 
-| Output                    | Description                                                                                                                                                  |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `result`                  | Human-readable summary of the agent execution.                                                                                                               |
-| `exit-code`               | Exit code returned by `infer` - non-zero means the agent failed.                                                                                             |
-| `pr-url`                  | URL of the pull request the agent opened (empty if none). Populated for direct-prompt runs and any run that opens a PR.                                      |
-| `run-duration-ms`         | Wall-clock duration of the agent run in milliseconds (0 if unavailable).                                                                                     |
-| `stopped-early`           | `true` when the agent stopped before finishing its plan (unfinished todos, uncommitted work left behind, or a job-timeout stop).                             |
-| `timed-out`               | `true` when the agent was stopped because the job hit its timeout; the remaining work is recovered into a draft PR and reported as a warning, not a failure. |
-| `failed-tool-calls-count` | Number of failed tool calls detected in the agent output.                                                                                                    |
-| `total-tool-calls-count`  | Total number of tool calls the agent made during the run.                                                                                                    |
+| Output                    | Description                                                                                                                                                                                                                    |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `result`                  | Human-readable summary of the agent execution.                                                                                                                                                                                 |
+| `exit-code`               | Exit code returned by `infer`. `0` is success, `2` means the turn limit was reached, `3` means the [time budget](#time-budget) was spent, any other non-zero means the agent failed.                                           |
+| `pr-url`                  | URL of the pull request the agent opened (empty if none). Populated for direct-prompt runs and any run that opens a PR.                                                                                                        |
+| `run-duration-ms`         | Wall-clock duration of the agent run in milliseconds (0 if unavailable).                                                                                                                                                       |
+| `stopped-early`           | `true` when the agent stopped before finishing its plan (unfinished todos, uncommitted work left behind, or a job-timeout stop).                                                                                               |
+| `timed-out`               | `true` when the agent ran out of time - the job hit its own timeout, or the [time budget](#time-budget) was spent (`exit-code` `3`). The remaining work is recovered into a draft PR and reported as a warning, not a failure. |
+| `failed-tool-calls-count` | Number of failed tool calls detected in the agent output.                                                                                                                                                                      |
+| `total-tool-calls-count`  | Total number of tool calls the agent made during the run.                                                                                                                                                                      |
 
 Reference outputs in downstream steps via <code v-pre>${{ steps.&lt;id&gt;.outputs.result }}</code>.
 
@@ -814,7 +844,7 @@ Three principles to follow:
 
 Additional hardening:
 
-- Cap `max-turns` to prevent runaway loops and bound cost. The default is `150`; `30-50` covers most issues.
+- Cap `max-turns` to prevent runaway loops and bound cost. The default is `150`; `30-50` covers most issues. Add [`time-budget-minutes`](#time-budget) to bound the run in wall-clock time too - turns alone do not stop a slow run from eating the whole job timeout.
 - Set `enable-git-operations: false` whenever the agent only needs to read and comment.
 - Keep the bash allow-list narrow - only add commands you trust the agent to invoke.
 - Reference `inference-gateway/infer-action@main` so every run uses the latest action; if you need reproducible runs, pin to a tagged release from the [releases page](https://github.com/inference-gateway/infer-action/releases).
