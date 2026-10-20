@@ -28,7 +28,6 @@ Inference Gateway provides a unified interface to interact with multiple LLM pro
 | Moonshot     | Bearer Token     | `https://api.moonshot.ai/v1`                                    | No             |
 | NVIDIA       | Bearer Token     | `https://integrate.api.nvidia.com/v1`                           | No             |
 | Z-AI         | Bearer Token     | `https://api.z.ai/api/coding/paas/v4`                           | No             |
-| WebWright    | Bearer Token     | `https://webwright.ai/v1`                                       | No             |
 | ElevenLabs   | X-Header         | `https://api.elevenlabs.io/v1`                                  | No             |
 
 <!-- GENERATED:providers-table END (do not edit - run: task generate) -->
@@ -89,7 +88,7 @@ Each provider requires specific configuration through environment variables:
 
 <!-- GENERATED:provider-uppercase START (do not edit - run: task generate) -->
 
-Replace "PROVIDER" with the provider name (uppercase): OPENAI, DEEPSEEK, ANTHROPIC, COHERE, GROQ, CLOUDFLARE, OLLAMA_CLOUD, OLLAMA, LLAMACPP, GOOGLE, MISTRAL, MINIMAX, MOONSHOT, NVIDIA, ZAI, WEBWRIGHT, ELEVENLABS.
+Replace "PROVIDER" with the provider name (uppercase): OPENAI, DEEPSEEK, ANTHROPIC, COHERE, GROQ, CLOUDFLARE, OLLAMA_CLOUD, OLLAMA, LLAMACPP, GOOGLE, MISTRAL, MINIMAX, MOONSHOT, NVIDIA, ZAI, ELEVENLABS.
 
 <!-- GENERATED:provider-uppercase END (do not edit - run: task generate) -->
 

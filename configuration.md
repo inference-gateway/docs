@@ -144,11 +144,6 @@ const zaiSettings = [
   { variable: 'ZAI_API_KEY', description: 'Z-AI API Key', defaultValue: '""' },
 ];
 
-const webwrightSettings = [
-  { variable: 'WEBWRIGHT_API_URL', description: 'WebWright API URL', defaultValue: 'https://webwright.ai/v1' },
-  { variable: 'WEBWRIGHT_API_KEY', description: 'WebWright API Key', defaultValue: '""' },
-];
-
 const elevenlabsSettings = [
   { variable: 'ELEVENLABS_API_URL', description: 'ElevenLabs API URL', defaultValue: 'https://api.elevenlabs.io/v1' },
   { variable: 'ELEVENLABS_API_KEY', description: 'ElevenLabs API Key', defaultValue: '""' },
@@ -429,10 +424,6 @@ ElevenLabs is the one exception to "LLM provider": it has no chat-completions AP
 #### Z-AI
 
 <ConfigTable :rows="zaiSettings" />
-
-#### WebWright
-
-<ConfigTable :rows="webwrightSettings" />
 
 #### ElevenLabs
 
