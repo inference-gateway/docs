@@ -110,12 +110,6 @@
       "vision": "GLM 5.2",
       "adkExampleModel": "glm-5.2"
     },
-    "webwright": {
-      "displayName": "WebWright",
-      "urlLabel": "WebWright",
-      "keyLabel": "WebWright",
-      "adkExampleModel": "<your-model-id>"
-    },
     "elevenlabs": {
       "displayName": "ElevenLabs",
       "urlLabel": "ElevenLabs",
