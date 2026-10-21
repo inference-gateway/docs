@@ -492,7 +492,7 @@ Opt in by setting `vision-model` to any vision-capable model your gateway serves
     deepseek-api-key: ${{ secrets.DEEPSEEK_API_KEY }}
 ```
 
-This enables the CLI's `ImageDecode` tool and adds guidance to the system prompt: when the issue or PR text embeds an image (`![...](url)`), the agent downloads it with WebFetch and reads it with `ImageDecode` before starting work. The default `web-fetch-domains` already include the `githubusercontent.com` hosts that `github.com/user-attachments` links redirect to.
+This enables the CLI's `ImageDecode` tool and adds guidance to the system prompt: when the issue or PR text embeds an image (`![...](url)`), the agent downloads it with WebFetch before starting work. A vision session model then reads the downloaded file with `Read`, which attaches the image to its next message. A text-only session model reads it with `ImageDecode`, which side-calls `vision-model` for a description in words. The default `web-fetch-domains` already include the `githubusercontent.com` hosts that `github.com/user-attachments` links redirect to.
 
 **Limitation:** attachments on **private** repositories redirect to signed URLs that WebFetch requests unauthenticated, so private-repo screenshots may fail to download; the agent is instructed to say so and continue with the text. Public repositories work.
 
