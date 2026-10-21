@@ -1565,7 +1565,7 @@ Frame sources feed images to the agent, and a pluggable annotator turns each fra
 
 - The built-in `screen` source is computer-use screenshot streaming, registered whenever screenshot streaming is on.
 - **Directory sources** watch a folder and serve the newest image file by modification time - whatever your camera or capture process writes there.
-- `GetLatestFrame` reads the current frame from a source; `ImageDecode` handles arbitrary images.
+- `GetLatestFrame` reads the current frame from a source. For an arbitrary image file on disk, a vision model uses [`Read`](#read) and a text-only model uses `ImageDecode`.
 
 The annotator produces a scene summary plus a numbered element list with bounding boxes: a vision model gets the image, a text-only model gets the text. Annotation is a side-call through the gateway, so any vision model the gateway serves works - including a fully local one through Ollama, which keeps annotation offline.
 
@@ -1587,7 +1587,7 @@ vision:
         max_age: 24h
 ```
 
-With `vision.annotator.enabled: true`, `GetLatestFrame` defaults to annotated text output and `ImageDecode` adds a text description to the image it returns - no per-model configuration. `ImageDecode` itself is always available; vision-capable models receive the image directly (see [Vision-capable models and ImageDecode](#vision-capable-models-and-imagedecode)). `retention` prunes the source directory after reads.
+With `vision.annotator.enabled: true`, `GetLatestFrame` defaults to annotated text output and `ImageDecode` adds a text description to the image it returns - no per-model configuration. `ImageDecode` itself is always available - it is the path for a text-only model, and for a text description on top of an image a vision model can already see (see [Vision-capable models and ImageDecode](#vision-capable-models-and-imagedecode)). `retention` prunes the source directory after reads.
 
 Not to be confused with the gateway-side `gateway.vision_enabled` flag, which is unrelated.
 
@@ -1618,11 +1618,23 @@ In [Plan Mode](#plan-mode), `Write`, `Edit`, `MultiEdit` and `Delete` execute on
 
 #### Read
 
-Read a file from the local filesystem with an optional line range. Handles text files and PDFs.
+Read a file from the local filesystem with an optional line range. Handles text files, PDFs and images.
 
 - **Parameters**: `file_path` (required, absolute or relative), `limit` (default 2000 lines), `offset` (default 1)
 - **Approval**: not required (read-only)
-- **Notes**: lines longer than 2000 characters are truncated; output is returned in `cat -n` format
+- **Notes**: lines longer than 2000 characters are truncated - output is returned in `cat -n` format
+
+An image file - `png`, `jpg`, `jpeg`, `gif` or `webp`, or a file without an extension whose bytes are an image - is **attached to the model's next message** when the gateway lists image input among the model's modalities. The tool result carries the path and the pixel size:
+
+```text
+Read image 1920x1080 screenshot.png
+```
+
+A text-only model, or a session with no image service, gets an error pointing at [ImageDecode](#vision-capable-models-and-imagedecode) instead, which describes the image in words through the [vision annotator](#frame-sources-and-vision-annotation):
+
+```text
+This is an image and the model cannot see images. Use ImageDecode on the path to get a description of it.
+```
 
 A missing file does not return a bare `NOT_FOUND`. The error appends up to five candidate paths so the next call can correct a typo or a wrong directory instead of retrying the same path: siblings of the nearest existing directory ranked by name similarity, plus - when no sibling carries the missing base name - files with that base name found under the [allowed sandbox directory](#file-sandbox) containing it.
 
@@ -1966,6 +1978,8 @@ tools:
 Vision-capable models (those with the `vision` label in the [model picker](#model-picker-labels)) see pasted or @-referenced images **natively** - the image data is sent directly to the model, which can inspect it without a separate tool call. For these models, the **ImageDecode tool is hidden from the advertised tool list** to avoid steering the model toward a text annotation when it can see the image directly.
 
 The tool **remains executable** if called - a model that invokes it from conversation history or right after a model switch gets a working tool, not an error. Text-only models keep the tool and the "use ImageDecode to inspect it" note unchanged.
+
+The same split applies to an image file on disk: a vision model reads it with [`Read`](#read), which attaches the image to its next message, while a text-only model is sent to `ImageDecode` for a description in words. `ImageDecode` works for every model either way.
 
 ### Audio Tools
 
