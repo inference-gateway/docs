@@ -143,9 +143,24 @@ Override the workflow's default model on a per-issue or per-comment basis by inc
 
 The override is parsed by the action's trigger-detection step and exported as `INFER_AGENT_MODEL` for that run only.
 
+### Run identity line
+
+Both the live cooking comment (above the plan zone, while the agent works) and the result footer pin the same one-line run identity:
+
+```text
+**Model:** `anthropic/claude-opus-4-8` · **Action:** [`v0.58.3`](https://github.com/inference-gateway/infer-action/releases/tag/v0.58.3) · **CLI:** `v0.235.0` · **Gateway:** `v0.51.2` · [View Job](...)
+```
+
+- **Model** - the model the run used, after any [`/model` override](#dynamic-model-selection).
+- **Action** - the pinned action version, linked to its release (or to the commit when pinned by SHA).
+- **CLI** - the `infer` version installed in the runner.
+- **Gateway** - the Inference Gateway version behind the run. It is resolved at run time the way the CLI's own gateway supervisor does: poll the gateway's `/version` endpoint, then fall back to the managed OCI image tag or the cached managed binary's `--version`.
+
+Every segment except **Model** is optional and simply left out when its value is unknown. The gateway version in particular only exists once the gateway is up, so it is omitted for an external gateway that does not serve `/version`, and for a run that finishes before the probe resolves.
+
 ### Result comment
 
-When the run finishes, the action updates its comment with a result footer. Alongside the status, model, exit code, and job link, the footer reports:
+When the run finishes, the action updates its comment with a result footer. Alongside the run identity line, exit code, and duration, the footer reports:
 
 - **Duration** - wall-clock time of the agent run, formatted human-readably (`0s`, `1m 0s`, `1h 1m 1s`) and shown as `—` when unavailable. The measured window is spawn-to-exit of the `infer headless` child, so it excludes CLI install and Node setup time. The raw millisecond value is also exposed as the `run-duration-ms` [output](#outputs).
 - **Tokens** - prompt / completion / total token usage, plus the request count.
@@ -157,7 +172,7 @@ The **Tool calls** line is only rendered when the agent made at least one tool c
 ```text
 ## ✅ Infer Result: Success
 
-**Model:** `anthropic/claude-opus-4-8` · **Exit Code:** `0` · **Duration:** 1m 0s · [View Job](...)
+**Model:** `anthropic/claude-opus-4-8` · **Action:** [`v0.58.3`](...) · **CLI:** `v0.235.0` · **Gateway:** `v0.51.2` · [View Job](...) · **Exit Code:** `0` · **Duration:** 1m 0s
 
 **Tokens:** 18,432 in · 2,106 out · 20,538 total (7 requests)
 
