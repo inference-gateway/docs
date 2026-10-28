@@ -729,7 +729,7 @@ Codes `2` and `3` are both "stopped early, not broken" - a harness can tell out 
 
 - **Subagent mode**: Headless runs always spawn subagents in `headless` mode, never tmux/interactive, regardless of `tools.agent.mode`.
 - **Background tasks**: The run waits for in-flight background tasks (background shells, A2A tasks) before completing, bounded by `a2a.task.agent_mode_max_wait_seconds`.
-- **Session rollover**: Long conversations automatically roll over into a new session id (session compact). A non-UUID `--session-id` is treated as a session-group key that follows these rollovers - useful for channel-based workflows.
+- **Session rollover**: Long conversations automatically roll over into a new session id (session compact, see [Compaction](#compaction)). A non-UUID `--session-id` is treated as a session-group key that follows these rollovers - useful for channel-based workflows.
 
 #### Pause and resume control (IPC)
 
@@ -2938,8 +2938,34 @@ Tool settings live outside `config.yaml`, in [`~/.infer/tools.yaml`](#tool-confi
 
 - Automatic history with search
 - AI-generated titles
-- Token optimization and compaction
+- Token optimization and compaction (see [Compaction](#compaction))
 - Export/import capabilities
+
+### Compaction
+
+Long sessions outgrow the context window. When compaction runs, it keeps the first `compact.keep_first_messages` messages verbatim and replaces the rest of the tail with one checkpoint user message, so the session continues within budget. It triggers on token usage crossing `compact.auto_at` percent of the context window, on a session sitting idle past `compact.rollover_on_idle_minutes`, and on a manual `/compact` in chat.
+
+```yaml
+compact:
+  enabled: true # automatic conversation compaction (default: true) - INFER_COMPACT_ENABLED
+  auto_at: 80 # percent of the context window (1-80) that triggers compaction (default: 80) - INFER_COMPACT_AUTO_AT
+  keep_first_messages: 2 # leading messages always preserved (values at or below zero fall back to 2) - INFER_COMPACT_KEEP_FIRST_MESSAGES
+  strategy: summary # how a compaction seeds the continued session (default: summary) - INFER_COMPACT_STRATEGY
+  rollover_on_idle_minutes: 30 # idle minutes before a rollover starts a fresh session (default: 30) - INFER_COMPACT_ROLLOVER_ON_IDLE_MINUTES
+  summary_max_tokens: 1024 # token budget for the compaction summary (default: 1024) - INFER_COMPACT_SUMMARY_MAX_TOKENS
+```
+
+With the default `summary` strategy, one extra LLM call writes the checkpoint structured into the sections `Objective`, `Important Details`, `Work State`, `Next Move` and `Relevant Files`. An empty summary aborts the compaction and leaves the history untouched. With `compact.strategy: pointer`, no LLM call is made and no summary sections are generated: the continued session is seeded with a single message that opens with the same `--- Context Summary ---` marker and points back at the previous session:
+
+```text
+--- Context Summary ---
+
+The earlier part of this conversation, including tool results, is stored in session `12345678-1234-1234-1234-123456789abc`. Run `infer conversations show 12345678-1234-1234-1234-123456789abc` if you need details from it.
+```
+
+The previous session keeps its full history in the configured conversation storage, so under `pointer` the model reads back only what it needs with `infer conversations show <session-id>` instead of the summarizer deciding up front what matters. Choose `summary` when the continued session should stay self-contained - old sessions may be deleted, or live on non-durable backends such as `memory`. Choose `pointer` when keeping every detail beats spending a summarizer call - well suited to long-lived channel and [headless](#headless-agent-stream-output) sessions on durable storage such as `jsonl` or `sqlite`.
+
+Both strategies re-inject skills whose `SKILL.md` was read in the replaced range after the checkpoint so the agent keeps following them. An unknown `compact.strategy` logs a warning and falls back to `summary`, and a pointer compaction with no session id to point at is skipped, leaving the history untouched.
 
 ### Client Retry and Stream Reconnection
 
