@@ -3845,7 +3845,7 @@ infer chat
 # Inspect a saved conversation's entries (per-entry metadata, including model)
 infer conversations show <session-id>
 
-# Same, as one JSON object per line for piping into jq
+# Same, as one JSON object for piping into jq
 infer conversations show <session-id> --format json | jq .
 ```
 
@@ -3982,7 +3982,9 @@ such a store only ever lists itself.
 - `list`: List saved conversations with metadata (id, title, message/request counts, tokens,
   cost). Scoped to the current project; `--all-projects` lists every project's conversations.
 - `show <session-id>`: Print a single conversation's entries in chronological order (role,
-  timestamp, content, and `tool_call_id` for tool results).
+  timestamp, content, and `tool_call_id` for tool results). By default only the first 10
+  entries are printed so a careless `show` does not flood its reader (a shorter session is
+  never windowed) - see the `show` flags below.
 - `delete <session-id>`: Remove a conversation from the storage backend. Runs
   non-interactively with no confirmation prompt. Unknown or missing session id exits
   non-zero with an error from the storage layer.
@@ -4000,8 +4002,16 @@ such a store only ever lists itself.
 - `--include-hidden`: Include entries persisted as hidden - system reminders, plan-approval
   prompts, drained background-task results, and the synthetic verify message injected by
   `infer headless`. Off by default.
-- `--format text|json`: `text` (default) is human-readable; `json` emits one JSON object per
-  line (NDJSON), matching the `infer headless` stdout shape for piping into `jq` or log scrapers.
+- `--format text|json`: `text` (default) is human-readable - `json` emits one pretty-printed
+  JSON object with `metadata` and `entries` (plus a `truncated` flag when the output was
+  windowed), so a whole conversation parses in one `jq` call.
+- `--grep <substring>`: Only show the entries whose text contains the substring
+  (case-insensitive), so a long session can be cherry-picked entry by entry without dumping
+  the rest.
+- `--no-trunc`: Print every entry instead of the default first-10 window.
+- `--append`, `-a`: Print the entries after the default first-10 window instead of the
+  window itself, so a long session can be read in chunks. `--no-trunc` wins when both are
+  passed.
 
 **Session id resolution:**
 
@@ -4029,7 +4039,13 @@ infer conversations show channel-telegram-12345
 # Include hidden entries such as system reminders
 infer conversations show <session-id> --include-hidden
 
-# One JSON object per line for piping into jq
+# Only the entries whose text mentions a substring
+infer conversations show <session-id> --grep "undefined symbol"
+
+# Show the entries after the default first-10 window
+infer conversations show <session-id> --append
+
+# One JSON object for piping into jq
 infer conversations show <session-id> --format json | jq .
 
 # Delete a conversation by literal UUID
