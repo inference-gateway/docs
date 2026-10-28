@@ -4721,6 +4721,15 @@ Paths are either **anchored** (`/abs`, `~/x`, `.`, `./x` - matched at that locat
 
 The config dirs (`.infer/` and `~/.infer/`) therefore **ask before every read and write**, since their files can hold tokens - including [`auth.yaml`](#provider-api-keys). Built-in carve-outs keep the agent's own working surface open without a prompt: [skills](/cli-skills/#skills-sandbox-carve-out), plans, plugins, [memory](#persistent-memory), the [artifacts directory](#artifacts-directory) and runtime output such as the [media root](#media-directories).
 
+**Read-only library carve-outs.** Dependency sources are readable without configuration, so the agent can inspect the libraries a project builds against:
+
+| Language | Directories                                                                                                                                             |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Go       | `$GOMODCACHE` (or `$GOPATH/pkg/mod`) and `$GOROOT/src`                                                                                                  |
+| Rust     | `$CARGO_HOME/registry/src` and `$CARGO_HOME/git/checkouts` (default `~/.cargo`), plus `$RUSTUP_HOME/toolchains/*/lib/rustlib/src` (default `~/.rustup`) |
+
+Writes under these directories stay **denied** - the carve-out is read-only, so the agent cannot edit a vendored dependency in place.
+
 #### Decision order
 
 1. **`denied` first.** A blocking entry fails whatever its position; otherwise the first matching approval entry asks the user.
