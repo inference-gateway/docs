@@ -1785,6 +1785,8 @@ Background-shell management. These tools are only registered when `tools.bash.ba
 - **KillShell** - `shell_id` (required). Sends SIGTERM, then SIGKILL after 5 seconds if the shell doesn't exit.
 - **ListShells** - no parameters. Lists all running and recently completed background shells with their IDs, state, and elapsed time.
 
+**Approval:** `BashOutput` and `ListShells` are read-only monitoring of shells the session already approved when it started, so they never ask - like [`Wait`](#wait). That keeps follow-up reads working in unattended runs (CI, [headless](#headless-agent-stream-output)) where no approver is reachable. `KillShell` terminates a process and follows the normal [approval rules](#approval-workflow).
+
 #### Wait
 
 Block inside a single tool execution until a condition is met (shells exit, file event, or check command succeeds), then return once with the outcome. Waiting costs zero chat completions - no LLM round-trip per iteration.
