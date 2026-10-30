@@ -3996,6 +3996,10 @@ project's conversations.
 An explicit `storage.jsonl.path` or `storage.sqlite.path` always overrides these defaults, and
 such a store only ever lists itself.
 
+**Searching the picker:**
+
+The `/conversations` picker footer reads `Press / to search` whenever no query is active. Press `/` to open the search box, type to filter the listed conversations by a case-insensitive substring, and press `Esc` to clear the query and leave search. The box takes every printable character - accented letters, CJK, emoji and the space bar all land in the query - and `Backspace` removes one character rather than one byte. Deleting a conversation works from a filtered list too: narrow the list with a search, select the row and confirm the delete dialog - the removed row leaves both the filtered and the full list.
+
 > **No migration.** Stores written by older versions under the project's `.infer/conversations`
 > or `.infer/conversations.db` are orphaned by design - the CLI no longer reads or writes them.
 > Delete them manually when you no longer need them. The generated `.infer/.gitignore` no longer
@@ -4515,6 +4519,10 @@ Selecting a **subagent** row shows:
 - Its **run stats** - tool calls succeeded and failed, input and output tokens. They count up while a headless subagent runs.
 - Its **transcript** - the task, each assistant turn with the tools it called, and every tool result (a long result is cut at 2 KB). It refreshes every second while anything is running. An interactive subagent's pane runs under the subagent's session ID, so its conversation loads the same way.
 - Its **final answer** instead, when the conversation cannot be loaded (`storage.enabled: false`).
+
+#### Searching tasks
+
+Press `/` in the panel to open its search box, type to filter the rows by a case-insensitive substring, and press `Esc` to clear the query and leave search. The box takes every printable character, so accented letters, CJK, emoji and the space bar all land in the query, and `Backspace` removes one character rather than one byte - a multibyte character disappears in a single press.
 
 The [background job list](#background-job-list) under the composer is the live view of what is running. `/tasks` is where finished jobs stay for review.
 
