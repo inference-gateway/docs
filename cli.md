@@ -288,7 +288,7 @@ infer version
 | Command                  | Description                      | Key Features                                                     |
 | ------------------------ | -------------------------------- | ---------------------------------------------------------------- |
 | `infer init`             | Seed the userspace baseline      | Creates `~/.infer/` defaults - writes nothing to the project     |
-| `infer status`           | Check gateway health             | Shows resource usage and connectivity                            |
+| `infer status`           | Check gateway health             | Shows resource usage and connectivity, `--format json\|yaml`     |
 | `infer chat`             | Interactive chat TUI             | Streaming, scrolling, tool expansion, mode switching             |
 | `infer chat --web`       | Web-based terminal               | Browser interface, tabbed sessions, remote access                |
 | `infer headless <task>`  | Autonomous task execution        | Background operation, task planning, validation                  |
@@ -297,6 +297,25 @@ infer version
 | `infer tools <cmd>`      | Run agent tools directly         | Execute a tool or validate a bash command                        |
 | `infer stats`            | Summarize local telemetry        | Token usage, tool outcomes, and cost across sessions             |
 | `infer traces`           | View a session's trace span tree | Offline span-tree viewer, `--list` and JSON output               |
+
+### Gateway Status
+
+`infer status` prints a human-readable health block by default. `--format json` and `--format yaml` print one machine-readable object instead, for scripts and health checks:
+
+```bash
+infer status --format json | jq -r .status
+```
+
+| Field     | Description                                                      |
+| --------- | ---------------------------------------------------------------- |
+| `url`     | The gateway URL that was probed                                  |
+| `status`  | `running` or `unreachable`                                       |
+| `version` | The gateway version                                              |
+| `source`  | Where the gateway runs from (container or binary)                |
+| `models`  | Number of active models                                          |
+| `error`   | Only present when the gateway is unreachable - the probe failure |
+
+**Exit codes:** an unreachable gateway still exits 0 - read `status` to branch on health. An unknown `--format` value exits non-zero.
 
 ### Chat Interface Features
 
@@ -2522,9 +2541,14 @@ infer tools execute grep '{"pattern":"func main","path":"."}'
 
 # Validate whether a bash command is allowed (without running it)
 infer tools validate "git status"
+
+# Gate a command on the allowed-list
+infer tools validate "$cmd" && eval "$cmd"
 ```
 
 `infer tools execute <tool> [json-args]` resolves tool names case-insensitively in the CLI - the agent itself still uses the exact PascalCase names. `infer tools validate <command>` reports whether a bash command would be permitted by the configured allowed-list, without executing it.
+
+`infer tools validate` **exits non-zero** when the command is not allowed or when tools are disabled, and prints the reason on stderr, so it can gate a shell conditional as above. An allowed command exits 0.
 
 > `infer tools execute` and `infer tools validate` moved from `config tools exec`/`config tools validate` to the top-level `infer tools` command.
 
@@ -4531,7 +4555,13 @@ infer agents show calendar-agent
 
 # Update an agent's image tag
 infer agents update browser-agent --tag firefox
+
+# Pass environment variables - comma-separated, or the flag repeated
+infer agents add my-agent http://localhost:8081 --environment API_KEY=secret,LOG_LEVEL=debug
+infer agents add my-agent http://localhost:8081 --environment API_KEY=secret --environment LOG_LEVEL=debug
 ```
+
+`--environment` accepts `KEY=VALUE,KEY=VALUE` on one flag, and the repeated-flag form still works - the two can be mixed. An empty `--environment ""` is rejected.
 
 Bare names resolve any agent published in the [A2A Registry](/registry/) catalog. The five agents with built-in defaults (`browser-agent`, `mock-agent`, `google-calendar-agent`, `documentation-agent`, `n8n-agent`) take precedence and work offline; every other name is looked up in the catalog, with the URL and OCI image derived from its published metadata. A name in neither place needs an explicit URL - see [built-in agents vs other catalog agents](/a2a/#built-in-agents-vs-other-catalog-agents).
 
@@ -4884,6 +4914,7 @@ infer init
 infer config get tools
 
 # Check whether a bash command is allowed (without running it)
+# Exits non-zero with the reason on stderr when it is not
 infer tools validate "git status"
 
 # Enable debug logging
@@ -4929,7 +4960,7 @@ If completions still do not appear, the shell rc is usually not sourcing the com
 | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `infer init`                          | Seed the userspace baseline in `~/.infer/`                                                                                                                                                                                                                                    |
 | `infer env`                           | Write a `.env.example` with every provider API key                                                                                                                                                                                                                            |
-| `infer status`                        | Check gateway health and resource usage                                                                                                                                                                                                                                       |
+| `infer status`                        | Check gateway health and resource usage - `--format json\|yaml` for machine-readable output ([Gateway Status](#gateway-status))                                                                                                                                               |
 | `infer chat`                          | Interactive chat session (TUI)                                                                                                                                                                                                                                                |
 | `infer chat --web`                    | Web-based terminal interface                                                                                                                                                                                                                                                  |
 | `infer headless <task>`               | Autonomous task execution                                                                                                                                                                                                                                                     |

@@ -133,9 +133,13 @@ infer agents add browser-agent --tag lightpanda
 # Pin a built-in agent to a released version
 infer agents add browser-agent --tag chromium-0.8.0
 
-# Add an agent with environment variables
+# Add an agent with environment variables - comma-separated, or the flag repeated
 infer agents add <agent-name> <agent-url> \
-  --environment KEY=value
+  --environment KEY=value,OTHER_KEY=other-value
+
+infer agents add <agent-name> <agent-url> \
+  --environment KEY=value \
+  --environment OTHER_KEY=other-value
 
 # List configured agents
 infer agents list
@@ -146,6 +150,8 @@ infer agents show <agent-name>
 # Remove an agent
 infer agents remove <agent-name>
 ```
+
+`--environment` on `agents add` and `agents update` takes `KEY=VALUE,KEY=VALUE` on a single flag, and the repeated-flag form still works - the two can be mixed. An empty `--environment ""` is rejected.
 
 #### Built-in agents vs other catalog agents
 
