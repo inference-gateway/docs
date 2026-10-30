@@ -160,6 +160,8 @@ tools:
 
 Or via environment variable: `INFER_TOOLS_SCHEDULE_ENABLED=true`.
 
+Tool results in delivered job output are capped the same way as in chat - see [`channels.max_tool_result_len`](#configuration-reference).
+
 Jobs are persisted as YAML in `~/.infer/schedules/<id>.yaml` and hot-reloaded by the daemon - no restart needed when the agent creates a new schedule. The channel and recipient are derived automatically from the originating session, so the LLM never has to guess them.
 
 > Container deployments must set `TZ=Europe/Berlin` (or your zone) so cron expressions are interpreted in local time. The binary embeds the IANA zone database, so this works on any base image.
@@ -169,6 +171,7 @@ Jobs are persisted as YAML in `~/.infer/schedules/<id>.yaml` and hot-reloaded by
 - **Message splitting** - Telegram caps messages at 4096 characters. The adapter splits longer responses automatically into sequential messages
 - **Image input** - Photos sent to the bot (with or without a caption) are downloaded via the Telegram API and forwarded to the agent as base64-encoded attachments
 - **Image retention** - `channels.image_retention` controls how many recent images are kept per session (default: `5`)
+- **Tool output cap** - each tool call line and each tool result block is cut with an ellipsis after `channels.max_tool_result_len` characters (default: `1000`), so a large file read or command output cannot flood the chat
 
 ### Voice Messages
 
@@ -230,16 +233,23 @@ Adapters that want rich approval UI (buttons, modals, etc.) can additionally imp
 
 ## Configuration Reference
 
-All channel-level options live under `channels` in `.infer/config.yaml`:
+Channel-level options live in `channels.yaml` - `.infer/channels.yaml` for a project or `~/.infer/channels.yaml` for your user. The keys sit at the top level of that file (the `channels.` prefix below is the config path, not a YAML nesting level). A `channels:` block in `.infer/config.yaml` is ignored.
 
-| Key                         | Type | Default | Description                                                        |
-| --------------------------- | ---- | ------- | ------------------------------------------------------------------ |
-| `channels.enabled`          | bool | `false` | Master switch - must be `true` for any channel to start            |
-| `channels.max_workers`      | int  | `5`     | Maximum messages processed concurrently across chats               |
-| `channels.image_retention`  | int  | `5`     | Number of recent images kept per session                           |
-| `channels.require_approval` | bool | `true`  | Send tool-approval prompts through the channel for sensitive tools |
-| `channels.telegram.*`       | -    | -       | See [Telegram configuration](#configuration-options)               |
-| `channels.whatsapp.*`       | -    | -       | Reserved for the upcoming WhatsApp adapter                         |
+```yaml
+# ~/.infer/channels.yaml
+enabled: true
+max_tool_result_len: 1000
+```
+
+| Key                            | Type | Default | Description                                                                                                                                        |
+| ------------------------------ | ---- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `channels.enabled`             | bool | `false` | Master switch - must be `true` for any channel to start                                                                                            |
+| `channels.max_workers`         | int  | `5`     | Maximum messages processed concurrently across chats                                                                                               |
+| `channels.image_retention`     | int  | `5`     | Number of recent images kept per session                                                                                                           |
+| `channels.require_approval`    | bool | `true`  | Send tool-approval prompts through the channel for sensitive tools                                                                                 |
+| `channels.max_tool_result_len` | int  | `1000`  | Characters (runes) of a single tool call or tool result a channel forwards before cutting with an ellipsis. `0` or below falls back to the default |
+| `channels.telegram.*`          | -    | -       | See [Telegram configuration](#configuration-options)                                                                                               |
+| `channels.whatsapp.*`          | -    | -       | Reserved for the upcoming WhatsApp adapter                                                                                                         |
 
 ## Environment Variables
 
@@ -251,6 +261,7 @@ Every YAML key has an `INFER_`-prefixed environment variable. Lists are comma-se
 | `INFER_CHANNELS_MAX_WORKERS`              | `channels.max_workers`              |
 | `INFER_CHANNELS_IMAGE_RETENTION`          | `channels.image_retention`          |
 | `INFER_CHANNELS_REQUIRE_APPROVAL`         | `channels.require_approval`         |
+| `INFER_CHANNELS_MAX_TOOL_RESULT_LEN`      | `channels.max_tool_result_len`      |
 | `INFER_CHANNELS_TELEGRAM_ENABLED`         | `channels.telegram.enabled`         |
 | `INFER_CHANNELS_TELEGRAM_BOT_TOKEN`       | `channels.telegram.bot_token`       |
 | `INFER_CHANNELS_TELEGRAM_ALLOWED_USERS`   | `channels.telegram.allowed_users`   |
