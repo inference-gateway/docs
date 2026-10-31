@@ -23,7 +23,7 @@ The ADL CLI is a command-line tool for generating enterprise-ready [A2A (Agent-t
 - **Smart Ignore Files** - Protect custom implementations with `.adl-ignore`
 - **Post-Generation Hooks** - Run custom commands after code generation
 - **Multi-Provider AI** - OpenAI, Anthropic, DeepSeek, Ollama, Ollama Cloud, Google AI, Mistral, Groq, Cohere, Cloudflare, MiniMax, Moonshot, and Nvidia
-- **Artifacts Support** - Filesystem and MinIO object storage for artifact management
+- **Artifacts Support** - Filesystem and S3-compatible object storage for artifact management
 
 ## Installation
 
@@ -1490,7 +1490,7 @@ artifacts:
   enabled: true
 ```
 
-Supports filesystem and MinIO/S3 storage backends.
+Supports filesystem and S3-compatible storage backends - see [ADK artifacts](/adk/#artifacts).
 
 ### SCM
 
