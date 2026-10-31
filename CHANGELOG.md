@@ -2,6 +2,39 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.23](https://github.com/inference-gateway/docs/compare/0.9.22...0.9.23) (2026-10-31)
+
+### 👷 CI
+
+* **release:** label issues and PRs shipped in an rc with rc ([#1044](https://github.com/inference-gateway/docs/issues/1044)) ([b0c47d8](https://github.com/inference-gateway/docs/commit/b0c47d8d689b6135a23756c85d343dad3361262b))
+
+### 📚 Documentation
+
+* **adk:** frame rust/ts artifact storage as s3-compatible ([#1050](https://github.com/inference-gateway/docs/issues/1050)) ([4b582a6](https://github.com/inference-gateway/docs/commit/4b582a64863b4c909db0058eb837a6267a0d0ec7))
+* **adk:** s3 artifact provider with RustFS example ([#1046](https://github.com/inference-gateway/docs/issues/1046)) ([c729c4b](https://github.com/inference-gateway/docs/commit/c729c4b3a454ac9bc0e486fae1b0781b36ea24b6))
+* BashOutput and ListShells need no approval ([#1032](https://github.com/inference-gateway/docs/issues/1032)) ([0b4f3c0](https://github.com/inference-gateway/docs/commit/0b4f3c0b2a401f0d86017ce29719249cf900707b))
+* **cli:** away exit and stop cleanup after a teleport home ([#1053](https://github.com/inference-gateway/docs/issues/1053)) ([36dd83b](https://github.com/inference-gateway/docs/commit/36dd83bb6a1ec55c5ebcfebfb61ae977e9bc5161))
+* **cli:** channels configurable tool result cap ([#1043](https://github.com/inference-gateway/docs/issues/1043)) ([a6d20cf](https://github.com/inference-gateway/docs/commit/a6d20cf084b985990a2f79f3d124519ecae9ddf9))
+* **cli:** document compact.strategy pointer compaction mode ([#1036](https://github.com/inference-gateway/docs/issues/1036)) ([a3a92a3](https://github.com/inference-gateway/docs/commit/a3a92a36176cd540c873d49c4b12be46fa04eae0))
+* **cli:** kubernetes workspace gateway modes and gateway_env ([#1054](https://github.com/inference-gateway/docs/issues/1054)) ([cb89aa1](https://github.com/inference-gateway/docs/commit/cb89aa1000bc2494382e3f2ca682aaec215e3b15))
+* **cli:** panel search accepts multibyte input ([#1041](https://github.com/inference-gateway/docs/issues/1041)) ([a030902](https://github.com/inference-gateway/docs/commit/a0309027fcc3196f604eaba490aa188440839e8a))
+* **cli:** tools validate exit code, status formats, env list ([#1039](https://github.com/inference-gateway/docs/issues/1039)) ([e3ddb20](https://github.com/inference-gateway/docs/commit/e3ddb201ee765458710d0d2ae3c06413b8cdbe02))
+* document the gateway segment in the run identity line ([#1028](https://github.com/inference-gateway/docs/issues/1028)) ([a016726](https://github.com/inference-gateway/docs/commit/a016726cb6ff121f3d0c22bee9827f6b38d086f7))
+* document the plan-mode scratchpad ([#1023](https://github.com/inference-gateway/docs/issues/1023)) ([c44f1c9](https://github.com/inference-gateway/docs/commit/c44f1c952d19576fe44b94cede24c520a352166b))
+* document the Rust read-only library carve-out ([#1034](https://github.com/inference-gateway/docs/issues/1034)) ([efc6f56](https://github.com/inference-gateway/docs/commit/efc6f561c515b6a87eb5deaf7264557062f7f43c))
+* document the wall-clock time budget ([#1022](https://github.com/inference-gateway/docs/issues/1022)) ([dc56278](https://github.com/inference-gateway/docs/commit/dc56278e3f502116ad8eebaf13a1a36c66886d58))
+* **operator:** orchestrator gateway ref and gateway parking ([#1058](https://github.com/inference-gateway/docs/issues/1058)) ([70e1bb2](https://github.com/inference-gateway/docs/commit/70e1bb25b38a697e628787c13ccaf4b681a650d1))
+* **operator:** orchestrator image entrypoint contract ([#1049](https://github.com/inference-gateway/docs/issues/1049)) ([e2048dc](https://github.com/inference-gateway/docs/commit/e2048dcc23d57d200d43bf203dc3bb53939023e0))
+* **operator:** status.url port and spec.server defaults ([#1057](https://github.com/inference-gateway/docs/issues/1057)) ([6970d29](https://github.com/inference-gateway/docs/commit/6970d29991451e832da3ea9272a94a30efe44267))
+* read attaches image files for vision models ([#1025](https://github.com/inference-gateway/docs/issues/1025)) ([2605223](https://github.com/inference-gateway/docs/commit/2605223ef008d34d03f732a5ab7c57fd7798a773))
+* restore the WebWright provider (re-added upstream) ([#1026](https://github.com/inference-gateway/docs/issues/1026)) ([6242edb](https://github.com/inference-gateway/docs/commit/6242edb793aa777e3adfeddf383e3004877309a4))
+
+### 🔧 Miscellaneous
+
+* **deps:** bump claude-code 2.1.289 -> 2.1.296 ([#1017](https://github.com/inference-gateway/docs/issues/1017)) ([2d5d9da](https://github.com/inference-gateway/docs/commit/2d5d9da1ed78091ec601399bbb5772061bd2b612))
+* **deps:** bump claude-code 2.1.296 -> 2.1.308 ([#1030](https://github.com/inference-gateway/docs/issues/1030)) ([3ec88a2](https://github.com/inference-gateway/docs/commit/3ec88a2c0ca1442b5714da097b950f20b2cf27ac))
+* **deps:** bump infer CLI v0.226.0 -> v0.231.1 ([#1018](https://github.com/inference-gateway/docs/issues/1018)) ([d5b1c02](https://github.com/inference-gateway/docs/commit/d5b1c028c38aa6b5195fd60a048f6d522ced50fc))
+
 ## [0.9.22](https://github.com/inference-gateway/docs/compare/0.9.21...0.9.22) (2026-10-19)
 
 ### 📚 Documentation
