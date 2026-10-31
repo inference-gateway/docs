@@ -1240,6 +1240,74 @@ A **thread** is a project directory plus a conversation id, and it runs in exact
 - Several clients may subscribe to one thread; each of them sees the same frames.
 - Idle workers exit after a timeout, and a worker that crashes mid-turn has its open run closed with `RUN_ERROR`.
 
+### Workspaces and teleports
+
+A **workspace** is where a session's agent runs. The daemon you type into is one, and `daemon.yaml` registers the others, so a session can be **teleported** to a beefier machine or into a Kubernetes cluster between turns. A `kind: kubernetes` workspace runs each session as an [operator](/operator/) `Orchestrator` in `namespace`, with the agent inside a pod.
+
+```yaml
+# ~/.infer/daemon.yaml
+workspace: laptop
+workspaces:
+  - name: laptop
+    kind: local
+  - name: k8s-dev
+    kind: kubernetes
+    context: k3d-infer-workspaces
+    namespace: infer-workspaces
+    image: ghcr.io/inference-gateway/cli:latest
+    storage: 5Gi
+    mode: standard # standard (default) or all-in-one
+    gateway_env:
+      - ANTHROPIC_API_KEY # the gateway gets the key, the agent never sees it
+    forward_env:
+      - GITHUB_TOKEN # the agent itself needs this one
+```
+
+`mode` and `gateway_env` apply to `kind: kubernetes` only and are rejected on any other kind.
+
+#### Where the gateway runs (`mode`)
+
+`mode` says where a Kubernetes workspace runs the gateway its agents call, and `gateway_env` names the variables that gateway gets, typically provider keys.
+
+| Mode                   | What it deploys                                                                                                                                                                                                                                                                                                                   |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `standard` _(default)_ | One operator `Gateway` per workspace, beside the workspace's sessions. Each teleport writes the `gateway_env` values into the gateway's Secret and the pod only learns the gateway's URL, so **nothing the agent runs can read a key into its context**. A teleport waits for the gateway to serve before it restores the session |
+| `all-in-one`           | Nothing beside the pod. A teleport seals the `gateway_env` values along with `forward_env` and the pod's workers run the gateway themselves on `127.0.0.1:8080`. One pod less, but the keys sit in the agent's environment                                                                                                        |
+
+In `standard` mode the Gateway and its Secret are owned by **every** session's Orchestrator, so they are garbage-collected with the last session. Without `gateway_env` no gateway is deployed at all and the pod calls whatever `INFER_GATEWAY_URL` names.
+
+Use `gateway_env` for credentials only the model calls need, and `forward_env` for credentials the **agent itself** needs - a `GITHUB_TOKEN` it pushes with, for example. `forward_env` values never land in a Kubernetes object, but the agent can read them, which is exactly why provider keys belong under `gateway_env`.
+
+#### Where the keys come from
+
+A teleport resolves every `gateway_env` and `forward_env` name the way the local gateway does: **the teleporting daemon's environment first, then `~/.infer/auth.yaml`**. Nothing is read from the cluster.
+
+- A name the daemon resolves no value for **keeps** the value an earlier teleport wrote into the Secret, so an unset variable never blanks a working gateway.
+- A name no longer listed in `gateway_env` is dropped from the Secret.
+- A **changed** value rolls the gateway. An unchanged one does not, so a new session shares the running gateway pod without a rollout.
+
+#### Kubernetes prerequisites
+
+The cluster needs the [operator](/operator/) (v0.28.1 or later), agent-sandbox, and the Gateway API CRDs the operator requires. Install agent-sandbox first, because the operator looks for it only when it starts.
+
+The operator deploys a `Gateway` only in a namespace matched by its `WATCH_NAMESPACE_SELECTOR`, `inference-gateway.com/managed=true` by default, so **label the workspace's namespace** for `standard` mode:
+
+```bash
+kubectl label namespace infer-workspaces inference-gateway.com/managed=true
+```
+
+Your kubeconfig user needs, on top of the permissions a teleport already uses (`get`, `list`, `create`, `patch`, `delete` on `orchestrators.core.inference-gateway.com` and `create` on `pods/portforward`):
+
+| Resource                              | Verbs                     |
+| ------------------------------------- | ------------------------- |
+| `gateways.core.inference-gateway.com` | `get`, `create`, `update` |
+| `deployments`                         | `get`                     |
+| `secrets`                             | `update`                  |
+
+#### The session-teleport example
+
+The CLI repo's [`examples/session-teleport`](https://github.com/inference-gateway/cli/tree/main/examples/session-teleport) runs this end to end on k3d. Its `k8s-cloud` workspace teleports a session onto `ollama_cloud/glm-5.3-flash` with `gateway_env: [OLLAMA_CLOUD_API_KEY]`, the key taken from the teleporting daemon's environment or `~/.infer/auth.yaml`, and its namespace carries the `inference-gateway.com/managed=true` label the operator looks for.
+
 ### Clients and the handshake
 
 The client dials in and sends the first frame within 5 seconds:
