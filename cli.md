@@ -1195,6 +1195,41 @@ A standalone `infer chat` or `infer headless` with `backend: extension` reaches 
 
 The daemon needs the binding port to be free: if another process already holds it, the boot **fails** with the port named instead of retrying until it frees. Stop whatever holds it, or change the port.
 
+### Workspaces and teleports
+
+A **workspace** is where a session's agent runs. This daemon is one, named by `workspace` (default the hostname), and `daemon.yaml` registers the others. `infer daemon teleport <conversation-id> --to <workspace>` sends a session to another one between turns, and teleporting it back to this machine ends with the session home again:
+
+```yaml
+# ~/.infer/daemon.yaml
+workspace: laptop
+idle_exit: 0s
+away_exit: 1m
+workspaces:
+  - name: k8s-dev
+    kind: kubernetes
+    idle_ttl: 2h
+    away_ttl: 1m
+    retention: 168h
+```
+
+| Field                    | Default | Environment              | What it does                                                                                                                                                                                                         |
+| ------------------------ | ------- | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `idle_exit`              | `0s`    | `INFER_DAEMON_IDLE_EXIT` | Stops a daemon that had no thread and no client for that long. Zero keeps it running, except for a daemon a client starts on demand, which stops after 30 minutes                                                    |
+| `away_exit`              | `1m`    | `INFER_DAEMON_AWAY_EXIT` | Stops a daemon sooner once every session that teleported to it left again and it had no thread and no client for that long. It only shortens `idle_exit` - it never stops a daemon without one, and `0` turns it off |
+| `workspaces[].idle_ttl`  | -       | -                        | The `idle_exit` a `kind: kubernetes` workspace passes to its pod daemons                                                                                                                                             |
+| `workspaces[].away_ttl`  | `1m`    | -                        | The `away_exit` it passes to its pod daemons. Set it to the same value as `idle_ttl` to keep a pod up for the full `idle_ttl` after its session left                                                                 |
+| `workspaces[].retention` | -       | -                        | How long the operator keeps a suspended Orchestrator, its Sandbox, volumes and Secret before deleting them                                                                                                           |
+
+A session that teleported away counts as done even if it never ran on the pod, so a pod daemon whose sessions all left idles out after `away_ttl` rather than the full `idle_ttl`, as long as no client is attached. It reports its agents done, the operator suspends the Orchestrator, and the `retention` countdown starts. Teleporting the session to that workspace again before the retention runs out resumes the Orchestrator with its volumes, which clears the countdown.
+
+The daemon remembers the workspace a session came home from in `~/.infer/daemon/runtimes/`, so stopping the session also cleans up behind it:
+
+```bash
+infer daemon stop <conversation-id>
+```
+
+It stops the agent and deletes its remote runtime, including one the session already left - useful when the runtime waits on an approval or ended in an error, since a pod in that state keeps its Orchestrator until it is stopped.
+
 ### Threads
 
 A **thread** is a project directory plus a conversation id, and it runs in exactly one session worker:
@@ -2789,30 +2824,30 @@ Two-layer configuration system with precedence from highest to lowest:
 
 `infer init` seeds the userspace baseline in `~/.infer/` (`config.yaml`, `tools.yaml`, `sandbox.yaml`, `mcp.yaml`, `prompts.yaml`, `agents.yaml`, `shortcuts/`, `skills/` and so on) and writes nothing into the project. Project-level overrides are created on demand with `infer config set --project <key> <value>`, or with `--project` on `infer mcp` / `infer agents`. Configuration is split across purpose-specific YAML files rather than one giant file:
 
-| File               | Scope        | Purpose                                                                                                                                                | Where it is documented                                      |
-| ------------------ | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------- |
-| `config.yaml`      | Project/user | Main config - agent, gateway, storage, pricing, and everything `config set` touches. A `tools:` block here is ignored.                                 | [Configuration](#configuration-commands)                    |
-| `prompts.yaml`     | Project/user | System prompts (`prompts.agent.system_prompt`), per-mode adjustments, and tool descriptions (`prompts.tools.<Tool>.description`) - edited, not `set`.  | [Configuration Commands](#configuration-commands)           |
-| `mcp.yaml`         | Project/user | MCP server definitions and connection settings.                                                                                                        | [MCP Integration](#mcp-integration)                         |
-| `keybindings.yaml` | Project/user | Keybindings for the TUI and diff viewer (category `diff_viewer`).                                                                                      | [Diff viewer and git staging](#diff-viewer-and-git-staging) |
-| `hooks.yaml`       | Project/user | User-defined shell commands run at agent-loop hook points (feature-flagged off by default).                                                            | [Command Hooks](/cli-hooks/)                                |
-| `reminders.yaml`   | Project/user | System reminders injected into the conversation on a schedule.                                                                                         | [System Reminders](#system-reminders)                       |
-| `tools.yaml`       | User only    | Tools policy - enablement, approval, per-mode bash allowed-lists, each tool under `tools:`. A project copy is ignored.                                 | [Tool Configuration](#tool-configuration)                   |
-| `sandbox.yaml`     | User only    | File sandbox policy - `filesystem.allowed` and `filesystem.denied`. A project copy is ignored.                                                         | [File sandbox](#file-sandbox)                               |
-| `judge.yaml`       | Project/user | LLM judge that decides approval-requiring tool calls (model, timeout, prompts, `on_error`).                                                            | [Judge Mode](/cli-judge-mode/)                              |
-| `daemon.yaml`      | Project/user | `infer daemon` itself - the AG-UI binding's own switch, port and token (`binding.enabled`, `binding.port`, `binding.token`).                           | [Starting the daemon](#starting-the-daemon)                 |
-| `memory.yaml`      | Project/user | Persistent, cross-session agent memory - fact-files plus the `MEMORY.md` index.                                                                        | [Persistent Memory](#persistent-memory)                     |
-| `shortcuts/*.yaml` | Project      | Custom slash shortcuts - simple commands, subcommands, and AI-powered snippets.                                                                        | [Custom Shortcuts](#custom-shortcuts)                       |
-| `skills/`          | Project/user | Agent Skills folders (`name/SKILL.md`) discovered and injected on demand.                                                                              | [Agent Skills](#agent-skills)                               |
-| `tools/`           | Project/user | Custom tool manifests (`Name.yaml`), one per tool, also read from `.agents/tools/`.                                                                    | [Custom Tools](#custom-tools)                               |
-| `schedules/`       | User         | Persisted cron jobs created by the Schedule tool, run by the daemon.                                                                                   | [Schedule](#schedule)                                       |
-| `artifacts/`       | Project/user | Agent deliverables, grouped per session.                                                                                                               | [Artifacts directory](#artifacts-directory)                 |
-| `logs/`            | User         | CLI and gateway log files (`~/.infer/logs`, overridable via `logging.dir`).                                                                            | [Key Configuration Areas](#key-configuration-areas)         |
-| `bin/`             | User         | Downloaded binaries - the gateway server, plus optional helpers like `ffmpeg`.                                                                         | [Key Configuration Areas](#key-configuration-areas)         |
-| `insights/`        | User         | Saved `infer insights` reports. Written with secrets redacted, and kept by `/reset`.                                                                   | [Insights Shortcut](#insights-shortcut)                     |
-| `avatars/`         | User         | Avatar portrait folders (`avatars/<name>/*.png`) used by `TextToVideo` lip-sync renders. Kept by `/reset`.                                             | [Text-to-Video](/cli-text-to-video/#the-avatar-library)     |
-| `auth.yaml`        | User         | Fallback provider API keys, used when a key is not in the environment or the project `.env`.                                                           | [Provider API keys](#provider-api-keys)                     |
-| `tmp/`             | User         | Scratch space, including the `tmp/media` root for generated speech, music, video, recordings, screenshots and retained attachments. Wiped by `/reset`. | [Media directories](#media-directories)                     |
+| File               | Scope        | Purpose                                                                                                                                                                               | Where it is documented                                      |
+| ------------------ | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| `config.yaml`      | Project/user | Main config - agent, gateway, storage, pricing, and everything `config set` touches. A `tools:` block here is ignored.                                                                | [Configuration](#configuration-commands)                    |
+| `prompts.yaml`     | Project/user | System prompts (`prompts.agent.system_prompt`), per-mode adjustments, and tool descriptions (`prompts.tools.<Tool>.description`) - edited, not `set`.                                 | [Configuration Commands](#configuration-commands)           |
+| `mcp.yaml`         | Project/user | MCP server definitions and connection settings.                                                                                                                                       | [MCP Integration](#mcp-integration)                         |
+| `keybindings.yaml` | Project/user | Keybindings for the TUI and diff viewer (category `diff_viewer`).                                                                                                                     | [Diff viewer and git staging](#diff-viewer-and-git-staging) |
+| `hooks.yaml`       | Project/user | User-defined shell commands run at agent-loop hook points (feature-flagged off by default).                                                                                           | [Command Hooks](/cli-hooks/)                                |
+| `reminders.yaml`   | Project/user | System reminders injected into the conversation on a schedule.                                                                                                                        | [System Reminders](#system-reminders)                       |
+| `tools.yaml`       | User only    | Tools policy - enablement, approval, per-mode bash allowed-lists, each tool under `tools:`. A project copy is ignored.                                                                | [Tool Configuration](#tool-configuration)                   |
+| `sandbox.yaml`     | User only    | File sandbox policy - `filesystem.allowed` and `filesystem.denied`. A project copy is ignored.                                                                                        | [File sandbox](#file-sandbox)                               |
+| `judge.yaml`       | Project/user | LLM judge that decides approval-requiring tool calls (model, timeout, prompts, `on_error`).                                                                                           | [Judge Mode](/cli-judge-mode/)                              |
+| `daemon.yaml`      | Project/user | `infer daemon` itself - the AG-UI binding's own switch, port and token (`binding.enabled`, `binding.port`, `binding.token`), plus the workspace registry and the idle and away exits. | [Starting the daemon](#starting-the-daemon)                 |
+| `memory.yaml`      | Project/user | Persistent, cross-session agent memory - fact-files plus the `MEMORY.md` index.                                                                                                       | [Persistent Memory](#persistent-memory)                     |
+| `shortcuts/*.yaml` | Project      | Custom slash shortcuts - simple commands, subcommands, and AI-powered snippets.                                                                                                       | [Custom Shortcuts](#custom-shortcuts)                       |
+| `skills/`          | Project/user | Agent Skills folders (`name/SKILL.md`) discovered and injected on demand.                                                                                                             | [Agent Skills](#agent-skills)                               |
+| `tools/`           | Project/user | Custom tool manifests (`Name.yaml`), one per tool, also read from `.agents/tools/`.                                                                                                   | [Custom Tools](#custom-tools)                               |
+| `schedules/`       | User         | Persisted cron jobs created by the Schedule tool, run by the daemon.                                                                                                                  | [Schedule](#schedule)                                       |
+| `artifacts/`       | Project/user | Agent deliverables, grouped per session.                                                                                                                                              | [Artifacts directory](#artifacts-directory)                 |
+| `logs/`            | User         | CLI and gateway log files (`~/.infer/logs`, overridable via `logging.dir`).                                                                                                           | [Key Configuration Areas](#key-configuration-areas)         |
+| `bin/`             | User         | Downloaded binaries - the gateway server, plus optional helpers like `ffmpeg`.                                                                                                        | [Key Configuration Areas](#key-configuration-areas)         |
+| `insights/`        | User         | Saved `infer insights` reports. Written with secrets redacted, and kept by `/reset`.                                                                                                  | [Insights Shortcut](#insights-shortcut)                     |
+| `avatars/`         | User         | Avatar portrait folders (`avatars/<name>/*.png`) used by `TextToVideo` lip-sync renders. Kept by `/reset`.                                                                            | [Text-to-Video](/cli-text-to-video/#the-avatar-library)     |
+| `auth.yaml`        | User         | Fallback provider API keys, used when a key is not in the environment or the project `.env`.                                                                                          | [Provider API keys](#provider-api-keys)                     |
+| `tmp/`             | User         | Scratch space, including the `tmp/media` root for generated speech, music, video, recordings, screenshots and retained attachments. Wiped by `/reset`.                                | [Media directories](#media-directories)                     |
 
 > **No migration.** `logs/` and `bin/` are userspace-only: they live under `~/.infer/` and are
 > shared by every project. Older versions wrote them into the project's `.infer/` directory; those
@@ -4975,6 +5010,7 @@ If completions still do not appear, the shell rc is usually not sourcing the com
 | `infer skills <subcommand>`           | Manage Agent Skills (`list`, `search`, `install`, `uninstall`)                                                                                                                                                                                                                |
 | `infer plugins <subcommand>`          | Manage Claude Code-format plugins (`install`, `list`, `enable`, `disable`, `update`, `remove`)                                                                                                                                                                                |
 | `infer daemon`                        | Start the daemon - scheduler, channel listener, and heartbeat ([Channels](/cli-channels/))                                                                                                                                                                                    |
+| `infer daemon stop <id>`              | Stop a session's agent and delete the remote runtime it ran on, including one it already came home from ([Workspaces and teleports](#workspaces-and-teleports))                                                                                                               |
 | `infer config <subcommand>`           | Configuration management (`init`, `get`, `set`)                                                                                                                                                                                                                               |
 | `infer tools <subcommand>`            | Run agent tools directly (`execute`, `validate`)                                                                                                                                                                                                                              |
 | `infer agents <subcommand>`           | A2A agent management                                                                                                                                                                                                                                                          |
