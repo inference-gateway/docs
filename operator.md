@@ -193,6 +193,8 @@ spec:
 | `server.port`            | `SERVER_PORT`            | `8080`    | Also used for the `http` container port, the liveness and readiness probes, and the Service. |
 | `telemetry.metrics.port` | `TELEMETRY_METRICS_PORT` | `9464`    | Emitted only when both `telemetry.enabled` and `telemetry.metrics.enabled` are `true`.       |
 
+`spec.server` itself defaults to `{}`, so omitting the block still yields `host: 0.0.0.0` and `port: 8080` - the API server writes them into the stored object, and `kubectl get gateways` prints `8080` in the `PORT` column without any explicit `spec.server.port`.
+
 Operators older than the release that wired these variables up only shaped the Deployment and Service, so a non-default port left the gateway listening on `8080`/`9464` while the probes targeted the new port and the pod never became Ready.
 
 #### TLS (`spec.server.tls`)
@@ -1013,7 +1015,7 @@ The `Gateway` status surfaces:
 
 - `phase` - `Pending`, `Running`, `Failed`, or `Unknown`.
 - `readyReplicas` / `availableReplicas`.
-- `url` - the resolved access URL (the routing hostname when `spec.gatewayAPI` is enabled, otherwise the cluster service URL).
+- `url` - the resolved access URL (the routing hostname when `spec.gatewayAPI` is enabled, otherwise the cluster service URL <code v-pre>http://&lt;name&gt;.&lt;namespace&gt;.svc.cluster.local:8080</code>). The port is named only when it is not the scheme's implicit default, so a Service on `8080` shows `:8080` while a routing hostname on 80 for `http` or 443 for `https` stays portless.
 - `providerSummary` - comma-separated list of enabled providers.
 - `mcpServers[]` / `mcpServerCount` - the sorted `name=url` entries (static plus discovered) the pod is configured with, mirroring `MCP_SERVERS`, and their count (`0` when MCP is disabled). See [MCP Servers (`spec.mcp`)](#mcp-servers-spec-mcp).
 - `a2aAgents[]` / `a2aAgentCount` - the sorted `name=url` entries (static plus discovered) the pod is configured with, mirroring `A2A_AGENTS`, and their count (`0` when A2A is disabled). See [A2A Agents (`spec.a2a`)](#a2a-agents-spec-a2a).

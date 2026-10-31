@@ -1195,7 +1195,7 @@ A standalone `infer chat` or `infer headless` with `backend: extension` reaches 
 
 The daemon needs the binding port to be free: if another process already holds it, the boot **fails** with the port named instead of retrying until it frees. Stop whatever holds it, or change the port.
 
-### Workspaces and teleports
+### Workspace lifecycle and cleanup
 
 A **workspace** is where a session's agent runs. This daemon is one, named by `workspace` (default the hostname), and `daemon.yaml` registers the others. `infer daemon teleport <conversation-id> --to <workspace>` sends a session to another one between turns, and teleporting it back to this machine ends with the session home again:
 
@@ -5078,7 +5078,7 @@ If completions still do not appear, the shell rc is usually not sourcing the com
 | `infer skills <subcommand>`           | Manage Agent Skills (`list`, `search`, `install`, `uninstall`)                                                                                                                                                                                                                |
 | `infer plugins <subcommand>`          | Manage Claude Code-format plugins (`install`, `list`, `enable`, `disable`, `update`, `remove`)                                                                                                                                                                                |
 | `infer daemon`                        | Start the daemon - scheduler, channel listener, and heartbeat ([Channels](/cli-channels/))                                                                                                                                                                                    |
-| `infer daemon stop <id>`              | Stop a session's agent and delete the remote runtime it ran on, including one it already came home from ([Workspaces and teleports](#workspaces-and-teleports))                                                                                                               |
+| `infer daemon stop <id>`              | Stop a session's agent and delete the remote runtime it ran on, including one it already came home from ([Workspace lifecycle and cleanup](#workspace-lifecycle-and-cleanup))                                                                                                 |
 | `infer config <subcommand>`           | Configuration management (`init`, `get`, `set`)                                                                                                                                                                                                                               |
 | `infer tools <subcommand>`            | Run agent tools directly (`execute`, `validate`)                                                                                                                                                                                                                              |
 | `infer agents <subcommand>`           | A2A agent management                                                                                                                                                                                                                                                          |
