@@ -3068,7 +3068,7 @@ All three backends implement the same `ArtifactStorageProvider` interface (`stor
 | --------------------------- | ----------------------------------------------------------------------------------------- |
 | `InMemoryArtifactStorage`   | Tests and ephemeral demos. Bytes live in process memory and are not externally fetchable. |
 | `FilesystemArtifactStorage` | Single-node deployments. Writes `<root>/<artifactId>/<filename>` plus a metadata sidecar. |
-| `MinioArtifactStorage`      | Production / multi-node. Backed by the AWS S3 SDK; works against MinIO or native AWS S3.  |
+| `MinioArtifactStorage`      | Production / multi-node. Backed by the AWS S3 SDK; works against any S3-compatible store. |
 
 **`FilesystemArtifactStorage(options)`** writes each artifact to `<root>/<artifactId>/<filename>` (mode `0600`) alongside a `<filename>.adk-meta.json` sidecar holding the content type and upload timestamp:
 
@@ -3084,10 +3084,10 @@ All three backends implement the same `ArtifactStorageProvider` interface (`stor
 | Option                 | Required | Default                       | Description                                                                                                                              |
 | ---------------------- | -------- | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | `bucket`               | Yes      | -                             | Target bucket. Must already exist (no auto-create).                                                                                      |
-| `endpoint`             | No       | AWS default                   | e.g. `http://localhost:9000` for MinIO. Omit to hit native AWS S3.                                                                       |
+| `endpoint`             | No       | AWS default                   | e.g. `http://localhost:9000` for a self-hosted store. Omit to hit native AWS S3.                                                         |
 | `region`               | No       | `us-east-1`                   | S3 region.                                                                                                                               |
 | `credentials`          | No       | SDK default chain             | `{ accessKeyId, secretAccessKey, sessionToken? }`. Omit to use the SDK's default credential chain.                                       |
-| `forcePathStyle`       | No       | `true` when `endpoint` is set | Path-style addressing (required for MinIO).                                                                                              |
+| `forcePathStyle`       | No       | `true` when `endpoint` is set | Path-style addressing (required by most self-hosted S3 servers).                                                                         |
 | `prefix`               | No       | none                          | Key prefix for stored objects.                                                                                                           |
 | `mode`                 | No       | `direct`                      | `direct` returns a presigned GET URL from `store()`; `proxy` returns a `baseUrl` URL streamed back through the server's artifacts route. |
 | `baseUrl`              | No       | `minio://<bucket>`            | URL prefix used in `proxy` mode.                                                                                                         |
@@ -3150,9 +3150,9 @@ await server.listen(PORT, HOST);
 
 Full sources: [`examples/artifacts-filesystem`](https://github.com/inference-gateway/typescript-adk/tree/main/examples/artifacts-filesystem) and [`examples/artifacts-with-default-handlers`](https://github.com/inference-gateway/typescript-adk/tree/main/examples/artifacts-with-default-handlers).
 
-### MinIO / S3 storage
+### S3-compatible storage
 
-Swap the backend for `MinioArtifactStorage`; the service and route wiring are identical:
+Swap the backend for `MinioArtifactStorage` - it is built on `@aws-sdk/client-s3`, so it works against any S3-compatible store ([RustFS](https://github.com/rustfs/rustfs), MinIO, native AWS S3) and the class name is historical. The service and route wiring are identical:
 
 ```ts
 import {
@@ -3179,6 +3179,10 @@ const server = createA2AServer({ card, artifactStorage: storage });
 
 The [`examples/artifacts-minio`](https://github.com/inference-gateway/typescript-adk/tree/main/examples/artifacts-minio) directory ships a `docker-compose.yml` that boots MinIO (ports `9000`/`9001`, `minioadmin`/`minioadmin`) and pre-creates the `artifacts` bucket.
 
+::: warning The example compose stack still runs `minio/minio`
+The `minio/minio` server image is archived upstream. For a new deployment point `endpoint` at a maintained S3-compatible server instead - the Go ADK's [`artifacts-s3` example](/adk/#s3-compatible-storage-with-rustfs) runs RustFS on the same port `9000` with the same `forcePathStyle: true` wiring, so only the endpoint and credentials change. `MinioArtifactStorage` does not auto-create its bucket, so create it out of band (the RustFS console, or any S3 client) exactly as the MinIO stack's init step does.
+:::
+
 ### Writing artifacts from a tool
 
 For agentic loops, the [`DefaultBackgroundTaskHandler`](#background-task-handler-defaultbackgroundtaskhandler) can expose a reserved `create_artifact` tool so the model itself emits artifacts. Opt in on the toolbox:
@@ -3199,7 +3203,7 @@ These are read by the example servers (not the library classes), and are the rec
 | --------------------------------------- | -------------------------------- | ----------------------------------------------------------------- |
 | `ARTIFACTS_ROOT`                        | OS temp dir                      | Filesystem backend root directory.                                |
 | `ARTIFACTS_BASE_URL`                    | `http://<host>:<port>/artifacts` | URL prefix emitted in `fileWithUri`.                              |
-| `MINIO_ENDPOINT`                        | `http://127.0.0.1:9000`          | MinIO endpoint (omit for AWS S3).                                 |
+| `MINIO_ENDPOINT`                        | `http://127.0.0.1:9000`          | S3-compatible endpoint (omit for native AWS S3).                  |
 | `MINIO_REGION`                          | `us-east-1`                      | S3 region.                                                        |
 | `MINIO_ACCESS_KEY` / `MINIO_SECRET_KEY` | `minioadmin` / `minioadmin`      | S3 credentials.                                                   |
 | `MINIO_BUCKET`                          | `artifacts`                      | Target bucket (must pre-exist).                                   |

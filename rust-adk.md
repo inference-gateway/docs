@@ -22,11 +22,11 @@ inference-gateway-adk = "0.4"
 
 Three optional Cargo features extend the defaults:
 
-| Feature     | Pulls in                                                                                       | Enables                                                                            |
-| ----------- | ---------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| `redis`     | a Redis client                                                                                 | `RedisStorage`, selected when `A2A_QUEUE_PROVIDER=redis`.                          |
-| `minio`     | the [`minio`](https://crates.io/crates/minio) crate                                            | `MinioArtifactStorage`, selected when `ARTIFACTS_STORAGE_PROVIDER=minio`.          |
-| `telemetry` | the OpenTelemetry OTLP crates (`opentelemetry`, `opentelemetry-otlp`, `tracing-opentelemetry`) | OTLP span export from `telemetry::init` when enabled. See [Telemetry](#telemetry). |
+| Feature     | Pulls in                                                                                       | Enables                                                                                               |
+| ----------- | ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `redis`     | a Redis client                                                                                 | `RedisStorage`, selected when `A2A_QUEUE_PROVIDER=redis`.                                             |
+| `minio`     | the [`minio`](https://crates.io/crates/minio) crate                                            | `MinioArtifactStorage` for any S3-compatible store, selected when `ARTIFACTS_STORAGE_PROVIDER=minio`. |
+| `telemetry` | the OpenTelemetry OTLP crates (`opentelemetry`, `opentelemetry-otlp`, `tracing-opentelemetry`) | OTLP span export from `telemetry::init` when enabled. See [Telemetry](#telemetry).                    |
 
 ```toml
 inference-gateway-adk = { version = "0.4", features = ["redis", "minio"] }
@@ -981,7 +981,7 @@ flowchart LR
     artsrv -->|"retrieve"| store
 ```
 
-The streaming handler writes the artifact through the service into storage, attaches an `Artifact` (carrying a `FilePart` with `fileWithUri` set) to the stored task, and emits a `TaskArtifactUpdateEvent` over the SSE stream. The client treats the URI as opaque and downloads the bytes directly - either from the ADK's artifacts server or, with the MinIO backend, straight from the object store.
+The streaming handler writes the artifact through the service into storage, attaches an `Artifact` (carrying a `FilePart` with `fileWithUri` set) to the stored task, and emits a `TaskArtifactUpdateEvent` over the SSE stream. The client treats the URI as opaque and downloads the bytes directly - either from the ADK's artifacts server or, with the S3-compatible backend, straight from the object store.
 
 All artifact types live behind the public exports from the crate root (`inference_gateway_adk`): `ArtifactStorage`, `FilesystemArtifactStorage`, `MinioArtifactStorage`, `ArtifactService`, `DefaultArtifactService`, `ArtifactsServer`, plus the config types `ArtifactsConfig`, `ArtifactsServerConfig`, `ArtifactsStorageConfig`, `ArtifactRetentionConfig`, and `ArtifactsStorageProvider`.
 
@@ -993,9 +993,9 @@ All artifact types live behind the public exports from the crate root (`inferenc
 
 `FilesystemArtifactStorage` is the zero-config default. It lays files out under `<base_path>/<context_id>/<artifact_id>/<filename>` and sanitizes every path segment to prevent traversal. Deleting an artifact also removes the now-empty artifact and context directories, stopping at the configured root. The artifacts HTTP server streams blobs back out of this directory with content-type inference, a `Content-Disposition` header, and HTTP byte-range support.
 
-#### MinIO (behind the `minio` Cargo feature)
+#### S3-compatible object storage (behind the `minio` Cargo feature)
 
-`MinioArtifactStorage` implements the same `ArtifactStorage` trait against an S3-compatible MinIO server. It is gated behind the `minio` Cargo feature, which pulls in the [`minio`](https://crates.io/crates/minio) crate:
+`MinioArtifactStorage` implements the same `ArtifactStorage` trait against any S3-compatible object store - [RustFS](https://github.com/rustfs/rustfs), MinIO, AWS S3. It speaks the plain S3 API with path-style addressing, so the provider name and the `minio` feature flag are historical: nothing in the backend is MinIO-specific. It is gated behind the `minio` Cargo feature, which pulls in the [`minio`](https://crates.io/crates/minio) crate:
 
 ```toml
 [dependencies]
@@ -1004,7 +1004,11 @@ inference-gateway-adk = { version = "0.4", features = ["minio"] }
 
 Selecting `ARTIFACTS_STORAGE_PROVIDER=minio` **without** compiling the `minio` feature is not an error - the builder logs a `warn!` and falls back to the filesystem store, so the `ARTIFACTS_STORAGE_*` env surface stays valid either way.
 
-On startup `MinioArtifactStorage::from_config` checks for the target bucket and creates it if missing. With `ARTIFACTS_STORAGE_BASE_URL` pointed at the MinIO endpoint, `url(...)` emits a path-style `http://<endpoint>/<bucket>/<context_id>/<artifact_id>/<filename>` so clients download **directly from MinIO**, bypassing the ADK's artifacts HTTP server entirely - the way you would offload bulk transfer in production. See [Production notes](#production-notes) for the private-bucket trade-off.
+On startup `MinioArtifactStorage::from_config` checks for the target bucket and creates it if missing. With `ARTIFACTS_STORAGE_BASE_URL` pointed at the object store's endpoint, `url(...)` emits a path-style `http://<endpoint>/<bucket>/<context_id>/<artifact_id>/<filename>` so clients download **directly from the object store**, bypassing the ADK's artifacts HTTP server entirely - the way you would offload bulk transfer in production. See [Production notes](#production-notes) for the private-bucket trade-off.
+
+::: warning The example compose stack still runs `minio/minio`
+The `minio/minio` server image is archived upstream. For a new deployment pick a maintained S3-compatible server - the Go ADK's [`artifacts-s3` example](/adk/#s3-compatible-storage-with-rustfs) uses RustFS, which needs no bucket-init container because the backend creates the bucket itself. Only the compose service and the four `ARTIFACTS_STORAGE_*` connection vars change; the ADK code and the `ARTIFACTS_STORAGE_PROVIDER=minio` value stay as they are.
+:::
 
 ### The artifact service
 
@@ -1155,13 +1159,13 @@ The artifacts subsystem is configured entirely through the `ARTIFACTS_*` environ
 | `ARTIFACTS_SERVER_WRITE_TIMEOUT`       | `30s`                   | Parsed but not yet applied - `ArtifactsServer` sets no write timeout.                                                                                  |
 | `ARTIFACTS_STORAGE_PROVIDER`           | `filesystem`            | `filesystem` or `minio`. The `minio` provider requires the `minio` Cargo feature; without it, requests fall back to filesystem storage with a `warn!`. |
 | `ARTIFACTS_STORAGE_BASE_PATH`          | `./artifacts`           | On-disk root for the `filesystem` provider.                                                                                                            |
-| `ARTIFACTS_STORAGE_BASE_URL`           | `http://localhost:8081` | Public URL prefix baked into file artifact URIs. Point it at wherever the artifacts server (or MinIO endpoint) is externally reachable.                |
-| `ARTIFACTS_STORAGE_ENDPOINT`           | unset                   | MinIO endpoint URL. A `https://` scheme implies SSL.                                                                                                   |
-| `ARTIFACTS_STORAGE_ACCESS_KEY`         | unset                   | MinIO access key.                                                                                                                                      |
-| `ARTIFACTS_STORAGE_SECRET_KEY`         | unset                   | MinIO secret key.                                                                                                                                      |
-| `ARTIFACTS_STORAGE_BUCKET_NAME`        | unset                   | MinIO bucket name. Created on startup if missing.                                                                                                      |
-| `ARTIFACTS_STORAGE_REGION`             | unset                   | MinIO region.                                                                                                                                          |
-| `ARTIFACTS_STORAGE_USE_SSL`            | `false`                 | Whether to use TLS when talking to the MinIO endpoint.                                                                                                 |
+| `ARTIFACTS_STORAGE_BASE_URL`           | `http://localhost:8081` | Public URL prefix baked into file artifact URIs. Point it at wherever the artifacts server (or the object store's endpoint) is externally reachable.   |
+| `ARTIFACTS_STORAGE_ENDPOINT`           | unset                   | S3 endpoint URL. A `https://` scheme implies SSL.                                                                                                      |
+| `ARTIFACTS_STORAGE_ACCESS_KEY`         | unset                   | S3 access key.                                                                                                                                         |
+| `ARTIFACTS_STORAGE_SECRET_KEY`         | unset                   | S3 secret key.                                                                                                                                         |
+| `ARTIFACTS_STORAGE_BUCKET_NAME`        | unset                   | Target bucket. Created on startup if missing.                                                                                                          |
+| `ARTIFACTS_STORAGE_REGION`             | unset                   | S3 region.                                                                                                                                             |
+| `ARTIFACTS_STORAGE_USE_SSL`            | `false`                 | Whether to use TLS when talking to the S3 endpoint.                                                                                                    |
 | `ARTIFACTS_RETENTION_MAX_ARTIFACTS`    | `5`                     | Cap on artifacts kept **per `contextId`** (matching the Go ADK); the oldest beyond the cap are pruned. `0` means unlimited.                            |
 | `ARTIFACTS_RETENTION_MAX_AGE`          | `168h`                  | Maximum age before an artifact is pruned.                                                                                                              |
 | `ARTIFACTS_RETENTION_CLEANUP_INTERVAL` | `24h`                   | Frequency of the retention loop.                                                                                                                       |
@@ -1172,7 +1176,7 @@ Duration values (`*_TIMEOUT`, `*_MAX_AGE`, `*_CLEANUP_INTERVAL`) accept Go-style
 
 ### Upgrading to contextId-scoped artifacts
 
-Artifact paths used to be `/artifacts/{artifactId}/{filename}` (filesystem and MinIO keys `<artifactId>/<filename>`), and `ARTIFACTS_RETENTION_MAX_ARTIFACTS` capped the store as a whole. Both are now scoped by `contextId`. This is a breaking change with no dual-read fallback: artifacts written under the old layout are not readable after upgrading.
+Artifact paths used to be `/artifacts/{artifactId}/{filename}` (filesystem and object-store keys `<artifactId>/<filename>`), and `ARTIFACTS_RETENTION_MAX_ARTIFACTS` capped the store as a whole. Both are now scoped by `contextId`. This is a breaking change with no dual-read fallback: artifacts written under the old layout are not readable after upgrading.
 
 - **Drain or wipe the artifact store** before or during the upgrade if artifacts are enabled - old blobs are unreachable and the retention loop skips keys that do not match the three-segment shape.
 - **A custom `ArtifactStorage` or `ArtifactService`** needs its `store` / `retrieve` / `exists` / `delete` / `url` and `create_file_artifact` signatures updated to take the `contextId`. Streaming handlers using `emit_file_artifact` already pass one, so they need no change.
@@ -1214,9 +1218,9 @@ docker compose up --build
 
 No `.env` and no provider keys are required. The filesystem provider lays files out under `<base_path>/<context_id>/<artifact_id>/<filename>`; the compose stack bind-mounts the container store to `./server/artifacts-data/` so produced files are inspectable after the run. The full artifact URI is printed by the client log line beginning `received file artifact`.
 
-### Example: MinIO backend
+### Example: S3-compatible backend
 
-[`examples/artifacts-minio`](https://github.com/inference-gateway/rust-adk/tree/main/examples/artifacts-minio) demonstrates the same flow against a MinIO container, with `FilePart.fileWithUri` pointing **directly at MinIO**. The compose stack adds a `minio/minio` service plus a one-shot `minio/mc` init container that creates the `artifacts` bucket with an anonymous-download policy, and builds the server with `CARGO_FEATURES=minio`.
+[`examples/artifacts-minio`](https://github.com/inference-gateway/rust-adk/tree/main/examples/artifacts-minio) demonstrates the same flow against an object store, with `FilePart.fileWithUri` pointing **directly at the bucket**. The compose stack adds a `minio/minio` service plus a one-shot `minio/mc` init container that creates the `artifacts` bucket with an anonymous-download policy, and builds the server with `CARGO_FEATURES=minio`.
 
 ```yaml
 # examples/artifacts-minio/docker-compose.yaml (excerpt)
@@ -1260,7 +1264,25 @@ services:
       ARTIFACTS_STORAGE_BASE_URL: http://minio:9000
 ```
 
-The MinIO server's handler picks `ArtifactsStorageProvider::Minio` and runs the same `emit_file_artifact` code as the filesystem example - only the storage backend and `ARTIFACTS_STORAGE_*` env differ:
+Since `minio/minio` is archived upstream, swap the two MinIO services for a maintained S3-compatible server before reusing this stack. RustFS is a drop-in - it serves the S3 API on `9000` and drops the `createbucket` container entirely, because `MinioArtifactStorage::from_config` creates the bucket itself:
+
+```yaml
+services:
+  rustfs:
+    image: rustfs/rustfs:1.0.4
+    ports:
+      - '9000:9000' # S3 API
+      - '9001:9001' # RustFS console
+    environment:
+      RUSTFS_VOLUMES: /data
+      RUSTFS_ADDRESS: 0.0.0.0:9000
+      RUSTFS_ACCESS_KEY: rustfsadmin
+      RUSTFS_SECRET_KEY: rustfsadmin
+```
+
+Then point `ARTIFACTS_STORAGE_ENDPOINT` and `ARTIFACTS_STORAGE_BASE_URL` at `http://rustfs:9000` and set the access/secret keys to match. RustFS runs as UID/GID `10001`, so a named volume mounted at `/data` has to be writable by that user. Because nothing creates an anonymous-download policy, keep `ARTIFACTS_STORAGE_BASE_URL` on the ADK's artifacts server and let it proxy reads, or attach a bucket policy yourself. See the Go ADK's [RustFS example](/adk/#s3-compatible-storage-with-rustfs) for the full stack.
+
+The object-store server's handler picks `ArtifactsStorageProvider::Minio` and runs the same `emit_file_artifact` code as the filesystem example - only the storage backend and `ARTIFACTS_STORAGE_*` env differ:
 
 ```rust
 use inference_gateway_adk::{ArtifactsConfig, ArtifactsStorageProvider, Config};
@@ -1280,11 +1302,11 @@ cd examples/artifacts-minio
 docker compose up --build
 ```
 
-The MinIO-specific env vars default to a local-friendly setup:
+The object-store env vars default to a local-friendly setup:
 
 | Variable                        | Example default         | Description                                          |
 | ------------------------------- | ----------------------- | ---------------------------------------------------- |
-| `ARTIFACTS_STORAGE_ENDPOINT`    | `http://localhost:9000` | MinIO endpoint URL. `https://` implies SSL.          |
+| `ARTIFACTS_STORAGE_ENDPOINT`    | `http://localhost:9000` | S3 endpoint URL. `https://` implies SSL.             |
 | `ARTIFACTS_STORAGE_ACCESS_KEY`  | `minioadmin`            | Static access key.                                   |
 | `ARTIFACTS_STORAGE_SECRET_KEY`  | `minioadmin`            | Static secret key.                                   |
 | `ARTIFACTS_STORAGE_BUCKET_NAME` | `artifacts`             | Target bucket. Created on startup if missing.        |
@@ -1294,9 +1316,9 @@ The retention and artifacts-server bind variables from the [artifacts configurat
 
 ### Production notes
 
-- **Anonymous-read buckets are a deployment choice, not a default.** If your MinIO bucket is private, point `ARTIFACTS_STORAGE_BASE_URL` at the ADK's artifacts HTTP server instead of the object store; the server then proxies the fetch through `ArtifactStorage::retrieve()`. The trade-off is bulk traffic flowing through your agent process rather than straight from MinIO.
+- **Anonymous-read buckets are a deployment choice, not a default.** If your bucket is private, point `ARTIFACTS_STORAGE_BASE_URL` at the ADK's artifacts HTTP server instead of the object store; the server then proxies the fetch through `ArtifactStorage::retrieve()`. The trade-off is bulk traffic flowing through your agent process rather than straight from the object store.
 - **Pre-signed URLs are not yet wired in.** A future enhancement could have `MinioArtifactStorage::url(...)` mint a time-limited pre-signed GET so a private bucket needs no proxying.
-- **Retention** runs `cleanup_expired` / `cleanup_oldest` over a listing of stored objects - fine for thousands of artifacts. Past that, prefer MinIO bucket lifecycle policies for the bulk of expiry.
+- **Retention** runs `cleanup_expired` / `cleanup_oldest` over a listing of stored objects - fine for thousands of artifacts. Past that, prefer bucket lifecycle policies for the bulk of expiry.
 
 ## Telemetry
 
@@ -1405,7 +1427,7 @@ The [`examples/`](https://github.com/inference-gateway/rust-adk/tree/main/exampl
 | [auth](https://github.com/inference-gateway/rust-adk/tree/main/examples/auth)                                 | Bearer-token auth on `POST /a2a` with public `/health` and `/.well-known/agent-card.json`; static-token or Keycloak OIDC. |
 | [tls](https://github.com/inference-gateway/rust-adk/tree/main/examples/tls)                                   | TLS termination via `axum-server` + `rustls`, with optional mTLS exposing the client-cert subject as the principal.       |
 | [artifacts-filesystem](https://github.com/inference-gateway/rust-adk/tree/main/examples/artifacts-filesystem) | A streaming handler emits a `FilePart` served by the standalone artifacts HTTP server, backed by an on-disk store.        |
-| [artifacts-minio](https://github.com/inference-gateway/rust-adk/tree/main/examples/artifacts-minio)           | The same flow backed by a MinIO bucket instead of the local filesystem.                                                   |
+| [artifacts-minio](https://github.com/inference-gateway/rust-adk/tree/main/examples/artifacts-minio)           | The same flow backed by an S3-compatible bucket instead of the local filesystem.                                          |
 
 ## Environment variable reference
 
