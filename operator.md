@@ -301,27 +301,47 @@ Deploys the Inference Gateway CLI daemon - a chat bot that bridges a messaging c
 
 The Deployment is forced to a singleton (`replicas: 1`, `strategy: Recreate`) because Telegram allows only one active `getUpdates` consumer per bot token - running two replicas would 409. For HA today, run multiple `Orchestrator` resources with different tokens and disjoint allowed-user lists.
 
-| Field                                                                          | Description                                                                                                                                                                               |
-| ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `image`                                                                        | Required CLI image, e.g. `ghcr.io/inference-gateway/cli:latest`.                                                                                                                          |
-| `channels.maxWorkers` / `channels.imageRetention` / `channels.requireApproval` | Top-level channel runtime.                                                                                                                                                                |
-| `channels.telegram.enabled`                                                    | Toggle the Telegram channel.                                                                                                                                                              |
-| `channels.telegram.tokenSecretRef`                                             | `SecretKeySelector` for the bot token (required).                                                                                                                                         |
-| `channels.telegram.allowedUsersSecretRef`                                      | `SecretKeySelector` for a comma-separated allow-list.                                                                                                                                     |
-| `channels.telegram.pollTimeout`                                                | `metav1.Duration` for `getUpdates` long-polling.                                                                                                                                          |
-| `gateway.url`                                                                  | Required URL of the gateway this orchestrator talks to.                                                                                                                                   |
-| `gateway.apiKeySecretRef`                                                      | Optional API key for the gateway.                                                                                                                                                         |
-| `agent.model`                                                                  | Required `provider/model` for the orchestrating LLM.                                                                                                                                      |
-| `agent.systemPrompt`                                                           | Optional system prompt.                                                                                                                                                                   |
-| `tools.enabled` / `tools.schedule`                                             | Built-in CLI tools (incl. scheduling).                                                                                                                                                    |
-| `a2a.enabled`                                                                  | Toggle the CLI daemon's own A2A client, so the orchestrating LLM can delegate to agents. Separate from [`Gateway.spec.a2a`](#a2a-agents-spec-a2a), which makes the gateway an A2A server. |
-| `a2a.agents[]`                                                                 | Static agent URLs - plain strings here, unlike [`Gateway.spec.a2a.agents[]`](#a2a-agents-spec-a2a), which takes `{name, url}` objects.                                                    |
-| `a2a.serviceDiscovery.{enabled,namespace,selector}`                            | Discover `Agent` CRs by label selector. The pod is rolled when the discovered set changes.                                                                                                |
-| `mcp.enabled`                                                                  | Toggle MCP integration (`OrchestratorMCPSpec`).                                                                                                                                           |
-| `mcp.servers[]`                                                                | Static MCP server URLs, for externally hosted servers with no `MCP` CR in the cluster.                                                                                                    |
-| `mcp.serviceDiscovery.{enabled,namespace,selector}`                            | Discover `MCP` CRs by label selector. Static and discovered servers are written into the pod's `~/.infer/mcp.yaml`; the pod is rolled when the set changes.                               |
-| `telemetry.enabled` / `telemetry.traces` / `telemetry.metrics`                 | OpenTelemetry telemetry. The daemon consumes only a master switch and a single shared OTLP endpoint. See [Orchestrator Telemetry](#orchestrator-telemetry).                               |
-| `resources` / `env[]`                                                          | Standard pod knobs.                                                                                                                                                                       |
+| Field                                                                          | Description                                                                                                                                                                                 |
+| ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `image`                                                                        | Required CLI image, e.g. `ghcr.io/inference-gateway/cli:latest`. Must declare an `ENTRYPOINT` that ends up running `infer` - see [Custom orchestrator images](#custom-orchestrator-images). |
+| `channels.maxWorkers` / `channels.imageRetention` / `channels.requireApproval` | Top-level channel runtime.                                                                                                                                                                  |
+| `channels.telegram.enabled`                                                    | Toggle the Telegram channel.                                                                                                                                                                |
+| `channels.telegram.tokenSecretRef`                                             | `SecretKeySelector` for the bot token (required).                                                                                                                                           |
+| `channels.telegram.allowedUsersSecretRef`                                      | `SecretKeySelector` for a comma-separated allow-list.                                                                                                                                       |
+| `channels.telegram.pollTimeout`                                                | `metav1.Duration` for `getUpdates` long-polling.                                                                                                                                            |
+| `gateway.url`                                                                  | Required URL of the gateway this orchestrator talks to.                                                                                                                                     |
+| `gateway.apiKeySecretRef`                                                      | Optional API key for the gateway.                                                                                                                                                           |
+| `agent.model`                                                                  | Required `provider/model` for the orchestrating LLM.                                                                                                                                        |
+| `agent.systemPrompt`                                                           | Optional system prompt.                                                                                                                                                                     |
+| `tools.enabled` / `tools.schedule`                                             | Built-in CLI tools (incl. scheduling).                                                                                                                                                      |
+| `a2a.enabled`                                                                  | Toggle the CLI daemon's own A2A client, so the orchestrating LLM can delegate to agents. Separate from [`Gateway.spec.a2a`](#a2a-agents-spec-a2a), which makes the gateway an A2A server.   |
+| `a2a.agents[]`                                                                 | Static agent URLs - plain strings here, unlike [`Gateway.spec.a2a.agents[]`](#a2a-agents-spec-a2a), which takes `{name, url}` objects.                                                      |
+| `a2a.serviceDiscovery.{enabled,namespace,selector}`                            | Discover `Agent` CRs by label selector. The pod is rolled when the discovered set changes.                                                                                                  |
+| `mcp.enabled`                                                                  | Toggle MCP integration (`OrchestratorMCPSpec`).                                                                                                                                             |
+| `mcp.servers[]`                                                                | Static MCP server URLs, for externally hosted servers with no `MCP` CR in the cluster.                                                                                                      |
+| `mcp.serviceDiscovery.{enabled,namespace,selector}`                            | Discover `MCP` CRs by label selector. Static and discovered servers are written into the pod's `~/.infer/mcp.yaml`; the pod is rolled when the set changes.                                 |
+| `telemetry.enabled` / `telemetry.traces` / `telemetry.metrics`                 | OpenTelemetry telemetry. The daemon consumes only a master switch and a single shared OTLP endpoint. See [Orchestrator Telemetry](#orchestrator-telemetry).                                 |
+| `resources` / `env[]`                                                          | Standard pod knobs.                                                                                                                                                                         |
+
+#### Custom orchestrator images
+
+The daemon container is started with `args: ["daemon"]` and no `command` override, so the pod runs the image's own `ENTRYPOINT` with `daemon` as its argument. The stock CLI image already declares `ENTRYPOINT ["infer"]`, so `ghcr.io/inference-gateway/cli:latest` needs nothing extra.
+
+A custom `spec.image` built on the CLI image can therefore wrap the daemon with its own entrypoint - start a side process, then hand off to the CLI:
+
+```dockerfile
+FROM ghcr.io/inference-gateway/cli:latest
+COPY entrypoint.sh /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]
+```
+
+```bash
+#!/bin/sh
+start-my-sidecar &
+exec infer "$@"
+```
+
+The `exec infer "$@"` hand-off is required: the image's `ENTRYPOINT` must end up running `infer` with the arguments it was given, otherwise the daemon never starts. An image whose entrypoint ignores its arguments, or runs something other than `infer`, leaves the orchestrator pod up but not polling its channel.
 
 ### GPU
 
