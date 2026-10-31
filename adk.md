@@ -931,7 +931,42 @@ agent, _ := server.NewAgentBuilder(logger).
 Artifacts are files, structured data, or rich content an agent produces during a task. Enable the subsystem with `ARTIFACTS_ENABLED=true` and pick a storage backend with `ARTIFACTS_STORAGE_PROVIDER`:
 
 - **`filesystem`** (default) - store on local disk (`ARTIFACTS_STORAGE_BASE_PATH`), suitable for single-instance deployments.
-- **`minio`** - S3-compatible object storage for distributed deployments. Configure `ARTIFACTS_STORAGE_ENDPOINT`, `ARTIFACTS_STORAGE_ACCESS_KEY`, `ARTIFACTS_STORAGE_SECRET_KEY`, and `ARTIFACTS_STORAGE_BUCKET_NAME`.
+- **`s3`** - any S3-compatible object store (RustFS, MinIO, AWS S3) for distributed deployments. Configure `ARTIFACTS_STORAGE_ENDPOINT`, `ARTIFACTS_STORAGE_ACCESS_KEY`, `ARTIFACTS_STORAGE_SECRET_KEY`, and `ARTIFACTS_STORAGE_BUCKET_NAME` (default `artifacts`, created on startup when missing). `ARTIFACTS_STORAGE_USE_SSL` defaults to `true` - set it to `false` for a plain-HTTP endpoint.
+
+`minio` is still accepted as a legacy alias of `s3`. Any other value fails with `unsupported storage provider`.
+
+### S3-compatible storage with RustFS
+
+The [`artifacts-s3`](https://github.com/inference-gateway/adk/tree/main/examples/artifacts-s3) example runs [RustFS](https://github.com/rustfs/rustfs) as the object store - S3 API on port `9000`, web console on `9001`:
+
+```yaml
+services:
+  rustfs:
+    image: rustfs/rustfs:1.0.4
+    ports:
+      - '9000:9000' # S3 API
+      - '9001:9001' # RustFS console
+    environment:
+      RUSTFS_VOLUMES: /data
+      RUSTFS_ADDRESS: 0.0.0.0:9000
+      RUSTFS_CONSOLE_ADDRESS: 0.0.0.0:9001
+      RUSTFS_CONSOLE_ENABLE: 'true'
+      RUSTFS_ACCESS_KEY: rustfsadmin
+      RUSTFS_SECRET_KEY: rustfsadmin
+
+  server:
+    environment:
+      A2A_ARTIFACTS_ENABLED: true
+      A2A_ARTIFACTS_STORAGE_PROVIDER: s3
+      A2A_ARTIFACTS_STORAGE_ENDPOINT: rustfs:9000
+      A2A_ARTIFACTS_STORAGE_ACCESS_KEY: rustfsadmin
+      A2A_ARTIFACTS_STORAGE_SECRET_KEY: rustfsadmin
+      A2A_ARTIFACTS_STORAGE_BUCKET_NAME: artifacts
+      A2A_ARTIFACTS_STORAGE_USE_SSL: 'false'
+      A2A_ARTIFACTS_SERVER_PORT: 8081
+```
+
+No bucket-init container is needed - the storage backend creates the bucket itself. RustFS runs as UID/GID `10001`, so a named volume mounted at `/data` has to be writable by that user. Downloads are proxied through the artifacts server by default; point `ARTIFACTS_STORAGE_BASE_URL` at `http://rustfs:9000` to have clients download straight from the object store, which means access control moves to the bucket policy.
 
 ### Storage Layout
 
@@ -1014,7 +1049,7 @@ for evt := range events {
 
 Artifacts attached to a task without an `artifactUpdate` event never reach the stream as chunks - they appear on the task snapshot, or via `GetTask` once the task completes.
 
-The [`artifacts-filesystem`](https://github.com/inference-gateway/adk/tree/main/examples/artifacts-filesystem), [`artifacts-minio`](https://github.com/inference-gateway/adk/tree/main/examples/artifacts-minio), [`artifacts-autonomous-tool`](https://github.com/inference-gateway/adk/tree/main/examples/artifacts-autonomous-tool), and [`artifacts-with-default-handlers`](https://github.com/inference-gateway/adk/tree/main/examples/artifacts-with-default-handlers) examples cover each path; the upstream [artifacts guide](https://github.com/inference-gateway/adk/blob/main/docs/artifacts.md) has the full API.
+The [`artifacts-filesystem`](https://github.com/inference-gateway/adk/tree/main/examples/artifacts-filesystem), [`artifacts-s3`](https://github.com/inference-gateway/adk/tree/main/examples/artifacts-s3), [`artifacts-autonomous-tool`](https://github.com/inference-gateway/adk/tree/main/examples/artifacts-autonomous-tool), and [`artifacts-with-default-handlers`](https://github.com/inference-gateway/adk/tree/main/examples/artifacts-with-default-handlers) examples cover each path; the upstream [artifacts guide](https://github.com/inference-gateway/adk/blob/main/docs/artifacts.md) has the full API.
 
 ## Telemetry
 
@@ -1176,14 +1211,14 @@ The [`examples/`](https://github.com/inference-gateway/adk/tree/main/examples) d
 
 **Storage, security, and artifacts:**
 
-| Example                                                                                                                        | What it shows                                                   |
-| ------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------- |
-| [queue-storage](https://github.com/inference-gateway/adk/tree/main/examples/queue-storage)                                     | In-memory and Redis storage backends.                           |
-| [tls-server](https://github.com/inference-gateway/adk/tree/main/examples/tls-server)                                           | HTTPS termination with TLS certificates.                        |
-| [artifacts-filesystem](https://github.com/inference-gateway/adk/tree/main/examples/artifacts-filesystem)                       | Filesystem-backed downloadable artifacts.                       |
-| [artifacts-minio](https://github.com/inference-gateway/adk/tree/main/examples/artifacts-minio)                                 | MinIO/S3-backed artifacts with direct and proxy download modes. |
-| [artifacts-autonomous-tool](https://github.com/inference-gateway/adk/tree/main/examples/artifacts-autonomous-tool)             | The model creates artifacts via the `create_artifact` tool.     |
-| [artifacts-with-default-handlers](https://github.com/inference-gateway/adk/tree/main/examples/artifacts-with-default-handlers) | Artifacts combined with the default handlers.                   |
+| Example                                                                                                                        | What it shows                                                 |
+| ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------- |
+| [queue-storage](https://github.com/inference-gateway/adk/tree/main/examples/queue-storage)                                     | In-memory and Redis storage backends.                         |
+| [tls-server](https://github.com/inference-gateway/adk/tree/main/examples/tls-server)                                           | HTTPS termination with TLS certificates.                      |
+| [artifacts-filesystem](https://github.com/inference-gateway/adk/tree/main/examples/artifacts-filesystem)                       | Filesystem-backed downloadable artifacts.                     |
+| [artifacts-s3](https://github.com/inference-gateway/adk/tree/main/examples/artifacts-s3)                                       | S3-backed artifacts (RustFS) with direct and proxy downloads. |
+| [artifacts-autonomous-tool](https://github.com/inference-gateway/adk/tree/main/examples/artifacts-autonomous-tool)             | The model creates artifacts via the `create_artifact` tool.   |
+| [artifacts-with-default-handlers](https://github.com/inference-gateway/adk/tree/main/examples/artifacts-with-default-handlers) | Artifacts combined with the default handlers.                 |
 
 ## Related
 
