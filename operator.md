@@ -311,7 +311,7 @@ The Deployment is forced to a singleton (`replicas: 1`, `strategy: Recreate`) be
 | `channels.telegram.tokenSecretRef`                                             | `SecretKeySelector` for the bot token (required).                                                                                                                                           |
 | `channels.telegram.allowedUsersSecretRef`                                      | `SecretKeySelector` for a comma-separated allow-list.                                                                                                                                       |
 | `channels.telegram.pollTimeout`                                                | `metav1.Duration` for `getUpdates` long-polling.                                                                                                                                            |
-| `gateway.url`                                                                  | Required URL of the gateway this orchestrator talks to.                                                                                                                                     |
+| `gateway.url` / `gateway.ref`                                                  | How the orchestrator reaches the gateway - exactly one of them is set. See [Linking the orchestrator to a Gateway](#linking-the-orchestrator-to-a-gateway).                                 |
 | `gateway.apiKeySecretRef`                                                      | Optional API key for the gateway.                                                                                                                                                           |
 | `agent.model`                                                                  | Required `provider/model` for the orchestrating LLM.                                                                                                                                        |
 | `agent.systemPrompt`                                                           | Optional system prompt.                                                                                                                                                                     |
@@ -324,6 +324,23 @@ The Deployment is forced to a singleton (`replicas: 1`, `strategy: Recreate`) be
 | `mcp.serviceDiscovery.{enabled,namespace,selector}`                            | Discover `MCP` CRs by label selector. Static and discovered servers are written into the pod's `~/.infer/mcp.yaml`; the pod is rolled when the set changes.                                 |
 | `telemetry.enabled` / `telemetry.traces` / `telemetry.metrics`                 | OpenTelemetry telemetry. The daemon consumes only a master switch and a single shared OTLP endpoint. See [Orchestrator Telemetry](#orchestrator-telemetry).                                 |
 | `resources` / `env[]`                                                          | Standard pod knobs.                                                                                                                                                                         |
+
+#### Linking the orchestrator to a Gateway
+
+`spec.gateway` takes either `url`, the address of any gateway, or `ref`, the name of a `Gateway` in the same namespace - exactly one of them, and the CRD rejects a spec that sets both or neither.
+
+```yaml
+spec:
+  gateway:
+    ref: inference-gateway
+```
+
+With `ref` the operator derives the daemon's gateway URL from that `Gateway`'s Service, so the URL follows a port change instead of hard-coding one, and it scales the `Gateway` with the daemon:
+
+- A `Gateway` is parked at zero replicas while every `Orchestrator` referencing it is suspended (`spec.sandbox.operatingMode: Suspended`). Its Deployment, Service and Secrets stay, and it has no HPA while parked - an HPA would scale the parked Deployment straight back up. It gets one again once a referencing `Orchestrator` resumes.
+- Resuming an `Orchestrator` (`operatingMode: Running`) scales its `Gateway` back up right away, because the `Gateway` controller watches the `Orchestrator`s that reference it.
+- A `Gateway` no `Orchestrator` references keeps its own `spec.replicas` and HPA behavior.
+- An `Orchestrator` whose `ref` names no `Gateway` reports `Ready=False` with reason `GatewayNotFound`.
 
 #### Custom orchestrator images
 
@@ -1038,7 +1055,7 @@ Read the full agent list the same way as the MCP one:
 kubectl get gateway my-gateway -n inference-gateway -o jsonpath='{.status.a2aAgents}'
 ```
 
-`Agent`, `MCP`, and `Orchestrator` expose the standard `metav1.Condition` slice plus a boolean `ready`. `Orchestrator` additionally exposes `discoveredAgents[]` and `discoveredAgentCount` when service discovery is enabled. See [Observability](/observability/) for end-to-end metrics and tracing setup.
+`Agent`, `MCP`, and `Orchestrator` expose the standard `metav1.Condition` slice plus a boolean `ready`. `Orchestrator` additionally exposes `discoveredAgents[]` and `discoveredAgentCount` when service discovery is enabled, and reports `Ready=False` with reason `GatewayNotFound` when [`spec.gateway.ref`](#linking-the-orchestrator-to-a-gateway) names no `Gateway` in the namespace. See [Observability](/observability/) for end-to-end metrics and tracing setup.
 
 ## Cleanup
 

@@ -1222,6 +1222,8 @@ workspaces:
 
 A session that teleported away counts as done even if it never ran on the pod, so a pod daemon whose sessions all left idles out after `away_ttl` rather than the full `idle_ttl`, as long as no client is attached. It reports its agents done, the operator suspends the Orchestrator, and the `retention` countdown starts. Teleporting the session to that workspace again before the retention runs out resumes the Orchestrator with its volumes, which clears the countdown.
 
+A Gateway the Orchestrator links to by name is scaled down and up with it: the operator parks it at zero replicas while every Orchestrator referencing it is suspended, keeping its Deployment, Service and Secrets, and scales it back up as soon as one resumes. See [Linking the orchestrator to a Gateway](/operator/#linking-the-orchestrator-to-a-gateway).
+
 The daemon remembers the workspace a session came home from in `~/.infer/daemon/runtimes/`, so stopping the session also cleans up behind it:
 
 ```bash
@@ -1240,7 +1242,7 @@ A **thread** is a project directory plus a conversation id, and it runs in exact
 - Several clients may subscribe to one thread; each of them sees the same frames.
 - Idle workers exit after a timeout, and a worker that crashes mid-turn has its open run closed with `RUN_ERROR`.
 
-### Workspaces and teleports
+### Workspace kinds
 
 A **workspace** is where a session's agent runs. The daemon you type into is one, and `daemon.yaml` registers the others, so a session can be **teleported** to a beefier machine or into a Kubernetes cluster between turns. A `kind: kubernetes` workspace runs each session as an [operator](/operator/) `Orchestrator` in `namespace`, with the agent inside a pod.
 
