@@ -395,6 +395,8 @@ curl --cert client.crt --key client.key --cacert gateway-ca.pem \
   https://gateway.internal:8443/v1/models
 ```
 
+On Kubernetes these paths are set for you from Secret references on the Gateway CR - see [Mutual TLS (`clientCARef` and `spec.client.tls`)](/operator/#mutual-tls-clientcaref-and-spec-client-tls).
+
 ### Provider Settings
 
 Configure access to various LLM providers. At minimum, you should configure the providers you plan to use.

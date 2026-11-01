@@ -148,6 +148,7 @@ Deploys the gateway proxy. Source: [`api/v1alpha1/gateway_types.go`](https://git
 | `image`                                                                            | Container image, default `ghcr.io/inference-gateway/inference-gateway:latest`.                                                                                                             |
 | `environment`                                                                      | One of `development`, `staging`, `production` (default `production`).                                                                                                                      |
 | `server.port` / `server.host` / `server.timeouts` / `server.tls`                   | HTTP server settings. See [Gateway Server (`spec.server`)](#gateway-server-spec-server).                                                                                                   |
+| `client.tls.{caRef,certificateRef,keyRef}`                                         | TLS material for outbound provider calls. See [Mutual TLS (`clientCARef` and `spec.client.tls`)](#mutual-tls-clientcaref-and-spec-client-tls).                                             |
 | `auth.enabled` / `auth.provider` / `auth.oidc`                                     | Authentication. `provider` is `oidc`, `jwt`, or `basic`. See [Authentication (OIDC)](#authentication-oidc).                                                                                |
 | `providers[]`                                                                      | Each item: `name`, `enabled`, and an `env` list of `corev1.EnvVar`. Provider keys are passed through unchanged.                                                                            |
 | `telemetry.enabled` / `telemetry.metrics.{enabled,port}`                           | OpenTelemetry metrics. `metrics.port` configures the gateway process - see [Gateway Server (`spec.server`)](#gateway-server-spec-server).                                                  |
@@ -247,6 +248,79 @@ SERVER_TLS_KEY_PATH=/app/tls/tls.key
 ```
 
 The fallback Secret must exist in the Gateway's namespace, otherwise the pod stays pending on the missing volume. Setting only one of the two references mounts both that reference and the fallback Secret, so the unset side keeps its `/app/tls` path.
+
+#### Mutual TLS (`clientCARef` and `spec.client.tls`)
+
+Mutual TLS has two independent directions, and the CRD keeps them apart: inbound callers are verified through `spec.server.tls.clientCARef`, outbound provider calls are configured under the top-level `spec.client.tls`. Each field is a `SecretKeySelector` mounted read-only into its own directory, and the env var it drives points at the mounted file. See [Mutual TLS](/configuration/#mutual-tls) for what the gateway does with each variable.
+
+| Field                       | Env var                     | Mount path             | Direction |
+| --------------------------- | --------------------------- | ---------------------- | --------- |
+| `server.tls.clientCARef`    | `SERVER_TLS_CLIENT_CA_PATH` | `/app/tls/client-ca`   | Inbound   |
+| `client.tls.caRef`          | `CLIENT_TLS_CA_PATH`        | `/app/tls/client/ca`   | Outbound  |
+| `client.tls.certificateRef` | `CLIENT_TLS_CERT_PATH`      | `/app/tls/client/cert` | Outbound  |
+| `client.tls.keyRef`         | `CLIENT_TLS_KEY_PATH`       | `/app/tls/client/key`  | Outbound  |
+
+`clientCARef` builds on server TLS - it is only read when `spec.server.tls.enabled` is `true`. `spec.client.tls` is independent of it: a gateway can present a certificate to a provider without serving TLS itself.
+
+With `clientCARef` set, the liveness and readiness probes switch from `httpGet` to `tcpSocket` on the server port. The kubelet has no client certificate to offer, so an `httpGet` probe fails the TLS handshake whatever its `scheme` is, and the pod would never become Ready. Plain server TLS without a client CA keeps `httpGet` with `scheme: HTTPS`.
+
+A `tcpSocket` probe only proves the listener accepts connections, it does not call `/health`. A gateway that is listening but unhealthy stays Ready under inbound mTLS, so lean on metrics or an external probe that does present a certificate.
+
+##### Example: cert-manager mTLS
+
+cert-manager writes `tls.crt`, `tls.key` and `ca.crt` into one Secret, so the issuing CA is already one more key off the Secret the server keypair comes from. Naming it `inference-gateway-tls` also lets `certificateRef` and `keyRef` stay unset and fall back to `/app/tls`:
+
+```yaml
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: inference-gateway-tls
+  namespace: inference-gateway
+spec:
+  secretName: inference-gateway-tls
+  issuerRef:
+    name: internal-ca
+    kind: ClusterIssuer
+  dnsNames:
+    - inference-gateway.inference-gateway.svc.cluster.local
+---
+apiVersion: core.inference-gateway.com/v1alpha1
+kind: Gateway
+metadata:
+  name: inference-gateway
+  namespace: inference-gateway
+spec:
+  server:
+    tls:
+      enabled: true
+      clientCARef:
+        name: inference-gateway-tls
+        key: ca.crt
+  client:
+    tls:
+      caRef:
+        name: provider-mtls
+        key: ca.crt
+      certificateRef:
+        name: provider-mtls
+        key: tls.crt
+      keyRef:
+        name: provider-mtls
+        key: tls.key
+```
+
+That renders:
+
+```sh
+SERVER_TLS_CERT_PATH=/app/tls/tls.crt
+SERVER_TLS_KEY_PATH=/app/tls/tls.key
+SERVER_TLS_CLIENT_CA_PATH=/app/tls/client-ca/ca.crt
+CLIENT_TLS_CA_PATH=/app/tls/client/ca/ca.crt
+CLIENT_TLS_CERT_PATH=/app/tls/client/cert/tls.crt
+CLIENT_TLS_KEY_PATH=/app/tls/client/key/tls.key
+```
+
+Callers now need a certificate signed by `internal-ca`, which another cert-manager `Certificate` can issue into a Secret the client pod mounts. The `provider-mtls` Secret above is the client identity the gateway presents to a provider that requires mTLS - drop the whole `spec.client` block when no provider asks for one.
 
 ### Gateway Service (`spec.service`)
 
