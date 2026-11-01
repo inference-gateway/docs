@@ -260,7 +260,12 @@ Mutual TLS has two independent directions, and the CRD keeps them apart: inbound
 | `client.tls.certificateRef` | `CLIENT_TLS_CERT_PATH`      | `/app/tls/client/cert` | Outbound  |
 | `client.tls.keyRef`         | `CLIENT_TLS_KEY_PATH`       | `/app/tls/client/key`  | Outbound  |
 
-`clientCARef` builds on server TLS - it is only read when `spec.server.tls.enabled` is `true`. `spec.client.tls` is independent of it: a gateway can present a certificate to a provider without serving TLS itself.
+`clientCARef` builds on server TLS. `spec.client.tls` is independent of it: a gateway can present a certificate to a provider without serving TLS itself, and `caRef` is valid on its own. Two CRD rules reject the Gateway at admission rather than letting a half-configured pod start:
+
+| Rule                                                               | Message                                                           |
+| ------------------------------------------------------------------ | ----------------------------------------------------------------- |
+| `server.tls.clientCARef` needs `server.tls.enabled: true`          | `spec.server.tls.clientCARef needs spec.server.tls.enabled: true` |
+| `client.tls.certificateRef` and `client.tls.keyRef` come as a pair | `spec.client.tls needs certificateRef and keyRef together`        |
 
 With `clientCARef` set, the liveness and readiness probes switch from `httpGet` to `tcpSocket` on the server port. The kubelet has no client certificate to offer, so an `httpGet` probe fails the TLS handshake whatever its `scheme` is, and the pod would never become Ready. Plain server TLS without a client CA keeps `httpGet` with `scheme: HTTPS`.
 
