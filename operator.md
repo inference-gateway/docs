@@ -188,11 +188,11 @@ spec:
       port: 9465
 ```
 
-| Field                    | Env var                  | Default   | Notes                                                                                        |
-| ------------------------ | ------------------------ | --------- | -------------------------------------------------------------------------------------------- |
-| `server.host`            | `SERVER_HOST`            | `0.0.0.0` | Bind address. Keep the default - a loopback address makes kubelet probes fail.               |
-| `server.port`            | `SERVER_PORT`            | `8080`    | Also used for the `http` container port, the liveness and readiness probes, and the Service. |
-| `telemetry.metrics.port` | `TELEMETRY_METRICS_PORT` | `9464`    | Emitted only when both `telemetry.enabled` and `telemetry.metrics.enabled` are `true`.       |
+| Field                    | Env var                  | Default   | Notes                                                                                                                              |
+| ------------------------ | ------------------------ | --------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `server.host`            | `SERVER_HOST`            | `0.0.0.0` | Bind address. Keep the default - a loopback address makes kubelet probes fail.                                                     |
+| `server.port`            | `SERVER_PORT`            | `8080`    | Also used for the single server container port (`http`, or `https` under TLS), the liveness and readiness probes, and the Service. |
+| `telemetry.metrics.port` | `TELEMETRY_METRICS_PORT` | `9464`    | Emitted only when both `telemetry.enabled` and `telemetry.metrics.enabled` are `true`.                                             |
 
 `spec.server` itself defaults to `{}`, so omitting the block still yields `host: 0.0.0.0` and `port: 8080` - the API server writes them into the stored object, and `kubectl get gateways` prints `8080` in the `PORT` column without any explicit `spec.server.port`.
 
@@ -200,7 +200,17 @@ Operators older than the release that wired these variables up only shaped the D
 
 #### TLS (`spec.server.tls`)
 
-With `spec.server.tls.enabled: true` the controller mounts the certificate material into the pod and points `SERVER_TLS_CERT_PATH` and `SERVER_TLS_KEY_PATH` at the mounted files. The gateway then also exposes the `https` container port `8443`.
+With `spec.server.tls.enabled: true` the controller mounts the certificate material into the pod and points `SERVER_TLS_CERT_PATH` and `SERVER_TLS_KEY_PATH` at the mounted files.
+
+TLS is served on `spec.server.port` (default `8080`) - there is no separate `8443` listener. The rendered objects follow that single port:
+
+- The gateway container declares exactly one server port, `spec.server.port`, named `https` instead of `http`. No extra `8443` container port is created.
+- The liveness and readiness probes switch to `scheme: HTTPS` against that port, so the pod becomes Ready without any extra configuration. A kubelet speaking plain HTTP to a TLS listener gets an HTTP 400 back and the pod never passes its readiness check.
+- The Service exposes one main port, named `https` and targeting the container port by name. No extra `8443` Service port is created, and with no `spec.server.port` the Service and `status.url` use the real default `8080`.
+
+Breaking change for anything that selects the gateway Service port by name: under TLS that name is now `https`, not `http`. Update `HTTPRoute` backend refs, `ServiceMonitor`s and any other named-port selectors. Operators older than the release that made this change rendered HTTP probes plus the extra `8443` ports and assumed `8443` when `spec.server.port` was unset.
+
+To keep serving TLS on `8443`, set `spec.server.port: 8443` explicitly.
 
 `certificateRef` and `keyRef` are both `SecretKeySelector`s (`name` plus `key`). Each is mounted from its own Secret, under its own directory:
 
