@@ -2998,11 +2998,38 @@ The media root is agent-readable and writable by design - retained recordings an
 
 > **Existing installs.** Older releases placed these directories directly under `~/.infer/` or `~/.infer/tmp/` (`tts/`, `voice/`, `media/`, ...). Nothing migrates automatically - they hold only disposable output, so delete them, or `mv` their contents into the media root to keep the retained files. Explicit `output_dir` / `recordings_dir` / `temp_dir` / `media.dir` overrides are unaffected.
 
+### Gateway TLS
+
+A gateway behind a private CA, or one that requires mutual TLS, is reached through `gateway.tls`. The settings apply to every gateway call - the agent loop, model listing, titles, summaries, media, the gateway version probe and A2A requests to the gateway. Daemon workers inherit them, because they read the same config and environment.
+
+```yaml
+gateway:
+  url: https://gateway.example.internal:8443
+  tls:
+    ca_file: ~/.infer/gateway-ca.crt
+    cert_file: ~/.infer/gateway-client.crt
+    key_file: ~/.infer/gateway-client.key
+```
+
+| Setting                 | Environment variable          | Purpose                                                                                                              |
+| ----------------------- | ----------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `gateway.tls.ca_file`   | `INFER_GATEWAY_TLS_CA_FILE`   | PEM CA bundle trusted for gateway calls **on top of** the system roots, for a gateway certificate from a private CA. |
+| `gateway.tls.cert_file` | `INFER_GATEWAY_TLS_CERT_FILE` | Client certificate presented to a gateway that requires mTLS. Set together with `key_file`.                          |
+| `gateway.tls.key_file`  | `INFER_GATEWAY_TLS_KEY_FILE`  | Private key for that client certificate. Set together with `cert_file`.                                              |
+
+- Adding a private CA costs no trust elsewhere: the system roots stay in place, and every other HTTPS call is unaffected.
+- `cert_file` and `key_file` are set both or neither - one without the other is rejected.
+- Paths may start with `~`.
+- TLS material that cannot be loaded fails each gateway call with the reason, naming the setting, rather than silently falling back to a transport the gateway would reject.
+
+The server side of mTLS is configured on the gateway, not the CLI: `SERVER_TLS_CLIENT_CA_PATH` names the CA bundle signing accepted client certificates (gateway v0.61.0, see [Mutual TLS](/configuration/#mutual-tls)). On Kubernetes it is set for you from `spec.server.tls.clientCARef` on the Gateway CR (operator v0.31.0, see [Mutual TLS (`clientCARef` and `spec.client.tls`)](/operator/#mutual-tls-clientcaref-and-spec-client-tls)).
+
 ### Key Configuration Areas
 
 **Gateway Settings:**
 
 - Gateway URL and API key
+- Private CA and client certificate for the gateway connection: `gateway.tls` (see [Gateway TLS](#gateway-tls))
 - Timeout and retry configuration (see [Client retry and stream reconnection](#client-retry-and-stream-reconnection) below)
 - OCI image for auto-running gateway
 - Model filtering: `gateway.include_models` (allowlist) and `gateway.exclude_models` (blocklist). Both default to `[]`. `gateway.exclude_models` is opt-in - the [model picker](#model-picker-labels) already hides non-chat-capable models via the gateway-reported modalities, so use it only to hide specific models the gateway reports (large or costly chat models, for example); there is no shipped default blocklist. Set exclusions are passed to the gateway as the `DISALLOWED_MODELS` environment variable.
@@ -3233,6 +3260,12 @@ reminders:
 ```bash
 export INFER_GATEWAY_URL="http://localhost:8080"
 export INFER_GATEWAY_API_KEY="your-api-key"
+
+# Gateway TLS (see Gateway TLS): private CA bundle, plus a client certificate for mTLS
+export INFER_GATEWAY_TLS_CA_FILE="$HOME/.infer/gateway-ca.crt"
+export INFER_GATEWAY_TLS_CERT_FILE="$HOME/.infer/gateway-client.crt"
+export INFER_GATEWAY_TLS_KEY_FILE="$HOME/.infer/gateway-client.key"
+
 export INFER_AGENT_MODEL="deepseek/deepseek-v4-flash"
 export INFER_LOGGING_DEBUG="true"
 export INFER_LOGGING_ARCHIVE_ENABLED="true"
