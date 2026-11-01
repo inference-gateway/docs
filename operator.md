@@ -163,6 +163,7 @@ Deploys the gateway proxy. Source: [`api/v1alpha1/gateway_types.go`](https://git
 | `guardrails.{enabled,failMode,externalUrl,externalTimeout,configMapRef}`           | OPA/Rego policy enforcement. See [Guardrails (`spec.guardrails`)](#guardrails-spec-guardrails).                                                                                            |
 | `serviceAccount.{create,name}`                                                     | Pod service account.                                                                                                                                                                       |
 | `resources.requests` / `resources.limits`                                          | CPU and memory.                                                                                                                                                                            |
+| `pod.{labels,annotations,nodeSelector,tolerations,affinity}`                       | Shapes the pods the operator creates. See [Pod customization (`spec.pod`)](#pod-customization-spec-pod).                                                                                   |
 
 Provider env vars referenced via Secrets follow the standard `valueFrom.secretKeyRef` pattern - see [Configuration](/configuration/) for the full list of variables each provider accepts.
 
@@ -276,6 +277,7 @@ Deploys an A2A worker. Agents are dispatched to by an `Orchestrator`, by a `Gate
 | `agent.llm.apiKeySecretRef`                                                                              | `corev1.SecretKeySelector` for the LLM API key.                                                                        |
 | `queue.{enabled,maxSize,cleanupInterval}`                                                                | Optional task queue.                                                                                                   |
 | `env[]`                                                                                                  | Additional pod env vars.                                                                                               |
+| `pod.{labels,annotations,nodeSelector,tolerations,affinity}`                                             | Shapes the pods the operator creates. See [Pod customization (`spec.pod`)](#pod-customization-spec-pod).               |
 
 The operator publishes the agent's discovered capabilities into `status.card`, which the orchestrator and [`Gateway.spec.a2a.serviceDiscovery`](#a2a-agents-spec-a2a) consume through service discovery.
 
@@ -285,15 +287,16 @@ The operator publishes the agent's discovered capabilities into `status.card`, w
 
 Deploys a Model Context Protocol server. Source: [`api/v1alpha1/mcp_types.go`](https://github.com/inference-gateway/operator/blob/main/api/v1alpha1/mcp_types.go). See [MCP Integration](/mcp/) for protocol background.
 
-| Field                             | Description                                                           |
-| --------------------------------- | --------------------------------------------------------------------- |
-| `replicas`                        | Pod count (default `1`).                                              |
-| `image`                           | Container image, default `node:lts`.                                  |
-| `server.port`                     | Listen port (default `8080`).                                         |
-| `server.command` / `server.args`  | Override the container command.                                       |
-| `server.timeout`                  | Request timeout (default `30s`).                                      |
-| `server.tls.{enabled,secretName}` | TLS cert from a Secret. `secretName` is required when TLS is enabled. |
-| `hpa.{enabled,config}`            | Same shape as `Gateway.hpa`.                                          |
+| Field                                                        | Description                                                                                              |
+| ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
+| `replicas`                                                   | Pod count (default `1`).                                                                                 |
+| `image`                                                      | Container image, default `node:lts`.                                                                     |
+| `server.port`                                                | Listen port (default `8080`).                                                                            |
+| `server.command` / `server.args`                             | Override the container command.                                                                          |
+| `server.timeout`                                             | Request timeout (default `30s`).                                                                         |
+| `server.tls.{enabled,secretName}`                            | TLS cert from a Secret. `secretName` is required when TLS is enabled.                                    |
+| `hpa.{enabled,config}`                                       | Same shape as `Gateway.hpa`.                                                                             |
+| `pod.{labels,annotations,nodeSelector,tolerations,affinity}` | Shapes the pods the operator creates. See [Pod customization (`spec.pod`)](#pod-customization-spec-pod). |
 
 `metadata.name` doubles as the server's alias when a `Gateway` picks the CR up through [`spec.mcp.serviceDiscovery`](#mcp-servers-spec-mcp), so keep it short and matching `^[a-z0-9_-]+$` - an `MCP` named `time` exposes its tools as <code v-pre>mcp_time_&lt;tool&gt;</code>.
 
@@ -416,6 +419,72 @@ spec:
 ```
 
 For a complete runnable example, see [`examples/gpu/`](https://github.com/inference-gateway/operator/tree/main/examples/gpu) in the operator repository.
+
+## Pod customization (`spec.pod`)
+
+`Gateway`, `Agent` and `MCP` share a `spec.pod` block that shapes the pods their controllers create. The labels and annotations opt the pods into a sidecar injector (Istio, Linkerd, NetBird), and the three scheduling fields pass through to the pod spec unchanged. `Orchestrator` and `GPU` do not have this block.
+
+| Field          | Type                  | Description                                                                                                               |
+| -------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `labels`       | `map[string]string`   | Added to the pod template, for example to opt into a sidecar injector. Operator-owned labels take precedence - see below. |
+| `annotations`  | `map[string]string`   | Added to the pod template, for example `sidecar.istio.io/inject` or `linkerd.io/inject`.                                  |
+| `nodeSelector` | `map[string]string`   | Pins the pods to nodes carrying these labels.                                                                             |
+| `tolerations`  | `[]corev1.Toleration` | Allows the pods onto tainted nodes, for example a GPU pool.                                                               |
+| `affinity`     | `corev1.Affinity`     | Constrains or spreads the pods across nodes. Standard node, pod and anti-affinity shape.                                  |
+
+```yaml
+apiVersion: core.inference-gateway.com/v1alpha1
+kind: Gateway
+metadata:
+  name: my-gateway
+  namespace: inference-gateway
+spec:
+  pod:
+    labels:
+      istio.io/dataplane-mode: ambient
+    annotations:
+      sidecar.istio.io/inject: 'true'
+      linkerd.io/inject: enabled
+    nodeSelector:
+      node.kubernetes.io/instance-type: m6i.large
+    tolerations:
+      - key: dedicated
+        operator: Equal
+        value: inference
+        effect: NoSchedule
+    affinity:
+      podAntiAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchLabels:
+                  app: my-gateway
+```
+
+The same block applies verbatim on an `Agent` or an `MCP`:
+
+```yaml
+apiVersion: core.inference-gateway.com/v1alpha1
+kind: Agent
+metadata:
+  name: my-agent
+  namespace: inference-gateway
+spec:
+  image: ghcr.io/inference-gateway/mock-agent:latest
+  pod:
+    annotations:
+      sidecar.istio.io/inject: 'true'
+    nodeSelector:
+      nvidia.com/gpu.present: 'true'
+    tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
+```
+
+Operator-owned pod labels win over `spec.pod.labels`: when a key such as `app` is already on the pod template, the controller keeps its own value and discards yours. That keeps the Deployment selector matching its pods, so `app: <name>` cannot be repurposed - pick a different key for mesh and scheduling labels. The scheduling fields have no such conflict and replace whatever the template carried.
 
 ## Authentication (OIDC)
 
