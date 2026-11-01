@@ -51,6 +51,7 @@ const serverSettings = [
   { variable: 'SERVER_IDLE_TIMEOUT', description: 'Idle timeout', defaultValue: '120s' },
   { variable: 'SERVER_TLS_CERT_PATH', description: 'TLS certificate path', defaultValue: '""' },
   { variable: 'SERVER_TLS_KEY_PATH', description: 'TLS key path', defaultValue: '""' },
+  { variable: 'SERVER_TLS_CLIENT_CA_PATH', description: 'CA bundle that signs accepted client certificates. Setting it makes a client certificate mandatory and verified (mutual TLS), so a request without one fails the TLS handshake. Requires SERVER_TLS_CERT_PATH and SERVER_TLS_KEY_PATH - the gateway refuses to start otherwise', defaultValue: '""' },
 ];
 
 const clientSettings = [
@@ -61,6 +62,9 @@ const clientSettings = [
   { variable: 'CLIENT_DISABLE_COMPRESSION', description: 'Disable compression for faster streaming', defaultValue: 'true' },
   { variable: 'CLIENT_RESPONSE_HEADER_TIMEOUT', description: 'Response header timeout', defaultValue: '10s' },
   { variable: 'CLIENT_EXPECT_CONTINUE_TIMEOUT', description: 'Expect continue timeout', defaultValue: '1s' },
+  { variable: 'CLIENT_TLS_CA_PATH', description: 'Extra CA bundle trusted for provider calls, added on top of the system roots rather than replacing them', defaultValue: '""' },
+  { variable: 'CLIENT_TLS_CERT_PATH', description: 'Client certificate presented to providers that require mutual TLS. Must be set together with CLIENT_TLS_KEY_PATH', defaultValue: '""' },
+  { variable: 'CLIENT_TLS_KEY_PATH', description: 'Private key for CLIENT_TLS_CERT_PATH. Must be set together with it', defaultValue: '""' },
 ];
 
 const routingSettings = [
@@ -362,6 +366,35 @@ CLIENT_MAX_IDLE_CONNS=100
 CLIENT_MAX_IDLE_CONNS_PER_HOST=50
 ```
 
+A provider served by an internal certificate authority - a self-hosted vLLM, Ollama or llama.cpp endpoint behind a corporate CA - is trusted by pointing `CLIENT_TLS_CA_PATH` at that CA bundle. It is added on top of the system roots, so public provider endpoints keep working, unlike the process-wide `SSL_CERT_FILE` workaround that replaces them.
+
+### Mutual TLS
+
+Mutual TLS works in both directions and the two sides are independent: the gateway can require client certificates from its callers, present one to its providers, or both.
+
+Inbound, `SERVER_TLS_CLIENT_CA_PATH` names the CA bundle that signs accepted client certificates. Setting it makes a client certificate mandatory and verified, so a caller without one fails the TLS handshake instead of receiving an HTTP error. It builds on server TLS and requires `SERVER_TLS_CERT_PATH` and `SERVER_TLS_KEY_PATH` - the gateway refuses to start when either is missing.
+
+Outbound, `CLIENT_TLS_CERT_PATH` and `CLIENT_TLS_KEY_PATH` are the certificate and key presented to providers that require mutual TLS. One without the other is a startup error. Pair them with `CLIENT_TLS_CA_PATH` when the provider's own certificate is signed by a private CA.
+
+```bash
+# Callers must present a certificate signed by this CA
+SERVER_TLS_CERT_PATH=/etc/tls/gateway/tls.crt
+SERVER_TLS_KEY_PATH=/etc/tls/gateway/tls.key
+SERVER_TLS_CLIENT_CA_PATH=/etc/tls/gateway/clients-ca.pem
+
+# The gateway authenticates itself to a provider behind mutual TLS
+CLIENT_TLS_CERT_PATH=/etc/tls/provider/client.crt
+CLIENT_TLS_KEY_PATH=/etc/tls/provider/client.key
+CLIENT_TLS_CA_PATH=/etc/tls/provider/internal-ca.pem
+```
+
+A caller then has to send its own certificate - for example with curl:
+
+```bash
+curl --cert client.crt --key client.key --cacert gateway-ca.pem \
+  https://gateway.internal:8443/v1/models
+```
+
 ### Provider Settings
 
 Configure access to various LLM providers. At minimum, you should configure the providers you plan to use.
@@ -612,6 +645,7 @@ SERVER_WRITE_TIMEOUT=30s
 SERVER_IDLE_TIMEOUT=120s
 SERVER_TLS_CERT_PATH=
 SERVER_TLS_KEY_PATH=
+SERVER_TLS_CLIENT_CA_PATH=
 # Client settings
 CLIENT_MAX_IDLE_CONNS=20
 CLIENT_MAX_IDLE_CONNS_PER_HOST=20
@@ -620,6 +654,9 @@ CLIENT_TLS_MIN_VERSION=TLS12
 CLIENT_DISABLE_COMPRESSION=true
 CLIENT_RESPONSE_HEADER_TIMEOUT=10s
 CLIENT_EXPECT_CONTINUE_TIMEOUT=1s
+CLIENT_TLS_CA_PATH=
+CLIENT_TLS_CERT_PATH=
+CLIENT_TLS_KEY_PATH=
 # Routing
 ROUTING_ENABLED=false
 ROUTING_CONFIG_PATH=
