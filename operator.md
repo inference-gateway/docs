@@ -27,14 +27,16 @@ The operator also requires the Kubernetes Gateway API standard-channel CRDs - ev
 kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.5.1/standard-install.yaml
 ```
 
+Apply the manifests server-side. `spec.pod.containers` embeds the Kubernetes container and volume schemas, so each CRD is larger than the 256 KB a client-side `kubectl apply` can store in its `last-applied-configuration` annotation - a client-side apply fails with `metadata.annotations: Too long`. Add `--force-conflicts` when upgrading an installation that was made client-side.
+
 ```bash
-kubectl apply -f https://github.com/inference-gateway/operator/releases/latest/download/install.yaml
+kubectl apply --server-side -f https://github.com/inference-gateway/operator/releases/latest/download/install.yaml
 ```
 
 For production, pin to a release rather than `latest` (the current release is `v0.27.0`):
 
 ```bash
-kubectl apply -f https://github.com/inference-gateway/operator/releases/download/v0.27.0/install.yaml
+kubectl apply --server-side -f https://github.com/inference-gateway/operator/releases/download/v0.27.0/install.yaml
 ```
 
 ### GitOps
@@ -62,9 +64,10 @@ spec:
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
+      - ServerSideApply=true
 ```
 
-The equivalent Flux source:
+The equivalent Flux source - Flux applies server-side already, so it needs no extra option:
 
 ```yaml
 apiVersion: source.toolkit.fluxcd.io/v1
@@ -142,29 +145,29 @@ The `Gateway`, `Agent`, `MCP` and `GPU` examples on this page assume their names
 
 Deploys the gateway proxy. Source: [`api/v1alpha1/gateway_types.go`](https://github.com/inference-gateway/operator/blob/main/api/v1alpha1/gateway_types.go).
 
-| Field                                                                              | Description                                                                                                                                                                                |
-| ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `replicas`                                                                         | Pod count (1-100, default `1`).                                                                                                                                                            |
-| `image`                                                                            | Container image, default `ghcr.io/inference-gateway/inference-gateway:latest`.                                                                                                             |
-| `environment`                                                                      | One of `development`, `staging`, `production` (default `production`).                                                                                                                      |
-| `server.port` / `server.host` / `server.timeouts` / `server.tls`                   | HTTP server settings. See [Gateway Server (`spec.server`)](#gateway-server-spec-server).                                                                                                   |
-| `client.tls.{caRef,certificateRef,keyRef}`                                         | TLS material for outbound provider calls. See [Mutual TLS (`clientCARef` and `spec.client.tls`)](#mutual-tls-clientcaref-and-spec-client-tls).                                             |
-| `auth.enabled` / `auth.provider` / `auth.oidc`                                     | Authentication. `provider` is `oidc`, `jwt`, or `basic`. See [Authentication (OIDC)](#authentication-oidc).                                                                                |
-| `providers[]`                                                                      | Each item: `name`, `enabled`, and an `env` list of `corev1.EnvVar`. Provider keys are passed through unchanged.                                                                            |
-| `telemetry.enabled` / `telemetry.metrics.{enabled,port}`                           | OpenTelemetry metrics. `metrics.port` configures the gateway process - see [Gateway Server (`spec.server`)](#gateway-server-spec-server).                                                  |
-| `telemetry.traces.exporter.otlp.endpoint`                                          | Tracing. With `telemetry.enabled: true`, it sets `TELEMETRY_TRACING_ENABLED=true` and `TELEMETRY_TRACING_OTLP_ENDPOINT` on the gateway container.                                          |
-| `mcp.enabled` / `mcp.expose` / `mcp.resourceUrl` / `mcp.toolMode` / `mcp.timeouts` | MCP client configuration. See [MCP Servers (`spec.mcp`)](#mcp-servers-spec-mcp).                                                                                                           |
-| `mcp.servers[]` / `mcp.serviceDiscovery`                                           | Static MCP servers (`name`, `url`, `healthCheck`) and discovery of `MCP` CRs by label selector. Both feed `MCP_SERVERS`.                                                                   |
-| `a2a.enabled` / `a2a.resourceUrl` / `a2a.timeouts` / `a2a.cardRefreshInterval`     | Turn the gateway into an A2A server. See [A2A Agents (`spec.a2a`)](#a2a-agents-spec-a2a).                                                                                                  |
-| `a2a.agents[]` / `a2a.serviceDiscovery`                                            | Static agents (`name`, `url`) and discovery of `Agent` CRs by label selector. Both feed `A2A_AGENTS`.                                                                                      |
-| `service.{type,port,annotations}`                                                  | Kubernetes Service for the gateway. See [Gateway Service (`spec.service`)](#gateway-service-spec-service).                                                                                 |
-| `routing.{enabled,config,configMapRef}`                                            | Gateway-native round-robin model routing (`ROUTING_ENABLED` / `ROUTING_CONFIG_PATH`). Distinct from `gatewayAPI`. See [Model Routing](#model-routing).                                     |
-| `gatewayAPI.{enabled,gateway,httpRoute}`                                           | North-south traffic via the Kubernetes Gateway API (`gateway.networking.k8s.io`). Successor to the removed `ingress` field. See [Routing (Gateway API)](#routing-gateway-api).             |
-| `hpa.{enabled,config}`                                                             | Wraps a `HorizontalPodAutoscalerSpec`. See the [Kubernetes HPA docs](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/) for the `metrics[]` and `behavior` shape. |
-| `guardrails.{enabled,failMode,externalUrl,externalTimeout,configMapRef}`           | OPA/Rego policy enforcement. See [Guardrails (`spec.guardrails`)](#guardrails-spec-guardrails).                                                                                            |
-| `serviceAccount.{create,name}`                                                     | Pod service account.                                                                                                                                                                       |
-| `resources.requests` / `resources.limits`                                          | CPU and memory.                                                                                                                                                                            |
-| `pod.{labels,annotations,nodeSelector,tolerations,affinity}`                       | Shapes the pods the operator creates. See [Pod customization (`spec.pod`)](#pod-customization-spec-pod).                                                                                   |
+| Field                                                                                          | Description                                                                                                                                                                                |
+| ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `replicas`                                                                                     | Pod count (1-100, default `1`).                                                                                                                                                            |
+| `image`                                                                                        | Container image, default `ghcr.io/inference-gateway/inference-gateway:latest`.                                                                                                             |
+| `environment`                                                                                  | One of `development`, `staging`, `production` (default `production`).                                                                                                                      |
+| `server.port` / `server.host` / `server.timeouts` / `server.tls`                               | HTTP server settings. See [Gateway Server (`spec.server`)](#gateway-server-spec-server).                                                                                                   |
+| `client.tls.{caRef,certificateRef,keyRef}`                                                     | TLS material for outbound provider calls. See [Mutual TLS (`clientCARef` and `spec.client.tls`)](#mutual-tls-clientcaref-and-spec-client-tls).                                             |
+| `auth.enabled` / `auth.provider` / `auth.oidc`                                                 | Authentication. `provider` is `oidc`, `jwt`, or `basic`. See [Authentication (OIDC)](#authentication-oidc).                                                                                |
+| `providers[]`                                                                                  | Each item: `name`, `enabled`, and an `env` list of `corev1.EnvVar`. Provider keys are passed through unchanged.                                                                            |
+| `telemetry.enabled` / `telemetry.metrics.{enabled,port}`                                       | OpenTelemetry metrics. `metrics.port` configures the gateway process - see [Gateway Server (`spec.server`)](#gateway-server-spec-server).                                                  |
+| `telemetry.traces.exporter.otlp.endpoint`                                                      | Tracing. With `telemetry.enabled: true`, it sets `TELEMETRY_TRACING_ENABLED=true` and `TELEMETRY_TRACING_OTLP_ENDPOINT` on the gateway container.                                          |
+| `mcp.enabled` / `mcp.expose` / `mcp.resourceUrl` / `mcp.toolMode` / `mcp.timeouts`             | MCP client configuration. See [MCP Servers (`spec.mcp`)](#mcp-servers-spec-mcp).                                                                                                           |
+| `mcp.servers[]` / `mcp.serviceDiscovery`                                                       | Static MCP servers (`name`, `url`, `healthCheck`) and discovery of `MCP` CRs by label selector. Both feed `MCP_SERVERS`.                                                                   |
+| `a2a.enabled` / `a2a.resourceUrl` / `a2a.timeouts` / `a2a.cardRefreshInterval`                 | Turn the gateway into an A2A server. See [A2A Agents (`spec.a2a`)](#a2a-agents-spec-a2a).                                                                                                  |
+| `a2a.agents[]` / `a2a.serviceDiscovery`                                                        | Static agents (`name`, `url`) and discovery of `Agent` CRs by label selector. Both feed `A2A_AGENTS`.                                                                                      |
+| `service.{type,port,annotations}`                                                              | Kubernetes Service for the gateway. See [Gateway Service (`spec.service`)](#gateway-service-spec-service).                                                                                 |
+| `routing.{enabled,config,configMapRef}`                                                        | Gateway-native round-robin model routing (`ROUTING_ENABLED` / `ROUTING_CONFIG_PATH`). Distinct from `gatewayAPI`. See [Model Routing](#model-routing).                                     |
+| `gatewayAPI.{enabled,gateway,httpRoute}`                                                       | North-south traffic via the Kubernetes Gateway API (`gateway.networking.k8s.io`). Successor to the removed `ingress` field. See [Routing (Gateway API)](#routing-gateway-api).             |
+| `hpa.{enabled,config}`                                                                         | Wraps a `HorizontalPodAutoscalerSpec`. See the [Kubernetes HPA docs](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/) for the `metrics[]` and `behavior` shape. |
+| `guardrails.{enabled,failMode,externalUrl,externalTimeout,configMapRef}`                       | OPA/Rego policy enforcement. See [Guardrails (`spec.guardrails`)](#guardrails-spec-guardrails).                                                                                            |
+| `serviceAccount.{create,name}`                                                                 | Pod service account.                                                                                                                                                                       |
+| `resources.requests` / `resources.limits`                                                      | CPU and memory.                                                                                                                                                                            |
+| `pod.{labels,annotations,containers,initContainers,volumes,nodeSelector,tolerations,affinity}` | Shapes the pods the operator creates. See [Pod customization (`spec.pod`)](#pod-customization-spec-pod).                                                                                   |
 
 Provider env vars referenced via Secrets follow the standard `valueFrom.secretKeyRef` pattern - see [Configuration](/configuration/) for the full list of variables each provider accepts.
 
@@ -366,7 +369,7 @@ Deploys an A2A worker. Agents are dispatched to by an `Orchestrator`, by a `Gate
 | `agent.llm.apiKeySecretRef`                                                                              | `corev1.SecretKeySelector` for the LLM API key.                                                                        |
 | `queue.{enabled,maxSize,cleanupInterval}`                                                                | Optional task queue.                                                                                                   |
 | `env[]`                                                                                                  | Additional pod env vars.                                                                                               |
-| `pod.{labels,annotations,nodeSelector,tolerations,affinity}`                                             | Shapes the pods the operator creates. See [Pod customization (`spec.pod`)](#pod-customization-spec-pod).               |
+| `pod.{labels,annotations,containers,initContainers,volumes,nodeSelector,tolerations,affinity}`           | Shapes the pods the operator creates. See [Pod customization (`spec.pod`)](#pod-customization-spec-pod).               |
 
 The operator publishes the agent's discovered capabilities into `status.card`, which the orchestrator and [`Gateway.spec.a2a.serviceDiscovery`](#a2a-agents-spec-a2a) consume through service discovery.
 
@@ -376,16 +379,16 @@ The operator publishes the agent's discovered capabilities into `status.card`, w
 
 Deploys a Model Context Protocol server. Source: [`api/v1alpha1/mcp_types.go`](https://github.com/inference-gateway/operator/blob/main/api/v1alpha1/mcp_types.go). See [MCP Integration](/mcp/) for protocol background.
 
-| Field                                                        | Description                                                                                              |
-| ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
-| `replicas`                                                   | Pod count (default `1`).                                                                                 |
-| `image`                                                      | Container image, default `node:lts`.                                                                     |
-| `server.port`                                                | Listen port (default `8080`).                                                                            |
-| `server.command` / `server.args`                             | Override the container command.                                                                          |
-| `server.timeout`                                             | Request timeout (default `30s`).                                                                         |
-| `server.tls.{enabled,secretName}`                            | TLS cert from a Secret. `secretName` is required when TLS is enabled.                                    |
-| `hpa.{enabled,config}`                                       | Same shape as `Gateway.hpa`.                                                                             |
-| `pod.{labels,annotations,nodeSelector,tolerations,affinity}` | Shapes the pods the operator creates. See [Pod customization (`spec.pod`)](#pod-customization-spec-pod). |
+| Field                                                                                          | Description                                                                                              |
+| ---------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `replicas`                                                                                     | Pod count (default `1`).                                                                                 |
+| `image`                                                                                        | Container image, default `node:lts`.                                                                     |
+| `server.port`                                                                                  | Listen port (default `8080`).                                                                            |
+| `server.command` / `server.args`                                                               | Override the container command.                                                                          |
+| `server.timeout`                                                                               | Request timeout (default `30s`).                                                                         |
+| `server.tls.{enabled,secretName}`                                                              | TLS cert from a Secret. `secretName` is required when TLS is enabled.                                    |
+| `hpa.{enabled,config}`                                                                         | Same shape as `Gateway.hpa`.                                                                             |
+| `pod.{labels,annotations,containers,initContainers,volumes,nodeSelector,tolerations,affinity}` | Shapes the pods the operator creates. See [Pod customization (`spec.pod`)](#pod-customization-spec-pod). |
 
 `metadata.name` doubles as the server's alias when a `Gateway` picks the CR up through [`spec.mcp.serviceDiscovery`](#mcp-servers-spec-mcp), so keep it short and matching `^[a-z0-9_-]+$` - an `MCP` named `time` exposes its tools as <code v-pre>mcp_time_&lt;tool&gt;</code>.
 
@@ -511,15 +514,18 @@ For a complete runnable example, see [`examples/gpu/`](https://github.com/infere
 
 ## Pod customization (`spec.pod`)
 
-`Gateway`, `Agent` and `MCP` share a `spec.pod` block that shapes the pods their controllers create. The labels and annotations opt the pods into a sidecar injector (Istio, Linkerd, NetBird), and the three scheduling fields pass through to the pod spec unchanged. `Orchestrator` and `GPU` do not have this block.
+`Gateway`, `Agent` and `MCP` share a `spec.pod` block that shapes the pods their controllers create. The labels and annotations opt the pods into a sidecar injector (Istio, Linkerd, NetBird), the container and volume fields add sidecars where there is no injector, and the three scheduling fields pass through to the pod spec unchanged. `Orchestrator` and `GPU` do not have this block.
 
-| Field          | Type                  | Description                                                                                                               |
-| -------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `labels`       | `map[string]string`   | Added to the pod template, for example to opt into a sidecar injector. Operator-owned labels take precedence - see below. |
-| `annotations`  | `map[string]string`   | Added to the pod template, for example `sidecar.istio.io/inject` or `linkerd.io/inject`.                                  |
-| `nodeSelector` | `map[string]string`   | Pins the pods to nodes carrying these labels.                                                                             |
-| `tolerations`  | `[]corev1.Toleration` | Allows the pods onto tainted nodes, for example a GPU pool.                                                               |
-| `affinity`     | `corev1.Affinity`     | Constrains or spreads the pods across nodes. Standard node, pod and anti-affinity shape.                                  |
+| Field            | Type                  | Description                                                                                                               |
+| ---------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `labels`         | `map[string]string`   | Added to the pod template, for example to opt into a sidecar injector. Operator-owned labels take precedence - see below. |
+| `annotations`    | `map[string]string`   | Added to the pod template, for example `sidecar.istio.io/inject` or `linkerd.io/inject`.                                  |
+| `nodeSelector`   | `map[string]string`   | Pins the pods to nodes carrying these labels.                                                                             |
+| `tolerations`    | `[]corev1.Toleration` | Allows the pods onto tainted nodes, for example a GPU pool.                                                               |
+| `affinity`       | `corev1.Affinity`     | Constrains or spreads the pods across nodes. Standard node, pod and anti-affinity shape.                                  |
+| `containers`     | `[]corev1.Container`  | Sidecar containers appended after the operator's own container. Standard Kubernetes container shape.                      |
+| `initContainers` | `[]corev1.Container`  | Init containers that run before the operator's container, or alongside it with `restartPolicy: Always`.                   |
+| `volumes`        | `[]corev1.Volume`     | Volumes added to the pod so the extra containers can mount them.                                                          |
 
 ```yaml
 apiVersion: core.inference-gateway.com/v1alpha1
@@ -574,6 +580,43 @@ spec:
 ```
 
 Operator-owned pod labels win over `spec.pod.labels`: when a key such as `app` is already on the pod template, the controller keeps its own value and discards yours. That keeps the Deployment selector matching its pods, so `app: <name>` cannot be repurposed - pick a different key for mesh and scheduling labels. The scheduling fields have no such conflict and replace whatever the template carried.
+
+### Sidecar containers and volumes
+
+When no injector will do it for you - a VPN or proxy sidecar such as Tailscale against a Headscale control plane - `containers`, `initContainers` and `volumes` put the sidecar in the pod spec itself:
+
+```yaml
+apiVersion: core.inference-gateway.com/v1alpha1
+kind: Gateway
+metadata:
+  name: my-gateway
+  namespace: inference-gateway
+spec:
+  pod:
+    containers:
+      - name: tailscale
+        image: tailscale/tailscale:v1.104.4
+        env:
+          - name: TS_AUTHKEY
+            valueFrom:
+              secretKeyRef:
+                name: tailnet-key-gateway
+                key: authkey
+        securityContext:
+          privileged: true
+        volumeMounts:
+          - name: tailnet-ca
+            mountPath: /etc/tailnet-ca
+            readOnly: true
+    volumes:
+      - name: tailnet-ca
+        configMap:
+          name: tailnet-ca
+```
+
+The operator's own container stays first and unchanged, and your `containers` are appended after it. `initContainers` run before it, or alongside it when they set `restartPolicy: Always` (a native Kubernetes sidecar).
+
+Names must not collide with the ones the operator owns - the workload container (`inference-gateway`, `agent` or `mcp`) and the TLS and ConfigMap volumes it mounts. A collision fails reconciliation with an error naming the field and the name, for example `spec.pod.volumes: "tls-certs" is already used by the operator`. Nothing is rolled out - the existing Deployment is left alone and the error shows up in the operator logs.
 
 ## Authentication (OIDC)
 
