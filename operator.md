@@ -410,6 +410,8 @@ The Deployment is forced to a singleton (`replicas: 1`, `strategy: Recreate`) be
 | `gateway.apiKeySecretRef`                                                      | Optional API key for the gateway.                                                                                                                                                           |
 | `agent.model`                                                                  | Required `provider/model` for the orchestrating LLM.                                                                                                                                        |
 | `agent.systemPrompt`                                                           | Optional system prompt.                                                                                                                                                                     |
+| `daemon.binding.{port,tokenSecretRef,tls}`                                     | Expose the daemon's AG-UI binding over a `<name>-binding` Service. See [Serving devices over the AG-UI binding](#serving-devices-over-the-ag-ui-binding).                                   |
+| `daemon.binding.service.annotations` / `daemon.binding.service.labels`         | Maps copied verbatim onto the `<name>-binding` Service for other controllers to act on. See [Binding Service metadata](#binding-service-metadata).                                          |
 | `tools.enabled` / `tools.schedule`                                             | Built-in CLI tools (incl. scheduling).                                                                                                                                                      |
 | `a2a.enabled`                                                                  | Toggle the CLI daemon's own A2A client, so the orchestrating LLM can delegate to agents. Separate from [`Gateway.spec.a2a`](#a2a-agents-spec-a2a), which makes the gateway an A2A server.   |
 | `a2a.agents[]`                                                                 | Static agent URLs - plain strings here, unlike [`Gateway.spec.a2a.agents[]`](#a2a-agents-spec-a2a), which takes `{name, url}` objects.                                                      |
@@ -436,6 +438,55 @@ With `ref` the operator derives the daemon's gateway URL from that `Gateway`'s S
 - Resuming an `Orchestrator` (`operatingMode: Running`) scales its `Gateway` back up right away, because the `Gateway` controller watches the `Orchestrator`s that reference it.
 - A `Gateway` no `Orchestrator` references keeps its own `spec.replicas` and HPA behavior.
 - An `Orchestrator` whose `ref` names no `Gateway` reports `Ready=False` with reason `GatewayNotFound`.
+
+#### Serving devices over the AG-UI binding
+
+`spec.daemon.binding` turns on the daemon's [AG-UI binding](/cli/#starting-the-daemon), the WebSocket the chat TUI, the [browser extension](/opentask/) and other daemons sync sessions over. The binding listens on every interface, so it always serves TLS from `tls.secretName` (`tls.crt` and `tls.key`, plus `ca.crt` when `tls.clientAuth` is `true`). Clients authenticate with the token from `tokenSecretRef`, a client certificate, or both, and the API rejects a binding with neither. The controller adds a `<name>-binding` Service on the binding port (default `52789`) and holds the pod back from Ready until the binding listens.
+
+```yaml
+apiVersion: core.inference-gateway.com/v1alpha1
+kind: Orchestrator
+metadata:
+  name: daemon
+  namespace: orchestrators
+spec:
+  image: ghcr.io/inference-gateway/cli:latest
+  daemon:
+    binding:
+      tokenSecretRef:
+        name: daemon-binding
+        key: token
+      tls:
+        secretName: daemon-binding-tls
+  gateway:
+    url: http://inference-gateway.inference-gateway.svc.cluster.local:8080
+  agent:
+    model: deepseek/deepseek-v4-pro
+```
+
+The certificate must name the host clients dial, `daemon-binding.orchestrators.svc` inside the cluster or `localhost` through `kubectl port-forward -n orchestrators svc/daemon-binding 52789`.
+
+##### Binding Service metadata
+
+`spec.daemon.binding.service.annotations` and `spec.daemon.binding.service.labels` are copied verbatim onto the `<name>-binding` Service, so another controller can act on it: a VPN operator such as Tailscale, external-dns, or a service mesh.
+
+```yaml
+spec:
+  daemon:
+    binding:
+      service:
+        annotations:
+          tailscale.com/expose: 'true'
+        labels:
+          tier: edge
+      tokenSecretRef:
+        name: daemon-binding
+        key: token
+      tls:
+        secretName: daemon-binding-tls
+```
+
+The operator ships no VPN-specific keys of its own, these maps are the only source of that metadata. Keys you did not set are left untouched, so annotations and labels other controllers add to the Service survive a reconcile.
 
 #### Custom orchestrator images
 
