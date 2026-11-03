@@ -1,6 +1,6 @@
 ---
 title: TypeScript ADK
-description: Build A2A-compatible agents in TypeScript with the @inference-gateway/adk package. Handler registration, blocking JSON-RPC SendMessage with returnImmediately, historyLength, respondToMessage direct replies and taskId resume, SendStreamingMessage, SubscribeToTask resubscription, agent card ETag / Last-Modified caching, GetTask, ListTasks, CancelTask with TaskCancellationRegistry, GetExtendedAgentCard with the extended-card vs. public-card discovery convention (capabilities.extendedAgentCard), withAuthConfig auto-registration, OIDC auth gating with -32001 envelope, SSE event sequence, CloudEvents v1.0 envelopes, STREAMING_STATUS_UPDATE_INTERVAL, DefaultBackgroundTaskHandler agentic loop with tool dispatch and usage metadata, MAX_CHAT_COMPLETION_ITERATIONS cap, reserved input_required tool, AgentBuilder fluent wiring for OpenAICompatibleAgent with Go-parity defaults, lifecycle callbacks (beforeAgent / afterAgent / beforeModel / afterModel / beforeTool / afterTool) with CallbackContext, short-circuit and chain semantics, sync vs. async, error propagation, caching and guardrail patterns, HTTPPushNotificationSender webhook delivery primitive with the A2A StreamResponse wire payload on application/a2a+json, sendTaskUpdate one-shot and deliverTaskUpdate fan-out helpers, exponential-backoff retry config, bearer / basic auth resolution, and per-task taskPushNotificationConfig on SendMessageConfiguration, the -32003 PushNotificationNotSupportedError capability gate on the TaskPushNotificationConfig methods with createPushNotificationNotSupportedHandler, artifact service with filesystem and MinIO/S3 storage backends and the registerArtifactsRoute download route, OpenTelemetry tracing via TelemetryProvider with OTLP spans, Prometheus metrics with a standalone /metrics server and request middleware, TLS and mutual-TLS server/client configuration, validation contract, id semantics, cancellation, the full environment-variable reference (build metadata, AUTH_*, A2A_MCP_*, logging, task retention, handler knobs, Redis) and runtime dependency breakdown, and runnable client samples.
+description: Build A2A-compatible agents in TypeScript with the @inference-gateway/adk package. Handler registration, blocking JSON-RPC SendMessage with returnImmediately, historyLength, respondToMessage direct replies and taskId resume, SendStreamingMessage, SubscribeToTask resubscription, agent card ETag / Last-Modified caching, GetTask, ListTasks, CancelTask with TaskCancellationRegistry, GetExtendedAgentCard with the extended-card vs. public-card discovery convention (capabilities.extendedAgentCard), withAuthConfig auto-registration, OIDC auth gating with -32001 envelope, SSE event sequence, CloudEvents v1.0 envelopes, STREAMING_STATUS_UPDATE_INTERVAL, DefaultBackgroundTaskHandler agentic loop with tool dispatch and usage metadata, MAX_CHAT_COMPLETION_ITERATIONS cap, reserved input_required tool, AgentBuilder fluent wiring for OpenAICompatibleAgent with Go-parity defaults, lifecycle callbacks (beforeAgent / afterAgent / beforeModel / afterModel / beforeTool / afterTool) with CallbackContext, short-circuit and chain semantics, sync vs. async, error propagation, caching and guardrail patterns, HTTPPushNotificationSender webhook delivery primitive with the A2A StreamResponse wire payload on application/a2a+json, sendTaskUpdate one-shot and deliverTaskUpdate fan-out helpers, exponential-backoff retry config, bearer / basic auth resolution, and per-task taskPushNotificationConfig on SendMessageConfiguration, the -32003 PushNotificationNotSupportedError capability gate on the TaskPushNotificationConfig methods with createPushNotificationNotSupportedHandler, artifact service with filesystem and S3 storage backends and the registerArtifactsRoute download route, OpenTelemetry tracing via TelemetryProvider with OTLP spans, Prometheus metrics with a standalone /metrics server and request middleware, TLS and mutual-TLS server/client configuration, validation contract, id semantics, cancellation, the full environment-variable reference (build metadata, AUTH_*, A2A_MCP_*, logging, task retention, handler knobs, Redis) and runtime dependency breakdown, and runnable client samples.
 ---
 
 # TypeScript ADK
@@ -39,7 +39,7 @@ The ADK currently exposes the HTTP server core and the first A2A JSON-RPC method
 | `A2AServerBuilder`                          | Available | Fluent server builder; validates that the agent card's capabilities match the handlers.                           |
 | `createGetAuthenticatedExtendedCardHandler` | Available | Synchronous `GetExtendedAgentCard` handler; returns the configured extended card.                                 |
 | `HTTPPushNotificationSender`                | Available | HTTP webhook delivery primitive posting A2A `StreamResponse` payloads, with retry / auth / fan-out helpers.       |
-| `ArtifactService` + storage backends        | Available | Build text/file/data artifacts; persist via filesystem, MinIO/S3, or in-memory storage.                           |
+| `ArtifactService` + storage backends        | Available | Build text/file/data artifacts; persist via filesystem, S3, or in-memory storage.                                 |
 | `registerArtifactsRoute`                    | Available | `GET /artifacts/:artifactId/:filename` download route; auto-mounted by `createA2AServer({ artifactStorage })`.    |
 | `TelemetryProvider`                         | Available | OpenTelemetry tracing; emits `adk.jsonrpc.request` server spans plus `tool.<name>` tool spans over OTLP.          |
 | `MetricsRegistry` / `MetricsServer`         | Available | Prometheus `a2a_*` metrics via a standalone `/metrics` server plus a request middleware.                          |
@@ -55,7 +55,7 @@ Boolean variables accept `1` / `true` / `yes` / `on` (trimmed, case-insensitive)
 
 ### Runtime dependencies
 
-The package ships **22 runtime dependencies**. `hono` and `@hono/node-server` are the HTTP core, and the rest back opt-in subsystems: the OpenTelemetry SDK, exporters, resources and semantic conventions for tracing and metrics, `prom-client` for the Prometheus endpoint, `pino` and `pino-pretty` for logging, `jose` for OIDC token verification, `ajv` for tool-schema validation, `@modelcontextprotocol/sdk` for the MCP bridge, `@aws-sdk/client-s3` and `@aws-sdk/s3-request-presigner` for the MinIO/S3 artifact backend, and `@inference-gateway/sdk` for LLM calls. Importing only the server core still installs all of them, but the ones you never wire up stay unloaded at runtime.
+The package ships **22 runtime dependencies**. `hono` and `@hono/node-server` are the HTTP core, and the rest back opt-in subsystems: the OpenTelemetry SDK, exporters, resources and semantic conventions for tracing and metrics, `prom-client` for the Prometheus endpoint, `pino` and `pino-pretty` for logging, `jose` for OIDC token verification, `ajv` for tool-schema validation, `@modelcontextprotocol/sdk` for the MCP bridge, `@aws-sdk/client-s3` and `@aws-sdk/s3-request-presigner` for the S3 artifact backend, and `@inference-gateway/sdk` for LLM calls. Importing only the server core still installs all of them, but the ones you never wire up stay unloaded at runtime.
 
 `ioredis` is the one exception: it is an **optional peer dependency**, installed by you only when you use [`RedisTaskStorage`](#redis-task-storage).
 
@@ -141,7 +141,7 @@ When `AUTH_ENABLED` is truthy and any of the other three is empty, the authentic
 - **Metrics server** - `METRICS_ENABLED` / `METRICS_HOST` / `METRICS_PORT` / `METRICS_PATH` and the three timeout variables, in [`MetricsConfig` and environment variables](#metricsconfig-and-environment-variables).
 - **Telemetry** - `TELEMETRY_ENABLED` and the standard `OTEL_*` variables, in [`TelemetryConfig` and environment variables](#telemetryconfig-and-environment-variables).
 - **TLS** - `TLS_*` for the server in [TLS server](#tls-server) and `CLIENT_TLS_*` for the outbound client in [TLS client](#tls-client).
-- **Artifacts** - `ARTIFACTS_*` and `MINIO_*`, in [Artifact environment variables](#artifact-environment-variables).
+- **Artifacts** - `ARTIFACTS_*` and `S3_*`, in [Artifact environment variables](#artifact-environment-variables).
 
 ## The `SendMessage` JSON-RPC method
 
@@ -3020,7 +3020,7 @@ taskEventBus.on('TASK_STATUS_CHANGED', (task) => {
 Artifacts are the A2A mechanism for attaching produced files, text, or structured data to a task. The ADK splits the concern in two:
 
 - An **`ArtifactService`** builds wire-format `Artifact` objects (text / file / data / multi-part) and, for file artifacts, streams the bytes into a storage backend.
-- An **`ArtifactStorageProvider`** persists and retrieves those bytes. Three backends ship: `InMemoryArtifactStorage`, `FilesystemArtifactStorage`, and `MinioArtifactStorage` (S3-compatible).
+- An **`ArtifactStorageProvider`** persists and retrieves those bytes. Three backends ship: `InMemoryArtifactStorage`, `FilesystemArtifactStorage`, and `S3ArtifactStorage` (S3-compatible).
 
 When a storage backend is wired into the server, `registerArtifactsRoute` exposes a download endpoint so clients can fetch an artifact by id. Everything below is exported from `@inference-gateway/adk`.
 
@@ -3039,7 +3039,7 @@ const artifacts = new DefaultArtifactService({ storage });
 
 | Option        | Required | Default             | Description                                                                 |
 | ------------- | -------- | ------------------- | --------------------------------------------------------------------------- |
-| `storage`     | Yes      | -                   | An `ArtifactStorageProvider` (filesystem, MinIO, in-memory, or custom).     |
+| `storage`     | Yes      | -                   | An `ArtifactStorageProvider` (filesystem, S3, in-memory, or custom).        |
 | `idGenerator` | No       | `crypto.randomUUID` | Mints each artifact's `artifactId`. Client-supplied ids are never honoured. |
 
 The service surface:
@@ -3068,7 +3068,7 @@ All three backends implement the same `ArtifactStorageProvider` interface (`stor
 | --------------------------- | ----------------------------------------------------------------------------------------- |
 | `InMemoryArtifactStorage`   | Tests and ephemeral demos. Bytes live in process memory and are not externally fetchable. |
 | `FilesystemArtifactStorage` | Single-node deployments. Writes `<root>/<artifactId>/<filename>` plus a metadata sidecar. |
-| `MinioArtifactStorage`      | Production / multi-node. Backed by the AWS S3 SDK; works against any S3-compatible store. |
+| `S3ArtifactStorage`         | Production / multi-node. Backed by the AWS S3 SDK; works against any S3-compatible store. |
 
 **`FilesystemArtifactStorage(options)`** writes each artifact to `<root>/<artifactId>/<filename>` (mode `0600`) alongside a `<filename>.adk-meta.json` sidecar holding the content type and upload timestamp:
 
@@ -3079,18 +3079,18 @@ All three backends implement the same `ArtifactStorageProvider` interface (`stor
 | `artifactIdPattern`          | No       | `/^[A-Za-z0-9_-]{1,255}$/` | Allowed `artifactId` shape. Guards against path traversal.                                                 |
 | `directoryMode` / `fileMode` | No       | `0o700` / `0o600`          | POSIX modes for created directories / files.                                                               |
 
-**`MinioArtifactStorage(options)`** speaks the S3 API. Note the credentials are a **nested object** (there are no flat `accessKey` / `secretKey` / `port` / `useSSL` options - the scheme and port live in `endpoint`):
+**`S3ArtifactStorage(options)`** speaks the S3 API. Note the credentials are a **nested object** (there are no flat `accessKey` / `secretKey` / `port` / `useSSL` options - the scheme and port live in `endpoint`):
 
 | Option                 | Required | Default                       | Description                                                                                                                              |
 | ---------------------- | -------- | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `bucket`               | Yes      | -                             | Target bucket. Must already exist (no auto-create).                                                                                      |
+| `bucket`               | Yes      | -                             | Target bucket. Created automatically when it is missing (mirrors the Go and Rust ADKs).                                                  |
 | `endpoint`             | No       | AWS default                   | e.g. `http://localhost:9000` for a self-hosted store. Omit to hit native AWS S3.                                                         |
 | `region`               | No       | `us-east-1`                   | S3 region.                                                                                                                               |
 | `credentials`          | No       | SDK default chain             | `{ accessKeyId, secretAccessKey, sessionToken? }`. Omit to use the SDK's default credential chain.                                       |
 | `forcePathStyle`       | No       | `true` when `endpoint` is set | Path-style addressing (required by most self-hosted S3 servers).                                                                         |
 | `prefix`               | No       | none                          | Key prefix for stored objects.                                                                                                           |
 | `mode`                 | No       | `direct`                      | `direct` returns a presigned GET URL from `store()`; `proxy` returns a `baseUrl` URL streamed back through the server's artifacts route. |
-| `baseUrl`              | No       | `minio://<bucket>`            | URL prefix used in `proxy` mode.                                                                                                         |
+| `baseUrl`              | No       | `s3://<bucket>`               | URL prefix used in `proxy` mode.                                                                                                         |
 | `presignExpirySeconds` | No       | `300`                         | Lifetime of presigned URLs in `direct` mode.                                                                                             |
 
 ### Serving artifacts over HTTP (`registerArtifactsRoute`)
@@ -3152,22 +3152,18 @@ Full sources: [`examples/artifacts-filesystem`](https://github.com/inference-gat
 
 ### S3-compatible storage
 
-Swap the backend for `MinioArtifactStorage` - it is built on `@aws-sdk/client-s3`, so it works against any S3-compatible store ([RustFS](https://github.com/rustfs/rustfs), MinIO, native AWS S3) and the class name is historical. The service and route wiring are identical:
+Swap the backend for `S3ArtifactStorage` - it is built on `@aws-sdk/client-s3`, so it works against any S3-compatible store ([RustFS](https://github.com/rustfs/rustfs), MinIO, native AWS S3). The service and route wiring are identical:
 
 ```ts
-import {
-  DefaultArtifactService,
-  MinioArtifactStorage,
-  createA2AServer,
-} from '@inference-gateway/adk';
+import { DefaultArtifactService, S3ArtifactStorage, createA2AServer } from '@inference-gateway/adk';
 
-const storage = new MinioArtifactStorage({
-  bucket: process.env['MINIO_BUCKET'] ?? 'artifacts',
-  endpoint: process.env['MINIO_ENDPOINT'] ?? 'http://127.0.0.1:9000',
-  region: process.env['MINIO_REGION'] ?? 'us-east-1',
+const storage = new S3ArtifactStorage({
+  bucket: process.env['S3_BUCKET'] ?? 'artifacts',
+  endpoint: process.env['S3_ENDPOINT'] ?? 'http://127.0.0.1:9000',
+  region: process.env['S3_REGION'] ?? 'us-east-1',
   credentials: {
-    accessKeyId: process.env['MINIO_ACCESS_KEY'] ?? 'minioadmin',
-    secretAccessKey: process.env['MINIO_SECRET_KEY'] ?? 'minioadmin',
+    accessKeyId: process.env['S3_ACCESS_KEY'] ?? 'rustfsadmin',
+    secretAccessKey: process.env['S3_SECRET_KEY'] ?? 'rustfsadmin',
   },
   forcePathStyle: true,
   mode: 'direct', // presigned download URLs; use 'proxy' to stream through the server
@@ -3177,11 +3173,7 @@ const artifacts = new DefaultArtifactService({ storage });
 const server = createA2AServer({ card, artifactStorage: storage });
 ```
 
-The [`examples/artifacts-minio`](https://github.com/inference-gateway/typescript-adk/tree/main/examples/artifacts-minio) directory ships a `docker-compose.yml` that boots MinIO (ports `9000`/`9001`, `minioadmin`/`minioadmin`) and pre-creates the `artifacts` bucket.
-
-::: warning The example compose stack still runs `minio/minio`
-The `minio/minio` server image is archived upstream. For a new deployment point `endpoint` at a maintained S3-compatible server instead - the Go ADK's [`artifacts-s3` example](/adk/#s3-compatible-storage-with-rustfs) runs RustFS on the same port `9000` with the same `forcePathStyle: true` wiring, so only the endpoint and credentials change. `MinioArtifactStorage` does not auto-create its bucket, so create it out of band (the RustFS console, or any S3 client) exactly as the MinIO stack's init step does.
-:::
+The [`examples/artifacts-s3`](https://github.com/inference-gateway/typescript-adk/tree/main/examples/artifacts-s3) directory ships a `docker-compose.yml` that boots [RustFS](https://github.com/rustfs/rustfs) (S3 API on `9000`, web console on `9001`, `rustfsadmin`/`rustfsadmin`). The storage creates the `artifacts` bucket on first use when it is missing, so the compose stack needs no init container.
 
 ### Writing artifacts from a tool
 
@@ -3199,21 +3191,21 @@ When the LLM calls `create_artifact`, the handler runs `artifactService.createFi
 
 These are read by the example servers (not the library classes), and are the recommended convention for your own deployments:
 
-| Variable                                | Default                          | Used by                                                           |
-| --------------------------------------- | -------------------------------- | ----------------------------------------------------------------- |
-| `ARTIFACTS_ROOT`                        | OS temp dir                      | Filesystem backend root directory.                                |
-| `ARTIFACTS_BASE_URL`                    | `http://<host>:<port>/artifacts` | URL prefix emitted in `fileWithUri`.                              |
-| `MINIO_ENDPOINT`                        | `http://127.0.0.1:9000`          | S3-compatible endpoint (omit for native AWS S3).                  |
-| `MINIO_REGION`                          | `us-east-1`                      | S3 region.                                                        |
-| `MINIO_ACCESS_KEY` / `MINIO_SECRET_KEY` | `minioadmin` / `minioadmin`      | S3 credentials.                                                   |
-| `MINIO_BUCKET`                          | `artifacts`                      | Target bucket (must pre-exist).                                   |
-| `ARTIFACTS_MODE`                        | `direct`                         | `direct` (presigned URLs) or `proxy` (stream through the server). |
-| `ARTIFACTS_PRESIGN_EXPIRY`              | `300`                            | Presigned-URL lifetime in seconds (`direct` mode).                |
+| Variable                          | Default                          | Used by                                                           |
+| --------------------------------- | -------------------------------- | ----------------------------------------------------------------- |
+| `ARTIFACTS_ROOT`                  | OS temp dir                      | Filesystem backend root directory.                                |
+| `ARTIFACTS_BASE_URL`              | `http://<host>:<port>/artifacts` | URL prefix emitted in `fileWithUri`.                              |
+| `S3_ENDPOINT`                     | `http://127.0.0.1:9000`          | S3-compatible endpoint (omit for native AWS S3).                  |
+| `S3_REGION`                       | `us-east-1`                      | S3 region.                                                        |
+| `S3_ACCESS_KEY` / `S3_SECRET_KEY` | `rustfsadmin` / `rustfsadmin`    | S3 credentials.                                                   |
+| `S3_BUCKET`                       | `artifacts`                      | Target bucket (created automatically when missing).               |
+| `ARTIFACTS_MODE`                  | `direct`                         | `direct` (presigned URLs) or `proxy` (stream through the server). |
+| `ARTIFACTS_PRESIGN_EXPIRY`        | `300`                            | Presigned-URL lifetime in seconds (`direct` mode).                |
 
 ### Cross-reference
 
 - **TypeScript source.** [`src/artifacts/`](https://github.com/inference-gateway/typescript-adk/tree/main/src/artifacts) (service + storage backends) and [`src/server/artifacts-route.ts`](https://github.com/inference-gateway/typescript-adk/blob/main/src/server/artifacts-route.ts) (download route).
-- **Examples.** [`artifacts-filesystem`](https://github.com/inference-gateway/typescript-adk/tree/main/examples/artifacts-filesystem), [`artifacts-minio`](https://github.com/inference-gateway/typescript-adk/tree/main/examples/artifacts-minio), [`artifacts-autonomous-tool`](https://github.com/inference-gateway/typescript-adk/tree/main/examples/artifacts-autonomous-tool), [`artifacts-with-default-handlers`](https://github.com/inference-gateway/typescript-adk/tree/main/examples/artifacts-with-default-handlers).
+- **Examples.** [`artifacts-filesystem`](https://github.com/inference-gateway/typescript-adk/tree/main/examples/artifacts-filesystem), [`artifacts-s3`](https://github.com/inference-gateway/typescript-adk/tree/main/examples/artifacts-s3), [`artifacts-autonomous-tool`](https://github.com/inference-gateway/typescript-adk/tree/main/examples/artifacts-autonomous-tool), [`artifacts-with-default-handlers`](https://github.com/inference-gateway/typescript-adk/tree/main/examples/artifacts-with-default-handlers).
 
 ## OpenTelemetry tracing
 
