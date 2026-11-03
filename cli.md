@@ -1273,6 +1273,7 @@ workspaces:
     kind: local
   - name: k8s-dev
     kind: kubernetes
+    protocol: agui # agui (default) or a2a
     context: k3d-infer-workspaces
     namespace: infer-workspaces
     image: ghcr.io/inference-gateway/cli:latest
@@ -1285,6 +1286,12 @@ workspaces:
 ```
 
 `mode` and `gateway_env` apply to `kind: kubernetes` only and are rejected on any other kind.
+
+#### How the daemon dials a workspace (`protocol`)
+
+`protocol` is how this daemon talks to the workspace's own daemon, on every kind. `agui` (the default) rides the [AG-UI WebSocket binding](#starting-the-daemon), and `a2a` carries the same teleport vocabulary over A2A JSON-RPC on the same listener - see the [A2A peer endpoint](/opentask/#a2a-peer-endpoint). A workspace whose daemon serves nothing over its chosen protocol **fails a teleport at the provisioning stage**, before anything is created, so a `kind: kubernetes` workspace on `a2a` needs an `image` new enough to serve `/a2a`.
+
+`infer daemon workspaces` prints the choice in a `PROTOCOL` column, and the chat TUI names it next to the workspace: in the `/workspaces` picker, in the status bar indicator (`⇄ k8s-dev (a2a)`) and on the teleport progress line.
 
 #### Where the gateway runs (`mode`)
 
