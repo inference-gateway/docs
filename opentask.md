@@ -327,6 +327,16 @@ Daemon -> client, the whole file in base64:
 - `data` carries the file in **one frame, capped at 64 MiB**, the binding's frame limit. A larger file answers with `error` naming its size instead.
 - `error` replaces the payload on both replies when the directory cannot be read, the name is refused or the file is missing.
 
+### A2A peer endpoint
+
+A **peer daemon** can carry the daemon-to-daemon teleport vocabulary over A2A JSON-RPC instead of the WebSocket, which is what a [workspace entry](/cli/#workspace-kinds) with `protocol: a2a` dials. The binding serves it at `POST /a2a` on the same listener, behind the same auth as the socket - the bearer token, or a client certificate the listener verified - and the frames themselves are unchanged. Extension and desktop clients keep using the WebSocket.
+
+- `GET /a2a` is the agent card of the peer endpoint, naming its version and the facts the handshake ack declares.
+- `message/stream` binds one exchange: the reply is a server-sent events stream whose first event announces the host (workspace, version, storage id, the ack's facts) and whose further events each carry one frame as a text part of an A2A message. The stream stays open for the life of the exchange.
+- `message/send` puts one frame on the exchange its `contextId` names and answers with a completed task. Frames produced in response ride the stream, never the reply.
+
+A dial into an endpoint that serves nothing over A2A fails before the exchange can carry anything, so a workspace that cannot serve its chosen protocol fails a teleport at the provisioning stage, before anything is created.
+
 ### Tool approvals
 
 Approvals use the one contract every client shares, keyed by `tool_call_id`. The daemon sends a CUSTOM `approval_request` to each client of the thread, the extension shows Approve/Deny, and the decision goes back as an app frame. The same decision can still be made in the terminal or in the desktop app - whichever answers first wins, and the others get `approval_resolved` for the same id.
