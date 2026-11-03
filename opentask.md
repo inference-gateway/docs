@@ -276,6 +276,57 @@ The daemon serves the file read-only from that project's artifacts dir, over the
 
 The route is unauthenticated - a browser `<img>` tag cannot send the bearer token - so it is confined in two ways instead: it listens only on loopback, and it answers only from inside `~/.infer/projects/<project-slug>/artifacts/`. A slug that is not a single local path segment, a relative path that escapes the artifacts dir, a missing file, and a directory all answer 404.
 
+Listing one session's artifacts, or reading one over the socket rather than this route, is [session artifacts](#session-artifacts).
+
+### Session artifacts
+
+A client can also list the files one **session** saved under its artifacts dir (`~/.infer/projects/<project-slug>/artifacts/<conversation id>/`) and read one of them. These are the frames behind the chat TUI's [`/artifacts` view](/cli/#browsing-the-sessions-artifacts).
+
+Client -> daemon, list them:
+
+```json
+{ "type": "list_artifacts", "project_dir": "/home/me/code/my-app", "id": "<conversation id>" }
+```
+
+Daemon -> client, newest-first (sorted by `modified_at` descending):
+
+```json
+{
+  "type": "artifacts",
+  "id": "<conversation id>",
+  "artifacts": [
+    { "name": "20261028-202514.mp4", "size": 60416, "modified_at": "2026-10-28T20:25:18Z" }
+  ]
+}
+```
+
+Client -> daemon, read one of them:
+
+```json
+{
+  "type": "read_artifact",
+  "project_dir": "/home/me/code/my-app",
+  "id": "<conversation id>",
+  "name": "20261028-202514.mp4"
+}
+```
+
+Daemon -> client, the whole file in base64:
+
+```json
+{
+  "type": "artifact",
+  "id": "<conversation id>",
+  "name": "20261028-202514.mp4",
+  "data": "<base64>"
+}
+```
+
+- Both run on the worker of the workspace that **owns the session**, so a [teleported](/cli/#workspace-lifecycle-and-cleanup) session lists and reads the artifacts in its pod. The daemon relays them there like any other [project-scoped request](/cli/#shared-event-stream), resuming a suspended `Orchestrator` on the way, and an unreachable owner answers `RUN_ERROR` without a `runId`.
+- Only the files **directly under** the session's artifacts dir are listed or read. `name` is one file name, so a path, `..` or an empty name is refused, and a session that saved nothing yet lists as empty.
+- `data` carries the file in **one frame, capped at 64 MiB**, the binding's frame limit. A larger file answers with `error` naming its size instead.
+- `error` replaces the payload on both replies when the directory cannot be read, the name is refused or the file is missing.
+
 ### Tool approvals
 
 Approvals use the one contract every client shares, keyed by `tool_call_id`. The daemon sends a CUSTOM `approval_request` to each client of the thread, the extension shows Approve/Deny, and the decision goes back as an app frame. The same decision can still be made in the terminal or in the desktop app - whichever answers first wins, and the others get `approval_resolved` for the same id.
@@ -333,6 +384,10 @@ Browser and session frames specific to this transport; the AG-UI and CUSTOM even
 | `approval_response`                   | ext -> daemon    | Approve or reject a pending tool call                                            |
 | `list_skills`                         | ext -> daemon    | Ask for a project's available skills                                             |
 | `skills`                              | daemon -> ext    | Skill list with `name`, `description`, `scope`                                   |
+| `list_artifacts`                      | client -> daemon | Ask for a session's artifacts, newest-first                                      |
+| `artifacts`                           | daemon -> client | Artifact list with `name`, `size`, `modified_at`                                 |
+| `read_artifact`                       | client -> daemon | Read one artifact of a session by file name                                      |
+| `artifact`                            | daemon -> client | The artifact's bytes in base64, capped at 64 MiB                                 |
 
 ## Related
 

@@ -449,6 +449,7 @@ The selected indicator is highlighted as an **accent-colored pill**.
 | Theme     | `Theme`                                  | Opens the theme selector to change the TUI color scheme.                                                                                                                                                                                                                                                              |
 | Reconnect | `Reconnecting...` / `Reconnecting (N/M)` | Shown in red when the stream has stalled and the CLI is reconnecting. `N` is the current attempt, `M` is `client.retry.max_attempts`. Input is blocked until the stream recovers or all attempts are exhausted.                                                                                                       |
 | Duration  | `3s` / `1m5s`                            | The time the agent has worked in this session, next to the cost indicator. Whole seconds only. Nothing is rendered before the session's first run.                                                                                                                                                                    |
+| Artifacts | `⬇ artifacts`                            | Opens the [session artifacts view](#browsing-the-sessions-artifacts), the same view `/artifacts` opens. Hidden with `chat.status_bar.indicators.artifacts: false`.                                                                                                                                                    |
 
 ##### Session working time
 
@@ -465,6 +466,24 @@ chat:
     indicators:
       duration: false # Hide the time the agent has worked in this session (default: true)
 ```
+
+#### Browsing the session's artifacts
+
+`/artifacts` - or selecting the `⬇ artifacts` indicator - lists the files the **current session** saved under its [artifacts directory](#artifacts-directory): screen recordings, generated images, downloads. They are listed on the workspace the session runs on, newest first, each row with its name, size and modification time.
+
+| Key     | Action                                     |
+| ------- | ------------------------------------------ |
+| `Enter` | Save the selected artifact on this machine |
+| `o`     | Save it and open it with the system viewer |
+| `r`     | List again                                 |
+| `/`     | Filter by name                             |
+| `Esc`   | Close the view and return to the chat      |
+
+A saved artifact lands in `~/.infer/projects/<project-slug>/artifacts/<session id>/` on your machine, and the view reports the path under the list. For a session running locally that is where the file already sits, so `Enter` just confirms it.
+
+A [teleported](#workspace-lifecycle-and-cleanup) session's artifacts are listed and read **from its pod through the daemon** - no `kubectl`, and a suspended `Orchestrator` is resumed on the way, which is why the first listing can take a moment. The transfer is one frame per file, so a file over **64 MiB** is refused with its size rather than truncated - mirror those out of the pod with an upload hook instead (the [session-teleport example](#the-session-teleport-example) does it with RustFS).
+
+Only the files directly under the session's artifacts dir are listed, and a session that has saved nothing yet shows as empty. The frames behind the view are documented under [session artifacts](/opentask/#session-artifacts).
 
 #### Background job list
 
@@ -1310,6 +1329,8 @@ Your kubeconfig user needs, on top of the permissions a teleport already uses (`
 
 The CLI repo's [`examples/session-teleport`](https://github.com/inference-gateway/cli/tree/main/examples/session-teleport) runs this end to end on k3d. Its `k8s-cloud` workspace teleports a session onto `ollama_cloud/glm-5.3-flash` with `gateway_env: [OLLAMA_CLOUD_API_KEY]`, the key taken from the teleporting daemon's environment or `~/.infer/auth.yaml`, and its namespace carries the `inference-gateway.com/managed=true` label the operator looks for.
 
+Its `k8s-desktop` workspace records the browser scenario it runs, and both ways of getting a recording out of the pod are set up there: `/artifacts` in the chat TUI to [grab one file](#browsing-the-sessions-artifacts) onto your machine, and an upload hook that mirrors every finished run's artifacts to a RustFS bucket for the bulk path.
+
 ### Clients and the handshake
 
 The client dials in and sends the first frame within 5 seconds:
@@ -1378,6 +1399,7 @@ Every transport carries the same vocabulary, with no envelope around it: AG-UI e
 | `list_conversations` / `list_history`                       | Browse the project's stored conversations                                  |
 | `list_skills` / `list_models` / `select_model` / `set_mode` | Inspect and change what the thread runs with                               |
 | `tool_request` / `tool_result`                              | Run a tool directly, scoped to a project directory                         |
+| `list_artifacts` / `read_artifact`                          | List a [session's artifacts](/opentask/#session-artifacts) and read one    |
 
 Unknown `type` and `name` values are ignored on both sides, so the vocabulary stays additive. The full per-event reference lives with the CLI source, in [`docs/ag-ui-output.md`](https://github.com/inference-gateway/cli/blob/main/docs/ag-ui-output.md).
 
@@ -3744,6 +3766,7 @@ These show as `command` in autocomplete:
 | `/agents`             | View every configured agent - local Markdown presets and remote A2A agents - with their state      | `/agents`                           |
 | `/tasks`              | View background work (A2A tasks, shells, subagents) with live status and captured output           | `/tasks`                            |
 | `/tools`              | View a filterable list of tools available in the current agent mode, including MCP tools           | `/tools`                            |
+| `/artifacts`          | Browse the current session's [artifacts](#browsing-the-sessions-artifacts) and save one here       | `/artifacts`                        |
 | `/stats`              | Summarize the session's token usage, tool outcomes, and cost (mirrors `infer stats`)               | `/stats`                            |
 | `/traces [id]`        | Render a session's trace span tree offline (mirrors `infer traces`)                                | `/traces`, `/traces abc-123-def`    |
 | `/voice [seconds]`    | Record the mic and transcribe to the input field (requires [speech-to-text](/cli-speech-to-text/)) | `/voice`, `/voice 8`                |
