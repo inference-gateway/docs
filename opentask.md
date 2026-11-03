@@ -110,19 +110,18 @@ Extension -> daemon, first frame, within 5 seconds of connecting:
   "type": "browser_hello",
   "token": "<shared secret>",
   "client": "extension",
-  "extension_version": "1.9.2",
-  "protocol_version": 1
+  "extension_version": "1.9.2"
 }
 ```
 
 Daemon -> extension on success (on failure the socket is closed):
 
 ```json
-{ "type": "browser_hello_ack", "protocol_version": 1 }
+{ "type": "browser_hello_ack" }
 ```
 
 - `client` tells the daemon which kind of client this is (`extension` here, `desktop` for the app, `browser` for a CLI process that only needs the browser). An absent or unknown value counts as `extension`. One extension connection is kept, any number of `desktop` and `browser` ones.
-- `protocol_version` is negotiated leniently: any valid-token hello is accepted, a hello without a version is logged as a warning, and a version the extension does not support surfaces as an "update" state in the panel instead of a closed socket.
+- Any valid-token hello is accepted.
 - `extension_version` is not interpreted by the daemon - it is carried along for diagnostics. The relay logs it when the extension attaches and again when it detaches, in the [daemon log](/cli/#the-daemon-log), so that file shows which build of the extension was talking and when it went away.
 - Nothing is pushed automatically after the handshake - the panel asks for what it needs.
 
@@ -147,7 +146,7 @@ Daemon -> client, the state of the extension connection, sent to every client th
 
 - `connected` - whether an extension is attached right now. While it is `false`, browser tool calls fail with `no browser extension connected on port <port>`.
 - `extension_version` - the version the attached extension declared in its [handshake](#handshake). It travels only while an extension is attached, so a status frame with `connected: false` carries no version.
-- `protocol_version` - this frame's own schema version, independent of the handshake's `protocol_version`. Clients gate on it to decide what they render or how they parse the frame.
+- `protocol_version` - this frame's own schema version. Clients gate on it to decide what they render or how they parse the frame.
 
 There is deliberately **no** frame and no CUSTOM event for pausing or resuming browser use. A client that wants to interrupt the agent's browsing stops the run - the run ends with outcome `cancelled` - and continues with a new run on the same thread.
 
@@ -321,8 +320,8 @@ Browser and session frames specific to this transport; the AG-UI and CUSTOM even
 
 | Frame                                 | Direction        | Purpose                                                                          |
 | ------------------------------------- | ---------------- | -------------------------------------------------------------------------------- |
-| `browser_hello`                       | ext -> daemon    | Handshake with the shared token, `client`, `protocol_version`                    |
-| `browser_hello_ack`                   | daemon -> ext    | Handshake accepted, carries `protocol_version`                                   |
+| `browser_hello`                       | ext -> daemon    | Handshake with the shared token, `client`, `extension_version`                   |
+| `browser_hello_ack`                   | daemon -> ext    | Handshake accepted                                                               |
 | `browser_command`                     | daemon -> ext    | Navigate, click, type, read, screenshot, tabs                                    |
 | `browser_result`                      | ext -> daemon    | One result per command id                                                        |
 | `browser_extension_status`            | daemon -> client | `connected`, `extension_version`, `protocol_version` of the extension connection |

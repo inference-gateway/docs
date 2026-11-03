@@ -1319,17 +1319,16 @@ The client dials in and sends the first frame within 5 seconds:
   "type": "browser_hello",
   "token": "<shared secret>",
   "client": "extension",
-  "extension_version": "1.9.2",
-  "protocol_version": 1
+  "extension_version": "1.9.2"
 }
 ```
 
 ```json
-{ "type": "browser_hello_ack", "protocol_version": 1 }
+{ "type": "browser_hello_ack" }
 ```
 
 - `client` is `extension`, `desktop`, or `browser` for a CLI process that connects only to drive the browser; an absent or unknown value counts as `extension`. There is **one** extension connection - a new one replaces the previous, because MV3 service workers restart at will - and any number of `desktop` and `browser` connections.
-- The handshake is lenient: any valid-token hello is accepted, a hello without a `protocol_version` is logged as a warning, and a client that sees a version it does not support shows an "update" state rather than refusing to connect.
+- Any valid-token hello is accepted.
 - Only `chrome-extension://`, `moz-extension://`, `safari-web-extension://` or absent `Origin` headers are accepted.
 
 ### Shared event stream
@@ -1436,8 +1435,8 @@ Also in the same file:
 
 | Logged                                                     | Fields                                                           |
 | ---------------------------------------------------------- | ---------------------------------------------------------------- |
-| Client connects and disconnects                            | `client`, `extension_version`, `protocol_version`                |
-| The browser extension relay's attach and detach            | `extension_version`, `protocol_version` from the hello           |
+| Client connects and disconnects                            | `client`                                                         |
+| The browser extension relay's attach and detach            | `extension_version` from the hello                               |
 | Routing errors (unknown thread, dead worker, no extension) | `project_dir` and `conversation_id` of the thread they concerned |
 | Channel, scheduler and heartbeat lines                     | `project_dir` and `conversation_id` when they act for a thread   |
 
