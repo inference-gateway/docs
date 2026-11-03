@@ -512,6 +512,75 @@ Content-Type: application/json
 }
 ```
 
+### Decisions API
+
+The gateway exposes an OpenAI-compatible `POST /v1/decisions` endpoint that relays the [OpenAI Decisions API](https://developers.openai.com/api/docs/guides/decisions). You send shared evidence once as `input` and a list of `questions` to answer about it, and get back one answer per question. The request body is forwarded to the upstream provider byte-for-byte (only the `model` prefix is stripped), so fields like `questions`, `prompt_cache_key` and `prompt_cache_options` pass through untouched.
+
+```http
+POST /v1/decisions?provider={provider}
+```
+
+Only the `openai` provider implements the Decisions API today. Other providers return `400 Bad Request`.
+
+Each entry in `questions` is a `DecisionQuestion` with a `name`, `instructions` and a `type` of `predicate` (true/false with a probability), `choice` (pick from `choices`) or `score` (rate against `levels`).
+
+**Request Body** (`CreateDecisionRequest`):
+
+```bash
+curl -X POST http://localhost:8080/v1/decisions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "openai/gpt-6-luna",
+    "input": "Buy now!!! Limited offer, click here to claim your prize.",
+    "questions": [
+      {
+        "type": "predicate",
+        "name": "is_spam",
+        "instructions": "Is this message spam?"
+      }
+    ]
+  }'
+```
+
+**Response** (`Decision`):
+
+```http
+Status: 200 OK
+Content-Type: application/json
+
+{
+  "answers": [
+    {
+      "type": "predicate",
+      "name": "is_spam",
+      "probability": 0.9
+    }
+  ],
+  "usage": {
+    "input_tokens": 12,
+    "input_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0
+    }
+  }
+}
+```
+
+There is no streaming variant, and the gateway injects no MCP tools into a decisions request. Model allow and deny lists and the request body size limit apply exactly as they do for `/v1/responses` - a denied model returns `403 Forbidden` and an oversized body returns `413 Request Entity Too Large`.
+
+#### Unsupported providers
+
+Requests routed to a provider without a Decisions endpoint return `400 Bad Request`:
+
+```http
+Status: 400 Bad Request
+Content-Type: application/json
+
+{
+  "error": "The Decisions API is not supported by this provider yet."
+}
+```
+
 ### Images API
 
 Create and modify images using the OpenAI-compatible Images endpoints. Both return the same `ImagesResponse` shape with one or more images as URLs or base64-encoded JSON data, and both require `IMAGES_ENABLED=true`.
