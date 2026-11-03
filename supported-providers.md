@@ -35,6 +35,8 @@ Inference Gateway provides a unified interface to interact with multiple LLM pro
 
 Every provider above serves `/v1/chat/completions` except **ElevenLabs**, which has no chat-completions API: it is audio-only and answers the [Audio API](/api-reference/#audio-api) alone - speech synthesis with `elevenlabs/<model>` and an ElevenLabs voice id, plus [sound-effect generation](/api-reference/#sound-effects) through `POST /v1/audio/sfx` with `elevenlabs/eleven_text_to_sound_v2`, and [music generation](/api-reference/#music) through `POST /v1/audio/music` - it is the only provider serving sound effects and music today. It is also the first provider behind the [Videos API](/api-reference/#videos-api): `elevenlabs/creatify-aurora` renders audio-driven talking avatars at `480p` or `720p` (chosen through the `size` field). Routing a chat request to it is not supported.
 
+**OpenAI** is the only provider serving the [Responses API](/api-reference/#responses-api) and the [Decisions API](/api-reference/#decisions-api) (`POST /v1/decisions`). Sending either to another provider returns `400 Bad Request` with `The Decisions API is not supported by this provider yet.` for decisions - use `/v1/chat/completions` instead.
+
 ## Vision/Multimodal Support
 
 Several providers support vision/multimodal capabilities, allowing you to process images alongside text. To have the gateway handle image content, enable it in your configuration:
