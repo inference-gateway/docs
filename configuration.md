@@ -12,6 +12,7 @@ const generalSettings = [
   { variable: 'IMAGES_ENABLED', description: 'Enable the Images API (POST /v1/images/generations and /v1/images/edits). When disabled, the endpoints return a 404', defaultValue: 'false' },
   { variable: 'AUDIO_ENABLED', description: 'Enable the Audio API (POST /v1/audio/speech, /v1/audio/sfx and /v1/audio/music). When disabled, the endpoints return a 404. Speech is served by the openai and elevenlabs providers and by the local llama-tts engine (local/qwen3-tts); sound effects and music are served by elevenlabs only; llamacpp speech is a work in progress and not supported yet', defaultValue: 'false' },
   { variable: 'VIDEOS_ENABLED', description: 'Enable the Videos API (POST /v1/videos, GET /v1/videos/{video_id} and GET /v1/videos/{video_id}/content). When disabled, the endpoints return a 404', defaultValue: 'false' },
+  { variable: 'DECISIONS_ENABLED', description: 'Enable the Decisions API (POST /v1/decisions). When disabled, the endpoint returns a 404. Served by the openai, ollama and ollama_cloud providers and by llamacpp decision models', defaultValue: 'false' },
   { variable: 'AUDIO_LOCAL_AUTO_DOWNLOAD', description: 'Allow downloading the llama-tts binary and GGUF models, in the background at startup when the Audio API is enabled. The pinned GGUF models are treated as done once present in the cache, whoever wrote them (an earlier run, the CLI, a mounted volume, a pre-baked image layer), while a cached binary whose sha256 differs from the latest release is replaced. A llama-tts found on PATH is left alone - upgrading it is left to the operator. When false, the gateway serves only from the existing cache or PATH and returns an actionable error when assets are missing', defaultValue: 'true' },
   { variable: 'AUDIO_LOCAL_MAX_CONCURRENCY', description: 'Maximum concurrent local syntheses; requests beyond the limit queue rather than fail', defaultValue: '2' },
   { variable: 'AUDIO_LOCAL_TIMEOUT', description: 'Timeout in seconds for a single local synthesis, surfaced as a 504', defaultValue: '300' },
@@ -593,6 +594,7 @@ VISION_ENABLED=false
 IMAGES_ENABLED=false
 AUDIO_ENABLED=false
 VIDEOS_ENABLED=false
+DECISIONS_ENABLED=false
 DEBUG_CONTENT_TRUNCATE_WORDS=10
 DEBUG_MAX_MESSAGES=100
 # Telemetry

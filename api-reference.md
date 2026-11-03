@@ -228,6 +228,35 @@ Both models carry `subscription: true`, indicating they require a paid subscript
 
 Models with no resolvable per-token pricing - locally hosted models or anything absent from both the provider listing and the community table - return `"pricing": null`.
 
+The `modalities` field reports what a model accepts and produces, as `modalities.input` and `modalities.output` arrays of `text`, `image`, `audio`, `video` and `decisions`. `decisions` marks a model that answers the [Decisions API](#decisions-api) - today `openai/gpt-6-luna` and any llama.cpp model whose listing advertises `output_modalities: ["decisions"]`. Filter on it to find the decision models:
+
+```bash
+curl -s 'http://localhost:8080/v1/models?include=modalities' \
+  | jq '.data[] | select(.modalities.output | index("decisions")) | .id'
+```
+
+```http
+Status: 200 OK
+Content-Type: application/json
+
+{
+  "object": "list",
+  "data": [
+    {
+      "id": "openai/gpt-6-luna",
+      "object": "model",
+      "created": 1741879542,
+      "owned_by": "openai",
+      "served_by": "openai",
+      "modalities": {
+        "input": ["text"],
+        "output": ["decisions"]
+      }
+    }
+  ]
+}
+```
+
 ### List Provider Models
 
 Get a list of available models for a specific provider. The `include` parameter can be combined with `provider`.
@@ -520,7 +549,18 @@ The gateway exposes an OpenAI-compatible `POST /v1/decisions` endpoint that rela
 POST /v1/decisions?provider={provider}
 ```
 
-Only the `openai` provider implements the Decisions API today. Other providers return `400 Bad Request`.
+The endpoint is opt-in and requires `DECISIONS_ENABLED=true`. While disabled it returns `404 Not Found`:
+
+```http
+Status: 404 Not Found
+Content-Type: application/json
+
+{
+  "error": "The Decisions API is not enabled. Set DECISIONS_ENABLED=true to enable it."
+}
+```
+
+`openai`, `ollama`, `ollama_cloud` and llama.cpp decision models serve the endpoint today, all with the same request and response shape - clients never see a vendor's own decision format. Answers from Ollama and llama.cpp come back ordered by question name rather than in request order, so match answers on `name`, not position. Other providers return `400 Bad Request`.
 
 Each entry in `questions` is a `DecisionQuestion` with a `name`, `instructions` and a `type` of `predicate` (true/false with a probability), `choice` (pick from `choices`) or `score` (rate against `levels`).
 
@@ -566,7 +606,42 @@ Content-Type: application/json
 }
 ```
 
+The same request against a local Ollama decision model only changes the `model`:
+
+```bash
+curl -X POST http://localhost:8080/v1/decisions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "ollama/nimble",
+    "input": "Buy now!!! Limited offer, click here to claim your prize.",
+    "questions": [
+      {
+        "type": "predicate",
+        "name": "is_spam",
+        "instructions": "Is this message spam?"
+      }
+    ]
+  }'
+```
+
+Ollama's decision models (`nimble`, `tev1`, `clef-flash`, `d1`, `d3`, `laya` and the others listed in the [Ollama decision model search](https://ollama.com/search?c=decision)) are not yet marked in the models listing, but they work. Ollama Cloud serves the same models under the `ollama_cloud/` prefix, for example `ollama_cloud/clef:27b`.
+
 There is no streaming variant, and the gateway injects no MCP tools into a decisions request. Model allow and deny lists and the request body size limit apply exactly as they do for `/v1/responses` - a denied model returns `403 Forbidden` and an oversized body returns `413 Request Entity Too Large`.
+
+#### Unsupported models
+
+The gateway checks the request's model against its [output modalities](#list-all-models) before relaying. A model whose known output modalities do not include `decisions` is rejected by the gateway itself with `400 Bad Request`:
+
+```http
+Status: 400 Bad Request
+Content-Type: application/json
+
+{
+  "error": "Model openai/gpt-6-sol is not supported by the Decisions API: its output modalities are [text], not decisions."
+}
+```
+
+Models absent from the modality table - local Ollama models, for instance - are still relayed, so the upstream provider decides whether to answer them.
 
 #### Unsupported providers
 
