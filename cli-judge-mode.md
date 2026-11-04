@@ -1,11 +1,11 @@
 ---
 title: Judge Mode
-description: Let an LLM judge answer tool-approval gates in the Inference Gateway CLI - the auto-with-judge agent mode, safety.approval_behaviour judge in ~/.infer/tools.yaml, the .infer/judge.yaml schema (model, gateway_url, timeout, max_tokens, on_error, system_prompt, prompt) with INFER_JUDGE_* overrides, the JSON verdict contract, on_error semantics, the RequestApproval escalation for overriding a rejection, judge_verdict observability, and headless usage.
+description: Let an LLM or a decision model answer tool-approval gates in the Inference Gateway CLI - the auto-with-judge agent mode, safety.approval_behaviour judge in ~/.infer/tools.yaml, the .infer/judge.yaml schema (backend, model, min_confidence, gateway_url, timeout, max_tokens, on_error, system_prompt, prompt) with INFER_JUDGE_* overrides, the JSON verdict contract, the decisions backend over POST /v1/decisions with DECISIONS_ENABLED, on_error semantics, the RequestApproval escalation for overriding a rejection, judge_verdict observability, and headless usage.
 ---
 
 # Judge Mode
 
-**Judge mode** (displayed as **Auto+Judge**) is an autonomous [agent mode](/cli/#agent-modes) of the [Inference Gateway CLI](/cli/) (`infer`): there is no human in the loop, but tool calls that would normally prompt you are decided by an **LLM judge** instead of bypassing approval the way [Auto-Accept](/cli/#auto-accept-mode) does. One judge call answers one pending tool call; everything else about the agent loop is unchanged.
+**Judge mode** (displayed as **Auto+Judge**) is an autonomous [agent mode](/cli/#agent-modes) of the [Inference Gateway CLI](/cli/) (`infer`): there is no human in the loop, but tool calls that would normally prompt you are decided by a **model judge** - a generative model, or a [decision model](#decision-model-judge-backend-decisions) - instead of bypassing approval the way [Auto-Accept](/cli/#auto-accept-mode) does. One judge call answers one pending tool call; everything else about the agent loop is unchanged.
 
 It exists for unattended runs where a human approval prompt would deadlock (CI, [headless agents](/cli/#headless-agent-stream-output), [heartbeat](/cli-scheduling/) jobs) but you still want a gate on mutating or dangerous actions.
 
@@ -64,6 +64,8 @@ Headless runs, CI, [scheduled](/cli-scheduling/) jobs and any channel without an
 
 ## The verdict contract
 
+This is the contract for the default `llm` backend. The [`decisions` backend](#decision-model-judge-backend-decisions) thresholds a probability instead and parses no prose.
+
 The judge must answer with exactly one JSON object:
 
 ```json
@@ -82,7 +84,9 @@ The judge has its own file, **`judge.yaml`** - the decision-sibling of [`hooks.y
 | User    | `~/.infer/judge.yaml` |
 
 ```yaml
+backend: llm # who decides: llm (default) or decisions (a decision model)
 model: '' # "provider/model" id for judge calls; empty falls back to agent.model
+min_confidence: 0.7 # decisions backend only: approve when p(approve) >= this
 gateway_url: '' # send judge calls to another gateway; empty shares the agent's
 timeout: 30 # per-call timeout in seconds
 max_tokens: 2048 # response budget; reasoning models spend their thinking against it too
@@ -103,19 +107,21 @@ prompt: |- # user-message template; {root_intent}, {intent} and {action} are fil
   </tool_call>
 ```
 
-| Field           | Default | Purpose                                                                                                                                                                                                                  |
-| --------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `model`         | `''`    | `provider/model` reference for judge calls; empty falls back to `agent.model` (same precedent as conversation title generation).                                                                                         |
-| `gateway_url`   | `''`    | Send judge calls to a different gateway than the agent's - for example a real judge while the driver runs against a mock. Empty shares the agent's gateway.                                                              |
-| `timeout`       | `30`    | Per-call timeout in seconds.                                                                                                                                                                                             |
-| `max_tokens`    | `2048`  | Response budget per judge call; reasoning models spend their thinking against it.                                                                                                                                        |
-| `on_error`      | `deny`  | What a failed judge call means - `deny` (fail closed) or `allow`.                                                                                                                                                        |
-| `system_prompt` | builtin | The judge's instructions, sent as the system message so the user text and tool arguments stay data rather than instructions.                                                                                             |
-| `prompt`        | builtin | User-message template. `{root_intent}` is the first non-hidden user message of the session, `{intent}` the latest one (a bare "continue" is judged next to the root it continues), and `{action}` the pending tool call. |
+| Field            | Default | Purpose                                                                                                                                                                                                                  |
+| ---------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `backend`        | `llm`   | Who answers the gate - `llm` (a generative model returning the JSON verdict above) or [`decisions`](#decision-model-judge-backend-decisions) (a decision model returning a probability).                                 |
+| `model`          | `''`    | `provider/model` reference for judge calls; empty falls back to `agent.model` (same precedent as conversation title generation).                                                                                         |
+| `min_confidence` | `0.7`   | `decisions` backend only: a call is approved when its `p(approve)` reaches this threshold, and rejected below it. Ignored by the `llm` backend.                                                                          |
+| `gateway_url`    | `''`    | Send judge calls to a different gateway than the agent's - for example a real judge while the driver runs against a mock. Empty shares the agent's gateway.                                                              |
+| `timeout`        | `30`    | Per-call timeout in seconds.                                                                                                                                                                                             |
+| `max_tokens`     | `2048`  | Response budget per judge call; reasoning models spend their thinking against it.                                                                                                                                        |
+| `on_error`       | `deny`  | What a failed judge call means - `deny` (fail closed) or `allow`.                                                                                                                                                        |
+| `system_prompt`  | builtin | The judge's instructions, sent as the system message so the user text and tool arguments stay data rather than instructions.                                                                                             |
+| `prompt`         | builtin | User-message template. `{root_intent}` is the first non-hidden user message of the session, `{intent}` the latest one (a bare "continue" is judged next to the root it continues), and `{action}` the pending tool call. |
 
 Environment overrides (env wins over the file):
 
-`INFER_JUDGE_MODEL`, `INFER_JUDGE_GATEWAY_URL`, `INFER_JUDGE_TIMEOUT`, `INFER_JUDGE_MAX_TOKENS`, `INFER_JUDGE_ON_ERROR`, `INFER_JUDGE_SYSTEM_PROMPT`, `INFER_JUDGE_PROMPT`.
+`INFER_JUDGE_BACKEND`, `INFER_JUDGE_MODEL`, `INFER_JUDGE_MIN_CONFIDENCE`, `INFER_JUDGE_GATEWAY_URL`, `INFER_JUDGE_TIMEOUT`, `INFER_JUDGE_MAX_TOKENS`, `INFER_JUDGE_ON_ERROR`, `INFER_JUDGE_SYSTEM_PROMPT`, `INFER_JUDGE_PROMPT`.
 
 ### `on_error` semantics
 
@@ -127,6 +133,54 @@ A judge call can fail (timeout, gateway error, unparseable output) or return gar
 ### Model resolution
 
 `judge.model` falls back to `agent.model`. `safety.approval_behaviour: judge` in `tools.yaml` is the only setting that makes **config validation** require a resolvable judge model - selecting it with neither set is a configuration error caught at startup. The `auto-with-judge` mode is validated separately, by the headless runner at start (`--mode` or `INFER_AGENT_MODE`).
+
+## Decision-model judge (backend: decisions)
+
+A generative judge writes a verdict you parse. A **decision model** returns a probability you threshold. `backend: decisions` points the judge at the gateway's [Decisions API](/api-reference/#decisions-api) (`POST /v1/decisions`) instead of chat completions, so the CLI never speaks a vendor's decision format and holds no vendor credential - the `provider/model` prefix picks the upstream exactly as it does for chat.
+
+```yaml
+# .infer/judge.yaml
+backend: decisions
+model: ollama_cloud/clef:27b # or ollama/clef for a local pull, or openai/gpt-6-luna
+min_confidence: 0.7 # approve only when p(approve) >= this
+on_error: deny
+```
+
+What it asks, over the same evidence the LLM judge sees (your `prompt` rendered with the root intent, the latest intent and the pending tool call):
+
+- a `predicate` for the pending call: does it serve the root and latest request, and is it safe to run unattended?
+- a `choice` named `risk` over `benign`, `destructive`, `network`, `secrets` and `out_of_scope`, each with its own criterion.
+
+Threshold semantics are **fail-closed**: a call is approved only when its probability reaches `min_confidence`, and anything below it is rejected. A missing or unusable answer is a failed judge call and follows [`on_error`](#on-error-semantics), which defaults to `deny`.
+
+The reason the agent sees carries the numbers, so it has something to adjust on and the [`RequestApproval`](#escalating-a-rejection-requestapproval) escalation keeps working:
+
+```text
+rejected by judge: ollama/clef: rejected by the judge (decisions: p_approve=0.31, risk: destructive, below min_confidence 0.70)
+```
+
+An approved call records `decisions: p_approve=0.93, risk: benign`. `judge_verdict` events, usage accounting and the `AUTO+JUDGE` indicator are unchanged. `system_prompt` and `max_tokens` do not apply - decision models run no tools and generate no text.
+
+### Gateway requirement
+
+- The gateway must run with [`DECISIONS_ENABLED=true`](/configuration/) - while it is disabled `/v1/decisions` returns `404` and the judge fails closed. The CLI-managed local gateway sets it for you whenever `backend: decisions` is configured; an externally managed gateway needs the variable in its own environment.
+- The judge model must list `decisions` among its [output modalities](/api-reference/#list-all-models). The gateway checks the modality before relaying and answers `400` otherwise.
+
+Decision models read criteria literally and are weak at indirection, counting and adversarial content, so keep the evidence small and expect "does `git push` serve a bare `continue`" to be the hard case.
+
+### Running it offline
+
+The CLI's `examples/working-offline` compose runs the judge entirely on your machine: the gateway starts with `DECISIONS_ENABLED=true` and the `cli` service already sets `INFER_JUDGE_BACKEND=decisions` and `INFER_JUDGE_MODEL=ollama/clef`.
+
+```bash
+ollama pull clef     # the decision model, next to your local chat model
+docker compose up -d
+docker compose run --rm cli chat
+```
+
+Cycle the agent mode to **Auto+Judge** and off-list commands, writes and deletes are decided by the local `clef`. Ollama also serves `nimble`, `tev1` and `clef-flash` as decision models.
+
+With network access, `INFER_JUDGE_MODEL=ollama_cloud/clef:27b` uses the hosted variant instead (`OLLAMA_CLOUD_API_KEY` in the example's `.env`).
 
 ## Judge as the approval behavior, without the mode
 
@@ -156,6 +210,7 @@ Judge token usage is added to the session totals and [telemetry](/cli/#telemetry
 
 ## Related
 
+- [API Reference - Decisions API](/api-reference/#decisions-api)
 - [CLI - Agent Modes](/cli/#agent-modes)
 - [CLI - Approval Workflow](/cli/#approval-workflow)
 - [Command Hooks](/cli-hooks/)
