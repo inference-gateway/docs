@@ -285,18 +285,18 @@ infer version
 
 ## Core Commands
 
-| Command                  | Description                      | Key Features                                                     |
-| ------------------------ | -------------------------------- | ---------------------------------------------------------------- |
-| `infer init`             | Seed the userspace baseline      | Creates `~/.infer/` defaults - writes nothing to the project     |
-| `infer status`           | Check gateway health             | Shows resource usage and connectivity, `--format json\|yaml`     |
-| `infer chat`             | Interactive chat TUI             | Streaming, scrolling, tool expansion, mode switching             |
-| `infer chat --web`       | Web-based terminal               | Browser interface, tabbed sessions, remote access                |
-| `infer headless <task>`  | Autonomous task execution        | Background operation, task planning, validation                  |
-| `infer headless --serve` | Long-lived AG-UI worker          | One run per `run_agent_input` frame over stdio, no task argument |
-| `infer config <cmd>`     | Configuration management         | Generic `get`/`set` for any config key                           |
-| `infer tools <cmd>`      | Run agent tools directly         | Execute a tool or validate a bash command                        |
-| `infer stats`            | Summarize local telemetry        | Token usage, tool outcomes, and cost across sessions             |
-| `infer traces`           | View a session's trace span tree | Offline span-tree viewer, `--list` and JSON output               |
+| Command                  | Description                        | Key Features                                                     |
+| ------------------------ | ---------------------------------- | ---------------------------------------------------------------- |
+| `infer init`             | Seed the userspace baseline        | Creates `~/.infer/` defaults - writes nothing to the project     |
+| `infer status`           | Check gateway health               | Shows resource usage and connectivity, `--format json\|yaml`     |
+| `infer chat`             | Interactive chat TUI               | Streaming, scrolling, tool expansion, mode switching             |
+| `infer chat --web`       | [Web terminal](/cli-web-terminal/) | Browser interface, tabbed sessions, remote access, live screen   |
+| `infer headless <task>`  | Autonomous task execution          | Background operation, task planning, validation                  |
+| `infer headless --serve` | Long-lived AG-UI worker            | One run per `run_agent_input` frame over stdio, no task argument |
+| `infer config <cmd>`     | Configuration management           | Generic `get`/`set` for any config key                           |
+| `infer tools <cmd>`      | Run agent tools directly           | Execute a tool or validate a bash command                        |
+| `infer stats`            | Summarize local telemetry          | Token usage, tool outcomes, and cost across sessions             |
+| `infer traces`           | View a session's trace span tree   | Offline span-tree viewer, `--list` and JSON output               |
 
 ### Gateway Status
 
@@ -1626,6 +1626,19 @@ A recording still running when the run ends is finalized **after** the terminal 
 ### Visualizing Agent Activity
 
 The [desktop app](/desktop/) is the visualization layer for computer use: it shows the live screen monitor, the on-screen action overlay, and the approval prompts driven by [`computer_use.approval`](#computer-use-approval). Run the CLI from the desktop app to watch a computer-use run as it happens.
+
+The [web terminal](/cli-web-terminal/) shows the same screen in a browser tab, from wherever the session runs: with `computer_use.screenshot.streaming_enabled` on, its **Screen** view polls the session's latest frame.
+
+### Taking the Screen Over
+
+A person watching a session in the [web terminal](/cli-web-terminal/)'s Screen view can drive that screen directly, without going through the tool layer - for the steps an agent cannot do on its own, such as a login, a two-factor code, a CAPTCHA or a cookie dialog.
+
+- **Take over** claims the screen. Pointer, wheel and keyboard on the image act on it, and the view polls at 250 ms so typing feels live.
+- While the screen is held the agent is **held too**: its input actions wait for the hand-back, its observations keep working, and every client sees who drives on the run state. An open approval box for a `Computer` call is resolved as rejected, because the person is doing that step instead.
+- **Done**, or `Esc` twice, hands the screen back and queues one continue message, so the next turn starts from a fresh screenshot of what the person left behind.
+- The person's inputs create **no approval prompt, no judge call and no conversation entry**, so a credential typed during a take-over never enters the transcript.
+
+See [take-over mode](/cli-web-terminal/#take-over-mode) for the flow step by step, the walkthrough on a remote desktop, and the protocol frames.
 
 The CLI's own macOS floating window was removed. The `computer_use.floating_window` config section and the `INFER_COMPUTER_USE_FLOATING_WINDOW_*` environment variables no longer exist - existing config files that still carry those keys keep loading, the keys are simply ignored.
 
@@ -5191,6 +5204,7 @@ This page mirrors the CLI repository's documentation; these pages are the source
 | Tool approval               | [tool-approval.md](https://github.com/inference-gateway/cli/blob/main/docs/tool-approval.md)                     |
 | Cost tracking               | [cost-tracking.md](https://github.com/inference-gateway/cli/blob/main/docs/cost-tracking.md)                     |
 | Computer use                | [computer-use.md](https://github.com/inference-gateway/cli/blob/main/docs/computer-use.md)                       |
+| Web terminal                | [web-terminal.md](https://github.com/inference-gateway/cli/blob/main/docs/web-terminal.md)                       |
 | Frame sources and vision    | [vision.md](https://github.com/inference-gateway/cli/blob/main/docs/vision.md)                                   |
 | Persistent memory           | [memory.md](https://github.com/inference-gateway/cli/blob/main/docs/memory.md)                                   |
 | Reminders and command hooks | [hooks.md](https://github.com/inference-gateway/cli/blob/main/docs/hooks.md)                                     |

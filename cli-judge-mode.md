@@ -58,6 +58,18 @@ When the judge rejects a call you actually asked for, the agent can escalate tha
 - **Reject**, or dismissing the box, denies. The denial is a normal tool result, so the turn **continues** with the decision in context - and you can explain yourself in your next message.
 - **One attempt per rejected call**: the escalation is consumed as soon as it is asked, including on dismissal, so a stubborn model cannot re-prompt you in a loop. A second attempt returns "already escalated once".
 
+A **daemon session**'s worker relays the escalation to the chat attached to it, so a `RequestApproval` raised by a teleported or background session reaches the terminal or [web terminal](/cli-web-terminal/) tab you have open on it rather than going unanswered.
+
+### Taking the screen over answers a Computer approval
+
+When the rejected call is a [`Computer`](/cli/#computer-use-tools) action on a screen you are watching in the [web terminal](/cli-web-terminal/)'s Screen view, there is a third answer besides Approve and Reject: press **Take over** and do that step yourself.
+
+- The take-over **resolves the open approval box as rejected**, because the agent no longer needs to perform the action.
+- The agent is held while you hold the screen, and **Done** queues one continue message, so its next turn starts from a fresh screenshot of what you left behind.
+- Your clicks and keystrokes during the take-over go through no approval gate, no judge call and no conversation entry - which is what makes it the right answer for a login, a two-factor code or a CAPTCHA the judge keeps rejecting.
+
+See [take-over mode](/cli-web-terminal/#take-over-mode).
+
 ### No approver reachable
 
 Headless runs, CI, [scheduled](/cli-scheduling/) jobs and any channel without an interactive approval form (the browser extension bridge and Telegram included) degrade the same way [`AskUserQuestion`](/cli/#askuserquestion) does: the tool returns a distinguishable **"no approver reachable"** result rather than blocking. Nothing hangs, the turn continues, and the agent is told not to retry - it either proceeds without the rejected call or ends the turn for a human to pick up.
