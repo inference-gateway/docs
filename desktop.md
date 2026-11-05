@@ -114,7 +114,7 @@ The **Agents** tab manages the [A2A](/a2a/) agents your local agent can delegate
 
 ### Workspaces
 
-The **Workspaces** tab is where you register the compute an agent can run on as [its own computer](#agent-computers), so you no longer have to edit `~/.infer/daemon.yaml` by hand. Each workspace in the tab is one entry of the `infer` daemon's `workspaces` list in that file - see [Workspace kinds](/cli/#workspace-kinds) for the daemon's own reference. **Kubernetes** is the only type the form offers for now, and a type the form does not know (a `kind: local` entry you wrote yourself, say) is listed and can be deleted, but not edited.
+The **Workspaces** tab is where you register the compute an agent can run on as [its own computer](#agent-computers), or that you [move a chat to](#moving-a-chat), so you no longer have to edit `~/.infer/daemon.yaml` by hand. Each workspace in the tab is one entry of the `infer` daemon's `workspaces` list in that file - see [Workspace kinds](/cli/#workspace-kinds) for the daemon's own reference. **Kubernetes** is the only type the form offers for now, and a type the form does not know (a `kind: local` entry you wrote yourself, say) is listed and can be deleted, but not edited.
 
 Every workspace row shows its type, its `context / namespace`, and whether the daemon can reach it, with the daemon's own error when it cannot. **New workspace** opens the form, the pencil edits a workspace, and the trash deletes it with the same two-click arming as [deleting a conversation](#deleting-one-conversation).
 
@@ -184,7 +184,7 @@ workspace: ubuntu-desktop
 ---
 ```
 
-Every new chat with that agent is teleported to that workspace before its first run, so its [Computer Use](/cli/#computer-use) drives that machine and not yours. A chat that is already running can be moved between turns with **Move to workspace** in its composer, which is also how you bring it back to this computer. See [Workspace kinds](/cli/#workspace-kinds) for how the daemon registers and dials a workspace, and [`examples/computer-use`](https://github.com/inference-gateway/desktop/tree/main/examples/computer-use) for a runnable setup of three agents on Ubuntu desktops in a local Kubernetes cluster.
+Every new chat with that agent is teleported to that workspace before its first run, so its [Computer Use](/cli/#computer-use) drives that machine and not yours. A chat that already started can be [moved](#moving-a-chat) too. See [Workspace kinds](/cli/#workspace-kinds) for how the daemon registers and dials a workspace, and [`examples/computer-use`](https://github.com/inference-gateway/desktop/tree/main/examples/computer-use) for a runnable setup of three agents on Ubuntu desktops in a local Kubernetes cluster.
 
 **Computers** in the top bar shows one tile per chat that runs on a workspace. Each tile carries the latest screen of that computer, the agent's face and name, the workspace, the agent's last computer action, and a status:
 
@@ -195,6 +195,35 @@ Every new chat with that agent is teleported to that workspace before its first 
 | **Idle**            | No run in flight - the tile keeps the last screen it managed to fetch |
 
 Tiles with a live run come first, and a running chat's screen is refreshed every 2 seconds. Clicking a tile opens that chat.
+
+### Moving a chat
+
+Any chat that already started can change computer. **Move to workspace** in its composer opens a menu of **this computer** plus the workspaces of the `infer` daemon, asked for when the menu opens: the one the chat runs on carries a check and cannot be picked, and one the daemon cannot reach is listed as `(unreachable)`, disabled, with the daemon's error as its hover. A move happens **between turns** - a turn still running is stopped first, a screen you hold is handed back, and the composer shows the current stage in place of the button until the chat lands.
+
+**What travels** is the conversation and the project: the project's committed state plus a patch of its uncommitted and untracked changes, so the agent on the workspace continues on what you see here. A project directory that has no commit yet gets a repository and an empty first commit on its first move. Moving the chat back restores the project's files into your local folder again.
+
+**The stages the app shows**, straight from the daemon's teleport:
+
+| Stage           | What is happening                                                                                          |
+| --------------- | ---------------------------------------------------------------------------------------------------------- |
+| `provisioning`  | The target readies the session's compute - for a Kubernetes workspace the pod, its volumes and its gateway |
+| `checkpointing` | The workspace the chat is leaving stops its worker and bundles the conversation and the project            |
+| `restoring`     | The target restores that bundle and resumes the conversation there                                         |
+
+A move that fails leaves the chat **where it was**, with the daemon's own message in the error banner (`Failed to move the chat: teleport to ubuntu-desktop failed: ...`), so a cluster that is missing the operator or a workspace that cannot be dialed costs you nothing but the attempt.
+
+A chat that sits on one workspace **comes home first and then goes to the other one**. Both hops run automatically from the single menu pick, so you never have to bring it back by hand.
+
+**Every chat on a workspace is a computer.** It gets a tile in [**Computers**](#agent-computers) and a **Take over** button, with or without an agent behind it - a plain chat you moved there is driven exactly like an agent's. A chat of an agent that has a **Computer** stays on the workspace it started on, so changing that agent's setting later moves nothing: move the open chat yourself, or start a new one.
+
+**Where a chat runs is recorded** as `workspaces` in `~/.infer/projects.yaml`, keyed by conversation id, so the app still knows after a restart which chats live on which workspace and keeps showing their tiles.
+
+Limits worth knowing:
+
+- **The chat keeps its model.** The gateway of the workspace it lands on has to serve that same model, which means the provider's key belongs in that workspace's [**Provider keys**](#workspaces). Without it the first turn on the workspace fails on the missing key, not on the move.
+- **The record can go stale.** Once the cluster deletes a suspended session after its `retention`, the app still lists the chat on that workspace. Move it back to this computer to carry on from the local copy.
+
+See [Workspace lifecycle and cleanup](/cli/#workspace-lifecycle-and-cleanup) and [Workspace kinds](/cli/#workspace-kinds) for the daemon's own account of teleports, and [`examples/computer-use`](https://github.com/inference-gateway/desktop/tree/main/examples/computer-use) for a cluster to try one on.
 
 ### Take over
 
