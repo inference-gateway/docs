@@ -65,6 +65,7 @@ Open Settings with the gear icon at the right of the top bar. A left rail lists 
 | **General**       | [Max concurrent sessions](#the-concurrency-cap), [Browser Use](#browser-use-opentask-extension), the [text-to-speech toggle](#enabling-text-to-speech), and the [text-to-video toggle](#enabling-text-to-video) |
 | **API Keys**      | One API key per provider                                                                                                                                                                                        |
 | **Agents**        | A2A agents the local agent can delegate to                                                                                                                                                                      |
+| **Workspaces**    | The `infer` daemon workspaces an agent can use as [its own computer](#agent-computers)                                                                                                                          |
 | **Voice samples** | [WAV reference recordings](#voice-samples) for voice cloning                                                                                                                                                    |
 | **Avatars**       | [Named portraits](#avatars) used for talking-avatar renders                                                                                                                                                     |
 | **Updates**       | Installed versions, manual check, and [Install updates](#updates)                                                                                                                                               |
@@ -110,6 +111,49 @@ The **Agents** tab manages the [A2A](/a2a/) agents your local agent can delegate
 **Setting a model:** an enabled agent that has a model assigned shows a dropdown on its card, listing the same models as the top-bar picker. Pick one to change which model that agent runs on. If the agent's current model is not in the gateway's list, it is kept at the top of the dropdown rather than silently replaced.
 
 **Remote agents** are ones you host or run elsewhere. Type the agent's URL (for example `http://localhost:8085`) into the field at the bottom and click **Add** or press Enter. Remote agents appear in their own list above the field, each with a **Remove** button.
+
+## Agent computers
+
+One of your own agents can get a computer of its own. Pick it as the **Computer** in the agent's editor - the dropdown lists the workspaces of the `infer` daemon, which you register under **Settings -> Workspaces** - and it is saved as `workspace` in the agent's frontmatter:
+
+```markdown
+---
+name: researcher
+description: Researches a topic in the browser of its own computer
+model: ollama_cloud/glm-5.3-flash
+workspace: ubuntu-desktop
+---
+```
+
+Every new chat with that agent is teleported to that workspace before its first run, so its [Computer Use](/cli/#computer-use) drives that machine and not yours. A chat that is already running can be moved between turns with **Move to workspace** in its composer, which is also how you bring it back to this computer. See [Workspace kinds](/cli/#workspace-kinds) for how the daemon registers and dials a workspace, and [`examples/computer-use`](https://github.com/inference-gateway/desktop/tree/main/examples/computer-use) for a runnable setup of three agents on Ubuntu desktops in a local Kubernetes cluster.
+
+**Computers** in the top bar shows one tile per chat that runs on a workspace. Each tile carries the latest screen of that computer, the agent's face and name, the workspace, the agent's last computer action, and a status:
+
+| Status              | Meaning                                                               |
+| ------------------- | --------------------------------------------------------------------- |
+| **Working**         | A run is in flight on that computer                                   |
+| **Waiting for you** | The run is held on an approval or a question in the chat              |
+| **Idle**            | No run in flight - the tile keeps the last screen it managed to fetch |
+
+Tiles with a live run come first, and a running chat's screen is refreshed every 2 seconds. Clicking a tile opens that chat.
+
+### Take over
+
+When the agent reaches a step only a person can do - a login, a captcha, a cookie dialog in its way - **Take over** claims that screen for you. The button is on every computer tile and in the composer of an agent chat that runs on its own computer, and either one opens the Computers view with that screen filling it.
+
+While you hold the screen:
+
+- The agent's computer input **waits** for the hand-back. Its observations keep working.
+- The view shows the screen live, refreshed every 300 ms.
+- Clicks, double clicks, the wheel and keys inside the image go to that computer, one input after the other.
+
+**Hand back** releases the screen, and so does pressing `Esc` twice. The agent then gets a single message to continue and starts from a fresh screenshot of what you left behind - it is not told the individual clicks and keystrokes you made, so a password or a one-time code typed during a take-over never reaches the transcript or the model's context.
+
+Requirements and limits:
+
+- `infer` **v0.245.0 or newer**. The take-over itself lives in the daemon, so the same feature is available from the CLI's web terminal - see [Take-over Mode](/cli/#take-over-mode).
+- **One person holds a screen at a time.** Taking over a second computer hands the first one back, and a claim from another client is refused while you hold it.
+- **A held key does not repeat.** Each key press sends one input.
 
 ## Chat and tool approval
 

@@ -1534,6 +1534,8 @@ When the agent reaches a step only a person can do - a login, a two-factor code,
 
 An open approval box for a `Computer` call is **resolved as rejected** by the take-over, because you are about to do that step yourself. See [Escalating a rejection](/cli-judge-mode/#escalating-a-rejection-requestapproval) for the other way an agent asks a person to step in.
 
+The desktop app drives the same take-over from its Computers view, for an agent that runs on a workspace of its own - see [Agent computers](/desktop/#agent-computers).
+
 #### Inputs During a Take-over Never Enter the Conversation
 
 What you type while you hold the screen is yours alone. Those inputs drive the display directly, which means they create:
