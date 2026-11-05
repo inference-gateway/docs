@@ -65,7 +65,7 @@ Open Settings with the gear icon at the right of the top bar. A left rail lists 
 | **General**       | [Max concurrent sessions](#the-concurrency-cap), [Browser Use](#browser-use-opentask-extension), the [text-to-speech toggle](#enabling-text-to-speech), and the [text-to-video toggle](#enabling-text-to-video) |
 | **API Keys**      | One API key per provider                                                                                                                                                                                        |
 | **Agents**        | A2A agents the local agent can delegate to                                                                                                                                                                      |
-| **Workspaces**    | The `infer` daemon workspaces an agent can use as [its own computer](#agent-computers)                                                                                                                          |
+| **Workspaces**    | [The `infer` daemon workspaces](#workspaces) an agent can use as [its own computer](#agent-computers)                                                                                                           |
 | **Voice samples** | [WAV reference recordings](#voice-samples) for voice cloning                                                                                                                                                    |
 | **Avatars**       | [Named portraits](#avatars) used for talking-avatar renders                                                                                                                                                     |
 | **Updates**       | Installed versions, manual check, and [Install updates](#updates)                                                                                                                                               |
@@ -112,9 +112,68 @@ The **Agents** tab manages the [A2A](/a2a/) agents your local agent can delegate
 
 **Remote agents** are ones you host or run elsewhere. Type the agent's URL (for example `http://localhost:8085`) into the field at the bottom and click **Add** or press Enter. Remote agents appear in their own list above the field, each with a **Remove** button.
 
+### Workspaces
+
+The **Workspaces** tab is where you register the compute an agent can run on as [its own computer](#agent-computers), so you no longer have to edit `~/.infer/daemon.yaml` by hand. Each workspace in the tab is one entry of the `infer` daemon's `workspaces` list in that file - see [Workspace kinds](/cli/#workspace-kinds) for the daemon's own reference. **Kubernetes** is the only type the form offers for now, and a type the form does not know (a `kind: local` entry you wrote yourself, say) is listed and can be deleted, but not edited.
+
+Every workspace row shows its type, its `context / namespace`, and whether the daemon can reach it, with the daemon's own error when it cannot. **New workspace** opens the form, the pencil edits a workspace, and the trash deletes it with the same two-click arming as [deleting a conversation](#deleting-one-conversation).
+
+The daemon only reads `daemon.yaml` when it starts, so saving, deleting or detecting shows a **Restart CLI now** button rather than applying the change by itself. **Restarting stops running chats**, which is why it is left to you.
+
+**The form fields and what each one writes:**
+
+| Field                   | `daemon.yaml` key | What it is                                                                                                 |
+| ----------------------- | ----------------- | ---------------------------------------------------------------------------------------------------------- |
+| **Type**                | `kind`            | `kubernetes` is the only choice for now                                                                    |
+| **Name**                | `name`            | How the workspace is picked in an agent's editor. Required, and two workspaces cannot share one            |
+| **Kubernetes context**  | `context`         | The cluster to run in, suggested from the contexts of your kubeconfig. Required for a Kubernetes workspace |
+| **Namespace**           | `namespace`       | Where the sessions run. Required for a Kubernetes workspace                                                |
+| **Image**               | `image`           | The image every session's pod runs. It needs the `infer` CLI                                               |
+| **Storage**             | `storage`         | The size of a session's volume, for example `5Gi`                                                          |
+| **Idle after**          | `idle_ttl`        | How long a pod stays up without work, for example `2h`                                                     |
+| **Keep suspended for**  | `retention`       | How long the operator keeps a suspended session before deleting it, for example `24h`                      |
+| **Provider keys**       | `gateway_env`     | Variable **names** only, comma separated                                                                   |
+| **Forwarded variables** | `forward_env`     | Names of variables the agent itself gets, such as a token it pushes with                                   |
+| **Environment**         | `env`             | One `NAME=value` per line. Not for secrets - these land in the pod's spec                                  |
+
+**Provider keys are names, not values.** The value of each name is taken from what you saved under [API Keys](#api-keys) and sent to the workspace's own gateway, never into the agent's pod, so nothing the agent runs can read a provider key into its context. Clearing a field removes its key from the entry, and an edit keeps the keys the form does not know (`mode`, `protocol`) along with every other entry of the file.
+
+**Detect clusters** fills the tab in from your kubeconfig: one Kubernetes workspace per context that has none yet, named after the context, in the `infer-workspaces` namespace, with the CLI image of the installed `infer` version and the names of your saved API keys as its provider keys. Existing workspaces are never replaced, and a second click adds nothing. It adds **every** context it finds, production clusters included, so review the list and delete what should not host agents.
+
+**Prerequisites check.** Each Kubernetes workspace is checked when the tab opens and again with its refresh button. A cluster that has everything shows **Cluster has everything it needs**, and one that does not names what is missing and how to fix it:
+
+| Item                                  | Means                                                             | Fix                                                                               |
+| ------------------------------------- | ----------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| **Cluster reachable**                 | `kubectl` could talk to the context, with its error line when not | Check the context, your kubeconfig and the cluster itself                         |
+| **agent-sandbox**                     | The `sandboxes.agents.x-k8s.io` CRD is installed                  | Install agent-sandbox **before** the operator, which looks for it only at startup |
+| **Gateway API**                       | The Gateway API CRDs the operator requires are installed          | Install the Gateway API CRDs                                                      |
+| **Inference Gateway operator**        | The operator's `Orchestrator` and `Gateway` CRDs are installed    | Install the [operator](/operator/) v0.29.0 or later                               |
+| **Namespace `<name>`**                | The namespace the form names exists                               | `kubectl create namespace <name>`                                                 |
+| **Namespace managed by the operator** | It carries `inference-gateway.com/managed=true`                   | `kubectl label namespace <name> inference-gateway.com/managed=true`               |
+
+The check needs `kubectl` on your `PATH`, and it looks at the CRDs and the namespace, **not** at whether the controllers behind them are actually running - a cluster that passes can still have a crashed operator.
+
+**The running badge** next to a workspace's type counts the sessions running in it, taken from the `Orchestrator`s in its namespace whose `Ready` condition is true. Hover it for the suspended count, the ones kept for their `retention`. The badge is absent when the cluster cannot list them.
+
+A saved Kubernetes workspace looks like this in `~/.infer/daemon.yaml`:
+
+```yaml
+workspaces:
+  - name: ubuntu-desktop
+    kind: kubernetes
+    context: k3d-computer-use
+    namespace: computer-use
+    image: ghcr.io/inference-gateway/cli:0.245.0
+    storage: 5Gi
+    gateway_env:
+      - OLLAMA_CLOUD_API_KEY
+```
+
+[`examples/computer-use`](https://github.com/inference-gateway/desktop/tree/main/examples/computer-use) is a runnable cluster with workspaces like this one already set up.
+
 ## Agent computers
 
-One of your own agents can get a computer of its own. Pick it as the **Computer** in the agent's editor - the dropdown lists the workspaces of the `infer` daemon, which you register under **Settings -> Workspaces** - and it is saved as `workspace` in the agent's frontmatter:
+One of your own agents can get a computer of its own. Pick it as the **Computer** in the agent's editor - the dropdown lists the workspaces of the `infer` daemon, which you register under [**Settings -> Workspaces**](#workspaces) - and it is saved as `workspace` in the agent's frontmatter:
 
 ```markdown
 ---
