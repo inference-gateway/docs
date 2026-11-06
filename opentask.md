@@ -264,6 +264,38 @@ Daemon -> extension, the discovered skills (empty when skills are unavailable):
 - `name` is the qualified skill name (`pluginName:skillName` for plugin skills).
 - `scope` is one of `project`, `agents`, `user`, `plugin`, `catalog`. Name conflicts are already resolved by precedence, so each name appears once. Unknown scopes are ignored by the extension.
 
+### Shortcuts
+
+The same `/` menu can also offer the [shortcut registry](/cli/#shortcuts) the chat TUI lists - the built-in commands and the [custom shortcuts](/cli/#custom-shortcuts) defined in YAML.
+
+Client -> daemon, list a project's shortcuts (`project_dir` is optional - without it the daemon uses its own working directory):
+
+```json
+{ "type": "list_shortcuts", "project_dir": "/home/me/code/my-app" }
+```
+
+Daemon -> client, the registry, sorted by name:
+
+```json
+{
+  "type": "shortcuts",
+  "shortcuts": [
+    {
+      "name": "clear",
+      "description": "Clear the conversation",
+      "usage": "/clear",
+      "kind": "command"
+    }
+  ]
+}
+```
+
+- `name` has no leading `/`.
+- `kind` is `command` for a built-in and `shortcut` for a custom shortcut.
+- Skills stay on [`list_skills`](#skills). A client merges the two lists itself, and on a name clash the registry entry wins, as in the TUI.
+
+The frame only lists. The worker does not run a `/<name>` it receives in a `run_agent_input` message, so a client runs what it offers: a snippet shortcut through a `completion_request`, anything else through its own command surface.
+
 ### GitHub issue references
 
 A client can offer the same `#` issue autocomplete as the [chat TUI](/cli/#github-issue-references). It asks the daemon for the project's issues and sends the chosen `#N` token in the message like any other text.
@@ -421,6 +453,8 @@ Browser and session frames specific to this transport; the AG-UI and CUSTOM even
 | `approval_response`                   | ext -> daemon    | Approve or reject a pending tool call                                            |
 | `list_skills`                         | ext -> daemon    | Ask for a project's available skills                                             |
 | `skills`                              | daemon -> ext    | Skill list with `name`, `description`, `scope`                                   |
+| `list_shortcuts`                      | client -> daemon | Ask for a project's shortcut registry                                            |
+| `shortcuts`                           | daemon -> client | Shortcut list with `name`, `description`, `usage`, `kind`, sorted by name        |
 | `list_issues`                         | client -> daemon | Ask for a project's recent open issues                                           |
 | `issues`                              | daemon -> client | Issue list with `number`, `title`, `state`, newest first                         |
 | `list_artifacts`                      | client -> daemon | Ask for a session's artifacts, newest-first                                      |
