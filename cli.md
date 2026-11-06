@@ -1430,6 +1430,7 @@ Every transport carries the same vocabulary, with no envelope around it: AG-UI e
 | `computer_use_control`                                      | `action` is `pause` or `resume`, for computer use                                      |
 | `list_conversations` / `list_history`                       | Browse the project's stored conversations                                              |
 | `list_skills` / `list_models` / `select_model` / `set_mode` | Inspect and change what the thread runs with                                           |
+| `list_shortcuts`                                            | The project's [shortcut registry](/opentask/#shortcuts), for the `/` menu              |
 | `list_issues`                                               | The project's recent open issues, for the [`#` autocomplete](#github-issue-references) |
 | `tool_request` / `tool_result`                              | Run a tool directly, scoped to a project directory                                     |
 | `list_artifacts` / `read_artifact`                          | List a [session's artifacts](/opentask/#session-artifacts) and read one                |
