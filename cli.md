@@ -371,6 +371,8 @@ The request is sent about two seconds after the turn completes, and only when th
 
 The call is **silent-fail**: a timeout, an error or a non-conforming answer leaves the input untouched and logs at debug level, so a flaky suggestion model never interrupts the chat.
 
+The same suggestion reaches AG-UI hosts on the run state - see [AG-UI next-step suggestion state](#ag-ui-next-step-suggestion-state).
+
 ```yaml
 # .infer/config.yaml
 chat:
@@ -940,6 +942,27 @@ The same outcome reaches [daemon](#daemon) clients that send an `interrupt` fram
 
 **For AG-UI consumers** (the [desktop app](/desktop/) sidecar, or any process hosting `infer headless --format ag-ui`): the per-step `token_usage` events stream the cumulative stats above, so live indicators stay current during the run instead of jumping once at `RUN_FINISHED`. Drive the context-percentage indicator from `lastInputTokens / contextWindow` - `lastInputTokens` is the live occupancy of the window, where `inputTokens` is a session-wide sum and will overshoot it. Hide the indicator when `contextWindow` is absent. Drive the cost indicator from `cost`, which is already the computed dollar total and needs no per-model pricing table on the client.
 
+##### AG-UI next-step suggestion state
+
+A [serve worker](#serve-worker---serve) carries the same one-line [next-step suggestion](#next-step-suggestions) the chat TUI shows as ghost text on the run state, under the `nextStepSuggestion` key. It is patched with a `STATE_DELTA` **just before** the terminal `RUN_FINISHED` or `RUN_ERROR`, so a host renders the suggestion for the turn that just ended:
+
+```json
+{
+  "type": "STATE_DELTA",
+  "delta": [
+    {
+      "op": "add",
+      "path": "/nextStepSuggestion",
+      "value": "Run the test suite to confirm the fix"
+    }
+  ]
+}
+```
+
+- The key is seeded `""` in **every** `STATE_SNAPSHOT`, so it is always present and a client needs no absent-key branch.
+- A suggestion that is disabled, failed or discarded publishes **nothing** - the key stays at its seeded `""`. A turn with a message already queued behind it, a failed or cancelled run, and a subagent's worker ask for no suggestion at all.
+- The suggestion call's tokens land in the same [session totals](#ag-ui-run-finished-result) the terminal event carries.
+
 ##### AG-UI computer-use activity and recording state
 
 Under `--format ag-ui` the stream itself reports what a computer-use run is doing and whether a screen recording is up, so a host (the [desktop app](/desktop/) overlay and monitor, or any AG-UI client) renders them from standard events instead of reverse-engineering `Computer` tool arguments and `RecordStart` results.
@@ -1365,17 +1388,17 @@ Every transport carries the same vocabulary, with no envelope around it: AG-UI e
 
 **AG-UI events out:**
 
-| Event                                                              | When                                                                                                                                                      |
-| ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `RUN_STARTED`                                                      | A turn starts; `threadId` is the conversation id                                                                                                          |
-| `MESSAGES_SNAPSHOT`                                                | Answer to `new_session` / `resume_conversation`; also emitted [right after `RUN_STARTED` on a resumed run](#ag-ui-resume-snapshot)                        |
-| `TEXT_MESSAGE_START` / `TEXT_MESSAGE_CONTENT` / `TEXT_MESSAGE_END` | Assistant or user message, role on START                                                                                                                  |
-| `TOOL_CALL_START` / `TOOL_CALL_ARGS` / `TOOL_CALL_END`             | A tool call the assistant issued                                                                                                                          |
-| `TOOL_CALL_RESULT`                                                 | The raw JSON execution result of a tool call                                                                                                              |
-| `STATE_SNAPSHOT` / `STATE_DELTA`                                   | The run state object - `todos`, `usage`, `backgroundTasks` and [`screenRecording`](#ag-ui-computer-use-activity-and-recording-state)                      |
-| `ACTIVITY_SNAPSHOT`                                                | Progress a client keeps as one entry per `messageId`: `agent_status`, `judge_verdict`, [`computer_use`](#ag-ui-computer-use-activity-and-recording-state) |
-| `RUN_FINISHED`                                                     | The turn ended; outcome [`cancelled`](#ag-ui-cancelled-runs) when it was stopped, `result` carries the [session totals](#ag-ui-run-finished-result)       |
-| `RUN_ERROR`                                                        | The turn failed, or its worker died                                                                                                                       |
+| Event                                                              | When                                                                                                                                                                                            |
+| ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `RUN_STARTED`                                                      | A turn starts; `threadId` is the conversation id                                                                                                                                                |
+| `MESSAGES_SNAPSHOT`                                                | Answer to `new_session` / `resume_conversation`; also emitted [right after `RUN_STARTED` on a resumed run](#ag-ui-resume-snapshot)                                                              |
+| `TEXT_MESSAGE_START` / `TEXT_MESSAGE_CONTENT` / `TEXT_MESSAGE_END` | Assistant or user message, role on START                                                                                                                                                        |
+| `TOOL_CALL_START` / `TOOL_CALL_ARGS` / `TOOL_CALL_END`             | A tool call the assistant issued                                                                                                                                                                |
+| `TOOL_CALL_RESULT`                                                 | The raw JSON execution result of a tool call                                                                                                                                                    |
+| `STATE_SNAPSHOT` / `STATE_DELTA`                                   | The run state object - `todos`, `usage`, `backgroundTasks`, [`nextStepSuggestion`](#ag-ui-next-step-suggestion-state) and [`screenRecording`](#ag-ui-computer-use-activity-and-recording-state) |
+| `ACTIVITY_SNAPSHOT`                                                | Progress a client keeps as one entry per `messageId`: `agent_status`, `judge_verdict`, [`computer_use`](#ag-ui-computer-use-activity-and-recording-state)                                       |
+| `RUN_FINISHED`                                                     | The turn ended; outcome [`cancelled`](#ag-ui-cancelled-runs) when it was stopped, `result` carries the [session totals](#ag-ui-run-finished-result)                                             |
+| `RUN_ERROR`                                                        | The turn failed, or its worker died                                                                                                                                                             |
 
 **CUSTOM events out**, each with a `name` and a `value`:
 
