@@ -264,6 +264,33 @@ Daemon -> extension, the discovered skills (empty when skills are unavailable):
 - `name` is the qualified skill name (`pluginName:skillName` for plugin skills).
 - `scope` is one of `project`, `agents`, `user`, `plugin`, `catalog`. Name conflicts are already resolved by precedence, so each name appears once. Unknown scopes are ignored by the extension.
 
+### GitHub issue references
+
+A client can offer the same `#` issue autocomplete as the [chat TUI](/cli/#github-issue-references). It asks the daemon for the project's issues and sends the chosen `#N` token in the message like any other text.
+
+Client -> daemon, list a project's issues (`project_dir` is optional - without it the daemon uses its own working directory):
+
+```json
+{ "type": "list_issues", "project_dir": "/home/me/code/my-app" }
+```
+
+Daemon -> client, the recent open issues, newest first:
+
+```json
+{
+  "type": "issues",
+  "issues": [{ "number": 57, "title": "Fix the flaky test", "state": "OPEN" }]
+}
+```
+
+- `issues` is empty when the [`gh` CLI](/cli/#github-operations) is missing, the directory is not a git repository, or `gh` is not authenticated - the autocomplete simply offers nothing, there is no error frame.
+
+A `#N` token in a `run_agent_input` (or `user_message`) text part is expanded by the worker into that issue's title, body and most recent comments **before the run starts**, so the client sends the short token and the agent sees the full issue.
+
+- A token counts when it starts the text or follows whitespace, so `abc#1` and `#` alone are left alone.
+- At most **10 distinct issues** are expanded per message.
+- A token whose fetch fails, or one past that cap, stays in the message as the raw `#N`.
+
 ### Artifacts (generated images)
 
 Chat text can reference files the agent saved under the artifacts dir (`~/.infer/projects/<project-slug>/artifacts/<...>`, for example `ImageGeneration` output). An MV3 extension cannot load a local file path in `<img>`, so the extension rewrites a markdown image whose URL contains `/.infer/projects/<project-slug>/artifacts/<relative-path>` - tilde-prefixed or spelled out as an absolute home-directory path - onto a per-project HTTP route on the bridge and renders it inline in the panel:
@@ -394,6 +421,8 @@ Browser and session frames specific to this transport; the AG-UI and CUSTOM even
 | `approval_response`                   | ext -> daemon    | Approve or reject a pending tool call                                            |
 | `list_skills`                         | ext -> daemon    | Ask for a project's available skills                                             |
 | `skills`                              | daemon -> ext    | Skill list with `name`, `description`, `scope`                                   |
+| `list_issues`                         | client -> daemon | Ask for a project's recent open issues                                           |
+| `issues`                              | daemon -> client | Issue list with `number`, `title`, `state`, newest first                         |
 | `list_artifacts`                      | client -> daemon | Ask for a session's artifacts, newest-first                                      |
 | `artifacts`                           | daemon -> client | Artifact list with `name`, `size`, `modified_at`                                 |
 | `read_artifact`                       | client -> daemon | Read one artifact of a session by file name                                      |

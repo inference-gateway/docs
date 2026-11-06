@@ -408,6 +408,8 @@ infer chat
 
 **Prerequisite:** the [`gh` CLI](#github-operations) must be installed and authenticated, and the working directory must be a git repository with a remote. The feature **gracefully no-ops** when `gh` is missing, the directory is not a git repo, the repo has no remote, or authentication has expired - the dropdown simply shows nothing.
 
+Both halves are available to [daemon](#daemon) and [worker](#serve-worker---serve) clients, so the browser extension and the desktop app offer the same `#` autocomplete: the [`list_issues`](/opentask/#github-issue-references) frame answers with the project's recent open issues, and the worker expands the `#N` tokens of a `run_agent_input` (or `user_message`) text part before the run starts. A token counts when it starts the text or follows whitespace, at most **10 distinct issues** are expanded per message, and a token whose fetch fails - or one past the cap - is left in place as the raw `#N`.
+
 #### Resuming a session (`--session-id`)
 
 `infer chat --session-id <id>` loads a persisted conversation before the TUI starts, letting you pick up where you left off. The session must have been persisted by a [storage backend](#conversation-management) (`storage.enabled: true`).
@@ -1418,18 +1420,19 @@ Every transport carries the same vocabulary, with no envelope around it: AG-UI e
 
 **App frames in:**
 
-| Frame                                                       | Purpose                                                                    |
-| ----------------------------------------------------------- | -------------------------------------------------------------------------- |
-| `new_session` / `resume_conversation`                       | Open a thread in a project directory                                       |
-| `user_message`                                              | Send a message into the thread; queued when the agent is busy              |
-| `interrupt`                                                 | Stop the streaming turn, which ends `cancelled`                            |
-| `approval_response`                                         | `tool_call_id`, `approved`, `scope` - the decision for a pending tool call |
-| `user_question_response`                                    | The collected answers, or a dismissal                                      |
-| `computer_use_control`                                      | `action` is `pause` or `resume`, for computer use                          |
-| `list_conversations` / `list_history`                       | Browse the project's stored conversations                                  |
-| `list_skills` / `list_models` / `select_model` / `set_mode` | Inspect and change what the thread runs with                               |
-| `tool_request` / `tool_result`                              | Run a tool directly, scoped to a project directory                         |
-| `list_artifacts` / `read_artifact`                          | List a [session's artifacts](/opentask/#session-artifacts) and read one    |
+| Frame                                                       | Purpose                                                                                |
+| ----------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `new_session` / `resume_conversation`                       | Open a thread in a project directory                                                   |
+| `user_message`                                              | Send a message into the thread; queued when the agent is busy                          |
+| `interrupt`                                                 | Stop the streaming turn, which ends `cancelled`                                        |
+| `approval_response`                                         | `tool_call_id`, `approved`, `scope` - the decision for a pending tool call             |
+| `user_question_response`                                    | The collected answers, or a dismissal                                                  |
+| `computer_use_control`                                      | `action` is `pause` or `resume`, for computer use                                      |
+| `list_conversations` / `list_history`                       | Browse the project's stored conversations                                              |
+| `list_skills` / `list_models` / `select_model` / `set_mode` | Inspect and change what the thread runs with                                           |
+| `list_issues`                                               | The project's recent open issues, for the [`#` autocomplete](#github-issue-references) |
+| `tool_request` / `tool_result`                              | Run a tool directly, scoped to a project directory                                     |
+| `list_artifacts` / `read_artifact`                          | List a [session's artifacts](/opentask/#session-artifacts) and read one                |
 
 Unknown `type` and `name` values are ignored on both sides, so the vocabulary stays additive. The full per-event reference lives with the CLI source, in [`docs/ag-ui-output.md`](https://github.com/inference-gateway/cli/blob/main/docs/ag-ui-output.md).
 
