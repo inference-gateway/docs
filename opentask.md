@@ -323,6 +323,36 @@ A `#N` token in a `run_agent_input` (or `user_message`) text part is expanded by
 - At most **10 distinct issues** are expanded per message.
 - A token whose fetch fails, or one past that cap, stays in the message as the raw `#N`.
 
+### Project file references
+
+A client can offer the same `@` file autocomplete as the chat TUI's input. It asks the daemon for the project's files and sends the chosen `@<path>` token in the message like any other text.
+
+Client -> daemon, list a project's files (`project_dir` is optional - without it the daemon uses its own working directory):
+
+```json
+{ "type": "list_files", "project_dir": "/home/me/code/my-app" }
+```
+
+Daemon -> client, the files the worker offers for expansion:
+
+```json
+{
+  "type": "files",
+  "files": ["cmd/infer/main.go", "README.md", "~/.infer/config.yaml"]
+}
+```
+
+- Paths are relative to the worker's project dir, followed by the user's `~/.infer` files as `~/.infer/<path>`. Each one is usable as-is after an `@`.
+- Hidden files, ignored directories and files beyond the expansion size limits are left out, as in the TUI's menu.
+- `files` is empty when the project dir cannot be walked - the autocomplete simply offers nothing, there is no error frame.
+
+An `@<path>` token in a `run_agent_input` (or `user_message`) text part is expanded by the worker **before the run starts**, so the client sends the short token and the agent sees the file:
+
+- A text file is inlined as a fenced block.
+- A Markdown file contributes its `## Summary` section when it has one, and is inlined in full otherwise.
+- An image becomes a note naming its path, so the agent knows which file to look at.
+- A path that does not resolve to a readable file within the size limits stays in the message as the raw token.
+
 ### Artifacts (generated images)
 
 Chat text can reference files the agent saved under the artifacts dir (`~/.infer/projects/<project-slug>/artifacts/<...>`, for example `ImageGeneration` output). An MV3 extension cannot load a local file path in `<img>`, so the extension rewrites a markdown image whose URL contains `/.infer/projects/<project-slug>/artifacts/<relative-path>` - tilde-prefixed or spelled out as an absolute home-directory path - onto a per-project HTTP route on the bridge and renders it inline in the panel:
@@ -457,6 +487,8 @@ Browser and session frames specific to this transport; the AG-UI and CUSTOM even
 | `shortcuts`                           | daemon -> client | Shortcut list with `name`, `description`, `usage`, `kind`, sorted by name        |
 | `list_issues`                         | client -> daemon | Ask for a project's recent open issues                                           |
 | `issues`                              | daemon -> client | Issue list with `number`, `title`, `state`, newest first                         |
+| `list_files`                          | client -> daemon | Ask for a project's files, for the `@` autocomplete                              |
+| `files`                               | daemon -> client | File path list, project-relative then `~/.infer/<path>`                          |
 | `list_artifacts`                      | client -> daemon | Ask for a session's artifacts, newest-first                                      |
 | `artifacts`                           | daemon -> client | Artifact list with `name`, `size`, `modified_at`                                 |
 | `read_artifact`                       | client -> daemon | Read one artifact of a session by file name                                      |
