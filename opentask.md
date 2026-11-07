@@ -353,6 +353,57 @@ An `@<path>` token in a `run_agent_input` (or `user_message`) text part is expan
 - An image becomes a note naming its path, so the agent knows which file to look at.
 - A path that does not resolve to a readable file within the size limits stays in the message as the raw token.
 
+### Background jobs
+
+A worker's shells, subagents, recordings and A2A tasks live in that worker, so a client lists and stops them there. These are the frames behind the chat TUI's [`/tasks` view](/cli/#tasks-view). They answer for the worker they reach, so a client follows the session first.
+
+Client -> daemon, list the jobs (`project_dir` is optional, `id` names the conversation):
+
+```json
+{ "type": "list_tasks", "project_dir": "/home/me/code/my-app", "id": "<conversation id>" }
+```
+
+Daemon -> client, the running and recently finished jobs:
+
+```json
+{
+  "type": "tasks",
+  "tasks": [
+    {
+      "id": "shell-1",
+      "kind": "shell",
+      "label": "shell-1",
+      "detail": "go build ./...",
+      "status": "running",
+      "started_at": "2026-11-06T10:00:00Z"
+    }
+  ]
+}
+```
+
+- `status` is `running`, `completed` or `failed`. A cancelled shell shows as `failed`.
+- A finished job also has `completed_at` and `output`. A subagent has its `session_id`, and `stats` once it ends.
+
+Client -> daemon, stop a job. The job goes in `task_id`, since `id` names the conversation:
+
+```json
+{
+  "type": "cancel_task",
+  "project_dir": "/home/me/code/my-app",
+  "id": "<conversation id>",
+  "task_id": "shell-1"
+}
+```
+
+Daemon -> client, once the job was told to stop:
+
+```json
+{ "type": "task_cancelled", "task_id": "shell-1" }
+```
+
+- `error` replaces the acknowledgement and says why the job could not be stopped.
+- The job ends a moment later, so a client lists the jobs again to see it finished.
+
 ### Artifacts (generated images)
 
 Chat text can reference files the agent saved under the artifacts dir (`~/.infer/projects/<project-slug>/artifacts/<...>`, for example `ImageGeneration` output). An MV3 extension cannot load a local file path in `<img>`, so the extension rewrites a markdown image whose URL contains `/.infer/projects/<project-slug>/artifacts/<relative-path>` - tilde-prefixed or spelled out as an absolute home-directory path - onto a per-project HTTP route on the bridge and renders it inline in the panel:
@@ -489,6 +540,10 @@ Browser and session frames specific to this transport; the AG-UI and CUSTOM even
 | `issues`                              | daemon -> client | Issue list with `number`, `title`, `state`, newest first                         |
 | `list_files`                          | client -> daemon | Ask for a project's files, for the `@` autocomplete                              |
 | `files`                               | daemon -> client | File path list, project-relative then `~/.infer/<path>`                          |
+| `list_tasks`                          | client -> daemon | Ask for a session's running and recently finished background jobs                |
+| `tasks`                               | daemon -> client | Job list with `id`, `kind`, `label`, `detail`, `status`, `started_at`            |
+| `cancel_task`                         | client -> daemon | Stop one background job, named in `task_id`                                      |
+| `task_cancelled`                      | daemon -> client | The job was told to stop, or `error` says why it could not be                    |
 | `list_artifacts`                      | client -> daemon | Ask for a session's artifacts, newest-first                                      |
 | `artifacts`                           | daemon -> client | Artifact list with `name`, `size`, `modified_at`                                 |
 | `read_artifact`                       | client -> daemon | Read one artifact of a session by file name                                      |

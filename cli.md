@@ -1433,6 +1433,7 @@ Every transport carries the same vocabulary, with no envelope around it: AG-UI e
 | `list_shortcuts`                                            | The project's [shortcut registry](/opentask/#shortcuts), for the `/` menu              |
 | `list_issues`                                               | The project's recent open issues, for the [`#` autocomplete](#github-issue-references) |
 | `list_files`                                                | The project's files, for the [`@` autocomplete](/opentask/#project-file-references)    |
+| `list_tasks` / `cancel_task`                                | List and stop a [session's background jobs](/opentask/#background-jobs)                |
 | `tool_request` / `tool_result`                              | Run a tool directly, scoped to a project directory                                     |
 | `list_artifacts` / `read_artifact`                          | List a [session's artifacts](/opentask/#session-artifacts) and read one                |
 
@@ -4861,6 +4862,13 @@ Selecting a **subagent** row shows:
 Press `/` in the panel to open its search box, type to filter the rows by a case-insensitive substring, and press `Esc` to clear the query and leave search. The box takes every printable character, so accented letters, CJK, emoji and the space bar all land in the query, and `Backspace` removes one character rather than one byte - a multibyte character disappears in a single press.
 
 The [background job list](#background-job-list) under the composer is the live view of what is running. `/tasks` is where finished jobs stay for review.
+
+#### `/tasks` in a daemon chat
+
+In a [daemon chat](#daemon) the panel lists and cancels the jobs of the **session's worker** - its shells, subagents, recordings and A2A tasks - with their output, stats and a subagent's transcript, over the [`list_tasks` and `cancel_task` frames](/opentask/#background-jobs). The same frames serve the other daemon clients, the browser extension and the desktop app.
+
+- The view refreshes while a job runs. A job started while nothing was running shows up after reopening `/tasks`.
+- Cancelling asks the worker to stop the job. It ends a moment later, so the panel shows it finished on the next refresh, and a cancelled shell shows as `Failed`.
 
 Rendering is bounded so a chatty shell cannot overflow the panel: the Output section shows **at most the last 10KB** of output. When the captured output is larger, it is prefixed with `(truncated, showing last 10KB)` and only the trailing 10KB is displayed.
 
