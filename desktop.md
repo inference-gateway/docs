@@ -294,6 +294,28 @@ Typing `/` in the composer opens the slash menu. Every row is labelled with its 
 | `skill`        | Activates an installed [Agent Skill](/cli-skills/) for the turn                 |
 | `remote skill` | Downloads a catalog skill first, after you confirm, then activates it           |
 
+### The `@` file menu
+
+Typing `@` at the start of the text or after a space opens a menu of the project's files, filtered by whatever you type after the `@`. **ArrowUp** and **ArrowDown** move through the rows, **Enter** inserts `@<path>`, and **Escape** closes it. Paths are relative to the project, followed by your `~/.infer` files as `~/.infer/<path>`. Hidden files, ignored directories and files beyond the expansion size limits are not offered.
+
+On send, the CLI's worker expands each `@<path>` token before the run starts, so the agent sees the file rather than the token:
+
+- A text file is inlined as a fenced block.
+- A Markdown file contributes its `## Summary` section when it has one, and is inlined in full otherwise.
+- A reference that does not resolve to a readable file stays in the message as typed.
+
+See [Project file references](/opentask/#project-file-references) for the daemon frames behind the menu.
+
+### The `#` issue menu
+
+Typing `#` opens a menu of the project's **open GitHub issues**, each row shown as `#<number> <title>` and filtered by number or title. **Enter** inserts `#<number>`, which the worker expands into the issue's title, body and most recent comments before the run - at most **10 distinct issues** per message, with anything past the cap left as the raw token.
+
+The menu needs a git repository with a GitHub remote, plus the [`gh` CLI](/cli/#github-operations) installed and authenticated. Without those it shows nothing rather than reporting an error. A `#` inside a word, such as `C#` or a URL fragment, opens nothing - the token only counts at the start of the text or after whitespace.
+
+This is the same autocomplete the chat TUI offers, see [GitHub Issue References](/cli/#github-issue-references).
+
+Both menus need `infer` **v0.246.0 or newer**. Against an older CLI they stay empty and the composer behaves as if you had typed an ordinary `@` or `#`.
+
 ## Reasoning and thinking view
 
 Models that emit reasoning show it in the transcript in a collapsible **Thought process** block, rendered above the answer for that turn. It is collapsed by default - click the summary to expand it and read the reasoning. Reasoning is streamed live, so an expanded block fills in as the model thinks rather than appearing all at once when the turn ends.
