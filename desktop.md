@@ -283,6 +283,20 @@ When the agent wants to perform a tool action (read a file, execute a command, f
 
 You click **Approve** to allow the action or **Deny** to reject it. This keeps the agent sandboxed to your intent - no silent file access, no unapproved side effects.
 
+### Cancelled tool calls
+
+A tool card ends in one of three states. Done is the normal result, failed is highlighted in red, and **cancelled** is a third, distinct state: the card turns grey and carries a `(cancelled)` tag instead of its output.
+
+A call shows as cancelled when it never produced a result - you stopped the run while it was pending, for example at its approval prompt, or the CLI cancelled it itself. The card stays in the transcript rather than disappearing, so you can see which call was dropped and where the turn stopped.
+
+### Conversation optimized notes
+
+A note reading **Conversation optimized - X to Y messages** appears in the transcript when the CLI compacted a long conversation before running your request. It tells you history was summarized, not lost, and how many messages the run actually started from.
+
+It needs `compact.enabled` (on by default), a model whose context window the CLI knows, and a conversation that has grown past `compact.auto_at` percent of that window - see [Compaction](/cli/#compaction) for the settings.
+
+Both the cancelled state and the optimization note need `infer` **v0.246.0 or newer**, which sends them as AG-UI activities. Against an older CLI the transcript still works - a dropped call simply stays unfinished and no note appears.
+
 ### The slash menu
 
 Typing `/` in the composer opens the slash menu. Every row is labelled with its kind, using the same wording as the [CLI autocomplete](/cli/#autocomplete-kinds):
