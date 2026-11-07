@@ -5207,6 +5207,14 @@ safety:
 
 LLMs request approval before executing Write/Edit/Delete/Bash operations, with a colored, syntax-aware diff preview for file edits.
 
+#### A batch waits for every prompt
+
+When a model requests several tools at once and **any** call in that batch is gated, **no call of the batch runs until the last prompt is answered**. That includes the calls that need no approval - a `Read` or `TodoWrite` batched with a gated `Write` - and a [background job](#background-job-list) in the same batch. The cost is that a long first tool does not start while you are still deciding on the rest. Once the round is decided the cleared calls run as before: overlapping, bounded by the same concurrency limit, with results flushed in tool-call order.
+
+Rejecting a later call does **not** undo an earlier approval - the call you approved still runs. A call you approved in a round that never completes (a failed approval, an interrupted session) does not run at all, and no longer lingers in the chat as approved. The status line reads `Tool approved: <tool>` while the next prompt is open, rather than claiming the tool is already executing.
+
+A single gated call, [auto-accept mode](#auto-accept-mode) and fully ungated batches behave as before. Prompts a tool opens **during** execution are unaffected: sandbox access grants, [`RequestApproval`](/cli-judge-mode/#escalating-a-rejection-requestapproval) escalations and [`AskUserQuestion`](#askuserquestion) can still interrupt a running call.
+
 #### Headless secure-by-default
 
 `infer headless` runs in **standard** mode, so an off-list or mutating action is **not** auto-run. With no approver reachable (CI, heartbeat) it is **blocked** with a reason; under a channel manager (`--require-approval`) it is sent for **IPC** approval (for example a Telegram confirmation). There is no `.*` default - full autonomy is an explicit opt-in (a curated allowed-list, the [append override](#append-only-override-ci), or `mode.auto` / `.*`). To keep a gate without a human, run `--mode auto-with-judge` (or set `approval_behaviour: judge`) and let an [LLM judge](/cli-judge-mode/) answer instead of blocking.
