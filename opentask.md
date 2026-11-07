@@ -213,7 +213,7 @@ Daemon -> extension, newest-first (sorted by `updated_at` descending):
 - `title` is the conversation's title (an auto-derived first-message preview until a better one is generated), `updated_at` is RFC 3339, and `message_count` is the number of stored messages.
 - The array is empty when the daemon runs without conversation persistence (`storage.enabled: false`).
 
-Extension -> daemon, open a thread on one of them (`new_session` starts a fresh conversation in the same shape, and both take the thread options - model, agent mode, prompt overrides, sandbox directories, max turns):
+Extension -> daemon, open a thread on one of them (`new_session` starts a fresh conversation in the same shape, and both take the thread options - model, agent mode, prompt overrides, sandbox directories, max turns, and an `agent` name to open the thread as one of the project's [Markdown agents](/cli/#opening-a-thread-as-a-named-agent)):
 
 ```json
 { "type": "resume_conversation", "project_dir": "/home/me/code/my-app", "id": "<uuid>" }
