@@ -112,6 +112,8 @@ The **Agents** tab manages the [A2A](/a2a/) agents your local agent can delegate
 
 **Remote agents** are ones you host or run elsewhere. Type the agent's URL (for example `http://localhost:8085`) into the field at the bottom and click **Add** or press Enter. Remote agents appear in their own list above the field, each with a **Remove** button.
 
+The same tab's **Your agents** card is a different thing: it manages [your own Markdown agents](#your-own-agents), the ones you chat with yourself.
+
 ### Workspaces
 
 The **Workspaces** tab is where you register the compute an agent can run on as [its own computer](#agent-computers), or that you [move a chat to](#moving-a-chat), so you no longer have to edit `~/.infer/daemon.yaml` by hand. Each workspace in the tab is one entry of the `infer` daemon's `workspaces` list in that file - see [Workspace kinds](/cli/#workspace-kinds) for the daemon's own reference. **Kubernetes** is the only type the form offers for now, and a type the form does not know (a `kind: local` entry you wrote yourself, say) is listed and can be deleted, but not edited.
@@ -171,6 +173,33 @@ workspaces:
 
 [`examples/computer-use`](https://github.com/inference-gateway/desktop/tree/main/examples/computer-use) is a runnable cluster with workspaces like this one already set up.
 
+## Your own agents
+
+An agent of your own is a **Markdown file**, `<name>.md`, in the same format the CLI uses for its [Markdown subagent presets](/cli/#markdown-subagent-presets) - a file written for either one works in both. **Settings -> Agents** lists them in the **Your agents** card, with **New agent**, an **Edit** button and a delete button per row, and the sidebar's **Agents** filter is where you start a chat with one.
+
+A chat with one of your agents **runs as that agent through the CLI**: the app opens the daemon thread with the agent's name and the CLI reads the file itself. What the file decides:
+
+| In the file                                        | In the chat                                                                       |
+| -------------------------------------------------- | --------------------------------------------------------------------------------- |
+| The Markdown body (**Instructions** in the editor) | The chat's system prompt                                                          |
+| `model`                                            | The model the chat runs on                                                        |
+| `tools`                                            | The only tools the agent may use in that chat                                     |
+| `disallowedTools`                                  | Tools removed from that list                                                      |
+| `workspace`                                        | The [computer](#agent-computers) its chats run on - a desktop key the CLI ignores |
+
+**The model comes from the agent.** In an agent chat the top-bar [model picker](#model-picker) shows the agent's model read-only - you change it in **Edit agent -> Model**, which writes the front matter. An agent with no model of its own (an empty `model`, or `inherit`) follows the model selected in the top bar instead. `tools` and `disallowedTools` have no field in the editor, so edit the file to set them.
+
+**Where agents are read from**, first match winning on a name:
+
+1. `.infer/agents` of the directory the chat runs in
+2. `.agents/agents` of that directory
+3. `~/.infer/agents`
+4. `~/.agents/agents`
+
+Those are the same four places the CLI resolves an agent from, so the app lists exactly the agents a chat can open. **New agent** saves to `~/.infer/agents`, while editing, renaming, deleting and picking a picture act in the directory the agent was found in - the editor shows that folder under the **Name** field. Settings has no **Agents directory** field any more.
+
+Agent chats need `infer` **v0.247.0 or newer**. An older CLI ignores the agent name, and the chat then runs without the agent's instructions.
+
 ## Agent computers
 
 One of your own agents can get a computer of its own. Pick it as the **Computer** in the agent's editor - the dropdown lists the workspaces of the `infer` daemon, which you register under [**Settings -> Workspaces**](#workspaces) - and it is saved as `workspace` in the agent's frontmatter:
@@ -220,7 +249,7 @@ A chat that sits on one workspace **comes home first and then goes to the other 
 
 Limits worth knowing:
 
-- **The chat keeps its model.** The gateway of the workspace it lands on has to serve that same model, which means the provider's key belongs in that workspace's [**Provider keys**](#workspaces). Without it the first turn on the workspace fails on the missing key, not on the move.
+- **The chat keeps its model.** The gateway of the workspace it lands on has to serve that same model, which means the provider's key belongs in that workspace's [**Provider keys**](#workspaces). Without it the first turn on the workspace fails on the missing key, not on the move. An [agent](#your-own-agents) whose front matter fixes its own model is never quietly switched to the workspace's model: the chat fails with a message naming the key to add, such as `ubuntu-desktop has no key for anthropic. Add ANTHROPIC_API_KEY to its provider keys in Settings > Workspaces`.
 - **The record can go stale.** Once the cluster deletes a suspended session after its `retention`, the app still lists the chat on that workspace. Move it back to this computer to carry on from the local copy.
 
 See [Workspace lifecycle and cleanup](/cli/#workspace-lifecycle-and-cleanup) and [Workspace kinds](/cli/#workspace-kinds) for the daemon's own account of teleports, and [`examples/computer-use`](https://github.com/inference-gateway/desktop/tree/main/examples/computer-use) for a cluster to try one on.
