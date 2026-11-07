@@ -1280,11 +1280,40 @@ It stops the agent and deletes its remote runtime, including one the session alr
 
 A **thread** is a project directory plus a conversation id, and it runs in exactly one session worker:
 
-- A client opens a thread with `new_session` or `resume_conversation`, passing `project_dir` and the thread options (model, agent mode, system prompt and custom instruction overrides, sandbox directories, max turns). The daemon answers with a `MESSAGES_SNAPSHOT` of the restored history.
+- A client opens a thread with `new_session` or `resume_conversation`, passing `project_dir` and the thread options (model, agent mode, system prompt and custom instruction overrides, sandbox directories, max turns, and a [named Markdown agent](#opening-a-thread-as-a-named-agent)). The daemon answers with a `MESSAGES_SNAPSHOT` of the restored history.
 - `threadId` on the thread's runs is its conversation id, so a client can list and resume the same conversations the CLI resumes.
 - Every agent turn is **one run**: `RUN_STARTED`, then exactly one `RUN_FINISHED` or `RUN_ERROR`. A stopped turn ends as `RUN_FINISHED` with outcome `cancelled`.
 - Several clients may subscribe to one thread; each of them sees the same frames.
 - Idle workers exit after a timeout, and a worker that crashes mid-turn has its open run closed with `RUN_ERROR`.
+
+#### Opening a thread as a named agent
+
+A client can open the thread **as one of the project's [Markdown agents](#markdown-subagent-presets)** by sending `agent` with the open frame, instead of spelling out a system prompt, a model and a tool allowlist itself:
+
+```json
+{
+  "type": "new_session",
+  "project_dir": "/home/me/code/my-app",
+  "agent": "code-reviewer"
+}
+```
+
+The daemon resolves the name against `project_dir` and the home directory when it creates the thread, and the thread then runs with:
+
+- the agent's Markdown body as its **system prompt**. A `custom_instructions` override still appends on top of it
+- the front-matter `model` as the model the thread **opens with**. An agent that names none, or names `inherit` or a bare alias, keeps the model the client asked for. A later `select_model` switches the thread like any other
+- the agent's `tools` and `disallowedTools` as the **worker's tool restriction**, the same way a named subagent's allowlist binds its subagent. The thread's `mode` is not derived from the list, so `mode` and `set_mode` keep control
+
+The lookup order is the one [skills](/cli-skills/#on-disk-layout) and [custom tools](#custom-tools) already use - project first, then home, first match wins:
+
+1. `.infer/agents/<name>.md` in the project directory
+2. `.agents/agents/<name>.md` in the project directory
+3. `~/.infer/agents/<name>.md`
+4. `~/.agents/agents/<name>.md`
+
+An unknown name **fails the open** with a `RUN_ERROR` naming the agents that are available, so a client never gets a silently plain thread instead of the agent it asked for.
+
+The **resolved** options travel as the thread's options, carrying the tool lists and never the agent name. A [relayed open](#workspace-kinds) or a teleport therefore keeps the agent's restriction on the peer, which does not need a copy of the agent files.
 
 ### Workspace kinds
 
@@ -1420,22 +1449,22 @@ Every transport carries the same vocabulary, with no envelope around it: AG-UI e
 
 **App frames in:**
 
-| Frame                                                       | Purpose                                                                                |
-| ----------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| `new_session` / `resume_conversation`                       | Open a thread in a project directory                                                   |
-| `user_message`                                              | Send a message into the thread; queued when the agent is busy                          |
-| `interrupt`                                                 | Stop the streaming turn, which ends `cancelled`                                        |
-| `approval_response`                                         | `tool_call_id`, `approved`, `scope` - the decision for a pending tool call             |
-| `user_question_response`                                    | The collected answers, or a dismissal                                                  |
-| `computer_use_control`                                      | `action` is `pause` or `resume`, for computer use                                      |
-| `list_conversations` / `list_history`                       | Browse the project's stored conversations                                              |
-| `list_skills` / `list_models` / `select_model` / `set_mode` | Inspect and change what the thread runs with                                           |
-| `list_shortcuts`                                            | The project's [shortcut registry](/opentask/#shortcuts), for the `/` menu              |
-| `list_issues`                                               | The project's recent open issues, for the [`#` autocomplete](#github-issue-references) |
-| `list_files`                                                | The project's files, for the [`@` autocomplete](/opentask/#project-file-references)    |
-| `list_tasks` / `cancel_task`                                | List and stop a [session's background jobs](/opentask/#background-jobs)                |
-| `tool_request` / `tool_result`                              | Run a tool directly, scoped to a project directory                                     |
-| `list_artifacts` / `read_artifact`                          | List a [session's artifacts](/opentask/#session-artifacts) and read one                |
+| Frame                                                       | Purpose                                                                                                 |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `new_session` / `resume_conversation`                       | Open a thread in a project directory, optionally [as a named agent](#opening-a-thread-as-a-named-agent) |
+| `user_message`                                              | Send a message into the thread; queued when the agent is busy                                           |
+| `interrupt`                                                 | Stop the streaming turn, which ends `cancelled`                                                         |
+| `approval_response`                                         | `tool_call_id`, `approved`, `scope` - the decision for a pending tool call                              |
+| `user_question_response`                                    | The collected answers, or a dismissal                                                                   |
+| `computer_use_control`                                      | `action` is `pause` or `resume`, for computer use                                                       |
+| `list_conversations` / `list_history`                       | Browse the project's stored conversations                                                               |
+| `list_skills` / `list_models` / `select_model` / `set_mode` | Inspect and change what the thread runs with                                                            |
+| `list_shortcuts`                                            | The project's [shortcut registry](/opentask/#shortcuts), for the `/` menu                               |
+| `list_issues`                                               | The project's recent open issues, for the [`#` autocomplete](#github-issue-references)                  |
+| `list_files`                                                | The project's files, for the [`@` autocomplete](/opentask/#project-file-references)                     |
+| `list_tasks` / `cancel_task`                                | List and stop a [session's background jobs](/opentask/#background-jobs)                                 |
+| `tool_request` / `tool_result`                              | Run a tool directly, scoped to a project directory                                                      |
+| `list_artifacts` / `read_artifact`                          | List a [session's artifacts](/opentask/#session-artifacts) and read one                                 |
 
 Unknown `type` and `name` values are ignored on both sides, so the vocabulary stays additive. The full per-event reference lives with the CLI source, in [`docs/ag-ui-output.md`](https://github.com/inference-gateway/cli/blob/main/docs/ag-ui-output.md).
 
@@ -2660,9 +2689,11 @@ Any other key (`color`, `temperature`, `max_turns`, `mcpServers`, `permissionMod
 **Locations and precedence.** Definitions are looked up in this order, first match wins on a name collision:
 
 1. **Project**: `.infer/agents/<name>.md` - commit it to share the agent with the repository
-2. **User-global**: `~/.infer/agents/<name>.md` - stays personal
+2. **Project, open standard**: `.agents/agents/<name>.md` - the shared [`.agents/` convention](/cli-skills/#on-disk-layout), so a community agent file works where it already lives
+3. **User-global**: `~/.infer/agents/<name>.md` - stays personal
+4. **User-global, open standard**: `~/.agents/agents/<name>.md` - listed as `user` in the [`/agents` view](#agents-view)
 
-A project preset therefore overrides a personal one of the same name, exactly like [skills](/cli-skills/).
+A project preset therefore overrides a personal one of the same name, exactly like [skills](/cli-skills/). This is the same layout skills and [custom tools](#custom-tools) use, so a preset is seen both by the Agent tool and by a [daemon thread opened as that agent](#opening-a-thread-as-a-named-agent).
 
 **Tool allowlist.** The resolved allowlist is enforced inside the spawned subagent in one place: a disallowed tool is neither offered to the model nor executable by naming it. Unknown tool names (for example Claude's `Glob`) log a warning and are dropped, `disallowedTools` entries are always honored, and a restriction that resolves to no known tool skips the file rather than silently falling back to all tools. The preset's capability follows from the allowlist - **read-only** when every allowed tool is read-only, otherwise **read-write** (mutations still go through approval). Listing `Agent` itself lets a preset spawn subagents, still bounded by `max_depth`.
 
@@ -4812,10 +4843,10 @@ infer chat
 
 The `/agents` shortcut opens the **Agents view** - the single, filterable list of every agent the chat can delegate to, local and remote alike. There is no separate A2A-only view: each row carries a **type chip** that says where it comes from.
 
-| Chip    | Row                                                                                                                                                  | State column                | Detail line                                               |
-| ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- | --------------------------------------------------------- |
-| `local` | A [Markdown subagent preset](#markdown-subagent-presets) (`.infer/agents/*.md`) that the [Agent tool](#local-subagents-agent-tool) spawns in-process | `read-only` or `read-write` | Tool allowlist, model (or `inherit`), and the source file |
-| `a2a`   | A remote [A2A agent](#a2a-integration) from `agents.yaml`                                                                                            | Its readiness state         | The agent URL, or the failure/progress detail             |
+| Chip    | Row                                                                                                                                                                                                                                                | State column                | Detail line                                               |
+| ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- | --------------------------------------------------------- |
+| `local` | A [Markdown subagent preset](#markdown-subagent-presets) (an agent file in any of its four [locations](#markdown-subagent-presets), labelled `user` for the `~/.agents` ones) that the [Agent tool](#local-subagents-agent-tool) spawns in-process | `read-only` or `read-write` | Tool allowlist, model (or `inherit`), and the source file |
+| `a2a`   | A remote [A2A agent](#a2a-integration) from `agents.yaml`                                                                                                                                                                                          | Its readiness state         | The agent URL, or the failure/progress detail             |
 
 Rows are sorted by name, and typing `/` filters on the chip as well as the name - `local` narrows the list to presets, `a2a` to remote agents.
 
