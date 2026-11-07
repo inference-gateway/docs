@@ -186,6 +186,7 @@ A chat with one of your agents **runs as that agent through the CLI**: the app o
 | `tools`                                            | The only tools the agent may use in that chat                                     |
 | `disallowedTools`                                  | Tools removed from that list                                                      |
 | `workspace`                                        | The [computer](#agent-computers) its chats run on - a desktop key the CLI ignores |
+| `project`                                          | The [project](#agent-projects) its new chats open in - another desktop-only key   |
 
 **The model comes from the agent.** In an agent chat the top-bar [model picker](#model-picker) shows the agent's model read-only - you change it in **Edit agent -> Model**, which writes the front matter. An agent with no model of its own (an empty `model`, or `inherit`) follows the model selected in the top bar instead. `tools` and `disallowedTools` have no field in the editor, so edit the file to set them.
 
@@ -199,6 +200,26 @@ A chat with one of your agents **runs as that agent through the CLI**: the app o
 Those are the same four places the CLI resolves an agent from, so the app lists exactly the agents a chat can open. **New agent** saves to `~/.infer/agents`, while editing, renaming, deleting and picking a picture act in the directory the agent was found in - the editor shows that folder under the **Name** field. Settings has no **Agents directory** field any more.
 
 Agent chats need `infer` **v0.247.0 or newer**. An older CLI ignores the agent name, and the chat then runs without the agent's instructions.
+
+### Agent projects
+
+An agent can also default to one of your [project groups](#project-groups). Pick it as the **Project** in the agent's editor - the dropdown lists your projects and defaults to **No project** - and it is saved as `project` in the frontmatter, next to `workspace`:
+
+```markdown
+---
+name: code-reviewer
+description: Reviews the diff of the project it is pointed at
+model: ollama_cloud/glm-5.3-flash
+workspace: ubuntu-desktop
+project: inference-gateway
+---
+```
+
+Starting a chat with that agent **opens it in that project**, so the chat lands in the project's group and gets its [per-project context](#project-groups). The bar above the composer reads `code-reviewer (inference-gateway)`, or just `code-reviewer` when the chat has no project.
+
+**The folder button in that bar changes it before the first message.** It opens a menu of **No project** plus **Use project `<name>`** for each of your projects, so a single agent still serves whichever project you point it at. Once the chat has started, it keeps the project it ran its first turn in.
+
+A project that has been **renamed or deleted** since the agent was saved is not resolved: the new chat opens with no project, and the editor shows the stale value as `(missing)` until you pick another one.
 
 ## Agent computers
 
