@@ -115,6 +115,12 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR: ${{ github.event.number }}
 
+      - name: Delete preview environment
+        run: gh api -X DELETE "repos/$GITHUB_REPOSITORY/environments/preview-pr-$PR"
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          PR: ${{ github.event.number }}
+
       - name: Comment removal
         run: |
           gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --edit-last --create-if-none --body ":wastebasket: Preview environment destroyed."
