@@ -157,7 +157,7 @@ Deploys the gateway proxy. Source: [`api/v1alpha1/gateway_types.go`](https://git
 | `telemetry.enabled` / `telemetry.metrics.{enabled,port}`                                       | OpenTelemetry metrics. `metrics.port` configures the gateway process - see [Gateway Server (`spec.server`)](#gateway-server-spec-server).                                                  |
 | `telemetry.traces.exporter.otlp.endpoint`                                                      | Tracing. With `telemetry.enabled: true`, it sets `TELEMETRY_TRACING_ENABLED=true` and `TELEMETRY_TRACING_OTLP_ENDPOINT` on the gateway container.                                          |
 | `mcp.enabled` / `mcp.expose` / `mcp.resourceUrl` / `mcp.toolMode` / `mcp.timeouts`             | MCP client configuration. See [MCP Servers (`spec.mcp`)](#mcp-servers-spec-mcp).                                                                                                           |
-| `mcp.servers[]` / `mcp.serviceDiscovery`                                                       | Static MCP servers (`name`, `url`, `healthCheck`) and discovery of `MCP` CRs by label selector. Both feed `MCP_SERVERS`.                                                                   |
+| `mcp.servers[]` / `mcp.serviceDiscovery`                                                       | Static MCP servers (`name`, `url`) and discovery of `MCP` CRs by label selector. Both feed `MCP_SERVERS`. `mcp.healthCheck` tunes the gateway's health polling of all of them.             |
 | `a2a.enabled` / `a2a.resourceUrl` / `a2a.timeouts` / `a2a.cardRefreshInterval`                 | Turn the gateway into an A2A server. See [A2A Agents (`spec.a2a`)](#a2a-agents-spec-a2a).                                                                                                  |
 | `a2a.agents[]` / `a2a.serviceDiscovery`                                                        | Static agents (`name`, `url`) and discovery of `Agent` CRs by label selector. Both feed `A2A_AGENTS`.                                                                                      |
 | `service.{type,port,annotations}`                                                              | Kubernetes Service for the gateway. See [Gateway Service (`spec.service`)](#gateway-service-spec-service).                                                                                 |
@@ -870,19 +870,25 @@ The `llamacpp` provider requires operator `>= v0.19.0` - earlier releases do not
 
 `spec.mcp` wires the gateway's MCP client. The controller renders every configured server into the gateway pod's `MCP_SERVERS` env var as a comma-separated list of `name=url` entries - the `name` is the server's **alias**, and the gateway namespaces that server's tools as <code v-pre>mcp_&lt;alias&gt;_&lt;tool&gt;</code>. See [Server Aliases and Tool Namespacing](/mcp/#server-aliases-and-tool-namespacing) for how aliases reach the model.
 
-| Field                                                                       | Description                                                                                                                 |
-| --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `enabled`                                                                   | Toggle the gateway's MCP client (`MCP_ENABLED`, default `false`).                                                           |
-| `expose`                                                                    | Expose the gateway itself as an MCP server on root-level `POST /mcp`, MCP `2026-07-28` (`MCP_EXPOSE`, default `false`).     |
-| `resourceUrl`                                                               | Canonical public URL of `POST /mcp` (`MCP_RESOURCE_URL`). Defaults to the first `gatewayAPI.httpRoute` hostname.            |
-| `toolMode`                                                                  | `selector` (default) or `direct` (`MCP_TOOL_MODE`). See [Tool Exposure Mode](/mcp/#tool-exposure-mode).                     |
-| `servers[].name`                                                            | Required. Becomes the server's alias, and therefore its tool namespace.                                                     |
-| `servers[].url`                                                             | Required server URL.                                                                                                        |
-| `servers[].healthCheck.{enabled,path,interval}`                             | Per-server health check (defaults `true`, `/health`, `30s`).                                                                |
-| `serviceDiscovery.{enabled,namespace,selector}`                             | Discover `MCP` CRs by label selector. `namespace` defaults to the `Gateway`'s own namespace; an empty selector matches all. |
-| `timeouts.{client,dial,tlsHandshake,responseHeader,expectContinue,request}` | MCP client timeouts, emitted as the matching `MCP_*_TIMEOUT` variables.                                                     |
+| Field                                                                       | Description                                                                                                                            |
+| --------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `enabled`                                                                   | Toggle the gateway's MCP client (`MCP_ENABLED`, default `false`).                                                                      |
+| `expose`                                                                    | Expose the gateway itself as an MCP server on root-level `POST /mcp`, MCP `2026-07-28` (`MCP_EXPOSE`, default `false`).                |
+| `resourceUrl`                                                               | Canonical public URL of `POST /mcp` (`MCP_RESOURCE_URL`). Defaults to the first `gatewayAPI.httpRoute` hostname.                       |
+| `toolMode`                                                                  | `selector` (default) or `direct` (`MCP_TOOL_MODE`). See [Tool Exposure Mode](/mcp/#tool-exposure-mode).                                |
+| `healthCheck.{enabled,interval,timeout}`                                    | Gateway-wide MCP health polling: `MCP_POLLING_ENABLED` (default `true`), `MCP_POLLING_INTERVAL` (`30s`), `MCP_POLLING_TIMEOUT` (`5s`). |
+| `servers[].name`                                                            | Required. Becomes the server's alias, and therefore its tool namespace.                                                                |
+| `servers[].url`                                                             | Required server URL. `name` and `url` are the only per-server fields.                                                                  |
+| `serviceDiscovery.{enabled,namespace,selector}`                             | Discover `MCP` CRs by label selector. `namespace` defaults to the `Gateway`'s own namespace; an empty selector matches all.            |
+| `timeouts.{client,dial,tlsHandshake,responseHeader,expectContinue,request}` | MCP client timeouts, emitted as the matching `MCP_*_TIMEOUT` variables.                                                                |
 
 With `expose: true`, route `POST /mcp` at the root of the gateway Service - it deliberately does not sit under `/v1`. The endpoint is stateless, so it needs no session affinity and load-balances freely across replicas, but the `HTTPRoute` (and any proxy in front of it) must pass the `MCP-Protocol-Version`, `Mcp-Method` and `Mcp-Name` headers through unchanged; stripping or rewriting one answers `400` with `-32020`. Do not aim a probe or gateway health check at `/mcp` - it is POST only and answers `405` to `GET`; use `/health`. See [Deploying Behind a Proxy](/mcp/#deploying-behind-a-proxy).
+
+### Health polling (`mcp.healthCheck`)
+
+The gateway polls every configured MCP server with `tools/list` and reconnects one that stops answering. `mcp.healthCheck` tunes that polling for all servers at once - `enabled`, `interval` and `timeout` reach the pod as `MCP_POLLING_ENABLED`, `MCP_POLLING_INTERVAL` and `MCP_POLLING_TIMEOUT`. An unset `interval` or `timeout` keeps the gateway's default (`30s` and `5s`), and leaving `healthCheck` out entirely keeps all of them.
+
+Health polling is gateway-wide, not per server: `servers[]` entries carry `name` and `url` only. A per-server `healthCheck` block is rejected as an unknown field, so move it up to `spec.mcp.healthCheck` and drop `path`. `mcp.healthCheck` requires operator `>= v0.33.0`.
 
 ### Protected resource URL (`mcp.resourceUrl`)
 
@@ -935,15 +941,14 @@ spec:
     enabled: true
     expose: true
     toolMode: selector
+    healthCheck:
+      interval: 30s
+      timeout: 5s
     servers:
       - name: deepwiki
         url: https://mcp.deepwiki.com/mcp
       - name: search
         url: http://mcp-search-server:8082/mcp
-        healthCheck:
-          enabled: true
-          path: /health
-          interval: 30s
     serviceDiscovery:
       enabled: true
       selector:
