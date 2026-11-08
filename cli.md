@@ -1487,7 +1487,7 @@ The servers are read when a session's Orchestrator is **created**, so an edit re
 
 The cluster needs the [operator](/operator/) (v0.28.1 or later), agent-sandbox, and the Gateway API CRDs the operator requires. Install agent-sandbox first, because the operator looks for it only when it starts.
 
-[`mcp_servers`](#mcp-servers-for-the-pod-mcp-servers) needs more than that: an operator that renders `spec.mcp.hostedServers`, **v0.33.0 or newer**, and a pod `image` of **v0.248.0 or newer**, the `infer` release whose `mcp.yaml` reads a `url` with `headers`. An older operator **fails the create** with an error naming the version it needs.
+[`mcp_servers`](#mcp-servers-for-the-pod-mcp-servers) needs more than that: an operator that renders `spec.mcp.servers`, **v0.33.0 or newer**, and a pod `image` of **v0.248.0 or newer**, the `infer` release whose `mcp.yaml` reads a `url` with `headers`. An older operator **fails the create** with an error naming the version it needs.
 
 The operator deploys a `Gateway` only in a namespace matched by its `WATCH_NAMESPACE_SELECTOR`, `inference-gateway.com/managed=true` by default, so **label the workspace's namespace** for `standard` mode:
 
