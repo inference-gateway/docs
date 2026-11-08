@@ -262,7 +262,7 @@ allowed_recipients:
 
 **The API key never goes into the agent file.** It is stored in `~/.infer/auth.yaml` as `AGENTMAIL_API_KEY_<agent>`, beside the [provider keys](#api-keys), and both export and import refuse to carry it - the agent file travels, the key does not, so whoever imports the agent pastes their own.
 
-A chat with an agent that has an inbox gets the **hosted AgentMail MCP server** wired in, so the agent can send, read and reply to mail as that identity, and so can any run it spawns. The thread is handed an **inbox-scoped key that expires after 7 days** - never the owner key that provisioned the inbox.
+**Chats cannot send or read mail yet.** The inbox, its key and the allowed recipients are set up and kept in sync, but an agent's chats are not connected to AgentMail.
 
 The address and the whitelist are visible where you work: on the agent's row in the sidebar, on the composer chip of the chat, and stated in the agent's own preamble so the model knows which address it writes from and who it may write to.
 
