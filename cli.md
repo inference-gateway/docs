@@ -1354,7 +1354,7 @@ workspaces:
       - release-manager-credentials
 ```
 
-A workspace on compute takes its **kind and its connection** from it, and keeps what describes the computer itself: `image`, `storage`, `protocol`, `idle_ttl`, `env`, `forward_env` and `secrets`. Setting `kind`, or any key its compute already sets, **fails at startup**, and so does naming compute `compute.yaml` does not define.
+A workspace on compute takes its **kind and its connection** from it, and keeps what describes the computer itself: `image`, `storage`, `protocol`, `idle_ttl`, `env`, `forward_env`, `secrets` and `mcp_servers`. Setting `kind`, or any key its compute already sets, **fails at startup**, and so does naming compute `compute.yaml` does not define.
 
 **One Gateway per cluster.** Every `standard`-mode workspace on one cluster shares that cluster's `Gateway` and credentials Secret instead of each deploying its own, and the last session to go takes them along. The namespace belongs to the cluster too, because an Orchestrator only references a Gateway in its own namespace.
 
@@ -1372,7 +1372,7 @@ workspaces:
       - ANTHROPIC_API_KEY
 ```
 
-`mode`, `gateway_env` and `secrets` apply to Kubernetes workspaces only and are rejected on any other kind. `infer daemon workspaces` prints the compute each workspace runs on in a `COMPUTE` column.
+`mode`, `gateway_env`, `secrets` and `mcp_servers` apply to Kubernetes workspaces only and are rejected on any other kind. `infer daemon workspaces` prints the compute each workspace runs on in a `COMPUTE` column.
 
 #### How the daemon dials a workspace (`protocol`)
 
@@ -1438,11 +1438,56 @@ That makes `secrets` the fourth way a Kubernetes workspace gets a value, and the
 | `forward_env` | Sealed from this machine on each teleport, never a cluster object | The agent                                     |
 | `secrets`     | Secrets the cluster already holds, referenced by the pod          | The agent, and never this machine             |
 
-A hosted MCP server is the usual reason to want one: put the key in the workspace's Secret and have [`mcp.yaml`](#mcp-integration) expand it from the pod's own environment.
+A hosted MCP server is the usual reason to want one: put the key in the workspace's Secret and have [`mcp.yaml`](#mcp-integration) expand it from the pod's own environment, and name the server under [`mcp_servers`](#mcp-servers-for-the-pod-mcp-servers).
+
+#### MCP servers for the pod (`mcp_servers`)
+
+`mcp_servers` names **hosted** servers of this machine's `~/.infer/mcp.yaml` that the workspace's pods get. Each named server goes into the session's `Orchestrator` with its name, URL and headers, and the [operator](/operator/) writes it into the pod's own [`mcp.yaml`](#mcp-integration), so the agent in the pod connects it like any other server.
+
+**Headers are forwarded exactly as written**, never expanded on this machine, so a `${VAR}` stays a reference the pod expands from the variables its [`secrets`](#credentials-the-cluster-already-holds-secrets) give it - the credential itself never lands in a Kubernetes object:
+
+```yaml
+# ~/.infer/mcp.yaml
+servers:
+  - name: example
+    enabled: true
+    url: https://mcp.example.com/mcp
+    headers:
+      x-api-key: ${MCP_EXAMPLE_API_KEY}
+```
+
+```yaml
+# ~/.infer/daemon.yaml
+workspaces:
+  - name: code-reviewer
+    compute: k3d-agents
+    image: ghcr.io/inference-gateway/cli:latest
+    secrets:
+      - code-reviewer-credentials # holds MCP_EXAMPLE_API_KEY
+    mcp_servers:
+      - example
+```
+
+A server's own `enabled` says whether **this** machine's chats use it, and `mcp_servers` is separate: a server the laptop leaves off can still go to the pods, which is the usual shape for a server only the cluster reaches.
+
+**What is refused**, before the Orchestrator is created, so nothing half-configured is ever applied:
+
+| The entry                                                     | What happens                                                                                                       |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| A header holding a **value** rather than a `${VAR}` reference | The teleport fails with the server and the header named, never the value, so no secret is written into the cluster |
+| A **container** server (`run: true`)                          | Refused - it runs on this machine, and only a hosted server reaches the pods                                       |
+| A name `mcp.yaml` does not have                               | Refused, naming the server and the file                                                                            |
+| `mcp_servers` on any kind other than `kubernetes`             | Fails at startup, along with `mode`, `gateway_env` and `secrets`                                                   |
+
+A prefix before the reference is fine, so a <code v-pre>Authorization: Bearer ${TOKEN}</code> header is forwarded as written.
+
+The servers are read when a session's Orchestrator is **created**, so an edit reaches the next session and running ones keep theirs. It needs the operator and `image` versions under [Kubernetes prerequisites](#kubernetes-prerequisites).
 
 #### Kubernetes prerequisites
 
 The cluster needs the [operator](/operator/) (v0.28.1 or later), agent-sandbox, and the Gateway API CRDs the operator requires. Install agent-sandbox first, because the operator looks for it only when it starts.
+
+[`mcp_servers`](#mcp-servers-for-the-pod-mcp-servers) needs more than that: an operator that renders `spec.mcp.servers`, **v0.33.0 or newer**, and a pod `image` of **v0.248.0 or newer**, the `infer` release whose `mcp.yaml` reads a `url` with `headers`. An older operator **fails the create** with an error naming the version it needs.
 
 The operator deploys a `Gateway` only in a namespace matched by its `WATCH_NAMESPACE_SELECTOR`, `inference-gateway.com/managed=true` by default, so **label the workspace's namespace** for `standard` mode:
 
@@ -1461,6 +1506,8 @@ Your kubeconfig user needs, on top of the permissions a teleport already uses (`
 #### The session-teleport example
 
 The CLI repo's [`examples/session-teleport`](https://github.com/inference-gateway/cli/tree/main/examples/session-teleport) runs this end to end on k3d. Its `k8s-cloud` workspace teleports a session onto `ollama_cloud/glm-5.3-flash` with `gateway_env: [OLLAMA_CLOUD_API_KEY]`, the key taken from the teleporting daemon's environment or `~/.infer/auth.yaml`, and its namespace carries the `inference-gateway.com/managed=true` label the operator looks for.
+
+Its `k8s-mcp` workspace gives its pods the example's demo MCP server through [`mcp_servers`](#mcp-servers-for-the-pod-mcp-servers): the server's `x-api-key` is written as a `${DEMO_MCP_KEY}` reference in the laptop's `mcp.yaml`, the pod expands it from the Secret its `secrets` name, and `infer mcp status` in the pod lists the server as connected. The laptop's own chats leave that server off, since only the cluster reaches it.
 
 Its `k8s-desktop` workspace records the browser scenario it runs, and both ways of getting a recording out of the pod are set up there: `/artifacts` in the chat TUI to [grab one file](#browsing-the-sessions-artifacts) onto your machine, and an upload hook that mirrors every finished run's artifacts to a RustFS bucket for the bulk path.
 
