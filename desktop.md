@@ -197,7 +197,7 @@ Every row names a server, its kind - **Hosted** or **Container** - its connectio
 **Where a server goes** is the **Goes to** block of the form:
 
 - **This computer** is the server's own `enabled` in `mcp.yaml`.
-- A hosted server can also go to one or more Kubernetes [workspaces](#workspaces). Each one lists the server under its `mcp_servers` in `~/.infer/daemon.yaml`, which the daemon only reads when it starts, so the tab shows a **Restart CLI now** button. A workspace's pods get those servers once the CLI and the operator pass MCP servers to them.
+- A hosted server can also go to one or more Kubernetes [workspaces](#workspaces). Each one lists the server under its `mcp_servers` in `~/.infer/daemon.yaml`, which the daemon only reads when it starts, so the tab shows a **Restart CLI now** button. The workspace's pods then get those servers, their headers forwarded as written - see [MCP servers for the pod](/cli/#mcp-servers-for-the-pod-mcp-servers) for the operator and image versions that needs.
 - A container server runs in Docker on this computer only.
 
 **A warning per place without a secret.** When a server goes somewhere that has no secret for one of its headers' variables, its row names that place - `this computer gets no AGENTMAIL_API_KEY`, or the same for a workspace - so a server is never quietly sent to a computer that cannot authenticate it.
