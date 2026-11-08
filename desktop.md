@@ -19,14 +19,16 @@ Agents run through [`infer daemon`](/cli/#daemon), the CLI's hub. The app starts
 
 ### ~/.infer layout
 
-| Path                             | Purpose                                                                                  |
-| -------------------------------- | ---------------------------------------------------------------------------------------- |
-| `~/.infer/bin/infer`             | The `infer` CLI - manages the gateway, routes requests, and drives agent interactions    |
-| `~/.infer/bin/inference-gateway` | The gateway server binary                                                                |
-| `~/.infer/config.yaml`           | Gateway configuration (providers, API keys, model routing)                               |
-| `~/.infer/agents.yaml`           | Registered A2A agent definitions                                                         |
-| `~/.infer/auth.yaml`             | Provider API keys saved from **Settings -> API Keys**                                    |
-| `~/.infer/avatars/`              | [Avatar portraits](#avatars) managed from **Settings -> Avatars**, one folder per avatar |
+| Path                             | Purpose                                                                                                      |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `~/.infer/bin/infer`             | The `infer` CLI - manages the gateway, routes requests, and drives agent interactions                        |
+| `~/.infer/bin/inference-gateway` | The gateway server binary                                                                                    |
+| `~/.infer/config.yaml`           | Gateway configuration (providers, API keys, model routing)                                                   |
+| `~/.infer/agents.yaml`           | Registered A2A agent definitions                                                                             |
+| `~/.infer/auth.yaml`             | Provider API keys saved from **Settings -> API Keys**, and the values of your [secrets](#secrets)            |
+| `~/.infer/secrets.yaml`          | Your [secrets](#secrets) without their values - each one's label, variable and whether this computer gets it |
+| `~/.infer/mcp.yaml`              | [MCP servers](#mcps) managed from **Settings -> MCPs**                                                       |
+| `~/.infer/avatars/`              | [Avatar portraits](#avatars) managed from **Settings -> Avatars**, one folder per avatar                     |
 
 Everything is scoped to your home directory - no system-wide installs, no vendor lock-in.
 
@@ -56,6 +58,20 @@ Updates applied by the app itself are downloaded by the app rather than a browse
 
 The app updates itself. When a newer release is available the top bar shows an update button (the same one is in Settings under Updates). Clicking it reinstalls the `infer` CLI and gateway binaries, then downloads the new app bundle, verifies its signature against the project's updater public key, and relaunches. Checks run at startup and every 6 hours.
 
+### Pinning a version per component
+
+**Settings** -> **Updates** lists the three components - CLI, Gateway and Desktop - with the installed version of each. Next to each one a dropdown offers that component's five newest release tags, with the installed version marked `(installed)`:
+
+1. Pick a version in the row of the component you want to move.
+2. The button that appears next to the dropdown reads **Upgrade** when the picked version is newer than the installed one and **Downgrade** when it is older. Picking the installed version offers no button.
+3. Click it to install exactly that component at exactly that version.
+
+Each row acts on its own component only - upgrading the CLI leaves the gateway and the app untouched, and the same holds the other way round. Installing the CLI replaces the binary and restarts its daemon while the running gateway keeps serving, and installing the gateway stops it first and then restarts it on the pinned version. Running sessions are cancelled before either. The Desktop row points the updater at the chosen release, so an older app version can be rolled back over a bad update, and the app relaunches as usual.
+
+The selection is per component and is cleared once the install finishes - it is a one-off action, not a persistent pin, so the next check still reports the newest release as available.
+
+Leaving every dropdown untouched changes nothing: the existing **Update available** banner and **Install updates** button behave exactly as before and move every outdated component to its newest release. Dev builds and locally built binaries are never offered versions, and when a release lookup fails the row keeps showing `unknown` with no dropdown rather than breaking the tab.
+
 ## Settings
 
 Open Settings with the gear icon at the right of the top bar. A left rail lists the sections, and **Back** returns to the chat. Settings opens on **API Keys**.
@@ -64,12 +80,14 @@ Open Settings with the gear icon at the right of the top bar. A left rail lists 
 | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **General**       | [Max concurrent sessions](#the-concurrency-cap), [Browser Use](#browser-use-opentask-extension), the [text-to-speech toggle](#enabling-text-to-speech), and the [text-to-video toggle](#enabling-text-to-video) |
 | **API Keys**      | One API key per provider                                                                                                                                                                                        |
+| **Secrets**       | [Values your agents' computers need](#secrets), each kept once and assigned to the computers that get it                                                                                                        |
+| **MCPs**          | [The MCP servers of `~/.infer/mcp.yaml`](#mcps) and where each one goes                                                                                                                                         |
 | **Agents**        | A2A agents the local agent can delegate to                                                                                                                                                                      |
 | **Compute**       | [The clusters](#compute) your workspaces run on, configured once each                                                                                                                                           |
 | **Workspaces**    | [The `infer` daemon workspaces](#workspaces) an agent can use as [its own computer](#agent-computers)                                                                                                           |
 | **Voice samples** | [WAV reference recordings](#voice-samples) for voice cloning                                                                                                                                                    |
 | **Avatars**       | [Named portraits](#avatars) used for talking-avatar renders                                                                                                                                                     |
-| **Updates**       | Installed versions, manual check, and [Install updates](#updates)                                                                                                                                               |
+| **Updates**       | Installed versions, manual check, [Install updates](#updates), and [per-component version pinning](#pinning-a-version-per-component)                                                                            |
 
 ### API Keys
 
@@ -95,7 +113,129 @@ Each supported provider gets one masked field. Fill in the providers you use and
 
 **Save** writes the non-empty values to `~/.infer/auth.yaml` (mode `0600` on macOS and Linux; keys still sitting in a legacy `~/.infer/auth.json` are read as a fallback but never written back), returns you to the chat, and restarts the gateway so the new keys take effect - which is also what refreshes the model list. Keys are passed to the agent as environment variables of the same name; nothing is sent anywhere else.
 
-The same file also holds the per-agent keys that are not provider keys, such as the `AGENTMAIL_API_KEY_<agent>` behind an [agent's inbox](#agent-email). Those are written from the agent's editor rather than this tab, and exports leave them behind.
+**Save keeps every other entry of `auth.yaml`.** Only the provider fields the form shows are written over, so an agent's key or a secret saved elsewhere survives a save here, and a field you clear removes just its own key.
+
+The same file also holds the per-agent keys that are not provider keys, such as the `AGENTMAIL_API_KEY_<agent>` behind an [agent's inbox](#agent-email), and the values of your [secrets](#secrets) under a `secret/<label>` key that is no environment variable name. Those are written from the agent's editor or the Secrets tab rather than this tab, and exports leave them behind.
+
+### Secrets
+
+The **Secrets** tab is for the values your agents' computers need that are not provider keys - an inbox key, a Git token, whatever an [MCP server](/cli/#mcp-integration) header expands. **A secret is kept once and given to the computers you pick**, where it becomes an environment variable.
+
+Each row shows the secret's label, its variable, where it goes, and the MCP servers that read it. **New secret** opens the form, the pencil edits one, and the trash deletes it with the same two-click arming as [deleting a conversation](#deleting-one-conversation).
+
+**The form:**
+
+| Field        | What it is                                                                                                                                                       |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Label**    | Names the secret. Lowercase letters, digits and `-`, starting and ending with a letter or digit, so it can name a Kubernetes Secret. It cannot change once saved |
+| **Variable** | The environment variable the secret becomes, for example `AGENTMAIL_API_KEY`                                                                                     |
+| **Value**    | Masked, written to `~/.infer/auth.yaml`. **It is never shown again** - on an edit, a blank value keeps the saved one                                             |
+| **Goes to**  | **This computer** and a checkbox per Kubernetes workspace. Tick none and no process gets it                                                                      |
+
+**Where a secret goes** is the whole point of the tab:
+
+- **This computer**: every `infer` process the app starts gets it as an environment variable, the local daemon's workers too. The gateway never does, so only the agent side sees it.
+- **A Kubernetes workspace**: the desktop writes the Kubernetes Secret `infer-secret-<label>` into the workspace's namespace, passing the value to `kubectl` on stdin, and lists it under that workspace's `secrets` in `~/.infer/daemon.yaml`. The workspace's pod reads it from there, so **the value never passes through a session**. Unticking a workspace removes the listing, and once no workspace in that namespace lists it the Kubernetes Secret is deleted too.
+- **Nowhere**: the secret is kept but no process gets it.
+
+**Several secrets may share one variable**, as long as no computer gets two of them. That is what lets each agent's computer have its own `AGENTMAIL_API_KEY`, so a single `~/.infer/mcp.yaml` header `${AGENTMAIL_API_KEY}` works on all of them and every agent mails as its own inbox.
+
+**A save is refused** for an invalid label or variable, a label that is already taken, a variable that is one of the [API Keys](#api-keys) (set it there instead), a workspace that is not a Kubernetes one, and a second secret with the same variable on this computer or on one workspace. The reason is shown in the tab and nothing is written.
+
+**Each secret names the MCP servers that read it**: the servers of `~/.infer/mcp.yaml` whose headers expand its variable as `${NAME}` or `$NAME`. It is a read-only hint - edit the servers themselves under [**Settings -> MCPs**](#mcps).
+
+**A change asks for a CLI restart**, since this computer's processes and the daemon's workspaces read their secrets when they start. Sessions already running on a workspace keep the old values until they get a new machine. A cluster the desktop could not reach is named in the tab and **the rest of the save still applies** - the workspaces it did reach are listed, and one that already had the secret keeps it.
+
+The files behind a secret, none of which carries the value except `auth.yaml`:
+
+```yaml
+# ~/.infer/secrets.yaml - no values here
+secrets:
+  - label: code-reviewer-inbox
+    variable: AGENTMAIL_API_KEY
+    computer: false
+```
+
+```yaml
+# ~/.infer/auth.yaml - mode 0600
+OPENAI_API_KEY: sk-...
+secret/code-reviewer-inbox: am_...
+```
+
+```yaml
+# ~/.infer/daemon.yaml
+workspaces:
+  - name: code-reviewer
+    compute: infer-k3s
+    secrets:
+      - infer-secret-code-reviewer-inbox
+```
+
+**Values never travel in an export.** An exported setup carries neither the secrets nor the [API keys](#api-keys), so whoever imports it assigns their own values.
+
+### MCPs
+
+The **MCPs** tab manages the [MCP servers](/cli/#mcp-integration) of `~/.infer/mcp.yaml`, so you no longer have to edit that file by hand. **Use MCP servers on this computer**, the switch at the top, is the file's global `enabled`: with it off no chat on this computer connects to a server, whatever the individual servers say. New chats pick up a change, and chats already running keep the servers they started with.
+
+Every row names a server, its kind - **Hosted** or **Container** - its connection state, its URL or its image and port, and where it goes. The state is read from the CLI's own [`infer mcp status`](/cli/#mcp-integration) probe, and the refresh button beside the global switch checks the servers again:
+
+| State                    | Meaning                                                                 |
+| ------------------------ | ----------------------------------------------------------------------- |
+| **Off on this computer** | The server does not go to this computer, so nothing was probed          |
+| **Checking...**          | The probe is in flight                                                  |
+| **MCP is off**           | The global switch is off                                                |
+| **Not checked**          | The probe answered without a row for this server                        |
+| **Connected, N tools**   | The server answered and offers that many tools                          |
+| **Not connected**        | The probe could not reach it, with the CLI's own error when it gave one |
+
+**New hosted server** takes a name, a URL and headers. The pencil edits a server, and the trash deletes it with the same two-click arming as [deleting a conversation](#deleting-one-conversation).
+
+**A header's value is a secret, never a literal.** Each header has a name, an optional prefix such as <code v-pre>Bearer </code> with its trailing space, and a secret picked from the list the [**Secrets**](#secrets) tab fills. It is written into `mcp.yaml` as `<prefix>${VARIABLE}`, so the file holds a reference and each computer expands it from the secret it was given - the credential itself never lands in the file. The dropdown also offers the variables of your [provider API keys](#api-keys). A header that holds a plain value in `mcp.yaml`, written by hand or by an older CLI, shows as needing a secret and its value is never displayed: pick a secret to replace it, or remove the header.
+
+**New container server** takes an image and the port it serves on, and is written as the `oci` and `port` of the entry. Saving starts or stops that server's container in Docker to match whether this computer gets it, and a start or stop that fails is reported on the tab.
+
+**Where a server goes** is the **Goes to** block of the form:
+
+- **This computer** is the server's own `enabled` in `mcp.yaml`.
+- A hosted server can also go to one or more Kubernetes [workspaces](#workspaces). Each one lists the server under its `mcp_servers` in `~/.infer/daemon.yaml`, which the daemon only reads when it starts, so the tab shows a **Restart CLI now** button. A workspace's pods get those servers once the CLI and the operator pass MCP servers to them.
+- A container server runs in Docker on this computer only.
+
+**A warning per place without a secret.** When a server goes somewhere that has no secret for one of its headers' variables, its row names that place - `this computer gets no AGENTMAIL_API_KEY`, or the same for a workspace - so a server is never quietly sent to a computer that cannot authenticate it.
+
+**What a save refuses**, with the reason on the tab:
+
+- A name that is not lowercase letters, digits, `-` and `_`, or one another server already has. The CLI names a server's tools after it.
+- A hosted server without an `http://` or `https://` URL.
+- A container server without both an image and a port, or one pointed at a workspace.
+- Two headers sharing one name, or a header whose variable no secret and no API key provides.
+- A workspace that is not a Kubernetes one.
+
+**An edit keeps what the form does not know.** Saving rewrites only the keys the tab owns, so `include_tools`, `exclude_tools`, `description`, `env`, `volumes`, the file's `connection_timeout` and every other server stay exactly as written, and a `${VARIABLE}` reference is never expanded into the file. A server's name and its kind cannot change once it is saved - delete it and add it again instead.
+
+Hosted servers need `infer` **v0.248.0 or newer**, the release that taught `mcp.yaml` a `url` with `headers`. Container servers work on older versions too.
+
+```yaml
+# ~/.infer/mcp.yaml
+enabled: true
+servers:
+  - name: agentmail
+    enabled: false
+    run: false
+    url: https://mcp.agentmail.to/mcp
+    headers:
+      x-api-key: ${AGENTMAIL_API_KEY}
+```
+
+```yaml
+# ~/.infer/daemon.yaml
+workspaces:
+  - name: code-reviewer
+    compute: infer-k3s
+    secrets:
+      - infer-secret-code-reviewer-inbox
+    mcp_servers:
+      - agentmail
+```
 
 ### Model picker
 
@@ -208,9 +348,11 @@ The daemon only reads `daemon.yaml` when it starts, so saving or deleting shows 
 | **Keep suspended for**  | `retention`       | How long the operator keeps a suspended session before deleting it, for example `24h`                                  |
 | **Provider keys**       | `gateway_env`     | Variable **names** only, comma separated. Only for a workspace with its own connection - a cluster's are under Compute |
 | **Forwarded variables** | `forward_env`     | Names of variables the agent itself gets, such as a token it pushes with                                               |
-| **Environment**         | `env`             | One `NAME=value` per line. Not for secrets - these land in the pod's spec                                              |
+| **Environment**         | `env`             | One `NAME=value` per line. Not for secrets, which belong in the [Secrets](#secrets) tab - these land in the pod's spec |
 
 **Provider keys are names, not values.** The value of each name is taken from what you saved under [API Keys](#api-keys) and sent to the gateway, never into the agent's pod, so nothing the agent runs can read a provider key into its context. Clearing a field removes its key from the entry, and an edit keeps the keys the form does not know (`mode`, `protocol`) along with every other entry of the file. A workspace put on a cluster loses the keys a cluster owns from its own entry, so the two can never disagree.
+
+**A workspace's `secrets` are managed from the [Secrets](#secrets) tab**, not here. That list names the Kubernetes Secrets the workspace's pod reads, and assigning a secret to a workspace is what writes it - an edit in this form leaves the list alone.
 
 **Clusters, Detect clusters and the one-click local cluster live under [Compute](#compute).** The prerequisites check is there too, per cluster - a workspace row still shows the same check for the cluster it runs on.
 
@@ -245,18 +387,21 @@ An agent of your own is a **Markdown file**, `<name>.md`, in the same format the
 
 A chat with one of your agents **runs as that agent through the CLI**: the app opens the daemon thread with the agent's name and the CLI reads the file itself. What the file decides:
 
-| In the file                                        | In the chat                                                                       |
-| -------------------------------------------------- | --------------------------------------------------------------------------------- |
-| The Markdown body (**Instructions** in the editor) | The chat's system prompt                                                          |
-| `model`                                            | The model the chat runs on                                                        |
-| `tools`                                            | The only tools the agent may use in that chat                                     |
-| `disallowedTools`                                  | Tools removed from that list                                                      |
-| `workspace`                                        | The [computer](#agent-computers) its chats run on - a desktop key the CLI ignores |
-| `project`                                          | The [project](#agent-projects) its new chats open in - another desktop-only key   |
-| `email`                                            | The agent's [inbox address](#agent-email) - another desktop-only key              |
-| `allowed_recipients`                               | The addresses or domains that agent may mail                                      |
+| In the file                                        | In the chat                                                                                           |
+| -------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| The Markdown body (**Instructions** in the editor) | The chat's system prompt                                                                              |
+| `model`                                            | The model the chat runs on                                                                            |
+| `tools`                                            | The only tools the agent may use in that chat                                                         |
+| `disallowedTools`                                  | Tools removed from that list                                                                          |
+| `workspace`                                        | The [computer](#agent-computers) its chats run on - a desktop key the CLI ignores                     |
+| `project`                                          | The [project](#agent-projects) its new chats open in - another desktop-only key                       |
+| `email`                                            | The agent's [inbox address](#agent-email) - another desktop-only key                                  |
+| `allowed_recipients`                               | The addresses or domains that agent may mail                                                          |
+| `mcpServers`                                       | The [MCP servers](#mcps) the agent uses, by name - every one of its computer's when the key is absent |
 
 **The model comes from the agent.** In an agent chat the top-bar [model picker](#model-picker) shows the agent's model read-only - you change it in **Edit agent -> Model**, which writes the front matter. An agent with no model of its own (an empty `model`, or `inherit`) follows the model selected in the top bar instead. `tools` and `disallowedTools` have no field in the editor, so edit the file to set them.
+
+**The editor's MCP servers list** is where you pick the agent's servers. It lists the servers of [**Settings -> MCPs**](#mcps) with a checkbox each, and the ones you tick are saved as `mcpServers` in the agent's file, by name. **With none picked the agent uses every server of its computer**, which is what an agent written before this existed does. A picked server that has since been deleted or renamed is still shown, marked `(missing)`, so you can untick it. The pick needs an `infer` that understands `mcpServers` - an older CLI gives every agent every server.
 
 **Where agents are read from**, first match winning on a name:
 
@@ -311,7 +456,21 @@ allowed_recipients:
 
 **The API key never goes into the agent file.** It is stored in `~/.infer/auth.yaml` as `AGENTMAIL_API_KEY_<agent>`, beside the [provider keys](#api-keys), and both export and import refuse to carry it - the agent file travels, the key does not, so whoever imports the agent pastes their own.
 
-**Chats cannot send or read mail yet.** The inbox, its key and the allowed recipients are set up and kept in sync, but an agent's chats are not connected to AgentMail.
+**Save inbox key as secret** is how the inbox reaches the agent's computer. It mints a key through AgentMail that can **only use this agent's own inbox** - it reads and sends mail and reads the allowlist, but cannot touch inboxes, keys or the allowlist itself - and saves it as the [secret](#secrets) `<agent>-inbox` for the variable `AGENTMAIL_API_KEY`. A new secret is assigned to the agent's workspace when that is a Kubernetes one, and an existing one keeps the assignments it has. **The AgentMail API key itself never reaches a worker**: it stays in `auth.yaml` and is only used here to mint the scoped key. The button needs the agent saved with its inbox address first, and the notice tells you where the key landed and whether a cluster refused it.
+
+**To let the agent work its inbox, give it the AgentMail server.** Add `agentmail` under [**Settings -> MCPs**](#mcps) as a hosted server at `https://mcp.agentmail.to/mcp` with an `x-api-key` header picking the `<agent>-inbox` secret, send it to the agent's workspace under **Goes to**, and tick it in the agent's [MCP servers list](#your-own-agents). The agent's computer then expands the header from its own secret, so the key reaches the pod and never this machine's `mcp.yaml`.
+
+```markdown
+---
+name: code-reviewer
+description: Reviews diffs and mails the verdict
+workspace: code-reviewer
+mcpServers:
+  - agentmail
+---
+```
+
+**Chats cannot send or read mail yet.** The inbox, its key and the allowed recipients are set up and kept in sync, but an agent's chats are not connected to AgentMail even once its computer has the server.
 
 The address and the whitelist are visible where you work: on the agent's row in the sidebar, on the composer chip of the chat, and stated in the agent's own preamble so the model knows which address it writes from and who it may write to.
 
@@ -330,7 +489,9 @@ workspace: ubuntu-desktop
 
 **Where that computer runs** is the workspace's [cluster](#compute), set up once under **Settings -> Compute**: the cluster gives the workspace its Kubernetes context, its namespace and the [provider keys](#compute) its gateway gets, which every workspace on that cluster shares. A workspace with [its own connection](#workspaces) carries those itself instead.
 
-An agent's credentials come from the computer it runs on, the `secrets` of its workspace, so one agent's keys are never another's and they never pass through this machine - see [Workspace kinds](/cli/#credentials-the-cluster-already-holds-secrets).
+An agent's credentials come from the computer it runs on, the `secrets` of its workspace, so one agent's keys are never another's and they never pass through this machine - see [Workspace kinds](/cli/#credentials-the-cluster-already-holds-secrets). Those secrets come from the [Secrets](#secrets) tab: assign a secret to this computer or to the workspace the agent runs on and the agent gets it as its variable.
+
+**Its tools come from that computer too.** An agent with no `workspace` gets the [MCP servers](#mcps) enabled on this computer, and an agent on a workspace gets that workspace's `mcp_servers`. Either way the agent's own `mcpServers` narrows the list to the servers it picked.
 
 Every new chat with that agent is teleported to that workspace before its first run, so its [Computer Use](/cli/#computer-use) drives that machine and not yours. A chat that already started can be [moved](#moving-a-chat) too. See [Workspace kinds](/cli/#workspace-kinds) for how the daemon registers and dials a workspace, and [`examples/computer-use`](https://github.com/inference-gateway/desktop/tree/main/examples/computer-use) for a runnable setup of three agents on Ubuntu desktops in a local Kubernetes cluster.
 
