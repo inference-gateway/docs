@@ -2846,8 +2846,9 @@ The Markdown body is the subagent's system prompt. Frontmatter keys:
 | `model`           | no       | `provider/model`, or `inherit` to use the parent turn's model                                       |
 | `tools`           | no       | Tools the subagent may use - a YAML list or a comma-separated string. Omitted means inherit all     |
 | `disallowedTools` | no       | Tools removed from the resolved list. Same format as `tools`                                        |
+| `mcpServers`      | no       | Names of the [MCP servers](#mcp-integration) the agent brings up. See below                         |
 
-Any other key (`color`, `temperature`, `max_turns`, `mcpServers`, `permissionMode`, ...) is accepted and ignored, so files written for other orchestrators load as-is. These are presets for the Agent tool, entirely separate from `.infer/agents.yaml`, the [A2A](#a2a-integration) agent registry.
+Any other key (`color`, `temperature`, `max_turns`, `permissionMode`, ...) is accepted and ignored, so files written for other orchestrators load as-is. These are presets for the Agent tool, entirely separate from `.infer/agents.yaml`, the [A2A](#a2a-integration) agent registry.
 
 **Locations and precedence.** Definitions are looked up in this order, first match wins on a name collision:
 
@@ -2862,9 +2863,30 @@ A project preset therefore overrides a personal one of the same name, exactly li
 
 **Model resolution.** The file's `model` wins over a per-task `model` argument. A value without a provider prefix - a Claude alias such as `sonnet`, or a bare model ID - logs a warning and falls back to `inherit`. When the file sets no model, the normal order applies: per-task `model`, then `tools.agent.model`, then the parent turn's model.
 
+**MCP servers.** `mcpServers` lists the [MCP servers](#mcp-integration) the agent brings up, by the names they have in the `mcp.yaml` of the computer the agent runs on - the file never carries a URL, a header or a secret of its own:
+
+```markdown
+---
+name: timekeeper
+description: Tells the current time in any timezone.
+mcpServers:
+  - demo-server
+---
+
+You answer questions about the current time with the get_time tool.
+```
+
+- Without the key the agent gets **every enabled server**, like any chat. An empty list (`mcpServers: []`) gives it **none**.
+- Only the named servers are connected, and only those of them with `run: true` are started, so an agent never starts a container it does not use.
+- A named server comes up **even when `mcp.yaml` sets `enabled: false`** for it, so a server can stay off for every chat and serve one agent. A top-level `enabled: false` in `mcp.yaml` still turns MCP off for every agent.
+- A name the computer's `mcp.yaml` does not have is **skipped with a warning**, and the agent still runs.
+- An **inline server definition**, which Claude Code also accepts, is ignored with a warning - define the server in `mcp.yaml` and name it here.
+
+The list applies both to a subagent the Agent tool starts and to [a daemon thread opened as that agent](#opening-a-thread-as-a-named-agent), and reaches the agent's process as `INFER_AGENT_MCP_SERVERS`. A session that moves to another workspace keeps the list and brings those servers up from that workspace's `mcp.yaml`. A `tools` list hides every MCP tool it does not name, so leave `tools` out to give the agent all the tools of its servers.
+
 Files are scanned **once per session**. A file with broken frontmatter, a missing or invalid `name`/`description`, or an unusable `tools` list is skipped with a warning naming the file and the reason - an invalid preset never fails startup.
 
-> **v1 limits.** `.claude/agents/` and `.gemini/agents/` are not read in place (copy or symlink the files into `.infer/agents/`), there is no hot reload, and per-agent `mcpServers`, `temperature`, `max_turns`, `permissionMode`, and tool wildcards such as `mcp_*` are not honored. MCP tools register after session start, so MCP tool names in a `tools` list are dropped as unknown.
+> **v1 limits.** `.claude/agents/` and `.gemini/agents/` are not read in place (copy or symlink the files into `.infer/agents/`), there is no hot reload, and per-agent `temperature`, `max_turns`, `permissionMode`, and tool wildcards such as `mcp_*` are not honored. For a subagent the Agent tool starts, MCP tools register after session start, so MCP tool names in a `tools` list are dropped as unknown - a daemon thread opened as the agent keeps them.
 
 #### Result modes: async and wait-all
 
@@ -4970,6 +4992,8 @@ MCP tools appear as `MCP_<server>_<tool>` in chat. Example:
 infer chat
 > "Use the MCP_demo-server_get_time tool to get current time"
 ```
+
+**Servers per agent:** a [Markdown agent](#markdown-subagent-presets) picks the servers it uses with `mcpServers` in its frontmatter, naming servers of this file. Its sessions connect only those, and a server set to `enabled: false` here still comes up for an agent that names it - so a server can stay off for every chat and serve one agent.
 
 See [MCP documentation](/mcp/) for detailed integration guide and server development.
 
