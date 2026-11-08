@@ -140,6 +140,21 @@ The daemon only reads `daemon.yaml` when it starts, so saving, deleting or detec
 
 **Provider keys are names, not values.** The value of each name is taken from what you saved under [API Keys](#api-keys) and sent to the workspace's own gateway, never into the agent's pod, so nothing the agent runs can read a provider key into its context. Clearing a field removes its key from the entry, and an edit keeps the keys the form does not know (`mode`, `protocol`) along with every other entry of the file.
 
+**Provision local cluster** is the one-click way to get a cluster at all, when you have none. The button sits next to **New workspace** and appears whenever **Docker is running** - Docker is the only thing it needs, with no `k3d`, `ctlptl`, `kubectl` or `kubeconfig` of your own. It streams each stage into the tab's notice line while it:
+
+- runs k3s as a Docker container named `infer-k3s`, on a fixed local port so the kubeconfig keeps working across restarts
+- installs agent-sandbox and the [Inference Gateway operator](/operator/) inside it, the Gateway API CRDs coming with k3s itself
+- builds the computer-use Ubuntu desktop image for your installed `infer` version and loads it into the cluster
+- adds an `infer-k3s` context to `~/.kube/config`, merged by entry name and leaving your current context alone. An unreadable kubeconfig stops the run rather than being overwritten
+- creates the `infer-workspaces` namespace and labels it for the operator
+- registers an `ubuntu-desktop` Kubernetes workspace in `~/.infer/daemon.yaml`, with that image and your saved [API keys](#api-keys) as its provider keys
+
+Every step is repeatable, so **a second click repairs or refreshes the same cluster** rather than building a second one. It does refuse to start when an `ubuntu-desktop` workspace already points at **another** cluster - that entry is yours, so nothing is touched and the notice asks you to delete it first.
+
+**Its agents use the computer and edit files without asking.** The provisioned workspace sets `INFER_COMPUTER_USE_ENABLED`, `INFER_COMPUTER_USE_APPROVAL: never` and the write and edit approvals off, because every session runs in a pod of its own and not on your machine.
+
+As with any other change to the tab, the daemon only picks the new workspace up after **Restart CLI now**. Point an agent's [**Computer**](#agent-computers) at `ubuntu-desktop` and its chats get a desktop pod each.
+
 **Detect clusters** fills the tab in from your kubeconfig: one Kubernetes workspace per context that has none yet, named after the context, in the `infer-workspaces` namespace, with the CLI image of the installed `infer` version and the names of your saved API keys as its provider keys. Existing workspaces are never replaced, and a second click adds nothing. It adds **every** context it finds, production clusters included, so review the list and delete what should not host agents.
 
 **Prerequisites check.** Each Kubernetes workspace is checked when the tab opens and again with its refresh button. A cluster that has everything shows **Cluster has everything it needs**, and one that does not names what is missing and how to fix it:
@@ -153,7 +168,7 @@ The daemon only reads `daemon.yaml` when it starts, so saving, deleting or detec
 | **Namespace `<name>`**                | The namespace the form names exists                               | `kubectl create namespace <name>`                                                 |
 | **Namespace managed by the operator** | It carries `inference-gateway.com/managed=true`                   | `kubectl label namespace <name> inference-gateway.com/managed=true`               |
 
-The check needs `kubectl` on your `PATH`, and it looks at the CRDs and the namespace, **not** at whether the controllers behind them are actually running - a cluster that passes can still have a crashed operator.
+The check needs `kubectl` on your `PATH` - except for the `infer-k3s` context of a [provisioned local cluster](#workspaces), whose `kubectl` calls go through the container - and it looks at the CRDs and the namespace, **not** at whether the controllers behind them are actually running - a cluster that passes can still have a crashed operator.
 
 **The running badge** next to a workspace's type counts the sessions running in it, taken from the `Orchestrator`s in its namespace whose `Ready` condition is true. Hover it for the suspended count, the ones kept for their `retention`. The badge is absent when the cluster cannot list them.
 
