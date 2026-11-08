@@ -1337,9 +1337,11 @@ workspaces:
       - ANTHROPIC_API_KEY # the gateway gets the key, the agent never sees it
     forward_env:
       - GITHUB_TOKEN # the agent itself needs this one
+    secrets:
+      - k8s-dev-credentials # every key of this Secret becomes a variable of the pod
 ```
 
-`mode` and `gateway_env` apply to `kind: kubernetes` only and are rejected on any other kind.
+`mode`, `gateway_env` and `secrets` apply to `kind: kubernetes` only and are rejected on any other kind.
 
 #### How the daemon dials a workspace (`protocol`)
 
@@ -1367,6 +1369,45 @@ A teleport resolves every `gateway_env` and `forward_env` name the way the local
 - A name the daemon resolves no value for **keeps** the value an earlier teleport wrote into the Secret, so an unset variable never blanks a working gateway.
 - A name no longer listed in `gateway_env` is dropped from the Secret.
 - A **changed** value rolls the gateway. An unchanged one does not, so a new session shares the running gateway pod without a rollout.
+
+#### Credentials the cluster already holds (`secrets`)
+
+`secrets` lists Secrets that already exist in the workspace's `namespace`. Every key of each one becomes a variable of the pod's daemon through a `secretKeyRef`, so the agent's computer holds its own credentials and the values **never pass through the machine that opens the thread**. The keys are read when a session's Orchestrator is created, and a Secret that is missing **fails the teleport** before anything is created.
+
+Give each agent a workspace of its own and each workspace its own Secret, and an agent only ever has the credentials that are its own:
+
+```yaml
+# ~/.infer/daemon.yaml
+workspaces:
+  - name: code-reviewer
+    kind: kubernetes
+    namespace: agents
+    image: ghcr.io/inference-gateway/cli:latest
+    secrets:
+      - code-reviewer-credentials
+  - name: researcher
+    kind: kubernetes
+    namespace: agents
+    image: ghcr.io/inference-gateway/cli:latest
+    secrets:
+      - researcher-credentials
+```
+
+```bash
+kubectl create secret generic code-reviewer-credentials \
+  --namespace agents --from-literal=AGENTMAIL_API_KEY=...
+```
+
+That makes `secrets` the fourth way a Kubernetes workspace gets a value, and they differ in who can read it:
+
+| Field         | Where the value lives                                             | Who reads it                                  |
+| ------------- | ----------------------------------------------------------------- | --------------------------------------------- |
+| `env`         | Plain text in the Orchestrator object                             | The agent, and anyone who can read the object |
+| `gateway_env` | The gateway's Secret, written by each teleport                    | The gateway only, not the agent               |
+| `forward_env` | Sealed from this machine on each teleport, never a cluster object | The agent                                     |
+| `secrets`     | Secrets the cluster already holds, referenced by the pod          | The agent, and never this machine             |
+
+A hosted MCP server is the usual reason to want one: put the key in the workspace's Secret and have [`mcp.yaml`](#mcp-integration) expand it from the pod's own environment.
 
 #### Kubernetes prerequisites
 
@@ -4746,8 +4787,8 @@ servers:
     oci: 'mcp-demo-server:latest'
     description: 'Demo MCP server'
 
-  # Connect to external MCP server - the endpoint is spelled out field by field,
-  # there is no `url` key (an entry without them resolves to http://localhost/mcp)
+  # Connect to a local MCP server - the endpoint spelled out field by field
+  # (an entry without them resolves to http://localhost/mcp)
   - name: 'filesystem'
     scheme: 'http'
     host: 'localhost'
@@ -4757,9 +4798,18 @@ servers:
     description: 'File system operations'
     exclude_tools:
       - 'delete_file'
+
+  # Connect to a hosted MCP server - `url` replaces scheme/host/port/path
+  - name: 'agentmail'
+    enabled: true
+    url: https://mcp.agentmail.to/mcp
+    headers:
+      x-api-key: ${AGENTMAIL_API_KEY}
 ```
 
-`infer mcp add <name> <url>` splits a URL into those fields for you, so you rarely need to write them by hand.
+`infer mcp add <name> <url>` splits a URL into the field-by-field form for you, so you rarely need to write those by hand.
+
+**Hosted servers (`url` and `headers`):** `url` is a full hosted endpoint and takes precedence over `scheme`/`host`/`port`/`path`, which you then leave out. `headers` are sent on every request to that server, which is how a hosted server gets its own credential. `${VAR}` in a header value is expanded from the environment of the process that loads the file - the daemon or the CLI - so the credential itself never sits in `mcp.yaml`. An enabled server whose expanded header comes out **empty** is skipped with a warning and no container is started for it, so a missing key costs you that one server rather than the session.
 
 **CLI Commands:**
 

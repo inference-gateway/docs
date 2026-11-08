@@ -279,6 +279,8 @@ workspace: ubuntu-desktop
 ---
 ```
 
+An agent's credentials come from the computer it runs on, the `secrets` of its workspace, so one agent's keys are never another's and they never pass through this machine - see [Workspace kinds](/cli/#credentials-the-cluster-already-holds-secrets).
+
 Every new chat with that agent is teleported to that workspace before its first run, so its [Computer Use](/cli/#computer-use) drives that machine and not yours. A chat that already started can be [moved](#moving-a-chat) too. See [Workspace kinds](/cli/#workspace-kinds) for how the daemon registers and dials a workspace, and [`examples/computer-use`](https://github.com/inference-gateway/desktop/tree/main/examples/computer-use) for a runnable setup of three agents on Ubuntu desktops in a local Kubernetes cluster.
 
 **Computers** in the top bar shows one tile per chat that runs on a workspace. Each tile carries the latest screen of that computer, the agent's face and name, the workspace, the agent's last computer action, and a status:
