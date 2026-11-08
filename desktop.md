@@ -83,6 +83,7 @@ Open Settings with the gear icon at the right of the top bar. A left rail lists 
 | **Secrets**       | [Values your agents' computers need](#secrets), each kept once and assigned to the computers that get it                                                                                                        |
 | **MCPs**          | [The MCP servers of `~/.infer/mcp.yaml`](#mcps) and where each one goes                                                                                                                                         |
 | **Agents**        | A2A agents the local agent can delegate to                                                                                                                                                                      |
+| **Compute**       | [The clusters](#compute) your workspaces run on, configured once each                                                                                                                                           |
 | **Workspaces**    | [The `infer` daemon workspaces](#workspaces) an agent can use as [its own computer](#agent-computers)                                                                                                           |
 | **Voice samples** | [WAV reference recordings](#voice-samples) for voice cloning                                                                                                                                                    |
 | **Avatars**       | [Named portraits](#avatars) used for talking-avatar renders                                                                                                                                                     |
@@ -256,52 +257,41 @@ The **Agents** tab manages the [A2A](/a2a/) agents your local agent can delegate
 
 The same tab's **Your agents** card is a different thing: it manages [your own Markdown agents](#your-own-agents), the ones you chat with yourself.
 
-### Workspaces
+### Compute
 
-The **Workspaces** tab is where you register the compute an agent can run on as [its own computer](#agent-computers), or that you [move a chat to](#moving-a-chat), so you no longer have to edit `~/.infer/daemon.yaml` by hand. Each workspace in the tab is one entry of the `infer` daemon's `workspaces` list in that file - see [Workspace kinds](/cli/#workspace-kinds) for the daemon's own reference. **Kubernetes** is the only type the form offers for now, and a type the form does not know (a `kind: local` entry you wrote yourself, say) is listed and can be deleted, but not edited.
+The **Compute** tab is where a cluster is set up **once**, and the [workspaces](#workspaces) that run on it only name it. Each cluster in the tab is one entry of the `clusters` list in `~/.infer/compute.yaml` - see [Compute](/cli/#compute) for the CLI's own reference. **Every workspace on a cluster shares its namespace and its one gateway**, so a provider key is saved per cluster rather than per computer.
 
-Every workspace row shows its type, its `context / namespace`, and whether the daemon can reach it, with the daemon's own error when it cannot. **New workspace** opens the form, the pencil edits a workspace, and the trash deletes it with the same two-click arming as [deleting a conversation](#deleting-one-conversation).
-
-The daemon only reads `daemon.yaml` when it starts, so saving, deleting or detecting shows a **Restart CLI now** button rather than applying the change by itself. **Restarting stops running chats**, which is why it is left to you.
+Every cluster row shows its name, its `context / namespace` and how many sessions the workspaces on it are running. **New cluster** opens the form, the refresh button checks the cluster again, the pencil edits it, and the trash deletes it with the same two-click arming as [deleting a conversation](#deleting-one-conversation).
 
 **The form fields and what each one writes:**
 
-| Field                   | `daemon.yaml` key | What it is                                                                                                             |
-| ----------------------- | ----------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| **Type**                | `kind`            | `kubernetes` is the only choice for now                                                                                |
-| **Name**                | `name`            | How the workspace is picked in an agent's editor. Required, and two workspaces cannot share one                        |
-| **Kubernetes context**  | `context`         | The cluster to run in, suggested from the contexts of your kubeconfig. Required for a Kubernetes workspace             |
-| **Namespace**           | `namespace`       | Where the sessions run. Required for a Kubernetes workspace                                                            |
-| **Image**               | `image`           | The image every session's pod runs. It needs the `infer` CLI                                                           |
-| **Storage**             | `storage`         | The size of a session's volume, for example `5Gi`                                                                      |
-| **Idle after**          | `idle_ttl`        | How long a pod stays up without work, for example `2h`                                                                 |
-| **Keep suspended for**  | `retention`       | How long the operator keeps a suspended session before deleting it, for example `24h`                                  |
-| **Provider keys**       | `gateway_env`     | Variable **names** only, comma separated                                                                               |
-| **Forwarded variables** | `forward_env`     | Names of variables the agent itself gets, such as a token it pushes with                                               |
-| **Environment**         | `env`             | One `NAME=value` per line. Not for secrets, which belong in the [Secrets](#secrets) tab - these land in the pod's spec |
+| Field                  | `compute.yaml` key | What it is                                                                                                                                                                                               |
+| ---------------------- | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Name**               | `name`             | How a workspace picks this cluster. Required, unique, and up to 63 letters, digits, `-`, `_` or `.` starting and ending with a letter or digit, because it labels the cluster's gateway and its sessions |
+| **Kubernetes context** | `context`          | The cluster to talk to, suggested from the contexts of your kubeconfig. Left empty it is your current context                                                                                            |
+| **Namespace**          | `namespace`        | Where the sessions of every workspace on the cluster run. Required                                                                                                                                       |
+| **Provider keys**      | `gateway_env`      | Variable **names** only, comma separated                                                                                                                                                                 |
 
-**Provider keys are names, not values.** The value of each name is taken from what you saved under [API Keys](#api-keys) and sent to the workspace's own gateway, never into the agent's pod, so nothing the agent runs can read a provider key into its context. Clearing a field removes its key from the entry, and an edit keeps the keys the form does not know (`mode`, `protocol`) along with every other entry of the file.
+**Provider keys are names, not values.** The value of each name is taken from what you saved under [API Keys](#api-keys) and sent to the cluster's own gateway, which every workspace on it shares, never into an agent's pod - so nothing the agent runs can read a provider key into its context. An edit keeps the keys the form does not know (`mode`, `kubeconfig`) and leaves the file's machines and GPU settings alone.
 
-**A workspace's `secrets` are managed from the [Secrets](#secrets) tab**, not here. That list names the Kubernetes Secrets the workspace's pod reads, and assigning a secret to a workspace is what writes it - an edit in this form leaves the list alone.
+**Renaming a cluster moves its workspaces along.** Every workspace whose `compute` named it is rewritten to the new name, and a workspace that carries [its own connection](#workspaces) is untouched. **A cluster a workspace runs on cannot be deleted**: the error names the workspaces to move first.
 
-**Provision local cluster** is the one-click way to get a cluster at all, when you have none. The button sits next to **New workspace** and appears whenever **Docker is running** - Docker is the only thing it needs, with no `k3d`, `ctlptl`, `kubectl` or `kubeconfig` of your own. It streams each stage into the tab's notice line while it:
+**Detect clusters** fills the tab in from your kubeconfig: one cluster per context that no cluster and no workspace uses yet, named after the context, in the `infer-workspaces` namespace, with the names of your saved API keys as its provider keys. Nothing already configured is replaced, a context whose name is not a valid cluster name is skipped, and a second click adds nothing. It adds **every** context it finds, production clusters included, so review the list and delete what should not host agents.
+
+**Provision local cluster** is the one-click way to get a cluster at all, when you have none. The container button sits next to **Detect clusters** and appears whenever **Docker is running** - Docker is the only thing it needs, with no `k3d`, `ctlptl`, `kubectl` or `kubeconfig` of your own. It streams each stage into the tab's notice line while it:
 
 - runs k3s as a Docker container named `infer-k3s`, on a fixed local port so the kubeconfig keeps working across restarts
 - installs agent-sandbox and the [Inference Gateway operator](/operator/) inside it, the Gateway API CRDs coming with k3s itself
 - builds the computer-use Ubuntu desktop image for your installed `infer` version and loads it into the cluster
-- adds an `infer-k3s` context to `~/.kube/config`, merged by entry name and leaving your current context alone. An unreadable kubeconfig stops the run rather than being overwritten
 - creates the `infer-workspaces` namespace and labels it for the operator
-- registers an `ubuntu-desktop` Kubernetes workspace in `~/.infer/daemon.yaml`, with that image and your saved [API keys](#api-keys) as its provider keys
+- adds an `infer-k3s` context to `~/.kube/config`, merged by entry name and leaving your current context alone. An unreadable kubeconfig stops the run rather than being overwritten
+- registers the `infer-k3s` cluster in `~/.infer/compute.yaml` with your saved [API keys](#api-keys) as its provider keys, and the `ubuntu-desktop` [workspace](#workspaces) on it in `~/.infer/daemon.yaml`
 
 Every step is repeatable, so **a second click repairs or refreshes the same cluster** rather than building a second one. It does refuse to start when an `ubuntu-desktop` workspace already points at **another** cluster - that entry is yours, so nothing is touched and the notice asks you to delete it first.
 
 **Its agents use the computer and edit files without asking.** The provisioned workspace sets `INFER_COMPUTER_USE_ENABLED`, `INFER_COMPUTER_USE_APPROVAL: never` and the write and edit approvals off, because every session runs in a pod of its own and not on your machine.
 
-As with any other change to the tab, the daemon only picks the new workspace up after **Restart CLI now**. Point an agent's [**Computer**](#agent-computers) at `ubuntu-desktop` and its chats get a desktop pod each.
-
-**Detect clusters** fills the tab in from your kubeconfig: one Kubernetes workspace per context that has none yet, named after the context, in the `infer-workspaces` namespace, with the CLI image of the installed `infer` version and the names of your saved API keys as its provider keys. Existing workspaces are never replaced, and a second click adds nothing. It adds **every** context it finds, production clusters included, so review the list and delete what should not host agents.
-
-**Prerequisites check.** Each Kubernetes workspace is checked when the tab opens and again with its refresh button. A cluster that has everything shows **Cluster has everything it needs**, and one that does not names what is missing and how to fix it:
+**Prerequisites check.** Each cluster is checked when the tab opens and again with its refresh button. A cluster that has everything shows **Cluster has everything it needs**, and one that does not names what is missing and how to fix it:
 
 | Item                                  | Means                                                             | Fix                                                                               |
 | ------------------------------------- | ----------------------------------------------------------------- | --------------------------------------------------------------------------------- |
@@ -312,25 +302,84 @@ As with any other change to the tab, the daemon only picks the new workspace up 
 | **Namespace `<name>`**                | The namespace the form names exists                               | `kubectl create namespace <name>`                                                 |
 | **Namespace managed by the operator** | It carries `inference-gateway.com/managed=true`                   | `kubectl label namespace <name> inference-gateway.com/managed=true`               |
 
-The check needs `kubectl` on your `PATH` - except for the `infer-k3s` context of a [provisioned local cluster](#workspaces), whose `kubectl` calls go through the container - and it looks at the CRDs and the namespace, **not** at whether the controllers behind them are actually running - a cluster that passes can still have a crashed operator.
+The check needs `kubectl` on your `PATH` - except for the `infer-k3s` context of a provisioned local cluster, whose `kubectl` calls go through the container - and it looks at the CRDs and the namespace, **not** at whether the controllers behind them are actually running - a cluster that passes can still have a crashed operator.
 
-**The running badge** next to a workspace's type counts the sessions running in it, taken from the `Orchestrator`s in its namespace whose `Ready` condition is true. Hover it for the suspended count, the ones kept for their `retention`. The badge is absent when the cluster cannot list them.
+**The running badge** on a cluster row counts the sessions of **every** workspace on it, taken from the `Orchestrator`s in its namespace whose `Ready` condition is true. Hover it for the suspended count, the ones kept for their `retention`. The badge is absent when the cluster cannot list them.
 
-A saved Kubernetes workspace looks like this in `~/.infer/daemon.yaml`:
+The daemon only reads `compute.yaml` when it starts, so saving, deleting or detecting shows a **Restart CLI now** button rather than applying the change by itself. **Restarting stops running chats**, which is why it is left to you.
+
+A cluster looks like this in `~/.infer/compute.yaml`:
 
 ```yaml
-workspaces:
-  - name: ubuntu-desktop
-    kind: kubernetes
-    context: k3d-computer-use
-    namespace: computer-use
-    image: ghcr.io/inference-gateway/cli:0.245.0
-    storage: 5Gi
+clusters:
+  - name: infer-k3s
+    context: infer-k3s
+    namespace: infer-workspaces
     gateway_env:
       - OLLAMA_CLOUD_API_KEY
 ```
 
-[`examples/computer-use`](https://github.com/inference-gateway/desktop/tree/main/examples/computer-use) is a runnable cluster with workspaces like this one already set up.
+**On an `infer` without compute support** the tab says so - `Clusters need an infer CLI with compute support. Install updates under Settings > Updates.` - and **New cluster**, **Detect clusters** and **Provision local cluster** are disabled, so the app never writes a `compute.yaml` the CLI cannot read. Workspaces that carry their own context keep working meanwhile.
+
+### Workspaces
+
+The **Workspaces** tab is where you register the computers an agent can run on as [its own computer](#agent-computers), or that you [move a chat to](#moving-a-chat), so you no longer have to edit `~/.infer/daemon.yaml` by hand. Each workspace in the tab is one entry of the `infer` daemon's `workspaces` list in that file - see [Workspace kinds](/cli/#workspace-kinds) for the daemon's own reference. **Kubernetes** is the only type the form offers for now, and a type the form does not know (a `kind: local` entry you wrote yourself, say) is listed and can be deleted, but not edited.
+
+Every workspace row shows its type, where it runs - `on <cluster> - context / namespace` for a workspace on a cluster, its own `context / namespace` otherwise - and whether the daemon can reach it, with the daemon's own error when it cannot. **New workspace** opens the form, the pencil edits a workspace, and the trash deletes it with the same two-click arming as [deleting a conversation](#deleting-one-conversation).
+
+The daemon only reads `daemon.yaml` when it starts, so saving or deleting shows a **Restart CLI now** button rather than applying the change by itself. **Restarting stops running chats**, which is why it is left to you.
+
+**A workspace picks its cluster.** The form's **Cluster** dropdown lists the clusters of [**Compute**](#compute), and a new workspace starts on the first of them with the installed CLI's image. On a cluster the **Type**, **Kubernetes context**, **Namespace** and **Provider keys** fields are gone, because the cluster gives them - the hint under the dropdown names the context and namespace the workspace inherits. A cluster the workspace names that `compute.yaml` no longer defines is kept in the dropdown as `<name> (missing)` until you pick another one.
+
+**Its own connection** is the last entry of that dropdown, for a workspace that carries its own context, namespace and provider keys instead of a cluster's. Those workspaces keep working and stay editable, with every field they had before. The dropdown itself is hidden while there is no cluster at all and the workspace names none.
+
+**The form fields and what each one writes:**
+
+| Field                   | `daemon.yaml` key | What it is                                                                                                             |
+| ----------------------- | ----------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| **Cluster**             | `compute`         | The [cluster](#compute) the workspace runs on, or **Its own connection** for none                                      |
+| **Type**                | `kind`            | `kubernetes` is the only choice for now. Only for a workspace with its own connection                                  |
+| **Name**                | `name`            | How the workspace is picked in an agent's editor. Required, and two workspaces cannot share one                        |
+| **Kubernetes context**  | `context`         | The cluster to run in, suggested from the contexts of your kubeconfig. Only for a workspace with its own connection    |
+| **Namespace**           | `namespace`       | Where the sessions run. Only for a workspace with its own connection                                                   |
+| **Image**               | `image`           | The image every session's pod runs. It needs the `infer` CLI                                                           |
+| **Storage**             | `storage`         | The size of a session's volume, for example `5Gi`                                                                      |
+| **Idle after**          | `idle_ttl`        | How long a pod stays up without work, for example `2h`                                                                 |
+| **Keep suspended for**  | `retention`       | How long the operator keeps a suspended session before deleting it, for example `24h`                                  |
+| **Provider keys**       | `gateway_env`     | Variable **names** only, comma separated. Only for a workspace with its own connection - a cluster's are under Compute |
+| **Forwarded variables** | `forward_env`     | Names of variables the agent itself gets, such as a token it pushes with                                               |
+| **Environment**         | `env`             | One `NAME=value` per line. Not for secrets, which belong in the [Secrets](#secrets) tab - these land in the pod's spec |
+
+**Provider keys are names, not values.** The value of each name is taken from what you saved under [API Keys](#api-keys) and sent to the gateway, never into the agent's pod, so nothing the agent runs can read a provider key into its context. Clearing a field removes its key from the entry, and an edit keeps the keys the form does not know (`mode`, `protocol`) along with every other entry of the file. A workspace put on a cluster loses the keys a cluster owns from its own entry, so the two can never disagree.
+
+**A workspace's `secrets` are managed from the [Secrets](#secrets) tab**, not here. That list names the Kubernetes Secrets the workspace's pod reads, and assigning a secret to a workspace is what writes it - an edit in this form leaves the list alone.
+
+**Clusters, Detect clusters and the one-click local cluster live under [Compute](#compute).** The prerequisites check is there too, per cluster - a workspace row still shows the same check for the cluster it runs on.
+
+**The running badge** next to a workspace's type counts **its own** sessions, the `Orchestrator`s in its namespace labelled with the workspace whose `Ready` condition is true, and not everything in the namespace it shares. Hover it for the suspended count, the ones kept for their `retention`. The badge is absent when the cluster cannot list them.
+
+A saved workspace on a cluster looks like this:
+
+```yaml
+# ~/.infer/compute.yaml
+clusters:
+  - name: infer-k3s
+    context: infer-k3s
+    namespace: infer-workspaces
+    gateway_env:
+      - OLLAMA_CLOUD_API_KEY
+```
+
+```yaml
+# ~/.infer/daemon.yaml
+workspaces:
+  - name: ubuntu-desktop
+    compute: infer-k3s
+    image: ghcr.io/inference-gateway/cli:0.245.0
+    storage: 5Gi
+```
+
+Point an agent's [**Computer**](#agent-computers) at `ubuntu-desktop` and its chats get a desktop pod each. [`examples/computer-use`](https://github.com/inference-gateway/desktop/tree/main/examples/computer-use) is a runnable cluster with workspaces like this one already set up.
 
 ## Your own agents
 
@@ -427,7 +476,7 @@ The address and the whitelist are visible where you work: on the agent's row in 
 
 ## Agent computers
 
-One of your own agents can get a computer of its own. Pick it as the **Computer** in the agent's editor - the dropdown lists the workspaces of the `infer` daemon, which you register under [**Settings -> Workspaces**](#workspaces) - and it is saved as `workspace` in the agent's frontmatter:
+One of your own agents can get a computer of its own. Pick it as the **Computer** in the agent's editor - the dropdown lists the workspaces of the `infer` daemon, which you register under [**Settings -> Workspaces**](#workspaces) on a [cluster](#compute) of your own - and it is saved as `workspace` in the agent's frontmatter:
 
 ```markdown
 ---
@@ -437,6 +486,8 @@ model: ollama_cloud/glm-5.3-flash
 workspace: ubuntu-desktop
 ---
 ```
+
+**Where that computer runs** is the workspace's [cluster](#compute), set up once under **Settings -> Compute**: the cluster gives the workspace its Kubernetes context, its namespace and the [provider keys](#compute) its gateway gets, which every workspace on that cluster shares. A workspace with [its own connection](#workspaces) carries those itself instead.
 
 An agent's credentials come from the computer it runs on, the `secrets` of its workspace, so one agent's keys are never another's and they never pass through this machine - see [Workspace kinds](/cli/#credentials-the-cluster-already-holds-secrets). Those secrets come from the [Secrets](#secrets) tab: assign a secret to this computer or to the workspace the agent runs on and the agent gets it as its variable.
 
@@ -478,7 +529,7 @@ A chat that sits on one workspace **comes home first and then goes to the other 
 
 Limits worth knowing:
 
-- **The chat keeps its model.** The gateway of the workspace it lands on has to serve that same model, which means the provider's key belongs in that workspace's [**Provider keys**](#workspaces). Without it the first turn on the workspace fails on the missing key, not on the move. An [agent](#your-own-agents) whose front matter fixes its own model is never quietly switched to the workspace's model: the chat fails with a message naming the key to add, such as `ubuntu-desktop has no key for anthropic. Add ANTHROPIC_API_KEY to its provider keys in Settings > Workspaces`.
+- **The chat keeps its model.** The gateway of the workspace it lands on has to serve that same model, which means the provider's key belongs in the [**Provider keys**](#compute) of the cluster that workspace runs on - or in the workspace's own, when it carries [its own connection](#workspaces). Without it the first turn on the workspace fails on the missing key, not on the move. An [agent](#your-own-agents) whose front matter fixes its own model is never quietly switched to the workspace's model: the chat fails with a message naming the key to add, such as `ubuntu-desktop has no key for anthropic. Add ANTHROPIC_API_KEY to its provider keys in Settings > Workspaces`.
 - **The record can go stale.** Once the cluster deletes a suspended session after its `retention`, the app still lists the chat on that workspace. Move it back to this computer to carry on from the local copy.
 
 See [Workspace lifecycle and cleanup](/cli/#workspace-lifecycle-and-cleanup) and [Workspace kinds](/cli/#workspace-kinds) for the daemon's own account of teleports, and [`examples/computer-use`](https://github.com/inference-gateway/desktop/tree/main/examples/computer-use) for a cluster to try one on.
