@@ -1319,29 +1319,60 @@ The **resolved** options travel as the thread's options, carrying the tool lists
 
 A **workspace** is where a session's agent runs. The daemon you type into is one, and `daemon.yaml` registers the others, so a session can be **teleported** to a beefier machine or into a Kubernetes cluster between turns. A `kind: kubernetes` workspace runs each session as an [operator](/operator/) `Orchestrator` in `namespace`, with the agent inside a pod.
 
+The cluster or machine a workspace runs on is **[compute](#compute)**, written down once in `~/.infer/compute.yaml`, and a workspace names it with `compute`:
+
+```yaml
+# ~/.infer/compute.yaml
+clusters:
+  - name: k3d-agents
+    context: k3d-agents
+    namespace: agents
+    mode: standard # standard (default) or all-in-one
+    gateway_env:
+      - ANTHROPIC_API_KEY # the gateway gets the key, the agent never sees it
+```
+
 ```yaml
 # ~/.infer/daemon.yaml
 workspace: laptop
 workspaces:
   - name: laptop
     kind: local
-  - name: k8s-dev
-    kind: kubernetes
+  - name: code-reviewer
+    compute: k3d-agents
     protocol: agui # agui (default) or a2a
-    context: k3d-infer-workspaces
-    namespace: infer-workspaces
     image: ghcr.io/inference-gateway/cli:latest
     storage: 5Gi
-    mode: standard # standard (default) or all-in-one
-    gateway_env:
-      - ANTHROPIC_API_KEY # the gateway gets the key, the agent never sees it
     forward_env:
       - GITHUB_TOKEN # the agent itself needs this one
     secrets:
-      - k8s-dev-credentials # every key of this Secret becomes a variable of the pod
+      - code-reviewer-credentials # every key of this Secret becomes a variable of the pod
+  - name: release-manager
+    compute: k3d-agents
+    image: ghcr.io/inference-gateway/cli:latest
+    secrets:
+      - release-manager-credentials
 ```
 
-`mode`, `gateway_env` and `secrets` apply to `kind: kubernetes` only and are rejected on any other kind.
+A workspace on compute takes its **kind and its connection** from it, and keeps what describes the computer itself: `image`, `storage`, `protocol`, `idle_ttl`, `env`, `forward_env` and `secrets`. Setting `kind`, or any key its compute already sets, **fails at startup**, and so does naming compute `compute.yaml` does not define.
+
+**One Gateway per cluster.** Every `standard`-mode workspace on one cluster shares that cluster's `Gateway` and credentials Secret instead of each deploying its own, and the last session to go takes them along. The namespace belongs to the cluster too, because an Orchestrator only references a Gateway in its own namespace.
+
+A workspace that carries its **own** connection keeps working exactly as before, with a Gateway of its own:
+
+```yaml
+workspaces:
+  - name: k8s-dev
+    kind: kubernetes
+    context: k3d-infer-workspaces
+    namespace: infer-workspaces
+    image: ghcr.io/inference-gateway/cli:latest
+    mode: standard
+    gateway_env:
+      - ANTHROPIC_API_KEY
+```
+
+`mode`, `gateway_env` and `secrets` apply to Kubernetes workspaces only and are rejected on any other kind. `infer daemon workspaces` prints the compute each workspace runs on in a `COMPUTE` column.
 
 #### How the daemon dials a workspace (`protocol`)
 
@@ -1351,12 +1382,12 @@ workspaces:
 
 #### Where the gateway runs (`mode`)
 
-`mode` says where a Kubernetes workspace runs the gateway its agents call, and `gateway_env` names the variables that gateway gets, typically provider keys.
+`mode` says where a Kubernetes workspace runs the gateway its agents call, and `gateway_env` names the variables that gateway gets, typically provider keys. Both are set on the **cluster** in `compute.yaml` for a workspace that names its `compute`, and on the workspace itself for one that carries its own connection.
 
-| Mode                   | What it deploys                                                                                                                                                                                                                                                                                                                   |
-| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `standard` _(default)_ | One operator `Gateway` per workspace, beside the workspace's sessions. Each teleport writes the `gateway_env` values into the gateway's Secret and the pod only learns the gateway's URL, so **nothing the agent runs can read a key into its context**. A teleport waits for the gateway to serve before it restores the session |
-| `all-in-one`           | Nothing beside the pod. A teleport seals the `gateway_env` values along with `forward_env` and the pod's workers run the gateway themselves on `127.0.0.1:8080`. One pod less, but the keys sit in the agent's environment                                                                                                        |
+| Mode                   | What it deploys                                                                                                                                                                                                                                                                                                                                                |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `standard` _(default)_ | One operator `Gateway` per cluster, beside its sessions, shared by every workspace on that cluster. Each teleport writes the `gateway_env` values into the gateway's Secret and the pod only learns the gateway's URL, so **nothing the agent runs can read a key into its context**. A teleport waits for the gateway to serve before it restores the session |
+| `all-in-one`           | Nothing beside the pod. A teleport seals the `gateway_env` values along with `forward_env` and the pod's workers run the gateway themselves on `127.0.0.1:8080`. One pod less, but the keys sit in the agent's environment                                                                                                                                     |
 
 In `standard` mode the Gateway and its Secret are owned by **every** session's Orchestrator, so they are garbage-collected with the last session. Without `gateway_env` no gateway is deployed at all and the pod calls whatever `INFER_GATEWAY_URL` names.
 
@@ -1573,6 +1604,97 @@ Logs are not streamed to clients, so `tail` the file when debugging a client:
 ```bash
 tail -f ~/.infer/logs/daemon-$(date +%Y-%m-%d).log
 ```
+
+## Compute
+
+**Compute** is what sessions and models run on: Kubernetes clusters, standalone machines, and GPUs rented by the hour. It lives in `~/.infer/compute.yaml`, apart from any daemon that uses it, because a cluster exists whether or not a daemon runs on it.
+
+```yaml
+# ~/.infer/compute.yaml
+clusters:
+  - name: k3d-agents
+    kubeconfig: ~/.kube/config # the default kubeconfig when empty
+    context: k3d-agents # the current context when empty
+    namespace: agents # required, shared by every workspace on the cluster
+    mode: standard # standard (default) or all-in-one
+    gateway_env:
+      - ANTHROPIC_API_KEY
+machines:
+  - name: workstation
+    address: workstation.lan:52789
+    token: ${WORKSTATION_TOKEN}
+    tls:
+      ca_file: ~/.infer/daemon/workstation-ca.crt
+gpus:
+  provider: runpod
+  gpu_type: NVIDIA GeForce RTX 5090
+  model: ggml-org/gemma-4-E4B-it-GGUF:Q4_0
+  max_hourly: 1.50
+```
+
+- A **cluster** holds the connection and the placement rules a `kind: kubernetes` [workspace](#workspace-kinds) would otherwise repeat per workspace. A cluster name has to be a valid Kubernetes label value, because it labels the Gateway and the sessions of every workspace on the cluster.
+- A **machine** holds `address`, `token` and `tls`, the connection of a `kind: daemon` workspace. Write the token as a `${VAR}` reference and the commands keep it as one.
+- `gpus` holds the defaults and the hourly price cap for rented GPUs.
+
+`compute.yaml` is read from the **home directory only**. A project's `.infer/compute.yaml` is ignored, because clusters and machines belong to the user, not to a project.
+
+### `infer compute clusters` and `infer compute machines`
+
+`add` and `remove` edit `compute.yaml` as written, so a `${VAR}` reference is saved back as a reference and never as the secret it names. `remove` refuses compute a workspace in `daemon.yaml` still runs on.
+
+```bash
+infer compute clusters add k3d-agents --context k3d-agents --namespace agents --gateway-env ANTHROPIC_API_KEY
+infer compute clusters list
+infer compute clusters status            # or: status k3d-agents
+infer compute clusters remove k3d-agents
+
+infer compute machines add workstation --address workstation.lan:52789 --token '${WORKSTATION_TOKEN}'
+infer compute machines list
+infer compute machines status
+infer compute machines remove workstation
+```
+
+| Command               | Flags                                                                                                         |
+| --------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `clusters add <name>` | `--namespace` (required), `--context`, `--kubeconfig`, `--mode` (`standard` or `all-in-one`), `--gateway-env` |
+| `machines add <name>` | `--address` (required), `--token`, `--ca-file`, `--cert-file`, `--key-file`                                   |
+
+`clusters status` checks every cluster at once: whether it is reachable, whether it runs the [operator](/operator/), its Kubernetes version, and how many sessions the workspaces on it run. `machines status` probes each machine the way the daemon probes a `kind: daemon` workspace, over TLS with this daemon's identity. One unreachable entry never holds up the report on the others. `machines list` never prints a token.
+
+### `infer compute gpus`
+
+`infer compute gpus` rents an on-demand cloud GPU running a [llama.cpp](https://github.com/ggml-org/llama.cpp) server, so you pay only for the hours used. RunPod is the one provider today.
+
+```bash
+infer compute gpus provision --model "bartowski/Qwen2.5-7B-Instruct-GGUF:Q4_K_M" -y
+infer compute gpus list
+infer compute gpus status <instance-id> --wait
+infer compute gpus destroy <instance-id> -y
+```
+
+| Command                 | What it does                                                                                                                                     |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `provision`             | Provision an instance. Without `--gpu-type` it opens an interactive picker with live pricing, cheapest first, then waits until the model answers |
+| `list`                  | List the instances infer provisioned, with status, hourly cost and uptime                                                                        |
+| `status <instance-id>`  | State, uptime, hourly cost, estimated total and the endpoint. `--wait` blocks until llama.cpp answers                                            |
+| `destroy <instance-id>` | Destroy an instance, which stops billing                                                                                                         |
+
+`provision` takes `--gpu-type <id>`, `--model <repo>:<quant>` (a Hugging Face GGUF) and `-y, --yes` to skip the confirmation. `destroy` takes `-y, --yes`.
+
+A ready instance is handed over through the **standard llamacpp provider variables**, which makes it indistinguishable from any other llamacpp backend:
+
+```bash
+LLAMACPP_API_URL=https://<instance>-8080.proxy.runpod.net/v1
+LLAMACPP_API_KEY=<token generated for the instance>
+```
+
+The key is generated per instance and passed to llama.cpp as its `--api-key`, so the server is not open to whoever finds the URL. Point the gateway at the two values and the model is just another one in the catalogue - see the [llama.cpp provider](/supported-providers/#llamacpp-provider).
+
+**The RunPod API key** is management-plane only, used for the create, list and destroy calls. It is read from `RUNPOD_API_KEY` in the environment or [`~/.infer/auth.yaml`](#provider-api-keys), and asked for and saved to `auth.yaml` on first use. The older `provisioner` block in `config.yaml` and its `provisioner.runpod.api_key` still work with a deprecation warning that points at `compute.yaml` and `auth.yaml`.
+
+**`max_hourly` is a spending cap.** Provisioning fails before anything is created when the chosen GPU costs more per hour than `gpus.max_hourly`. A zero or absent cap allows any price. An instance keeps billing until it is destroyed, so `infer compute gpus list` is worth a look before you walk away.
+
+> `infer gpu` still works as a hidden, deprecated alias of `infer compute gpus`.
 
 ## Web Terminal
 
@@ -3176,6 +3298,7 @@ Two-layer configuration system with precedence from highest to lowest:
 | `sandbox.yaml`     | User only    | File sandbox policy - `filesystem.allowed` and `filesystem.denied`. A project copy is ignored.                                                                                        | [File sandbox](#file-sandbox)                               |
 | `judge.yaml`       | Project/user | LLM judge that decides approval-requiring tool calls (model, timeout, prompts, `on_error`).                                                                                           | [Judge Mode](/cli-judge-mode/)                              |
 | `daemon.yaml`      | Project/user | `infer daemon` itself - the AG-UI binding's own switch, port and token (`binding.enabled`, `binding.port`, `binding.token`), plus the workspace registry and the idle and away exits. | [Starting the daemon](#starting-the-daemon)                 |
+| `compute.yaml`     | User only    | What sessions and models run on - the `clusters`, `machines` and `gpus` workspaces and rented GPUs use. A project copy is ignored.                                                    | [Compute](#compute)                                         |
 | `memory.yaml`      | Project/user | Persistent, cross-session agent memory - fact-files plus the `MEMORY.md` index.                                                                                                       | [Persistent Memory](#persistent-memory)                     |
 | `shortcuts/*.yaml` | Project      | Custom slash shortcuts - simple commands, subcommands, and AI-powered snippets.                                                                                                       | [Custom Shortcuts](#custom-shortcuts)                       |
 | `skills/`          | Project/user | Agent Skills folders (`name/SKILL.md`) discovered and injected on demand.                                                                                                             | [Agent Skills](#agent-skills)                               |
