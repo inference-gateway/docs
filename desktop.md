@@ -56,6 +56,20 @@ Updates applied by the app itself are downloaded by the app rather than a browse
 
 The app updates itself. When a newer release is available the top bar shows an update button (the same one is in Settings under Updates). Clicking it reinstalls the `infer` CLI and gateway binaries, then downloads the new app bundle, verifies its signature against the project's updater public key, and relaunches. Checks run at startup and every 6 hours.
 
+### Pinning a version per component
+
+**Settings** -> **Updates** lists the three components - CLI, Gateway and Desktop - with the installed version of each. Next to each one a dropdown offers that component's five newest release tags, with the installed version marked `(installed)`:
+
+1. Pick a version in the row of the component you want to move.
+2. The button that appears next to the dropdown reads **Upgrade** when the picked version is newer than the installed one and **Downgrade** when it is older. Picking the installed version offers no button.
+3. Click it to install exactly that component at exactly that version.
+
+Each row acts on its own component only - upgrading the CLI leaves the gateway and the app untouched, and the same holds the other way round. Installing the CLI replaces the binary and restarts its daemon while the running gateway keeps serving, and installing the gateway stops it first and then restarts it on the pinned version. Running sessions are cancelled before either. The Desktop row points the updater at the chosen release, so an older app version can be rolled back over a bad update, and the app relaunches as usual.
+
+The selection is per component and is cleared once the install finishes - it is a one-off action, not a persistent pin, so the next check still reports the newest release as available.
+
+Leaving every dropdown untouched changes nothing: the existing **Update available** banner and **Install updates** button behave exactly as before and move every outdated component to its newest release. Dev builds and locally built binaries are never offered versions, and when a release lookup fails the row keeps showing `unknown` with no dropdown rather than breaking the tab.
+
 ## Settings
 
 Open Settings with the gear icon at the right of the top bar. A left rail lists the sections, and **Back** returns to the chat. Settings opens on **API Keys**.
@@ -68,7 +82,7 @@ Open Settings with the gear icon at the right of the top bar. A left rail lists 
 | **Workspaces**    | [The `infer` daemon workspaces](#workspaces) an agent can use as [its own computer](#agent-computers)                                                                                                           |
 | **Voice samples** | [WAV reference recordings](#voice-samples) for voice cloning                                                                                                                                                    |
 | **Avatars**       | [Named portraits](#avatars) used for talking-avatar renders                                                                                                                                                     |
-| **Updates**       | Installed versions, manual check, and [Install updates](#updates)                                                                                                                                               |
+| **Updates**       | Installed versions, manual check, [Install updates](#updates), and [per-component version pinning](#pinning-a-version-per-component)                                                                            |
 
 ### API Keys
 
