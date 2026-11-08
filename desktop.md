@@ -19,14 +19,15 @@ Agents run through [`infer daemon`](/cli/#daemon), the CLI's hub. The app starts
 
 ### ~/.infer layout
 
-| Path                             | Purpose                                                                                  |
-| -------------------------------- | ---------------------------------------------------------------------------------------- |
-| `~/.infer/bin/infer`             | The `infer` CLI - manages the gateway, routes requests, and drives agent interactions    |
-| `~/.infer/bin/inference-gateway` | The gateway server binary                                                                |
-| `~/.infer/config.yaml`           | Gateway configuration (providers, API keys, model routing)                               |
-| `~/.infer/agents.yaml`           | Registered A2A agent definitions                                                         |
-| `~/.infer/auth.yaml`             | Provider API keys saved from **Settings -> API Keys**                                    |
-| `~/.infer/avatars/`              | [Avatar portraits](#avatars) managed from **Settings -> Avatars**, one folder per avatar |
+| Path                             | Purpose                                                                                                      |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `~/.infer/bin/infer`             | The `infer` CLI - manages the gateway, routes requests, and drives agent interactions                        |
+| `~/.infer/bin/inference-gateway` | The gateway server binary                                                                                    |
+| `~/.infer/config.yaml`           | Gateway configuration (providers, API keys, model routing)                                                   |
+| `~/.infer/agents.yaml`           | Registered A2A agent definitions                                                                             |
+| `~/.infer/auth.yaml`             | Provider API keys saved from **Settings -> API Keys**, and the values of your [secrets](#secrets)            |
+| `~/.infer/secrets.yaml`          | Your [secrets](#secrets) without their values - each one's label, variable and whether this computer gets it |
+| `~/.infer/avatars/`              | [Avatar portraits](#avatars) managed from **Settings -> Avatars**, one folder per avatar                     |
 
 Everything is scoped to your home directory - no system-wide installs, no vendor lock-in.
 
@@ -64,6 +65,7 @@ Open Settings with the gear icon at the right of the top bar. A left rail lists 
 | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **General**       | [Max concurrent sessions](#the-concurrency-cap), [Browser Use](#browser-use-opentask-extension), the [text-to-speech toggle](#enabling-text-to-speech), and the [text-to-video toggle](#enabling-text-to-video) |
 | **API Keys**      | One API key per provider                                                                                                                                                                                        |
+| **Secrets**       | [Values your agents' computers need](#secrets), each kept once and assigned to the computers that get it                                                                                                        |
 | **Agents**        | A2A agents the local agent can delegate to                                                                                                                                                                      |
 | **Workspaces**    | [The `infer` daemon workspaces](#workspaces) an agent can use as [its own computer](#agent-computers)                                                                                                           |
 | **Voice samples** | [WAV reference recordings](#voice-samples) for voice cloning                                                                                                                                                    |
@@ -94,7 +96,65 @@ Each supported provider gets one masked field. Fill in the providers you use and
 
 **Save** writes the non-empty values to `~/.infer/auth.yaml` (mode `0600` on macOS and Linux; keys still sitting in a legacy `~/.infer/auth.json` are read as a fallback but never written back), returns you to the chat, and restarts the gateway so the new keys take effect - which is also what refreshes the model list. Keys are passed to the agent as environment variables of the same name; nothing is sent anywhere else.
 
-The same file also holds the per-agent keys that are not provider keys, such as the `AGENTMAIL_API_KEY_<agent>` behind an [agent's inbox](#agent-email). Those are written from the agent's editor rather than this tab, and exports leave them behind.
+**Save keeps every other entry of `auth.yaml`.** Only the provider fields the form shows are written over, so an agent's key or a secret saved elsewhere survives a save here, and a field you clear removes just its own key.
+
+The same file also holds the per-agent keys that are not provider keys, such as the `AGENTMAIL_API_KEY_<agent>` behind an [agent's inbox](#agent-email), and the values of your [secrets](#secrets) under a `secret/<label>` key that is no environment variable name. Those are written from the agent's editor or the Secrets tab rather than this tab, and exports leave them behind.
+
+### Secrets
+
+The **Secrets** tab is for the values your agents' computers need that are not provider keys - an inbox key, a Git token, whatever an [MCP server](/cli/#mcp-integration) header expands. **A secret is kept once and given to the computers you pick**, where it becomes an environment variable.
+
+Each row shows the secret's label, its variable, where it goes, and the MCP servers that read it. **New secret** opens the form, the pencil edits one, and the trash deletes it with the same two-click arming as [deleting a conversation](#deleting-one-conversation).
+
+**The form:**
+
+| Field        | What it is                                                                                                                                                       |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Label**    | Names the secret. Lowercase letters, digits and `-`, starting and ending with a letter or digit, so it can name a Kubernetes Secret. It cannot change once saved |
+| **Variable** | The environment variable the secret becomes, for example `AGENTMAIL_API_KEY`                                                                                     |
+| **Value**    | Masked, written to `~/.infer/auth.yaml`. **It is never shown again** - on an edit, a blank value keeps the saved one                                             |
+| **Goes to**  | **This computer** and a checkbox per Kubernetes workspace. Tick none and no process gets it                                                                      |
+
+**Where a secret goes** is the whole point of the tab:
+
+- **This computer**: every `infer` process the app starts gets it as an environment variable, the local daemon's workers too. The gateway never does, so only the agent side sees it.
+- **A Kubernetes workspace**: the desktop writes the Kubernetes Secret `infer-secret-<label>` into the workspace's namespace, passing the value to `kubectl` on stdin, and lists it under that workspace's `secrets` in `~/.infer/daemon.yaml`. The workspace's pod reads it from there, so **the value never passes through a session**. Unticking a workspace removes the listing, and once no workspace in that namespace lists it the Kubernetes Secret is deleted too.
+- **Nowhere**: the secret is kept but no process gets it.
+
+**Several secrets may share one variable**, as long as no computer gets two of them. That is what lets each agent's computer have its own `AGENTMAIL_API_KEY`, so a single `~/.infer/mcp.yaml` header `${AGENTMAIL_API_KEY}` works on all of them and every agent mails as its own inbox.
+
+**A save is refused** for an invalid label or variable, a label that is already taken, a variable that is one of the [API Keys](#api-keys) (set it there instead), a workspace that is not a Kubernetes one, and a second secret with the same variable on this computer or on one workspace. The reason is shown in the tab and nothing is written.
+
+**Each secret names the MCP servers that read it**: the servers of `~/.infer/mcp.yaml` whose headers expand its variable as `${NAME}` or `$NAME`. It is a read-only hint - edit the servers themselves under **Settings -> MCPs**.
+
+**A change asks for a CLI restart**, since this computer's processes and the daemon's workspaces read their secrets when they start. Sessions already running on a workspace keep the old values until they get a new machine. A cluster the desktop could not reach is named in the tab and **the rest of the save still applies** - the workspaces it did reach are listed, and one that already had the secret keeps it.
+
+The files behind a secret, none of which carries the value except `auth.yaml`:
+
+```yaml
+# ~/.infer/secrets.yaml - no values here
+secrets:
+  - label: code-reviewer-inbox
+    variable: AGENTMAIL_API_KEY
+    computer: false
+```
+
+```yaml
+# ~/.infer/auth.yaml - mode 0600
+OPENAI_API_KEY: sk-...
+secret/code-reviewer-inbox: am_...
+```
+
+```yaml
+# ~/.infer/daemon.yaml
+workspaces:
+  - name: code-reviewer
+    compute: infer-k3s
+    secrets:
+      - infer-secret-code-reviewer-inbox
+```
+
+**Values never travel in an export.** An exported setup carries neither the secrets nor the [API keys](#api-keys), so whoever imports it assigns their own values.
 
 ### Model picker
 
@@ -126,21 +186,23 @@ The daemon only reads `daemon.yaml` when it starts, so saving, deleting or detec
 
 **The form fields and what each one writes:**
 
-| Field                   | `daemon.yaml` key | What it is                                                                                                 |
-| ----------------------- | ----------------- | ---------------------------------------------------------------------------------------------------------- |
-| **Type**                | `kind`            | `kubernetes` is the only choice for now                                                                    |
-| **Name**                | `name`            | How the workspace is picked in an agent's editor. Required, and two workspaces cannot share one            |
-| **Kubernetes context**  | `context`         | The cluster to run in, suggested from the contexts of your kubeconfig. Required for a Kubernetes workspace |
-| **Namespace**           | `namespace`       | Where the sessions run. Required for a Kubernetes workspace                                                |
-| **Image**               | `image`           | The image every session's pod runs. It needs the `infer` CLI                                               |
-| **Storage**             | `storage`         | The size of a session's volume, for example `5Gi`                                                          |
-| **Idle after**          | `idle_ttl`        | How long a pod stays up without work, for example `2h`                                                     |
-| **Keep suspended for**  | `retention`       | How long the operator keeps a suspended session before deleting it, for example `24h`                      |
-| **Provider keys**       | `gateway_env`     | Variable **names** only, comma separated                                                                   |
-| **Forwarded variables** | `forward_env`     | Names of variables the agent itself gets, such as a token it pushes with                                   |
-| **Environment**         | `env`             | One `NAME=value` per line. Not for secrets - these land in the pod's spec                                  |
+| Field                   | `daemon.yaml` key | What it is                                                                                                             |
+| ----------------------- | ----------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| **Type**                | `kind`            | `kubernetes` is the only choice for now                                                                                |
+| **Name**                | `name`            | How the workspace is picked in an agent's editor. Required, and two workspaces cannot share one                        |
+| **Kubernetes context**  | `context`         | The cluster to run in, suggested from the contexts of your kubeconfig. Required for a Kubernetes workspace             |
+| **Namespace**           | `namespace`       | Where the sessions run. Required for a Kubernetes workspace                                                            |
+| **Image**               | `image`           | The image every session's pod runs. It needs the `infer` CLI                                                           |
+| **Storage**             | `storage`         | The size of a session's volume, for example `5Gi`                                                                      |
+| **Idle after**          | `idle_ttl`        | How long a pod stays up without work, for example `2h`                                                                 |
+| **Keep suspended for**  | `retention`       | How long the operator keeps a suspended session before deleting it, for example `24h`                                  |
+| **Provider keys**       | `gateway_env`     | Variable **names** only, comma separated                                                                               |
+| **Forwarded variables** | `forward_env`     | Names of variables the agent itself gets, such as a token it pushes with                                               |
+| **Environment**         | `env`             | One `NAME=value` per line. Not for secrets, which belong in the [Secrets](#secrets) tab - these land in the pod's spec |
 
 **Provider keys are names, not values.** The value of each name is taken from what you saved under [API Keys](#api-keys) and sent to the workspace's own gateway, never into the agent's pod, so nothing the agent runs can read a provider key into its context. Clearing a field removes its key from the entry, and an edit keeps the keys the form does not know (`mode`, `protocol`) along with every other entry of the file.
+
+**A workspace's `secrets` are managed from the [Secrets](#secrets) tab**, not here. That list names the Kubernetes Secrets the workspace's pod reads, and assigning a secret to a workspace is what writes it - an edit in this form leaves the list alone.
 
 **Provision local cluster** is the one-click way to get a cluster at all, when you have none. The button sits next to **New workspace** and appears whenever **Docker is running** - Docker is the only thing it needs, with no `k3d`, `ctlptl`, `kubectl` or `kubeconfig` of your own. It streams each stage into the tab's notice line while it:
 
@@ -262,7 +324,9 @@ allowed_recipients:
 
 **The API key never goes into the agent file.** It is stored in `~/.infer/auth.yaml` as `AGENTMAIL_API_KEY_<agent>`, beside the [provider keys](#api-keys), and both export and import refuse to carry it - the agent file travels, the key does not, so whoever imports the agent pastes their own.
 
-**Chats cannot send or read mail yet.** The inbox, its key and the allowed recipients are set up and kept in sync, but an agent's chats are not connected to AgentMail.
+**Save inbox key as secret** is how the inbox reaches the agent's computer. It mints a key through AgentMail that can **only use this agent's own inbox** - it reads and sends mail and reads the allowlist, but cannot touch inboxes, keys or the allowlist itself - and saves it as the [secret](#secrets) `<agent>-inbox` for the variable `AGENTMAIL_API_KEY`. A new secret is assigned to the agent's workspace when that is a Kubernetes one, and an existing one keeps the assignments it has. **The AgentMail API key itself never reaches a worker**: it stays in `auth.yaml` and is only used here to mint the scoped key. The button needs the agent saved with its inbox address first, and the notice tells you where the key landed and whether a cluster refused it.
+
+**Chats cannot send or read mail yet.** The inbox, its key and the allowed recipients are set up and kept in sync, but an agent's chats are not connected to AgentMail - a pod also needs the AgentMail MCP server before an agent can mail from its computer.
 
 The address and the whitelist are visible where you work: on the agent's row in the sidebar, on the composer chip of the chat, and stated in the agent's own preamble so the model knows which address it writes from and who it may write to.
 
@@ -279,7 +343,7 @@ workspace: ubuntu-desktop
 ---
 ```
 
-An agent's credentials come from the computer it runs on, the `secrets` of its workspace, so one agent's keys are never another's and they never pass through this machine - see [Workspace kinds](/cli/#credentials-the-cluster-already-holds-secrets).
+An agent's credentials come from the computer it runs on, the `secrets` of its workspace, so one agent's keys are never another's and they never pass through this machine - see [Workspace kinds](/cli/#credentials-the-cluster-already-holds-secrets). Those secrets come from the [Secrets](#secrets) tab: assign a secret to this computer or to the workspace the agent runs on and the agent gets it as its variable.
 
 Every new chat with that agent is teleported to that workspace before its first run, so its [Computer Use](/cli/#computer-use) drives that machine and not yours. A chat that already started can be [moved](#moving-a-chat) too. See [Workspace kinds](/cli/#workspace-kinds) for how the daemon registers and dials a workspace, and [`examples/computer-use`](https://github.com/inference-gateway/desktop/tree/main/examples/computer-use) for a runnable setup of three agents on Ubuntu desktops in a local Kubernetes cluster.
 
