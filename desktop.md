@@ -94,6 +94,8 @@ Each supported provider gets one masked field. Fill in the providers you use and
 
 **Save** writes the non-empty values to `~/.infer/auth.yaml` (mode `0600` on macOS and Linux; keys still sitting in a legacy `~/.infer/auth.json` are read as a fallback but never written back), returns you to the chat, and restarts the gateway so the new keys take effect - which is also what refreshes the model list. Keys are passed to the agent as environment variables of the same name; nothing is sent anywhere else.
 
+The same file also holds the per-agent keys that are not provider keys, such as the `AGENTMAIL_API_KEY_<agent>` behind an [agent's inbox](#agent-email). Those are written from the agent's editor rather than this tab, and exports leave them behind.
+
 ### Model picker
 
 The model dropdown lives in the top bar, next to the **Restart CLI** button, rather than in Settings - but it is where the keys you saved show up as models you can pick.
@@ -202,6 +204,8 @@ A chat with one of your agents **runs as that agent through the CLI**: the app o
 | `disallowedTools`                                  | Tools removed from that list                                                      |
 | `workspace`                                        | The [computer](#agent-computers) its chats run on - a desktop key the CLI ignores |
 | `project`                                          | The [project](#agent-projects) its new chats open in - another desktop-only key   |
+| `email`                                            | The agent's [inbox address](#agent-email) - another desktop-only key              |
+| `allowed_recipients`                               | The addresses or domains that agent may mail                                      |
 
 **The model comes from the agent.** In an agent chat the top-bar [model picker](#model-picker) shows the agent's model read-only - you change it in **Edit agent -> Model**, which writes the front matter. An agent with no model of its own (an empty `model`, or `inherit`) follows the model selected in the top bar instead. `tools` and `disallowedTools` have no field in the editor, so edit the file to set them.
 
@@ -235,6 +239,32 @@ Starting a chat with that agent **opens it in that project**, so the chat lands 
 **The folder button in that bar changes it before the first message.** It opens a menu of **No project** plus **Use project `<name>`** for each of your projects, so a single agent still serves whichever project you point it at. Once the chat has started, it keeps the project it ran its first turn in.
 
 A project that has been **renamed or deleted** since the agent was saved is not resolved: the new chat opens with no project, and the editor shows the stale value as `(missing)` until you pick another one.
+
+### Agent email
+
+An agent can own an email identity. The agent's editor has an **Email** section with the inbox address, an **AgentMail API key**, and the **Allowed recipients** list, plus a **Create inbox** action that provisions `<name>@agentmail.to` through [AgentMail](https://agentmail.to) with the key you pasted. In mock mode provisioning is answered locally, so you can try the flow without an account.
+
+Two keys land in the frontmatter:
+
+```markdown
+---
+name: support
+description: Answers support mail
+model: ollama_cloud/glm-5.3-flash
+email: support@agentmail.to
+allowed_recipients:
+  - team@example.com
+  - example.org
+---
+```
+
+`allowed_recipients` is a block list of full addresses or bare domains. **An agent with no allowed recipient can only mail itself**, which makes a new inbox safe to experiment with. `~/.infer/config.yaml` can also carry an `agent_mail.allowed_recipients` cap that applies to every agent, so a machine-wide whitelist is not something an individual agent file can widen.
+
+**The API key never goes into the agent file.** It is stored in `~/.infer/auth.yaml` as `AGENTMAIL_API_KEY_<agent>`, beside the [provider keys](#api-keys), and both export and import refuse to carry it - the agent file travels, the key does not, so whoever imports the agent pastes their own.
+
+A chat with an agent that has an inbox gets the **hosted AgentMail MCP server** wired in, so the agent can send, read and reply to mail as that identity, and so can any run it spawns. The thread is handed an **inbox-scoped key that expires after 7 days** - never the owner key that provisioned the inbox.
+
+The address and the whitelist are visible where you work: on the agent's row in the sidebar, on the composer chip of the chat, and stated in the agent's own preamble so the model knows which address it writes from and who it may write to.
 
 ## Agent computers
 
