@@ -2,6 +2,55 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.24](https://github.com/inference-gateway/docs/compare/0.9.23...0.9.24) (2026-11-08)
+
+### 📚 Documentation
+
+* **api:** decisions modality gate and DECISIONS_ENABLED ([#1089](https://github.com/inference-gateway/docs/issues/1089)) ([3616486](https://github.com/inference-gateway/docs/commit/3616486f322ac99110849f548ce11d115cfcacbb))
+* **api:** document POST /v1/decisions relay ([#1087](https://github.com/inference-gateway/docs/issues/1087)) ([407e169](https://github.com/inference-gateway/docs/commit/407e169b05af09f3511785fde51fb633d04f81db))
+* **cli:** a tool batch waits for every approval ([#1113](https://github.com/inference-gateway/docs/issues/1113)) ([699250d](https://github.com/inference-gateway/docs/commit/699250d6a4fc899d497f960b5a2c2d32f1bf6316))
+* **cli:** ag-ui nextStepSuggestion state key ([#1102](https://github.com/inference-gateway/docs/issues/1102)) ([746fca2](https://github.com/inference-gateway/docs/commit/746fca2d3b2cf42054718bbd2d6b16692a7ab426))
+* **cli:** browse a session's artifacts from the chat TUI ([#1081](https://github.com/inference-gateway/docs/issues/1081)) ([102d37d](https://github.com/inference-gateway/docs/commit/102d37d6b44b86895b5da1899a174ca7b01e07de))
+* **cli:** compute.yaml, workspace compute and infer compute ([#1137](https://github.com/inference-gateway/docs/issues/1137)) ([3102bf0](https://github.com/inference-gateway/docs/commit/3102bf044bd740987e048a9e0e4a6af8e48bab4d))
+* **cli:** daemon workspace peer protocol and /a2a endpoint ([#1084](https://github.com/inference-gateway/docs/issues/1084)) ([ce5b2c2](https://github.com/inference-gateway/docs/commit/ce5b2c2b1b8e9853526d4a351e03df1b43f05a09))
+* **cli:** document the decisions judge backend ([#1091](https://github.com/inference-gateway/docs/issues/1091)) ([1176121](https://github.com/inference-gateway/docs/commit/1176121e6b2fbdc18049bb789f041e4bcfce285d))
+* **cli:** drop protocol_version from the daemon binding handshake ([#1080](https://github.com/inference-gateway/docs/issues/1080)) ([99168eb](https://github.com/inference-gateway/docs/commit/99168eb58ee47dbbc11fd9f6b685f5c4cf1d6732))
+* **cli:** gateway tls settings for private ca and mtls ([#1073](https://github.com/inference-gateway/docs/issues/1073)) ([7a15982](https://github.com/inference-gateway/docs/commit/7a15982917414229e1f624078dd8dd9cd708cb57))
+* **cli:** hosted mcp servers and workspace secrets ([#1129](https://github.com/inference-gateway/docs/issues/1129)) ([d3f79c5](https://github.com/inference-gateway/docs/commit/d3f79c5b49f1c5622924521ed9f09a6d43659872))
+* **cli:** markdown agents pick mcp servers with mcpServers ([#1143](https://github.com/inference-gateway/docs/issues/1143)) ([39d024f](https://github.com/inference-gateway/docs/commit/39d024f3a1c73ffffe6a4b107ea71653286f43f4))
+* **cli:** web terminal take-over mode and computer use ([#1096](https://github.com/inference-gateway/docs/issues/1096)) ([67e71c3](https://github.com/inference-gateway/docs/commit/67e71c39b9813879596af5451145329be8a9689f)), closes [#1092](https://github.com/inference-gateway/docs/issues/1092)
+* **configuration:** document mutual TLS for server and provider clients ([#1066](https://github.com/inference-gateway/docs/issues/1066)) ([e6137ef](https://github.com/inference-gateway/docs/commit/e6137ef3f02961ef705f6c23e54b0fa40698143b))
+* **daemon:** /tasks, list_tasks and cancel_task frames ([#1112](https://github.com/inference-gateway/docs/issues/1112)) ([e1e90e8](https://github.com/inference-gateway/docs/commit/e1e90e820376ff8616a657efebd6e854e121ba20))
+* **daemon:** document list_shortcuts and shortcuts frame ([#1108](https://github.com/inference-gateway/docs/issues/1108)) ([f782738](https://github.com/inference-gateway/docs/commit/f782738092722b2bb6cf0311bc73f9d2882b3400))
+* **daemon:** list_files and [@path](https://github.com/path) file expansion ([#1109](https://github.com/inference-gateway/docs/issues/1109)) ([10caff2](https://github.com/inference-gateway/docs/commit/10caff2fc1a41374aa0582992b0e0ac8e4dea28d))
+* **daemon:** list_issues and #N issue expansion ([#1105](https://github.com/inference-gateway/docs/issues/1105)) ([8c13c28](https://github.com/inference-gateway/docs/commit/8c13c2875ed446be6d6e31ce382d56149ee04f11)), references [#N](https://github.com/inference-gateway/docs/issues/N)
+* **daemon:** open a thread as a named agent ([#1117](https://github.com/inference-gateway/docs/issues/1117)) ([56f65e7](https://github.com/inference-gateway/docs/commit/56f65e70e091541e38933df0742fbb83ed217416))
+* **desktop:** @ file and # issue menus in the composer ([#1120](https://github.com/inference-gateway/docs/issues/1120)) ([4332f5d](https://github.com/inference-gateway/docs/commit/4332f5d6cb0814cbfbee135e94970b46bad4119b))
+* **desktop:** agent computers and take over ([#1098](https://github.com/inference-gateway/docs/issues/1098)) ([2cc1fbb](https://github.com/inference-gateway/docs/commit/2cc1fbb68aa3943f78dff7db9f0967ada47c3a2c))
+* **desktop:** an agent chat runs as its Markdown agent ([#1116](https://github.com/inference-gateway/docs/issues/1116)) ([8dd875c](https://github.com/inference-gateway/docs/commit/8dd875c1c1508d403505caf2d5946ebb62c81ea9))
+* **desktop:** an agent's AgentMail inbox and api key ([#1127](https://github.com/inference-gateway/docs/issues/1127)) ([b077462](https://github.com/inference-gateway/docs/commit/b0774622a706bfc216be7f03ad28e123e34c2896))
+* **desktop:** an agent's default project ([#1123](https://github.com/inference-gateway/docs/issues/1123)) ([29099c4](https://github.com/inference-gateway/docs/commit/29099c48f08307c51720eef3626d4fa5f24bdb52))
+* **desktop:** cancelled tool calls and optimization notes ([#1121](https://github.com/inference-gateway/docs/issues/1121)) ([36a3357](https://github.com/inference-gateway/docs/commit/36a3357530c319b0150686ebeafebc9c9ada4a51))
+* **desktop:** compute tab clusters and workspace cluster picker ([#1141](https://github.com/inference-gateway/docs/issues/1141)) ([1fb60c9](https://github.com/inference-gateway/docs/commit/1fb60c93bf70ed7e4cc30745c74c5c1399914795))
+* **desktop:** document moving a chat to a workspace ([#1100](https://github.com/inference-gateway/docs/issues/1100)) ([e98906e](https://github.com/inference-gateway/docs/commit/e98906ec2cdfbb137a114f9c2f2acc6e248906a2))
+* **desktop:** document the Workspaces settings tab ([#1099](https://github.com/inference-gateway/docs/issues/1099)) ([e78871f](https://github.com/inference-gateway/docs/commit/e78871f69c77b3a64ad443a70b281d8254d352e7))
+* **desktop:** mcps tab and an agent's mcp servers ([#1140](https://github.com/inference-gateway/docs/issues/1140)) ([cdc9fb3](https://github.com/inference-gateway/docs/commit/cdc9fb3842936a892d5c038f3e370d4eb6839fd2))
+* **desktop:** per-component version pinning in Updates ([#1138](https://github.com/inference-gateway/docs/issues/1138)) ([6943898](https://github.com/inference-gateway/docs/commit/6943898d2cd64477e95e896d4a1c66f824a116d8))
+* **desktop:** provision a local k3s cluster in one click ([#1125](https://github.com/inference-gateway/docs/issues/1125)) ([920572b](https://github.com/inference-gateway/docs/commit/920572b8f6c04311fae91e706dc13606d6a7bb7d))
+* **desktop:** secrets tab and inbox key as secret ([#1139](https://github.com/inference-gateway/docs/issues/1139)) ([5e032b7](https://github.com/inference-gateway/docs/commit/5e032b7ffd3219a4c6c48dc8a968b3794ebc20d5))
+* **operator:** client tls crd validation rules ([#1069](https://github.com/inference-gateway/docs/issues/1069)) ([feb3925](https://github.com/inference-gateway/docs/commit/feb3925005dc8ba54a8090661f07994376c72aa6))
+* **operator:** document spec.pod on gateway, agent and mcp ([#1064](https://github.com/inference-gateway/docs/issues/1064)) ([ea1ec91](https://github.com/inference-gateway/docs/commit/ea1ec918e4b1dfc36cb52c80b776f87a86b4a3d6))
+* **operator:** gateway crd mutual tls fields ([#1067](https://github.com/inference-gateway/docs/issues/1067)) ([740ce4a](https://github.com/inference-gateway/docs/commit/740ce4a37ee89d1d9d2d61817eef4329dfa863ac))
+* **operator:** https probes and single tls server port ([#1065](https://github.com/inference-gateway/docs/issues/1065)) ([4ea36e5](https://github.com/inference-gateway/docs/commit/4ea36e5f49236f34388c02e10ee5dd465ebac26e))
+* **operator:** orchestrator binding service metadata ([#1077](https://github.com/inference-gateway/docs/issues/1077)) ([a2c326c](https://github.com/inference-gateway/docs/commit/a2c326c817d1bbe988c62c007edd1d5adbfde6de))
+* **operator:** spec.pod sidecar containers and volumes ([#1075](https://github.com/inference-gateway/docs/issues/1075)) ([ff6e9cd](https://github.com/inference-gateway/docs/commit/ff6e9cd29d7d32fad5af7dd02d5824261d982d10))
+* **typescript-adk:** document the S3 (RustFS) artifact provider rename ([#1085](https://github.com/inference-gateway/docs/issues/1085)) ([87f91b4](https://github.com/inference-gateway/docs/commit/87f91b4e4257681cdc54f2b6cd1f8d8db3ab662a))
+
+### 🔧 Miscellaneous
+
+* **deps-dev:** bump the bun group with 2 updates ([#1070](https://github.com/inference-gateway/docs/issues/1070)) ([bfc0117](https://github.com/inference-gateway/docs/commit/bfc01178cb4fc958566958a1f37f3375fbe89dc0))
+* **deps-dev:** bump the bun group with 2 updates ([#1130](https://github.com/inference-gateway/docs/issues/1130)) ([38d5f56](https://github.com/inference-gateway/docs/commit/38d5f56fb329a933f5ee644002255b4d439a2600))
+
 ## [0.9.23](https://github.com/inference-gateway/docs/compare/0.9.22...0.9.23) (2026-10-31)
 
 ### 👷 CI
