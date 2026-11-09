@@ -26,6 +26,13 @@ The module requires **Go 1.26 or later**. The public packages are:
 | `github.com/inference-gateway/adk/client`        | The `A2AClient` for talking to any A2A server.                     |
 | `github.com/inference-gateway/adk/types`         | Generated A2A schema types (`Task`, `Message`, `AgentCard`, etc.). |
 
+Two backends are **opt-in subpackages** so their dependencies only land in binaries that use them. Import them explicitly when you enable the matching feature:
+
+| Import path                                             | Needed for                                                          |
+| ------------------------------------------------------- | ------------------------------------------------------------------- |
+| `github.com/inference-gateway/adk/server/storage/redis` | `QUEUE_PROVIDER=redis` - see [Storage backends](#storage-backends). |
+| `github.com/inference-gateway/adk/server/mcp/http`      | The streamable HTTP MCP transport - see [MCP client](#mcp-client).  |
+
 ## Quick start
 
 ### Minimal server
@@ -295,7 +302,7 @@ To implement a richer tool, satisfy the `Tool` interface directly (`GetName`, `G
 
 ## MCP client
 
-The ADK can connect an agent to one or more [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) servers over streamable HTTP, discover the tools they expose, and let the LLM invoke them - useful when a common MCP server (or a fleet of them) should be reused across A2A agents. It is built on [`metoro-io/mcp-golang`](https://github.com/metoro-io/mcp-golang), **disabled by default** (`MCP_ENABLED=false`), and only makes sense when an [LLM-backed agent](#agentbuilder) is configured. The [Rust ADK](/rust-adk#mcp-client) ships the same MCP client with an identical selector-tool design.
+The ADK can connect an agent to one or more [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) servers over streamable HTTP, discover the tools they expose, and let the LLM invoke them - useful when a common MCP server (or a fleet of them) should be reused across A2A agents. The transport ships as the **opt-in subpackage** `github.com/inference-gateway/adk/server/mcp/http`, built on [`metoro-io/mcp-golang`](https://github.com/metoro-io/mcp-golang). The client is **disabled by default** (`MCP_ENABLED=false`) and only makes sense when an [LLM-backed agent](#agentbuilder) is configured. The [Rust ADK](/rust-adk#mcp-client) ships the same MCP client with an identical selector-tool design.
 
 ### The selector pattern
 
@@ -308,13 +315,18 @@ A typical turn: the model calls `mcp_list_tools` to find a relevant tool, reads 
 
 ### Wiring it up
 
-`MCPClientManager` is a standalone piece you construct, start, and register into the agent's ToolBox. Registration only makes sense with an LLM-backed agent - the selector tools are useless without a model to drive them:
+`MCPClientManager` is a standalone piece you construct, start, and register into the agent's ToolBox. The manager itself carries no transport - wire one with `server.WithMCPClientFactory`. Registration only makes sense with an LLM-backed agent - the selector tools are useless without a model to drive them:
 
 ```go
+import (
+	server "github.com/inference-gateway/adk/server"
+	http "github.com/inference-gateway/adk/server/mcp/http"
+)
+
 toolBox := server.NewDefaultToolBox(&cfg.AgentConfig.ToolBoxConfig)
 
 if cfg.MCPConfig.Enable {
-	mcpManager, err := server.NewMCPClientManager(cfg.MCPConfig, logger)
+	mcpManager, err := server.NewMCPClientManager(cfg.MCPConfig, logger, server.WithMCPClientFactory(http.NewHTTPMCPClient))
 	if err != nil {
 		logger.Fatal("failed to create MCP client manager", zap.Error(err))
 	}
@@ -330,6 +342,8 @@ agent, _ := server.NewAgentBuilder(logger).
 	Build()
 ```
 
+With `MCP_ENABLED=true` and `MCP_SERVERS` set, `NewMCPClientManager` returns an error when no client is wired, naming the import and the option to add - there is no default transport to fall back on.
+
 `Start` returns immediately; it never blocks server startup when an MCP server is not yet up. See the [`mcp` example](https://github.com/inference-gateway/adk/tree/main/examples/mcp) for a full runnable server.
 
 ### Resilience
@@ -341,9 +355,18 @@ Built for cloud-native rollouts where an MCP server may start after, or restart 
 
 Tuning knobs for both live in the [`MCP_` configuration block](#configuration-reference).
 
+### Custom transports
+
+The client seam is exported, so a transport other than streamable HTTP can be supplied without forking the manager:
+
+- **`server.MCPToolCaller`** - what a transport implements: connect, list the server's tools, and call one.
+- **`server.MCPToolEntry`** - the catalog entry a transport returns per tool (server, name, description, input schema), which the selector tools surface to the model.
+
+Pass the constructor to `server.WithMCPClientFactory`; `http.NewHTTPMCPClient` is simply the implementation the ADK ships.
+
 ### Limitations
 
-- Transport is streamable **HTTP** only; stdio/subprocess MCP servers are not wired.
+- The only transport the ADK ships is streamable **HTTP** (`server/mcp/http`); stdio/subprocess MCP servers are not wired - implement [`MCPToolCaller`](#custom-transports) for anything else.
 - Tool listing fetches a single page - cursor-based pagination is not yet handled.
 - MCP resources and prompts are not exposed; tools only.
 
@@ -787,7 +810,15 @@ The [`protocol-methods`](https://github.com/inference-gateway/adk/tree/main/exam
 Task state lives in a pluggable queue/store selected by `QUEUE_PROVIDER`:
 
 - **`memory`** (default) - fast in-memory storage for development and single-instance deployments.
-- **`redis`** - persistent storage with horizontal scaling. Set `QUEUE_URL` to a `redis://` or `rediss://` connection string. Tasks survive restarts and multiple server instances can share one queue.
+- **`redis`** - persistent storage with horizontal scaling. Set `QUEUE_URL` to a `redis://` or `rediss://` connection string. Tasks survive restarts and multiple server instances can share one queue. The Redis backend is an **opt-in subpackage**: add the blank import so it registers itself as the `redis` provider.
+
+```go
+import (
+	server "github.com/inference-gateway/adk/server"
+
+	_ "github.com/inference-gateway/adk/server/storage/redis"
+)
+```
 
 ```bash
 export QUEUE_PROVIDER=redis
@@ -796,6 +827,8 @@ export QUEUE_URL=redis://localhost:6379
 export QUEUE_URL=redis://username:password@redis.example.com:6379/1
 export QUEUE_URL=rediss://username:password@redis.example.com:6380/0
 ```
+
+Without that import, `QUEUE_PROVIDER=redis` is a startup error rather than a silent downgrade: `Start()` fails and the message names the import to add. The same applies to any `QUEUE_PROVIDER` value with no registered provider. An empty `QUEUE_PROVIDER` still defaults to in-memory storage, and a registered Redis provider that cannot reach its server keeps the previous behavior - a warning, then in-memory storage.
 
 See the [`queue-storage`](https://github.com/inference-gateway/adk/tree/main/examples/queue-storage) example for in-memory and Redis variants side by side.
 
@@ -1171,7 +1204,7 @@ Reference them in code as `server.BuildAgentName`, etc., when constructing the `
 
 | Variable                 | Default   | Purpose                                                           |
 | ------------------------ | --------- | ----------------------------------------------------------------- |
-| `MCP_ENABLED`            | `false`   | Enable the MCP client.                                            |
+| `MCP_ENABLED`            | `false`   | Enable the MCP client. Requires a wired transport - see below.    |
 | `MCP_SERVERS`            | _(unset)_ | Comma-separated MCP server base URLs, e.g. `http://mcp:8080`.     |
 | `MCP_ENDPOINT`           | `/mcp`    | Path appended to each server URL for the streamable MCP endpoint. |
 | `MCP_REFRESH_INTERVAL`   | `5m`      | How often to refresh the tool catalog from each server.           |
@@ -1180,6 +1213,8 @@ Reference them in code as `server.BuildAgentName`, etc., when constructing the `
 | `MCP_MAX_RETRIES`        | `0`       | Max initial connection attempts per server (`0` = retry forever). |
 | `MCP_RETRY_INTERVAL`     | `2s`      | Initial backoff between connection/refresh retries (doubles).     |
 | `MCP_RETRY_MAX_INTERVAL` | `30s`     | Maximum backoff between retries.                                  |
+
+These variables alone do not link a transport: with `MCP_ENABLED=true` and `MCP_SERVERS` set, also import `http "github.com/inference-gateway/adk/server/mcp/http"` and pass `server.WithMCPClientFactory(http.NewHTTPMCPClient)`, or the manager refuses to construct. Likewise `QUEUE_PROVIDER=redis` needs the blank import `_ "github.com/inference-gateway/adk/server/storage/redis"` or the server refuses to start.
 
 **Queue / storage, retention, auth, telemetry, artifacts** are documented in [Storage backends](#storage-backends), [Task retention](#task-retention), [Authentication](#authentication), [Telemetry](#telemetry), and [Artifacts](#artifacts). `QUEUE_CLEANUP_INTERVAL` is deprecated and unused - see [Task retention](#task-retention).
 
