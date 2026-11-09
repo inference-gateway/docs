@@ -1239,6 +1239,10 @@ A standalone `infer chat` or `infer headless` with `backend: extension` reaches 
 
 The daemon needs the binding port to be free: if another process already holds it, the boot **fails** with the port named instead of retrying until it frees. Stop whatever holds it, or change the port.
 
+**A loopback listener for the extension when the binding requires client certificates.** A browser extension dials a plain `ws://127.0.0.1:<port>/ws` and cannot present a client certificate, so a binding that requires one - the shape the [operator serves in a pod](/operator/#serving-devices-over-the-ag-ui-binding) - would shut it out. With the extension backend on and such a binding, the daemon therefore **also** listens on plain `127.0.0.1:<browser_use.extension.port>` for the extension alone. It uses the extension token, the same handshake and the same origin check, and serves **none** of the binding's HTTP routes, so the [web terminal](#web-terminal), the screen, the artifacts and the [peer A2A endpoint](/opentask/#a2a-peer-endpoint) stay behind mutual TLS. Every other configuration keeps its single listener.
+
+The extension port must **differ** from the binding port, including an unset `daemon.binding.port` that falls back to it, and the extension token must be set - either one unmet fails the boot with the reason. Available from `infer` **v0.251.0**.
+
 ### Workspace lifecycle and cleanup
 
 A **workspace** is where a session's agent runs. This daemon is one, named by `workspace` (default the hostname), and `daemon.yaml` registers the others. `infer daemon teleport <conversation-id> --to <workspace>` sends a session to another one between turns, and teleporting it back to this machine ends with the session home again:
@@ -1488,9 +1492,39 @@ A prefix before the reference is fine, so a <code v-pre>Authorization: Bearer ${
 
 The servers are read when a session's Orchestrator is **created**, so an edit reaches the next session and running ones keep theirs. It needs the operator and `image` versions under [Kubernetes prerequisites](#kubernetes-prerequisites).
 
+#### Software the image does not ship (`user_data`)
+
+A computer-use workspace usually needs software its `image` does not carry, a browser being the usual one. Rather than a custom image per client, a `kind: kubernetes` workspace takes `user_data`: a [cloud-init](https://cloudinit.readthedocs.io/) user-data script the pod runs **as root when it boots, before the daemon starts**, the way a cloud VM runs it.
+
+```yaml
+# ~/.infer/daemon.yaml
+workspaces:
+  - name: ubuntu-desktop
+    kind: kubernetes
+    namespace: agents
+    image: ghcr.io/inference-gateway/computer:latest
+    user_data: |
+      #!/bin/sh
+      set -e
+      apt-get update
+      apt-get install -y --no-install-recommends gimp
+```
+
+- The script **must start with `#!`** - a `#cloud-config` document is not supported yet, and a script without the shebang fails at startup.
+- An application the script copies into `/etc/xdg/autostart` **opens at boot**, which is how a workspace gets a browser on the screen without the agent launching one.
+- Its output goes to **`/var/log/cloud-init-output.log`** in the pod, so a failed install is read there rather than from the daemon log.
+- The script **never lands in the Orchestrator**. It goes into the session's Secret under the key **`userdata`** - the key KubeVirt's `cloudInitNoCloud` volume reads - and the Orchestrator only points at it through [`spec.userData.secretRef`](/operator/#boot-a-computer-with-user-data). Like an instance's user-data it is fixed for the session's lifetime.
+- `user_data` is Kubernetes-only, and setting it on any other kind fails at startup along with `mode`, `gateway_env`, `secrets` and `mcp_servers`.
+
+The operator runs the pod as root in a **user namespace**, so that root is an unprivileged user on the node - see [Boot a computer with user-data](/operator/#boot-a-computer-with-user-data) for the security context and the node requirements. It needs operator **v0.35.0 or newer** - an older one fails the create, and the error names v0.35.0. The field itself is read from `infer` **v0.251.0**.
+
+The image built for this is [the computer image](#the-computer-image), which runs the seed script itself.
+
 #### Kubernetes prerequisites
 
 The cluster needs the [operator](/operator/) (v0.28.1 or later), agent-sandbox, and the Gateway API CRDs the operator requires. Install agent-sandbox first, because the operator looks for it only when it starts.
+
+[`user_data`](#software-the-image-does-not-ship-user-data) needs an operator at **v0.35.0 or newer**, the release that boots a Sandbox from a user-data Secret, on nodes that satisfy its [user-namespace requirements](/operator/#boot-a-computer-with-user-data).
 
 [`mcp_servers`](#mcp-servers-for-the-pod-mcp-servers) needs more than that: an operator that renders `spec.mcp.servers`, **v0.33.0 or newer**, and a pod `image` of **v0.248.0 or newer**, the `infer` release whose `mcp.yaml` reads a `url` with `headers`. A server that sets `include_tools`, `exclude_tools` or `timeout` needs the operator at **v0.34.0 or newer**, the release that renders those fields - a server without them still runs on v0.33.0. An older operator **fails the create**, and the error a workspace with `mcp_servers` prints names v0.34.0.
 
@@ -1888,6 +1922,36 @@ An input for a screen nobody holds errors, and the HTTP `POST` answers it with `
 ## Computer Use
 
 GUI automation and visual understanding capabilities for interacting with applications and desktop environments.
+
+### The computer image
+
+`ghcr.io/inference-gateway/computer` is the published desktop a computer-use [workspace](#workspace-kinds) runs, released with the CLI under the same tags (`latest` and `<version>`). It is a minimal **Ubuntu 26.04** desktop:
+
+- `infer daemon` runs on an Xvfb display (`:99`, 1280x800) with openbox, a wallpaper and a tint2 taskbar.
+- The taskbar carries launchers for the installed applications, the open windows and a clock, and normal windows open **maximized** above it.
+- **No browser ships with it.** Clients install what the agent needs with [`user_data`](#software-the-image-does-not-ship-user-data) instead of building an image of their own.
+- Closing an application leaves the agent on the desktop, not on a black screen.
+
+The entrypoint is the container's stand-in for cloud-init: started as root it runs the seed script, then drops to the `infer` user and starts the desktop.
+
+```yaml
+# ~/.infer/daemon.yaml
+workspaces:
+  - name: ubuntu-desktop
+    kind: kubernetes
+    namespace: agents
+    image: ghcr.io/inference-gateway/computer:latest
+    env:
+      INFER_COMPUTER_USE_ENABLED: 'true'
+    user_data: |
+      #!/bin/sh
+      set -e
+      apt-get update
+      apt-get install -y --no-install-recommends gimp
+      cp /usr/share/applications/gimp.desktop /etc/xdg/autostart/
+```
+
+Copying a `.desktop` file into `/etc/xdg/autostart` is what opens that application when the computer boots. The image is published from `infer` **v0.251.0**.
 
 ### Display Server Support
 

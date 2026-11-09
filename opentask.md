@@ -17,6 +17,24 @@ Download the `browser-extension.zip` from the [latest release](https://github.co
 2. Enable **Developer mode**.
 3. Click **Load unpacked** and select the `dist/` folder inside the extracted ZIP.
 
+### Firefox (`opentask-firefox.xpi`)
+
+Releases from **v1.19.0** also attach the Firefox build as **`opentask-firefox.xpi`**, with an `opentask-firefox.xpi.sha256` beside it, so a setup script can force-install it through the `ExtensionSettings` enterprise policy - which is how an [agent's computer](/desktop/#agent-computers) gets it unattended.
+
+**The XPI is unsigned.** Release Firefox refuses to install it at all. Use **Firefox ESR, Developer Edition or Nightly** and turn signature enforcement off through the `Preferences` policy:
+
+```json
+{
+  "policies": {
+    "Preferences": {
+      "xpinstall.signatures.required": { "Value": false, "Status": "locked" }
+    }
+  }
+}
+```
+
+A default-pref file is not honoured for this, so the policy is the only way. Signing through AMO may follow.
+
 ## Usage
 
 - **Skills**: type `!` at the start of a word in a comment box to open the skill dropdown. Arrow keys navigate, `Tab`/`Enter` inserts, `Esc` closes.
@@ -92,6 +110,34 @@ The extension connects to [`infer daemon`](/cli/#daemon) - the one hub that also
 5. Connect. On Chrome and Edge, open the side panel and click **Connect**. On Firefox and Safari there is no Connect button - the bridge dials the daemon on its own as soon as the shared token is saved, so saving the token is the last step.
 
 On Chrome and Edge the panel then lists the daemon's threads - a thread is a project directory plus a conversation - and shows the live stream of whichever one you open. A standalone `infer chat` or `infer headless` with `backend: extension` reaches the browser as another daemon client (`client: "browser"` in the handshake) and starts `infer daemon` itself on the first browser call when none is running. The daemon needs the port to be free - if another process holds it, the daemon's boot fails with the port named rather than retrying.
+
+### Configuring the bridge by enterprise policy
+
+On an [agent's computer](/desktop/#agent-computers) nobody is there to open the options page and paste a port and a token, so the bridge reads its settings from **enterprise policy** and connects without a click. Firefox fills them from `policies.json`:
+
+```json
+{
+  "policies": {
+    "3rdparty": {
+      "Extensions": {
+        "opentask@inference-gateway.github.io": {
+          "bridge-port": "52790",
+          "bridge-token": "<hex>",
+          "bridge-project-dir": "/workspace"
+        }
+      }
+    }
+  }
+}
+```
+
+Chrome reads the same three keys from `3rdparty.extensions` under its managed-policies directory.
+
+- Each setting is resolved **locally first, then from policy**, so a value you saved in the options page wins and a blank one falls through to the policy. A missing managed area reads as unset.
+- A browser configured **by policy dials the daemon on its own**, side panel or not, and the redial alarm keeps it connected. A browser configured locally behaves as before: Chrome and Edge wait for **Connect**, Firefox and Safari dial as soon as the token is saved.
+- A policy change is picked up without a restart of the extension.
+
+The port must be one the daemon actually serves the extension on. In a pod the operator's binding requires client certificates, which an extension cannot present, so the daemon serves the extension on a separate [plain loopback port](/cli/#starting-the-daemon) - `52790` above, with the binding still on `52789`. Available from opentask **v1.19.0**.
 
 ### Transport
 

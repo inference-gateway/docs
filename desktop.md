@@ -282,12 +282,14 @@ Every cluster row shows its name, its `context / namespace` and how many session
 
 - runs k3s as a Docker container named `infer-k3s`, on a fixed local port so the kubeconfig keeps working across restarts
 - installs agent-sandbox and the [Inference Gateway operator](/operator/) inside it, the Gateway API CRDs coming with k3s itself
-- builds the computer-use Ubuntu desktop image for your installed `infer` version and loads it into the cluster
+- pulls the [published computer image](/cli/#the-computer-image), `ghcr.io/inference-gateway/computer`, at your installed `infer` version - the app no longer builds a desktop image of its own
 - creates the `infer-workspaces` namespace and labels it for the operator
 - adds an `infer-k3s` context to `~/.kube/config`, merged by entry name and leaving your current context alone. An unreadable kubeconfig stops the run rather than being overwritten
 - registers the `infer-k3s` cluster in `~/.infer/compute.yaml` with your saved [API keys](#api-keys) as its provider keys, and the `ubuntu-desktop` [workspace](#workspaces) on it in `~/.infer/daemon.yaml`
 
 Every step is repeatable, so **a second click repairs or refreshes the same cluster** rather than building a second one. It does refuse to start when an `ubuntu-desktop` workspace already points at **another** cluster - that entry is yours, so nothing is touched and the notice asks you to delete it first.
+
+**Its computers come with a browser the agent can drive.** The `ubuntu-desktop` workspace is registered with a default **User data** script, editable under [**Settings -> Workspaces**](#workspaces), which installs **Firefox ESR** with the [opentask extension](/opentask/), generates a bridge token and writes it both into the Firefox enterprise policy and into the computer's own `browser_use.yaml` (port 52790), then autostarts Firefox. The extension [attaches to the pod's daemon on its own](/opentask/#configuring-the-bridge-by-enterprise-policy), so an agent on a computer uses the cheaper `browser_*` tools rather than clicking pixel by pixel. Replace the script to install Chrome, or anything else, instead.
 
 **Its agents use the computer and edit files without asking.** The provisioned workspace sets `INFER_COMPUTER_USE_ENABLED`, `INFER_COMPUTER_USE_APPROVAL: never` and the write and edit approvals off, because every session runs in a pod of its own and not on your machine.
 
@@ -349,8 +351,11 @@ The daemon only reads `daemon.yaml` when it starts, so saving or deleting shows 
 | **Provider keys**       | `gateway_env`     | Variable **names** only, comma separated. Only for a workspace with its own connection - a cluster's are under Compute |
 | **Forwarded variables** | `forward_env`     | Names of variables the agent itself gets, such as a token it pushes with                                               |
 | **Environment**         | `env`             | One `NAME=value` per line. Not for secrets, which belong in the [Secrets](#secrets) tab - these land in the pod's spec |
+| **User data**           | `user_data`       | A script the pod runs as root when it boots, to install what the agent needs. Must start with `#!`                     |
 
 **Provider keys are names, not values.** The value of each name is taken from what you saved under [API Keys](#api-keys) and sent to the gateway, never into the agent's pod, so nothing the agent runs can read a provider key into its context. Clearing a field removes its key from the entry, and an edit keeps the keys the form does not know (`mode`, `protocol`) along with every other entry of the file. A workspace put on a cluster loses the keys a cluster owns from its own entry, so the two can never disagree.
+
+**User data is how a computer gets its software.** The field is a [cloud-init](https://cloudinit.readthedocs.io/) user-data script, run as root inside the pod when it boots and before the daemon starts, so what an agent needs is installed into the published image instead of baked into one of your own - see [`user_data`](/cli/#software-the-image-does-not-ship-user-data) for the daemon's own reference. The form asks for a script starting with `#!` and will not save one without it, and the pod writes the script's output to `/var/log/cloud-init-output.log`. The script is kept in the session's Kubernetes Secret, never in the workspace's `Orchestrator`.
 
 **A workspace's `secrets` are managed from the [Secrets](#secrets) tab**, not here. That list names the Kubernetes Secrets the workspace's pod reads, and assigning a secret to a workspace is what writes it - an edit in this form leaves the list alone.
 
@@ -375,8 +380,13 @@ clusters:
 workspaces:
   - name: ubuntu-desktop
     compute: infer-k3s
-    image: ghcr.io/inference-gateway/cli:0.245.0
+    image: ghcr.io/inference-gateway/computer:0.251.0
     storage: 5Gi
+    user_data: |
+      #!/bin/sh
+      set -e
+      apt-get update
+      apt-get install -y --no-install-recommends firefox-esr
 ```
 
 Point an agent's [**Computer**](#agent-computers) at `ubuntu-desktop` and its chats get a desktop pod each. [`examples/computer-use`](https://github.com/inference-gateway/desktop/tree/main/examples/computer-use) is a runnable cluster with workspaces like this one already set up.
@@ -490,6 +500,8 @@ workspace: ubuntu-desktop
 **Where that computer runs** is the workspace's [cluster](#compute), set up once under **Settings -> Compute**: the cluster gives the workspace its Kubernetes context, its namespace and the [provider keys](#compute) its gateway gets, which every workspace on that cluster shares. A workspace with [its own connection](#workspaces) carries those itself instead.
 
 An agent's credentials come from the computer it runs on, the `secrets` of its workspace, so one agent's keys are never another's and they never pass through this machine - see [Workspace kinds](/cli/#credentials-the-cluster-already-holds-secrets). Those secrets come from the [Secrets](#secrets) tab: assign a secret to this computer or to the workspace the agent runs on and the agent gets it as its variable.
+
+**A computer is the published desktop plus its User data.** Every computer runs the [computer image](/cli/#the-computer-image) - a minimal Ubuntu desktop with a wallpaper and a taskbar, and no browser of its own - and what the agent needs on top of it comes from the workspace's [**User data**](#workspaces) script, run as root when the pod boots. On the [provisioned local cluster](#compute) that script installs Firefox with the [opentask extension](/opentask/) and autostarts it, so the agent's browser is open and already bridged to the pod's daemon. Closing the browser leaves the agent on the desktop, with the taskbar's launchers still there to reopen it, rather than on a black screen.
 
 **Its tools come from that computer too.** An agent with no `workspace` gets the [MCP servers](#mcps) enabled on this computer, and an agent on a workspace gets that workspace's `mcp_servers`. Either way the agent's own `mcpServers` narrows the list to the servers it picked.
 
