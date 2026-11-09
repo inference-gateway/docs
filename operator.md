@@ -420,6 +420,7 @@ The Deployment is forced to a singleton (`replicas: 1`, `strategy: Recreate`) be
 | `mcp.servers[]`                                                                | MCP servers the pod reaches by URL: `name`, `url` and optional `headers`, `includeTools`, `excludeTools` and `timeoutSeconds`, written into the pod's `mcp.yaml` as given. Names must be unique. See [MCP servers reached by URL](#mcp-servers-reached-by-url). |
 | `mcp.serviceDiscovery.{enabled,namespace,selector}`                            | Discover `MCP` CRs by label selector. The pod's `~/.infer/mcp.yaml` is written whenever `mcp.enabled` is true and a server is listed or discovered, with or without discovery. The pod is rolled when the rendered file changes.                                |
 | `telemetry.enabled` / `telemetry.traces` / `telemetry.metrics`                 | OpenTelemetry telemetry. The daemon consumes only a master switch and a single shared OTLP endpoint. See [Orchestrator Telemetry](#orchestrator-telemetry).                                                                                                     |
+| `userData.secretRef`                                                           | `SecretKeySelector` for a cloud-init user-data script the computer runs as root when it boots, with `runtime: Sandbox` only. See [Boot a computer with user-data](#boot-a-computer-with-user-data).                                                             |
 | `resources` / `env[]`                                                          | Standard pod knobs.                                                                                                                                                                                                                                             |
 
 #### Linking the orchestrator to a Gateway
@@ -487,6 +488,34 @@ spec:
 ```
 
 The operator ships no VPN-specific keys of its own, these maps are the only source of that metadata. Keys you did not set are left untouched, so annotations and labels other controllers add to the Service survive a reconcile.
+
+#### Boot a computer with user-data
+
+A computer-use pod needs software its image does not ship, a browser being the usual one. Clouds solve that with cloud-init user-data, and so does KubeVirt, so `spec.userData.secretRef` gives the Sandbox runtime the same contract: a user-data script the pod runs **as root when it boots, before the daemon starts**.
+
+```yaml
+spec:
+  image: ghcr.io/inference-gateway/computer:latest
+  runtime: Sandbox
+  userData:
+    secretRef:
+      name: computer-user-data
+      key: userdata
+```
+
+The Secret key is mounted **read-only** (mode `0400`) at cloud-init's NoCloud seed path, `/var/lib/cloud/seed/nocloud/user-data`, and the image runs it and then drops to the daemon's user. A CEL rule limits `userData` to `runtime: Sandbox`, so the Deployment runtime never silently ignores it.
+
+**The pod is root in a user namespace, not root on the node.** The Sandbox runtime otherwise forces pods to run as non-root with every capability dropped, and a pod with `userData` gets no blanket exception. It runs with [`hostUsers: false`](https://kubernetes.io/docs/concepts/workloads/pods/user-namespaces/), so its root maps to an unprivileged user on the node, and such a pod still passes the Restricted Pod Security Standard. Capabilities are dropped to nothing and then narrowed back to `CHOWN`, `DAC_OVERRIDE`, `FOWNER`, `FSETID`, `SETUID` and `SETGID` - what a package install needs and no more - while `allowPrivilegeEscalation: false` and the `RuntimeDefault` seccomp profile stay. A pod without `userData` is unchanged.
+
+**Node requirements** for the user namespace:
+
+| Requirement | Minimum                             |
+| ----------- | ----------------------------------- |
+| Kubernetes  | 1.36 (where user namespaces are GA) |
+| Runtime     | containerd 2.0+ or CRI-O 1.25+      |
+| Linux       | 6.3+                                |
+
+The `secretRef` has the shape of KubeVirt's `cloudInitNoCloud` volume and the script lives under the key `userdata`, the key KubeVirt reads, so a later VM runtime can boot from the same Secret without clients changing anything. The [CLI](/cli/#software-the-image-does-not-ship-user-data) writes that Secret for a `kind: kubernetes` workspace with `user_data`. Available from operator **v0.35.0**.
 
 #### MCP servers reached by URL
 
