@@ -517,6 +517,8 @@ Every new chat with that agent is teleported to that workspace before its first 
 
 Tiles with a live run come first, and a running chat's screen is refreshed every 2 seconds. Clicking a tile opens that chat.
 
+A window app or a server the agent leaves running on that computer can be inspected without taking the screen: its background shell is listed under the chat in the status bar's agent status menu, and opening it shows the command's status and output - see [Looking into a background shell](#looking-into-a-background-shell).
+
 ### Moving a chat
 
 Any chat that already started can change computer. **Move to workspace** in its composer opens a menu of **this computer** plus the workspaces of the `infer` daemon, asked for when the menu opens: the one the chat runs on carries a check and cannot be picked, and one the daemon cannot reach is listed as `(unreachable)`, disabled, with the daemon's error as its hover. A move happens **between turns** - a turn still running is stopped first, a screen you hold is handed back, and the composer shows the current stage in place of the button until the chat lands.
@@ -530,6 +532,8 @@ Any chat that already started can change computer. **Move to workspace** in its 
 | `provisioning`  | The target readies the session's compute - for a Kubernetes workspace the pod, its volumes and its gateway |
 | `checkpointing` | The workspace the chat is leaving stops its worker and bundles the conversation and the project            |
 | `restoring`     | The target restores that bundle and resumes the conversation there                                         |
+
+The [turn counter](#turn-time) keeps running through the move, so the figure beside the stage tells you how long provisioning that computer is taking.
 
 A move that fails leaves the chat **where it was**, with the daemon's own message in the error banner (`Failed to move the chat: teleport to ubuntu-desktop failed: ...`), so a cluster that is missing the operator or a workspace that cannot be dialed costs you nothing but the attempt.
 
@@ -577,11 +581,38 @@ You click **Approve** to allow the action or **Deny** to reject it. This keeps t
 
 An image in a tool's result, such as a screenshot, renders in the transcript as a thumbnail you click to see full size - see [Images in chat](#images-in-chat).
 
+### Turn time
+
+While a turn runs, a live counter sits next to the status text in the transcript bubble - `Starting ubuntu-desktop (Moving to ubuntu-desktop: provisioning)... 42s` - and the status bar carries a **time** stat next to `in`, `out`, `cached` and `tool calls`. The stat ticks while the turn runs and then keeps the final duration until the next turn starts.
+
+What it measures:
+
+- **Wall time**, from sending the prompt - or from the run starting, for a scheduled or an attached run - until the turn is done or stopped.
+- Time spent waiting on a **tool approval** counts, and so does time spent **provisioning or moving to a computer**.
+- A follow-up sent while the turn is still running does **not** restart the counter.
+
+Durations read `8s`, `1m 12s`, `1h 03m`. Like the token stats, the duration is not kept across a conversation reload.
+
 ### Cancelled tool calls
 
 A tool card ends in one of three states. Done is the normal result, failed is highlighted in red, and **cancelled** is a third, distinct state: the card turns grey and carries a `(cancelled)` tag instead of its output.
 
 A call shows as cancelled when it never produced a result - you stopped the run while it was pending, for example at its approval prompt, or the CLI cancelled it itself. The card stays in the transcript rather than disappearing, so you can see which call was dropped and where the turn stopped.
+
+### Looking into a background shell
+
+A command the agent left running in the background does not have to stay a black box. The **agent status menu** in the status bar lists every chat with work in flight, and each chat's running background jobs under it. Picking a `shell` entry - labelled **View shell `<command>`** - opens a dialog with:
+
+- The **command** that is running
+- Its **status**: `running`, `completed` or `failed`
+- The **output so far**, refreshed every 2 seconds while the dialog is open
+
+The output is read from the worker that runs the shell, so this works the same for a chat on this computer and for a [chat on a workspace](#agent-computers).
+
+Limits worth knowing:
+
+- **A shell cannot be stopped from the dialog.** It only reads - stop the run itself if you want the command to end.
+- **Only running shells are listed.** A shell that already finished is gone from the menu and reports through its note in the transcript instead.
 
 ### Conversation optimized notes
 
