@@ -1442,7 +1442,7 @@ A hosted MCP server is the usual reason to want one: put the key in the workspac
 
 #### MCP servers for the pod (`mcp_servers`)
 
-`mcp_servers` names **hosted** servers of this machine's `~/.infer/mcp.yaml` that the workspace's pods get. Each named server goes into the session's `Orchestrator` with its name, URL and headers, and the [operator](/operator/) writes it into the pod's own [`mcp.yaml`](#mcp-integration), so the agent in the pod connects it like any other server.
+`mcp_servers` names **hosted** servers of this machine's `~/.infer/mcp.yaml` that the workspace's pods get. Each named server goes into the session's `Orchestrator` with its name, URL, headers, `include_tools`, `exclude_tools` and `timeout`, and the [operator](/operator/) writes it into the pod's own [`mcp.yaml`](#mcp-integration), so the agent in the pod connects it like any other server.
 
 **Headers are forwarded exactly as written**, never expanded on this machine, so a `${VAR}` stays a reference the pod expands from the variables its [`secrets`](#credentials-the-cluster-already-holds-secrets) give it - the credential itself never lands in a Kubernetes object:
 
@@ -1454,7 +1454,12 @@ servers:
     url: https://mcp.example.com/mcp
     headers:
       x-api-key: ${MCP_EXAMPLE_API_KEY}
+    include_tools:
+      - search
+    timeout: 10
 ```
+
+A server's **tool filters and timeout travel with it**, so the agent in the pod gets the same tools of that server as this machine does: `include_tools`, `exclude_tools` and `timeout` are taken from `mcp.yaml` as written. A `timeout` of 0 or less is left unset in the pod, which gives it the pod's own default.
 
 ```yaml
 # ~/.infer/daemon.yaml
@@ -1487,7 +1492,7 @@ The servers are read when a session's Orchestrator is **created**, so an edit re
 
 The cluster needs the [operator](/operator/) (v0.28.1 or later), agent-sandbox, and the Gateway API CRDs the operator requires. Install agent-sandbox first, because the operator looks for it only when it starts.
 
-[`mcp_servers`](#mcp-servers-for-the-pod-mcp-servers) needs more than that: an operator that renders `spec.mcp.servers`, **v0.33.0 or newer**, and a pod `image` of **v0.248.0 or newer**, the `infer` release whose `mcp.yaml` reads a `url` with `headers`. An older operator **fails the create** with an error naming the version it needs.
+[`mcp_servers`](#mcp-servers-for-the-pod-mcp-servers) needs more than that: an operator that renders `spec.mcp.servers`, **v0.33.0 or newer**, and a pod `image` of **v0.248.0 or newer**, the `infer` release whose `mcp.yaml` reads a `url` with `headers`. A server that sets `include_tools`, `exclude_tools` or `timeout` needs the operator at **v0.34.0 or newer**, the release that renders those fields - a server without them still runs on v0.33.0. An older operator **fails the create**, and the error a workspace with `mcp_servers` prints names v0.34.0.
 
 The operator deploys a `Gateway` only in a namespace matched by its `WATCH_NAMESPACE_SELECTOR`, `inference-gateway.com/managed=true` by default, so **label the workspace's namespace** for `standard` mode:
 
@@ -1507,7 +1512,7 @@ Your kubeconfig user needs, on top of the permissions a teleport already uses (`
 
 The CLI repo's [`examples/session-teleport`](https://github.com/inference-gateway/cli/tree/main/examples/session-teleport) runs this end to end on k3d. Its `k8s-cloud` workspace teleports a session onto `ollama_cloud/glm-5.3-flash` with `gateway_env: [OLLAMA_CLOUD_API_KEY]`, the key taken from the teleporting daemon's environment or `~/.infer/auth.yaml`, and its namespace carries the `inference-gateway.com/managed=true` label the operator looks for.
 
-Its `k8s-mcp` workspace gives its pods the example's demo MCP server through [`mcp_servers`](#mcp-servers-for-the-pod-mcp-servers): the server's `x-api-key` is written as a `${DEMO_MCP_KEY}` reference in the laptop's `mcp.yaml`, the pod expands it from the Secret its `secrets` name, and `infer mcp status` in the pod lists the server as connected. The laptop's own chats leave that server off, since only the cluster reaches it.
+Its `k8s-mcp` workspace gives its pods the example's demo MCP server through [`mcp_servers`](#mcp-servers-for-the-pod-mcp-servers): the server's `x-api-key` is written as a `${DEMO_MCP_KEY}` reference in the laptop's `mcp.yaml`, the pod expands it from the Secret its `secrets` name, and `infer mcp status` in the pod lists the server as connected. Its `include_tools` passes only `get_time` and `calculate` to the pod, so the walkthrough installs the operator at v0.34.0. The laptop's own chats leave that server off, since only the cluster reaches it.
 
 Its `k8s-desktop` workspace records the browser scenario it runs, and both ways of getting a recording out of the pod are set up there: `/artifacts` in the chat TUI to [grab one file](#browsing-the-sessions-artifacts) onto your machine, and an upload hook that mirrors every finished run's artifacts to a RustFS bucket for the bulk path.
 
