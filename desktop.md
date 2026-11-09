@@ -531,6 +531,8 @@ Any chat that already started can change computer. **Move to workspace** in its 
 | `checkpointing` | The workspace the chat is leaving stops its worker and bundles the conversation and the project            |
 | `restoring`     | The target restores that bundle and resumes the conversation there                                         |
 
+The [turn counter](#turn-time) keeps running through the move, so the figure beside the stage tells you how long provisioning that computer is taking.
+
 A move that fails leaves the chat **where it was**, with the daemon's own message in the error banner (`Failed to move the chat: teleport to ubuntu-desktop failed: ...`), so a cluster that is missing the operator or a workspace that cannot be dialed costs you nothing but the attempt.
 
 A chat that sits on one workspace **comes home first and then goes to the other one**. Both hops run automatically from the single menu pick, so you never have to bring it back by hand.
@@ -574,6 +576,18 @@ When the agent wants to perform a tool action (read a file, execute a command, f
 - The **arguments** it plans to pass
 
 You click **Approve** to allow the action or **Deny** to reject it. This keeps the agent sandboxed to your intent - no silent file access, no unapproved side effects.
+
+### Turn time
+
+While a turn runs, a live counter sits next to the status text in the transcript bubble - `Starting ubuntu-desktop (Moving to ubuntu-desktop: provisioning)... 42s` - and the status bar carries a **time** stat next to `in`, `out`, `cached` and `tool calls`. The stat ticks while the turn runs and then keeps the final duration until the next turn starts.
+
+What it measures:
+
+- **Wall time**, from sending the prompt - or from the run starting, for a scheduled or an attached run - until the turn is done or stopped.
+- Time spent waiting on a **tool approval** counts, and so does time spent **provisioning or moving to a computer**.
+- A follow-up sent while the turn is still running does **not** restart the counter.
+
+Durations read `8s`, `1m 12s`, `1h 03m`. Like the token stats, the duration is not kept across a conversation reload.
 
 ### Cancelled tool calls
 
