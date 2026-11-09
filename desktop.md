@@ -575,6 +575,8 @@ When the agent wants to perform a tool action (read a file, execute a command, f
 
 You click **Approve** to allow the action or **Deny** to reject it. This keeps the agent sandboxed to your intent - no silent file access, no unapproved side effects.
 
+An image in a tool's result, such as a screenshot, renders in the transcript as a thumbnail you click to see full size - see [Images in chat](#images-in-chat).
+
 ### Cancelled tool calls
 
 A tool card ends in one of three states. Done is the normal result, failed is highlighted in red, and **cancelled** is a third, distinct state: the card turns grey and carries a `(cancelled)` tag instead of its output.
@@ -635,6 +637,8 @@ Reasoning requires a model that emits it and an `infer` CLI new enough to forwar
 ## Images in chat
 
 Images an agent produces are rendered inline in the transcript, not shown as a link or a file path. Markdown images (`![alt](url)`) render as-is, and a bare image URL or `data:image/...` URI on its own is turned into an image too. Images are sized to their natural dimensions up to the width of the chat bubble; one that fails to load is replaced with a short error line instead of a broken-image icon.
+
+**An image a tool puts in the transcript is a thumbnail**, at most 240 by 160 px, rather than the full width of the chat column. Clicking it - it is a **View image** button - opens the image full size in a dialog, scaled to fit the window. This covers every image a tool adds, a [`Computer`](#agent-computers) screenshot as much as a chart a script wrote. Images the model writes inline in its own Markdown answer are unchanged, and so is the download button on either kind.
 
 Hover an image (or focus it with the keyboard) to reveal a **download** button in its corner. Clicking it copies the file out of the session's [media root](/cli/#media-directories) to your Downloads folder - there is no save dialog, and an existing file with the same name is overwritten. The button reports what happened by swapping its icon:
 
