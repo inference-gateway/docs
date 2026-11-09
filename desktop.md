@@ -517,6 +517,8 @@ Every new chat with that agent is teleported to that workspace before its first 
 
 Tiles with a live run come first, and a running chat's screen is refreshed every 2 seconds. Clicking a tile opens that chat.
 
+A window app or a server the agent leaves running on that computer can be inspected without taking the screen: its background shell is listed under the chat in the status bar's agent status menu, and opening it shows the command's status and output - see [Looking into a background shell](#looking-into-a-background-shell).
+
 ### Moving a chat
 
 Any chat that already started can change computer. **Move to workspace** in its composer opens a menu of **this computer** plus the workspaces of the `infer` daemon, asked for when the menu opens: the one the chat runs on carries a check and cannot be picked, and one the daemon cannot reach is listed as `(unreachable)`, disabled, with the daemon's error as its hover. A move happens **between turns** - a turn still running is stopped first, a screen you hold is handed back, and the composer shows the current stage in place of the button until the chat lands.
@@ -580,6 +582,21 @@ You click **Approve** to allow the action or **Deny** to reject it. This keeps t
 A tool card ends in one of three states. Done is the normal result, failed is highlighted in red, and **cancelled** is a third, distinct state: the card turns grey and carries a `(cancelled)` tag instead of its output.
 
 A call shows as cancelled when it never produced a result - you stopped the run while it was pending, for example at its approval prompt, or the CLI cancelled it itself. The card stays in the transcript rather than disappearing, so you can see which call was dropped and where the turn stopped.
+
+### Looking into a background shell
+
+A command the agent left running in the background does not have to stay a black box. The **agent status menu** in the status bar lists every chat with work in flight, and each chat's running background jobs under it. Picking a `shell` entry - labelled **View shell `<command>`** - opens a dialog with:
+
+- The **command** that is running
+- Its **status**: `running`, `completed` or `failed`
+- The **output so far**, refreshed every 2 seconds while the dialog is open
+
+The output is read from the worker that runs the shell, so this works the same for a chat on this computer and for a [chat on a workspace](#agent-computers).
+
+Limits worth knowing:
+
+- **A shell cannot be stopped from the dialog.** It only reads - stop the run itself if you want the command to end.
+- **Only running shells are listed.** A shell that already finished is gone from the menu and reports through its note in the transcript instead.
 
 ### Conversation optimized notes
 
