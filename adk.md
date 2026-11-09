@@ -930,14 +930,45 @@ agent, _ := server.NewAgentBuilder(logger).
 
 Artifacts are files, structured data, or rich content an agent produces during a task. Enable the subsystem with `ARTIFACTS_ENABLED=true` and pick a storage backend with `ARTIFACTS_STORAGE_PROVIDER`:
 
-- **`filesystem`** (default) - store on local disk (`ARTIFACTS_STORAGE_BASE_PATH`), suitable for single-instance deployments.
-- **`s3`** - any S3-compatible object store (RustFS, MinIO, AWS S3) for distributed deployments. Configure `ARTIFACTS_STORAGE_ENDPOINT`, `ARTIFACTS_STORAGE_ACCESS_KEY`, `ARTIFACTS_STORAGE_SECRET_KEY`, and `ARTIFACTS_STORAGE_BUCKET_NAME` (default `artifacts`, created on startup when missing). `ARTIFACTS_STORAGE_USE_SSL` defaults to `true` - set it to `false` for a plain-HTTP endpoint.
+- **`filesystem`** (default) - store on local disk (`ARTIFACTS_STORAGE_BASE_PATH`), suitable for single-instance deployments. Built into `adk/server`.
+- **`s3`** - any S3-compatible object store (RustFS, MinIO, AWS S3) for distributed deployments. Ships as an [opt-in subpackage](#opt-in-storage-backends). Configure `ARTIFACTS_STORAGE_ENDPOINT`, `ARTIFACTS_STORAGE_ACCESS_KEY`, `ARTIFACTS_STORAGE_SECRET_KEY`, and `ARTIFACTS_STORAGE_BUCKET_NAME` (default `artifacts`, created on startup when missing). `ARTIFACTS_STORAGE_USE_SSL` defaults to `true` - set it to `false` for a plain-HTTP endpoint.
 
-`minio` is still accepted as a legacy alias of `s3`. Any other value fails with `unsupported storage provider`.
+`minio` is still accepted as a legacy alias of `s3` and maps to the same subpackage. Any other value fails with `unsupported storage provider`.
+
+### Opt-in storage backends
+
+Only `filesystem` is linked by importing `adk/server`. Every other backend lives in its own subpackage and registers itself through `server.RegisterArtifactStorageProvider`, so a binary carries just the storage client it uses. Opt into the S3-compatible backend with a blank import:
+
+```go
+import (
+	server "github.com/inference-gateway/adk/server"
+
+	// Opts into the S3-compatible artifact storage backend (RustFS, MinIO, AWS S3)
+	_ "github.com/inference-gateway/adk/server/storage/s3"
+)
+```
+
+`ARTIFACTS_STORAGE_PROVIDER=s3` (or `minio`) without that import fails at startup with an error that names the import to add:
+
+```text
+storage provider s3 requires its backend to be linked: add a blank import of github.com/inference-gateway/adk/server/storage/s3
+```
+
+Nothing else changes - the `server.ArtifactStorageProvider` interface and the `WithArtifactService` wiring are the same, so an existing S3 deployment migrates by adding that one import line.
+
+A custom backend registers a factory the same way, keyed by the `ARTIFACTS_STORAGE_PROVIDER` value that selects it:
+
+```go
+func init() {
+	server.RegisterArtifactStorageProvider("gcs", func(cfg *config.ArtifactsStorageConfig, logger *zap.Logger) (server.ArtifactStorageProvider, error) {
+		return NewGCSArtifactStorage(cfg, logger)
+	})
+}
+```
 
 ### S3-compatible storage with RustFS
 
-The [`artifacts-s3`](https://github.com/inference-gateway/adk/tree/main/examples/artifacts-s3) example runs [RustFS](https://github.com/rustfs/rustfs) as the object store - S3 API on port `9000`, web console on `9001`:
+The [`artifacts-s3`](https://github.com/inference-gateway/adk/tree/main/examples/artifacts-s3) example runs [RustFS](https://github.com/rustfs/rustfs) as the object store - S3 API on port `9000`, web console on `9001`. Its server blank-imports `server/storage/s3` as shown [above](#opt-in-storage-backends):
 
 ```yaml
 services:
