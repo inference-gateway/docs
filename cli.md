@@ -1927,8 +1927,9 @@ GUI automation and visual understanding capabilities for interacting with applic
 
 `ghcr.io/inference-gateway/computer` is the published desktop a computer-use [workspace](#workspace-kinds) runs, released with the CLI under the same tags (`latest` and `<version>`). It is a minimal **Ubuntu 26.04** desktop:
 
-- `infer daemon` runs on an Xvfb display (`:99`, 1280x800) with openbox, a wallpaper and a tint2 taskbar.
-- The taskbar carries launchers for the installed applications, the open windows and a clock, and normal windows open **maximized** above it.
+- `infer daemon` runs on a headless GNOME Shell session (Wayland, 1280x800) in Ubuntu mode, with the dock, the Yaru theme, Files, Terminal and Text Editor.
+- The session runs under a **UTF-8 locale** (`LANG=C.UTF-8`), so the session D-Bus and every app it activates - gnome-terminal and the other GTK apps - render non-ASCII text instead of mangling it the way the POSIX locale does.
+- `DISPLAY=:0` is set alongside `WAYLAND_DISPLAY=wayland-0`, so X11-only applications reach Xwayland from the agent's Bash tool without exporting a display first.
 - **No browser ships with it.** Clients install what the agent needs with [`user_data`](#software-the-image-does-not-ship-user-data) instead of building an image of their own.
 - Closing an application leaves the agent on the desktop, not on a black screen.
 
