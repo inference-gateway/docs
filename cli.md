@@ -1853,7 +1853,7 @@ A person holding the screen can press a button down, move, and release, so the s
 
 A button still held at the hand-back is released first, so the agent never gets the screen back mid-drag.
 
-The agent's own [`Computer`](#computer-use) tool has no press and release: only a person's inputs during a take-over can hold a button down. Whether a client offers dragging is up to that client - the desktop app does not send these inputs yet.
+The agent's own [`Computer`](#computer-use) tool has no press and release: only a person's inputs during a take-over can hold a button down. Whether a client offers dragging is up to that client - the desktop app sends them from its [Computers view](/desktop/#take-over).
 
 #### Inputs During a Take-over Never Enter the Conversation
 
