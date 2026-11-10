@@ -291,7 +291,7 @@ Every step is repeatable, so **a second click repairs or refreshes the same clus
 
 **Its computers come with a browser the agent can drive.** The `ubuntu-desktop` workspace is registered with a default **User data** script, editable under [**Settings -> Workspaces**](#workspaces), which installs **Firefox ESR** with the [opentask extension](/opentask/), generates a bridge token and writes it both into the Firefox enterprise policy and into the computer's own `browser_use.yaml` (port 52790), then autostarts Firefox. The extension [attaches to the pod's daemon on its own](/opentask/#configuring-the-bridge-by-enterprise-policy), so an agent on a computer uses the cheaper `browser_*` tools rather than clicking pixel by pixel. Replace the script to install Chrome, or anything else, instead.
 
-**Its agents use the computer and edit files without asking.** The provisioned workspace sets `INFER_COMPUTER_USE_ENABLED`, `INFER_COMPUTER_USE_APPROVAL: never` and the write and edit approvals off, because every session runs in a pod of its own and not on your machine.
+**Its agents use the computer and edit files without asking.** The provisioned workspace comes up with [**Computer use**, **Browser use** and **Recording**](#what-a-workspace-computer-can-do) all on - `INFER_COMPUTER_USE_ENABLED`, `INFER_COMPUTER_USE_APPROVAL: never`, the recording variables - and the write and edit approvals off, because every session runs in a pod of its own and not on your machine.
 
 **Prerequisites check.** Each cluster is checked when the tab opens and again with its refresh button. A cluster that has everything shows **Cluster has everything it needs**, and one that does not names what is missing and how to fix it:
 
@@ -331,7 +331,7 @@ Every workspace row shows its type, where it runs - `on <cluster> - context / na
 
 The daemon only reads `daemon.yaml` when it starts, so saving or deleting shows a **Restart CLI now** button rather than applying the change by itself. **Restarting stops running chats**, which is why it is left to you.
 
-**A workspace picks its cluster.** The form's **Cluster** dropdown lists the clusters of [**Compute**](#compute), and a new workspace starts on the first of them with the installed CLI's image. On a cluster the **Type**, **Kubernetes context**, **Namespace** and **Provider keys** fields are gone, because the cluster gives them - the hint under the dropdown names the context and namespace the workspace inherits. A cluster the workspace names that `compute.yaml` no longer defines is kept in the dropdown as `<name> (missing)` until you pick another one.
+**A workspace picks its cluster.** The form's **Cluster** dropdown lists the clusters of [**Compute**](#compute), and a new workspace starts on the first of them with the [computer image](/cli/#the-computer-image) at your installed version, rather than the CLI image, and with [**Computer use**, **Browser use** and **Recording**](#what-a-workspace-computer-can-do) all on. On a cluster the **Type**, **Kubernetes context**, **Namespace** and **Provider keys** fields are gone, because the cluster gives them - the hint under the dropdown names the context and namespace the workspace inherits. A cluster the workspace names that `compute.yaml` no longer defines is kept in the dropdown as `<name> (missing)` until you pick another one.
 
 **Its own connection** is the last entry of that dropdown, for a workspace that carries its own context, namespace and provider keys instead of a cluster's. Those workspaces keep working and stay editable, with every field they had before. The dropdown itself is hidden while there is no cluster at all and the workspace names none.
 
@@ -352,10 +352,33 @@ The daemon only reads `daemon.yaml` when it starts, so saving or deleting shows 
 | **Forwarded variables** | `forward_env`     | Names of variables the agent itself gets, such as a token it pushes with                                               |
 | **Environment**         | `env`             | One `NAME=value` per line. Not for secrets, which belong in the [Secrets](#secrets) tab - these land in the pod's spec |
 | **User data**           | `user_data`       | A script the pod runs as root when it boots, to install what the agent needs. Must start with `#!`                     |
+| **Computer use**        | `env`             | [Lets an agent drive this workspace's computers](#what-a-workspace-computer-can-do) without asking                     |
+| **Browser use**         | `user_data`       | [Installs Firefox with the opentask extension](#what-a-workspace-computer-can-do) on each computer                     |
+| **Recording**           | `env`             | [Gives the computers the `RecordStart` and `RecordStop` tools](#what-a-workspace-computer-can-do)                      |
 
 **Provider keys are names, not values.** The value of each name is taken from what you saved under [API Keys](#api-keys) and sent to the gateway, never into the agent's pod, so nothing the agent runs can read a provider key into its context. Clearing a field removes its key from the entry, and an edit keeps the keys the form does not know (`mode`, `protocol`) along with every other entry of the file. A workspace put on a cluster loses the keys a cluster owns from its own entry, so the two can never disagree.
 
 **User data is how a computer gets its software.** The field is a [cloud-init](https://cloudinit.readthedocs.io/) user-data script, run as root inside the pod when it boots and before the daemon starts, so what an agent needs is installed into the published image instead of baked into one of your own - see [`user_data`](/cli/#software-the-image-does-not-ship-user-data) for the daemon's own reference. The form asks for a script starting with `#!` and will not save one without it, and the pod writes the script's output to `/var/log/cloud-init-output.log`. The script is kept in the session's Kubernetes Secret, never in the workspace's `Orchestrator`.
+
+#### What a workspace computer can do
+
+Three switches in the form decide what the workspace's computers can do. Each one is a view over the workspace's **Environment** and **User data**, so ticking a switch writes those entries and unticking it takes them away again - you can still read or edit the same lines in the two fields below:
+
+| Switch           | What it writes                                                                                                                                                                                              |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Computer use** | `INFER_COMPUTER_USE_ENABLED=true` and `INFER_COMPUTER_USE_APPROVAL=never` in **Environment**, so an agent sees and drives the screen without an approval per click                                          |
+| **Browser use**  | The boot script that installs **Firefox** with the [opentask extension](/opentask/) in **User data**, bridged to the pod's own daemon, so the agent uses the cheaper `browser_*` tools instead of the mouse |
+| **Recording**    | `INFER_COMPUTER_USE_RECORDING_ENABLED=true`, `INFER_COMPUTER_USE_RECORDING_REQUIRE_APPROVAL=false` and `INFER_COMPUTER_USE_RECORDING_OUTPUT_DIR=/home/infer/.infer/artifacts` in **Environment**            |
+
+**Recording is what gives a computer the recording tools.** [`RecordStart` and `RecordStop`](/cli/#screen-recording) are absent from an agent's payload until the workspace has those variables, and with them the agent records a take of its own screen unattended and writes the MP4 next to its other artifacts.
+
+**Approval is off on purpose.** Every session runs in a pod of its own, not on your machine, which is why computer use and recording there need no click of yours - the same reason the [provisioned local cluster](#compute) ships that way.
+
+**Browser use needs an Ubuntu or Debian image.** The script it writes installs Firefox with `apt-get`, so on an image built on anything else replace the script in **User data** with your distribution's own, or install Chrome instead.
+
+A workspace saved **before these switches existed** keeps running exactly as it was, with none of the variables. Tick what it should have and save, and the computers created **after** that - a new chat, or one you move there - come up with it. A machine already running keeps the tools it started with.
+
+**Settings -> General covers this computer only.** The [**Computer Use**](/cli/#computer-use) and [**Browser Use**](#browser-use-opentask-extension) toggles there act on your own machine and never reach a workspace's computers - what an agent on a workspace may do is decided by these three switches.
 
 **A workspace's `secrets` are managed from the [Secrets](#secrets) tab**, not here. That list names the Kubernetes Secrets the workspace's pod reads, and assigning a secret to a workspace is what writes it - an edit in this form leaves the list alone.
 
@@ -382,6 +405,12 @@ workspaces:
     compute: infer-k3s
     image: ghcr.io/inference-gateway/computer:0.251.0
     storage: 5Gi
+    env:
+      INFER_COMPUTER_USE_ENABLED: 'true'
+      INFER_COMPUTER_USE_APPROVAL: never
+      INFER_COMPUTER_USE_RECORDING_ENABLED: 'true'
+      INFER_COMPUTER_USE_RECORDING_REQUIRE_APPROVAL: 'false'
+      INFER_COMPUTER_USE_RECORDING_OUTPUT_DIR: /home/infer/.infer/artifacts
     user_data: |
       #!/bin/sh
       set -e
@@ -1227,6 +1256,8 @@ Quitting the app stops every running session.
 ## Browser use (opentask extension)
 
 **Settings -> General -> Browser Use** lets the agent drive **your everyday browser** - the one with your sessions and logins - through the [OpenTask extension](/opentask/), instead of a separate automated browser. It is off by default.
+
+**It covers this computer only.** Neither this toggle nor **Computer Use** in the same tab reaches a workspace's computers - an agent on [its own computer](#agent-computers) gets its browser and its screen from the workspace's own [**Browser use** and **Computer use** switches](#what-a-workspace-computer-can-do).
 
 Ticking **Enable Browser Use (extension)** writes `~/.infer/browser_use.yaml`:
 
