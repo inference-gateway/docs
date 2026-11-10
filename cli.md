@@ -1831,6 +1831,8 @@ The frame comes from wherever the session runs, so after a `/teleport` to a desk
 
 How fresh that latest frame is depends on the worker's capture pace, not on the poll: outside a take-over the worker captures one frame every `computer_use.screenshot.capture_interval` seconds, 3 by default, so polling faster than that returns the same image.
 
+An unchanged screen costs nothing to poll. Each image is served with its frame id as an `ETag`, and the page names the frame it already shows on the next poll, so a screen that has not changed answers `304 Not Modified` and the picture on the page stays as it is instead of being downloaded again. A frame's id changes only when the picture does - a capture that shows what the latest frame already shows is not stored again, so a still screen keeps one frame however long it stands.
+
 ### Take-over Mode
 
 When the agent reaches a step only a person can do - a login, a two-factor code, a CAPTCHA, a cookie dialog the [judge](/cli-judge-mode/) keeps rejecting - press **Take over** in the Screen view. The image takes focus, and clicks, drags, wheel and keys inside it drive the session's screen directly, with the poll dropping to 250 ms. **Done**, or `Esc` twice, hands the screen back.
@@ -1907,6 +1909,23 @@ Read the latest frame:
 }
 ```
 
+A client that already holds a frame can name it with the optional `have`, the id of the frame it shows, and skip the transfer when nothing newer exists:
+
+```json
+{
+  "type": "read_frame",
+  "project_dir": "/abs/path/to/project",
+  "id": "<conversation id>",
+  "have": "f-1"
+}
+```
+
+```json
+{ "type": "frame", "unchanged": true }
+```
+
+The reply carries no `frame` in that case, so the client keeps the picture it has. Without `have` the full frame is sent as before.
+
 The same listener takes the take-over over `POST /screen/?id=<conversation id>`, whose body accepts `screen_control` and `screen_input`:
 
 ```json
@@ -1922,12 +1941,12 @@ The same listener takes the take-over over `POST /screen/?id=<conversation id>`,
 { "type": "screen_result", "id": "<request id>", "held": true }
 ```
 
-| Frame            | Meaning                                                                                                                                                                                                                                                                                                                                                                                                |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `read_frame`     | The latest frame of the screen the session's worker streams. With `project_dir` it runs on the thread of the session `id` names, relaunching that session's worker when it is not running. `error` replaces `frame` when the worker streams no screen or captured nothing yet                                                                                                                          |
-| `screen_control` | `action: take_over` claims the screen and resolves an open `Computer` approval as rejected. A second claim while it is held errors. `action: hand_back` releases any button still held, releases the screen and queues the worker's continue message                                                                                                                                                   |
-| `screen_input`   | One person input in the frame space the `GET` image answers in: `{"kind": "move" \| "click" \| "double_click" \| "mouse_down" \| "mouse_up" \| "scroll" \| "type" \| "key", "x", "y", "text", "combo", "button", "direction", "amount"}`. `mouse_down` and `mouse_up` bracket a drag - see [Dragging](#dragging). It drives the display directly, with no approval, no judge and no conversation entry |
-| `screen_result`  | One reply per request id, carrying `held`                                                                                                                                                                                                                                                                                                                                                              |
+| Frame            | Meaning                                                                                                                                                                                                                                                                                                                                                                                                              |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `read_frame`     | The latest frame of the screen the session's worker streams. With `project_dir` it runs on the thread of the session `id` names, relaunching that session's worker when it is not running. The optional `have`, the frame id the client shows, answers `unchanged: true` with no `frame` when the latest frame is still that one. `error` replaces `frame` when the worker streams no screen or captured nothing yet |
+| `screen_control` | `action: take_over` claims the screen and resolves an open `Computer` approval as rejected. A second claim while it is held errors. `action: hand_back` releases any button still held, releases the screen and queues the worker's continue message                                                                                                                                                                 |
+| `screen_input`   | One person input in the frame space the `GET` image answers in: `{"kind": "move" \| "click" \| "double_click" \| "mouse_down" \| "mouse_up" \| "scroll" \| "type" \| "key", "x", "y", "text", "combo", "button", "direction", "amount"}`. `mouse_down` and `mouse_up` bracket a drag - see [Dragging](#dragging). It drives the display directly, with no approval, no judge and no conversation entry               |
+| `screen_result`  | One reply per request id, carrying `held`                                                                                                                                                                                                                                                                                                                                                                            |
 
 An input for a screen nobody holds errors, and the HTTP `POST` answers it with `409 Conflict`, so a stale tab cannot drive what it handed back.
 
