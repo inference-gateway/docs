@@ -1829,9 +1829,13 @@ With [Computer Use](#computer-use) streaming on (`computer_use.screenshot.stream
 
 The frame comes from wherever the session runs, so after a `/teleport` to a desktop workspace the view shows that desktop, relayed through this daemon. Nothing else needs to be installed in the browser: the Screen view is a polled image, not a remote-desktop client.
 
+How fresh that latest frame is depends on the worker's capture pace, not on the poll: outside a take-over the worker captures one frame every `computer_use.screenshot.capture_interval` seconds, 3 by default, so polling faster than that returns the same image.
+
 ### Take-over Mode
 
-When the agent reaches a step only a person can do - a login, a two-factor code, a CAPTCHA, a cookie dialog the [judge](/cli-judge-mode/) keeps rejecting - press **Take over** in the Screen view. The image takes focus, and clicks, wheel and keys inside it drive the session's screen directly, with the poll dropping to 250 ms so typing feels live. **Done**, or `Esc` twice, hands the screen back.
+When the agent reaches a step only a person can do - a login, a two-factor code, a CAPTCHA, a cookie dialog the [judge](/cli-judge-mode/) keeps rejecting - press **Take over** in the Screen view. The image takes focus, and clicks, wheel and keys inside it drive the session's screen directly, with the poll dropping to 250 ms. **Done**, or `Esc` twice, hands the screen back.
+
+What makes typing feel live is the capture pace, not the poll. While you hold the screen the worker captures twice a second instead of once per `capture_interval`, and takes one more frame right after each input you send. A frame read that follows an input waits up to one second for that capture, so the image you get back shows what the input did rather than the screen before it. After the hand-back the configured `capture_interval` applies again, so an idle computer does no more work than before.
 
 | Step              | What happens                                                                                                                                  |
 | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -2124,7 +2128,7 @@ screenshot:
   format: jpeg
   quality: 85
   streaming_enabled: true # also registers the GetLatestFrame tool
-  capture_interval: 3
+  capture_interval: 3 # seconds between frames outside a take-over
   buffer_size: 60
   temp_dir: '' # empty = screenshots/ under the media root
 rate_limit:
@@ -2132,6 +2136,8 @@ rate_limit:
   max_actions_per_minute: 60
   window_seconds: 60
 ```
+
+`capture_interval` sets the worker's capture pace outside a take-over. While a person holds the screen the worker captures twice a second regardless of this value, and the configured interval applies again after the hand-back - see [Take-over Mode](#take-over-mode).
 
 ### Computer Use Approval
 
