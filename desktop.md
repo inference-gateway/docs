@@ -557,7 +557,7 @@ When the agent reaches a step only a person can do - a login, a captcha, a cooki
 While you hold the screen:
 
 - The agent's computer input **waits** for the hand-back. Its observations keep working.
-- The view shows the screen live, refreshed every 300 ms.
+- The view shows the screen live, refreshed every 300 ms. The computer itself captures a new frame about twice a second while you drive, plus one right after each input you send, so what you see follows your clicks and keystrokes. Outside a hold it captures once every `computer_use.screenshot.capture_interval` seconds, 3 by default, and that interval applies again after the hand-back.
 - Clicks, double clicks, the wheel and keys inside the image go to that computer, one input after the other.
 
 **Hand back** releases the screen, and so does pressing `Esc` twice. The agent then gets a single message to continue and starts from a fresh screenshot of what you left behind - it is not told the individual clicks and keystrokes you made, so a password or a one-time code typed during a take-over never reaches the transcript or the model's context.
