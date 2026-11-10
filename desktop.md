@@ -517,6 +517,8 @@ Every new chat with that agent is teleported to that workspace before its first 
 
 Tiles with a live run come first, and a running chat's screen is refreshed every 2 seconds. Clicking a tile opens that chat.
 
+A refresh costs nothing while a screen stands still: each poll names the frame the tile already shows, and a computer whose screen has not changed answers that it is unchanged instead of sending the image again. How fresh the picture is still depends on how often the computer captures its screen, not on the poll.
+
 A window app or a server the agent leaves running on that computer can be inspected without taking the screen: its background shell is listed under the chat in the status bar's agent status menu, and opening it shows the command's status and output - see [Looking into a background shell](#looking-into-a-background-shell).
 
 ### Moving a chat
@@ -557,7 +559,7 @@ When the agent reaches a step only a person can do - a login, a captcha, a cooki
 While you hold the screen:
 
 - The agent's computer input **waits** for the hand-back. Its observations keep working.
-- The view shows the screen live, refreshed every 300 ms. The computer itself captures a new frame about twice a second while you drive, plus one right after each input you send, so what you see follows your clicks and keystrokes. Outside a hold it captures once every `computer_use.screenshot.capture_interval` seconds, 3 by default, and that interval applies again after the hand-back.
+- The view shows the screen live, refreshed every 300 ms, and a poll that finds the screen unchanged brings no image. The computer itself captures a new frame about twice a second while you drive, plus one right after each input you send, so what you see follows your clicks and keystrokes. Outside a hold it captures once every `computer_use.screenshot.capture_interval` seconds, 3 by default, and that interval applies again after the hand-back.
 - Pointer movement, clicks, double clicks, drags, the wheel and keys inside the image go to that computer, one input after the other. Moving the mouse over the screen moves the pointer on the computer, so hover effects such as tooltips and menu highlights work. When you move faster than inputs can be delivered, only the newest position is sent.
 - A mouse press over the screen **holds that button down** on the computer and letting go releases it, so a press, the movement in between and a release **drag** on the computer - moving a window, selecting text, pulling a slider. Letting go outside the picture still releases the button, and a drag stops at the edge of the picture.
 - You see **two pointers**: your own arrow over the image, and the computer's own pointer in the picture, which trails your arrow by however old the current frame is.
@@ -569,6 +571,7 @@ Requirements and limits:
 - `infer` **v0.245.0 or newer**. The take-over itself lives in the daemon, so the same feature is available from the CLI's web terminal - see [Take-over Mode](/cli/#take-over-mode).
 - **One person holds a screen at a time.** Taking over a second computer hands the first one back, and a claim from another client is refused while you hold it.
 - **A held key does not repeat.** Each key press sends one input.
+- **Skipping unchanged frames needs a newer computer.** A poll answers "unchanged" from the first `infer` release after **v0.252.0**. A computer running an older CLI sends the full frame on every poll, as before, and nothing you see changes either way.
 - **Dragging needs a newer computer.** Press and release reach a computer from the first `infer` release after **v0.252.0** - see [Dragging](/cli/#dragging). On a computer running an older CLI the app falls back to plain clicks for that take-over, so clicking keeps working and only dragging is unavailable.
 
 ## Chat and tool approval
