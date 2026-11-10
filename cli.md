@@ -371,6 +371,12 @@ The request is sent about two seconds after the turn completes, and only when th
 
 The call is **silent-fail**: a timeout, an error or a non-conforming answer leaves the input untouched and logs at debug level, so a flaky suggestion model never interrupts the chat.
 
+**Recent problems count too.** Beyond the last few conversation messages, the suggestion also takes into account the **warnings and errors the session logged since your last message**. When something was logged, the suggestion can be about it - and for a logged problem it always asks you to **file a GitHub issue** as a follow-up, never to fix it. Suggestions grounded in the conversation are unchanged.
+
+The model never reads the logs. It gets a **capped, redacted digest**: one line per distinct problem with its severity, message and error, repeats collapsed into a count, secrets masked, and no stack traces, callers, timestamps or ids. Another session's problems are left out. With nothing logged, the request is byte-for-byte what it was before, so a quiet session pays **no extra tokens**.
+
+**Limit:** the digest covers what the session's **own process** logged. A problem another process logged for the session - such as a teleport the daemon ran - is not part of it.
+
 The same suggestion reaches AG-UI hosts on the run state - see [AG-UI next-step suggestion state](#ag-ui-next-step-suggestion-state).
 
 ```yaml
@@ -382,6 +388,10 @@ chat:
     context_messages: 4 # Recent non-hidden messages grounding the suggestion
     max_tokens: 512 # Output cap - an answer that hits it is discarded, not truncated
     timeout: 10 # Seconds before the request is abandoned
+    logs:
+      enabled: true # Take the session's recent warnings and errors into account
+      max_lines: 5 # Distinct problems in the digest
+      max_chars: 600 # Size cap for the whole digest
 ```
 
 | Key                                 | Default | Description                                                                                                                        |
@@ -391,8 +401,11 @@ chat:
 | `chat.suggestions.context_messages` | `4`     | How many recent non-hidden conversation messages ground the suggestion                                                             |
 | `chat.suggestions.max_tokens`       | `512`   | Output token cap. Reasoning models spend thinking tokens against it                                                                |
 | `chat.suggestions.timeout`          | `10`    | Seconds before the suggestion request is abandoned                                                                                 |
+| `chat.suggestions.logs.enabled`     | `true`  | Whether the session's recent warnings and errors are taken into account. `false` keeps the suggestion to the conversation alone    |
+| `chat.suggestions.logs.max_lines`   | `5`     | How many distinct problems the digest carries - repeats of one problem collapse into a count                                       |
+| `chat.suggestions.logs.max_chars`   | `600`   | Size cap for the whole digest. What does not fit is dropped                                                                        |
 
-Each key has an `INFER_*` override - `INFER_CHAT_SUGGESTIONS_ENABLED`, `INFER_CHAT_SUGGESTIONS_MODEL`, `INFER_CHAT_SUGGESTIONS_CONTEXT_MESSAGES`, `INFER_CHAT_SUGGESTIONS_MAX_TOKENS` and `INFER_CHAT_SUGGESTIONS_TIMEOUT`. The system prompt lives in `prompts.yaml` under `chat.suggestions.system_prompt` and is overridden with `INFER_PROMPTS_CHAT_SUGGESTIONS_SYSTEM_PROMPT`.
+Each key has an `INFER_*` override - `INFER_CHAT_SUGGESTIONS_ENABLED`, `INFER_CHAT_SUGGESTIONS_MODEL`, `INFER_CHAT_SUGGESTIONS_CONTEXT_MESSAGES`, `INFER_CHAT_SUGGESTIONS_MAX_TOKENS`, `INFER_CHAT_SUGGESTIONS_TIMEOUT`, `INFER_CHAT_SUGGESTIONS_LOGS_ENABLED`, `INFER_CHAT_SUGGESTIONS_LOGS_MAX_LINES` and `INFER_CHAT_SUGGESTIONS_LOGS_MAX_CHARS`. The system prompt lives in `prompts.yaml` under `chat.suggestions.system_prompt` and is overridden with `INFER_PROMPTS_CHAT_SUGGESTIONS_SYSTEM_PROMPT`.
 
 #### GitHub Issue References (`#`)
 
@@ -3875,6 +3888,9 @@ export INFER_CHAT_SUGGESTIONS_MODEL="deepseek/deepseek-v4-flash"  # empty falls 
 export INFER_CHAT_SUGGESTIONS_CONTEXT_MESSAGES="4"
 export INFER_CHAT_SUGGESTIONS_MAX_TOKENS="512"
 export INFER_CHAT_SUGGESTIONS_TIMEOUT="10"
+export INFER_CHAT_SUGGESTIONS_LOGS_ENABLED="true"   # session warnings/errors ground the suggestion
+export INFER_CHAT_SUGGESTIONS_LOGS_MAX_LINES="5"
+export INFER_CHAT_SUGGESTIONS_LOGS_MAX_CHARS="600"
 export INFER_PROMPTS_CHAT_SUGGESTIONS_SYSTEM_PROMPT="Suggest one short next step."
 ```
 
