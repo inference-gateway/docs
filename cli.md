@@ -1533,11 +1533,52 @@ The operator runs the pod as root in a **user namespace**, so that root is an un
 
 The image built for this is [the computer image](#the-computer-image), which runs the seed script itself.
 
+#### Volumes the sessions share (`volumes`)
+
+A session's own `storage` starts empty and [`user_data`](#software-the-image-does-not-ship-user-data) runs again on every boot, so a heavy application is installed again on each machine and sessions had no way to share content. `volumes` mounts PersistentVolumeClaims that **already exist in the workspace's `namespace`** into every session's pod, so an installed application and the material the agents work on both outlive the pod:
+
+```yaml
+# ~/.infer/daemon.yaml
+workspaces:
+  - name: ubuntu-desktop
+    kind: kubernetes
+    namespace: infer-workspaces
+    image: ghcr.io/inference-gateway/computer:latest
+    volumes:
+      - name: resolve
+        claim: davinci-resolve
+        mount_path: /opt/resolve
+      - name: footage
+        claim: raw-footage
+        mount_path: /mnt/footage
+        read_only: true
+```
+
+| Field        | Description                                                             |
+| ------------ | ----------------------------------------------------------------------- |
+| `name`       | Volume name inside the pod, unique in the workspace.                    |
+| `claim`      | Name of an existing PersistentVolumeClaim in the workspace's namespace. |
+| `mount_path` | Absolute path the claim is mounted at.                                  |
+| `read_only`  | Mount the claim read-only. Defaults to `false`.                         |
+
+`read_only: true` is for content an agent copies into `/workspace` before it changes it, so the original stays as it is - source footage, a dataset, a reference corpus. Leave it unset for a volume the pod writes to, an installed application's directory or a cache.
+
+**A session never owns a claim.** The claim is created and filled outside the session, and stopping the session or letting its `retention` run out leaves the claim and its data in place. Removing one is a deliberate `kubectl delete pvc`.
+
+- Only a `kind: kubernetes` workspace takes `volumes`, and setting it on any other kind fails at startup, along with `mode`, `gateway_env`, `secrets`, `mcp_servers` and `user_data`.
+- The operator refuses a `mount_path` that is, or lies under, `/workspace`, `/home/infer/.infer/projects` or `/var/lib/cloud/seed/nocloud` - the paths the pod manages itself.
+- A claim that does not exist leaves the pod unscheduled, reported on the Orchestrator with the scheduler's own message.
+- A `ReadWriteOnce` claim is shared by pods on **one node** only, so sessions spread over several nodes need a `ReadWriteMany` or `ReadOnlyMany` claim.
+
+Like `user_data`, the list is fixed when a session's Orchestrator is **created**, so a change reaches the sessions teleported after it and running ones keep theirs. It needs operator **v0.36.0 or newer** - an older one fails the teleport with an upgrade message naming that version. The field the workspace fills is [`spec.sandbox.volumes`](/operator/#mount-existing-volumes-into-a-sandbox).
+
 #### Kubernetes prerequisites
 
 The cluster needs the [operator](/operator/) (v0.28.1 or later), agent-sandbox, and the Gateway API CRDs the operator requires. Install agent-sandbox first, because the operator looks for it only when it starts.
 
 [`user_data`](#software-the-image-does-not-ship-user-data) needs an operator at **v0.35.0 or newer**, the release that boots a Sandbox from a user-data Secret, on nodes that satisfy its [user-namespace requirements](/operator/#boot-a-computer-with-user-data).
+
+[`volumes`](#volumes-the-sessions-share-volumes) needs an operator at **v0.36.0 or newer**, the release that mounts existing claims into a session's pod.
 
 [`mcp_servers`](#mcp-servers-for-the-pod-mcp-servers) needs more than that: an operator that renders `spec.mcp.servers`, **v0.33.0 or newer**, and a pod `image` of **v0.248.0 or newer**, the `infer` release whose `mcp.yaml` reads a `url` with `headers`. A server that sets `include_tools`, `exclude_tools` or `timeout` needs the operator at **v0.34.0 or newer**, the release that renders those fields - a server without them still runs on v0.33.0. An older operator **fails the create**, and the error a workspace with `mcp_servers` prints names v0.34.0.
 
