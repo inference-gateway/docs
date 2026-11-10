@@ -421,6 +421,7 @@ The Deployment is forced to a singleton (`replicas: 1`, `strategy: Recreate`) be
 | `mcp.serviceDiscovery.{enabled,namespace,selector}`                            | Discover `MCP` CRs by label selector. The pod's `~/.infer/mcp.yaml` is written whenever `mcp.enabled` is true and a server is listed or discovered, with or without discovery. The pod is rolled when the rendered file changes.                                |
 | `telemetry.enabled` / `telemetry.traces` / `telemetry.metrics`                 | OpenTelemetry telemetry. The daemon consumes only a master switch and a single shared OTLP endpoint. See [Orchestrator Telemetry](#orchestrator-telemetry).                                                                                                     |
 | `userData.secretRef`                                                           | `SecretKeySelector` for a cloud-init user-data script the computer runs as root when it boots, with `runtime: Sandbox` only. See [Boot a computer with user-data](#boot-a-computer-with-user-data).                                                             |
+| `sandbox.volumes[]`                                                            | PersistentVolumeClaims that already exist in the namespace, mounted into the daemon's container, with `runtime: Sandbox` only. See [Mount existing volumes into a Sandbox](#mount-existing-volumes-into-a-sandbox).                                             |
 | `resources` / `env[]`                                                          | Standard pod knobs.                                                                                                                                                                                                                                             |
 
 #### Linking the orchestrator to a Gateway
@@ -516,6 +517,47 @@ The Secret key is mounted **read-only** (mode `0400`) at cloud-init's NoCloud se
 | Linux       | 6.3+                                |
 
 The `secretRef` has the shape of KubeVirt's `cloudInitNoCloud` volume and the script lives under the key `userdata`, the key KubeVirt reads, so a later VM runtime can boot from the same Secret without clients changing anything. The [CLI](/cli/#software-the-image-does-not-ship-user-data) writes that Secret for a `kind: kubernetes` workspace with `user_data`. Available from operator **v0.35.0**.
+
+#### Mount existing volumes into a Sandbox
+
+A Sandbox's own volumes start empty, so an application installed by [`spec.userData`](#boot-a-computer-with-user-data) is downloaded again on every pod, and sessions had no way to share content. `spec.sandbox.volumes` mounts PersistentVolumeClaims that **already exist in the Orchestrator's namespace** into the daemon's container, so an installed application and the material the agents work on both outlive the pod:
+
+```yaml
+spec:
+  runtime: Sandbox
+  sandbox:
+    volumes:
+      - name: resolve
+        claimName: davinci-resolve
+        mountPath: /opt/resolve
+      - name: footage
+        claimName: raw-footage
+        mountPath: /mnt/footage
+        readOnly: true
+```
+
+| Field       | Description                                                                |
+| ----------- | -------------------------------------------------------------------------- |
+| `name`      | Volume name inside the pod, unique in the list.                            |
+| `claimName` | Name of an existing PersistentVolumeClaim in the Orchestrator's namespace. |
+| `mountPath` | Absolute path the claim is mounted at.                                     |
+| `readOnly`  | Mount the claim read-only. Defaults to `false`.                            |
+
+At most 16 entries. The operator creates no claim of its own - a claim you have not created yourself is simply missing.
+
+`readOnly: true` is for content the agents copy into `/workspace` before they change it, so the original stays as it is - source footage, a dataset, a reference corpus. Leave it unset for a volume the pod writes to, an installed application's directory or a cache.
+
+**The Sandbox never owns a mounted claim.** A suspension, `spec.sandbox.retention`, `spec.sandbox.shutdownTime` and deleting the `Orchestrator` all leave the claim and its data in place. Removing a claim is a deliberate `kubectl delete pvc`.
+
+Mount path rules, enforced by the API server:
+
+- Absolute, and not `/`.
+- Not equal to or under `/workspace`, `/home/infer/.infer/projects` or `/var/lib/cloud/seed/nocloud` - the paths the Sandbox manages itself.
+- Not shared by two volumes in the list.
+
+Changing the list cycles a running pod through `Suspended` and back, the same as other Sandbox shape changes. A claim that does not exist leaves the pod unscheduled, reported as `Ready=False` with reason `SandboxNotReady` and the scheduler's own message.
+
+A `ReadWriteOnce` claim is shared by pods on one node only, so `Orchestrator`s spread over several nodes need a `ReadWriteMany` or `ReadOnlyMany` claim. For an application alone, a volume is not the only option - an image with the application already installed needs none.
 
 #### MCP servers reached by URL
 
