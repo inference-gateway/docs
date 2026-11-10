@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.25](https://github.com/inference-gateway/docs/compare/0.9.24...0.9.25) (2026-11-10)
+
+### 👷 CI
+
+* **preview:** delete the preview environment on teardown ([#1144](https://github.com/inference-gateway/docs/issues/1144)) ([eb3e47c](https://github.com/inference-gateway/docs/commit/eb3e47c4a6ad10d577dbd4f9ee6c1beec76ed3d6))
+
+### 📚 Documentation
+
+* **adk:** opt-in s3 artifact storage subpackage ([#1160](https://github.com/inference-gateway/docs/issues/1160)) ([0e09209](https://github.com/inference-gateway/docs/commit/0e092097c83b2d5fa1ad47c73959316eea95c82c))
+* **adk:** redis storage and mcp client are opt-in ([#1161](https://github.com/inference-gateway/docs/issues/1161)) ([9c7329a](https://github.com/inference-gateway/docs/commit/9c7329a4265a39bae0b24b9f20d6161bb13445f8))
+* **cli:** computer image locale and display env ([#1168](https://github.com/inference-gateway/docs/issues/1168)) ([44ca97b](https://github.com/inference-gateway/docs/commit/44ca97b191d17f83360f7bbfbd5b053bd10b5fcd))
+* **cli:** kubernetes workspaces give pods mcp servers ([#1148](https://github.com/inference-gateway/docs/issues/1148)) ([67cecc5](https://github.com/inference-gateway/docs/commit/67cecc5e104e0e2170efa9de2bfcf56c20722a2a))
+* **cli:** pointer press and release during a take-over ([#1174](https://github.com/inference-gateway/docs/issues/1174)) ([7f35a34](https://github.com/inference-gateway/docs/commit/7f35a34e5d8c6450b8533d655548c3ad6764d93f))
+* **cli:** workspace mcp servers forward filters and timeout ([#1154](https://github.com/inference-gateway/docs/issues/1154)) ([1ff4da4](https://github.com/inference-gateway/docs/commit/1ff4da4345593054122ce0fc9e5a97e244463760))
+* computer image and cloud-init user-data ([#1156](https://github.com/inference-gateway/docs/issues/1156)) ([32cd3f0](https://github.com/inference-gateway/docs/commit/32cd3f0390cae7bea338bc0da8a950559307dba8))
+* **desktop:** dragging during a take-over ([#1176](https://github.com/inference-gateway/docs/issues/1176)) ([f8c4f41](https://github.com/inference-gateway/docs/commit/f8c4f410dc6a70bbf070fd668983a0bd0dd313af))
+* **desktop:** look into a background shell ([#1165](https://github.com/inference-gateway/docs/issues/1165)) ([750f1dd](https://github.com/inference-gateway/docs/commit/750f1dd470d29583bcaf527282594c200642a2c5))
+* **desktop:** pointer movement during a take-over ([#1173](https://github.com/inference-gateway/docs/issues/1173)) ([bdf68b2](https://github.com/inference-gateway/docs/commit/bdf68b2719896a57e350c9ddbc0db1fa1242dde5))
+* **desktop:** tool images render as thumbnails ([#1166](https://github.com/inference-gateway/docs/issues/1166)) ([bae4b03](https://github.com/inference-gateway/docs/commit/bae4b0305eb1d8b9241d2ac3fb47e14aeb267790))
+* **desktop:** turn elapsed time counter and time stat ([#1164](https://github.com/inference-gateway/docs/issues/1164)) ([ba41359](https://github.com/inference-gateway/docs/commit/ba413593d23778168ec8a7fe14848131b2f9e46b))
+* **operator:** mcp health polling via spec.mcp.healthCheck ([#1150](https://github.com/inference-gateway/docs/issues/1150)) ([30510b9](https://github.com/inference-gateway/docs/commit/30510b99edf456a664981a4265d017876b2edc55))
+* **operator:** orchestrator hosted mcp servers ([#1147](https://github.com/inference-gateway/docs/issues/1147)) ([163586e](https://github.com/inference-gateway/docs/commit/163586e5de037e1674658906176c274faf7a5561))
+* **operator:** orchestrator mcp tool filters and timeout ([#1153](https://github.com/inference-gateway/docs/issues/1153)) ([7a2716a](https://github.com/inference-gateway/docs/commit/7a2716a0af2a57ae1e8264f6fcf33395b334ecb8))
+* screen capture pace during a take-over ([#1170](https://github.com/inference-gateway/docs/issues/1170)) ([ceffe4d](https://github.com/inference-gateway/docs/commit/ceffe4d9640002a64ff40f0a474328d05b90bc3e))
+
 ## [0.9.24](https://github.com/inference-gateway/docs/compare/0.9.23...0.9.24) (2026-11-08)
 
 ### 📚 Documentation
