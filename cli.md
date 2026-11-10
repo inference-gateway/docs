@@ -1833,7 +1833,7 @@ How fresh that latest frame is depends on the worker's capture pace, not on the 
 
 ### Take-over Mode
 
-When the agent reaches a step only a person can do - a login, a two-factor code, a CAPTCHA, a cookie dialog the [judge](/cli-judge-mode/) keeps rejecting - press **Take over** in the Screen view. The image takes focus, and clicks, wheel and keys inside it drive the session's screen directly, with the poll dropping to 250 ms. **Done**, or `Esc` twice, hands the screen back.
+When the agent reaches a step only a person can do - a login, a two-factor code, a CAPTCHA, a cookie dialog the [judge](/cli-judge-mode/) keeps rejecting - press **Take over** in the Screen view. The image takes focus, and clicks, drags, wheel and keys inside it drive the session's screen directly, with the poll dropping to 250 ms. **Done**, or `Esc` twice, hands the screen back.
 
 What makes typing feel live is the capture pace, not the poll. While you hold the screen the worker captures twice a second instead of once per `capture_interval`, and takes one more frame right after each input you send. A frame read that follows an input waits up to one second for that capture, so the image you get back shows what the input did rather than the screen before it. After the hand-back the configured `capture_interval` applies again, so an idle computer does no more work than before.
 
@@ -1846,6 +1846,14 @@ What makes typing feel live is the capture pace, not the poll. While you hold th
 An open approval box for a `Computer` call is **resolved as rejected** by the take-over, because you are about to do that step yourself. See [Escalating a rejection](/cli-judge-mode/#escalating-a-rejection-requestapproval) for the other way an agent asks a person to step in.
 
 The desktop app drives the same take-over from its Computers view, for an agent that runs on a workspace of its own - see [Agent computers](/desktop/#agent-computers).
+
+#### Dragging
+
+A person holding the screen can press a button down, move, and release, so the steps a single click cannot do - dragging a window, moving a file, selecting text with the pointer, pulling a slider - are in reach. The `screen_input` kinds for it are `mouse_down`, which holds a button down at a position, and `mouse_up`, which lets it go at a position. Both take `x`, `y` and an optional `button`, `left` by default, or `right` or `middle`. A `mouse_down`, one or more `move` inputs and a `mouse_up` make a drag.
+
+A button still held at the hand-back is released first, so the agent never gets the screen back mid-drag.
+
+The agent's own [`Computer`](#computer-use) tool has no press and release: only a person's inputs during a take-over can hold a button down. Whether a client offers dragging is up to that client - the desktop app does not send these inputs yet.
 
 #### Inputs During a Take-over Never Enter the Conversation
 
@@ -1914,12 +1922,12 @@ The same listener takes the take-over over `POST /screen/?id=<conversation id>`,
 { "type": "screen_result", "id": "<request id>", "held": true }
 ```
 
-| Frame            | Meaning                                                                                                                                                                                                                                                                                          |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `read_frame`     | The latest frame of the screen the session's worker streams. With `project_dir` it runs on the thread of the session `id` names, relaunching that session's worker when it is not running. `error` replaces `frame` when the worker streams no screen or captured nothing yet                    |
-| `screen_control` | `action: take_over` claims the screen and resolves an open `Computer` approval as rejected. A second claim while it is held errors. `action: hand_back` releases it and queues the worker's continue message                                                                                     |
-| `screen_input`   | One person input in the frame space the `GET` image answers in: `{"kind": "move" \| "click" \| "double_click" \| "scroll" \| "type" \| "key", "x", "y", "text", "combo", "button", "direction", "amount"}`. It drives the display directly, with no approval, no judge and no conversation entry |
-| `screen_result`  | One reply per request id, carrying `held`                                                                                                                                                                                                                                                        |
+| Frame            | Meaning                                                                                                                                                                                                                                                                                                                                                                                                |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `read_frame`     | The latest frame of the screen the session's worker streams. With `project_dir` it runs on the thread of the session `id` names, relaunching that session's worker when it is not running. `error` replaces `frame` when the worker streams no screen or captured nothing yet                                                                                                                          |
+| `screen_control` | `action: take_over` claims the screen and resolves an open `Computer` approval as rejected. A second claim while it is held errors. `action: hand_back` releases any button still held, releases the screen and queues the worker's continue message                                                                                                                                                   |
+| `screen_input`   | One person input in the frame space the `GET` image answers in: `{"kind": "move" \| "click" \| "double_click" \| "mouse_down" \| "mouse_up" \| "scroll" \| "type" \| "key", "x", "y", "text", "combo", "button", "direction", "amount"}`. `mouse_down` and `mouse_up` bracket a drag - see [Dragging](#dragging). It drives the display directly, with no approval, no judge and no conversation entry |
+| `screen_result`  | One reply per request id, carrying `held`                                                                                                                                                                                                                                                                                                                                                              |
 
 An input for a screen nobody holds errors, and the HTTP `POST` answers it with `409 Conflict`, so a stale tab cannot drive what it handed back.
 
