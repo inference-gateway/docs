@@ -558,7 +558,8 @@ While you hold the screen:
 
 - The agent's computer input **waits** for the hand-back. Its observations keep working.
 - The view shows the screen live, refreshed every 300 ms. The computer itself captures a new frame about twice a second while you drive, plus one right after each input you send, so what you see follows your clicks and keystrokes. Outside a hold it captures once every `computer_use.screenshot.capture_interval` seconds, 3 by default, and that interval applies again after the hand-back.
-- Clicks, double clicks, the wheel and keys inside the image go to that computer, one input after the other.
+- Pointer movement, clicks, double clicks, the wheel and keys inside the image go to that computer, one input after the other. Moving the mouse over the screen moves the pointer on the computer, so hover effects such as tooltips and menu highlights work. When you move faster than inputs can be delivered, only the newest position is sent.
+- You see **two pointers**: your own arrow over the image, and the computer's own pointer in the picture, which trails your arrow by however old the current frame is.
 
 **Hand back** releases the screen, and so does pressing `Esc` twice. The agent then gets a single message to continue and starts from a fresh screenshot of what you left behind - it is not told the individual clicks and keystrokes you made, so a password or a one-time code typed during a take-over never reaches the transcript or the model's context.
 
@@ -567,6 +568,7 @@ Requirements and limits:
 - `infer` **v0.245.0 or newer**. The take-over itself lives in the daemon, so the same feature is available from the CLI's web terminal - see [Take-over Mode](/cli/#take-over-mode).
 - **One person holds a screen at a time.** Taking over a second computer hands the first one back, and a claim from another client is refused while you hold it.
 - **A held key does not repeat.** Each key press sends one input.
+- **Dragging is not supported yet.** A press, move and release sequence is not sent, so you cannot drag a window, a slider or a selection.
 
 ## Chat and tool approval
 
