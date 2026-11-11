@@ -323,6 +323,34 @@ clusters:
 
 **On an `infer` without compute support** the tab says so - `Clusters need an infer CLI with compute support. Install updates under Settings > Updates.` - and **New cluster**, **Detect clusters** and **Provision local cluster** are disabled, so the app never writes a `compute.yaml` the CLI cannot read. Workspaces that carry their own context keep working meanwhile.
 
+#### Local cluster folders
+
+Raw content on this computer - footage, a dataset, a reference corpus - used to be copied into the cluster before an agent could touch it. **Local cluster folders**, at the bottom of the Compute tab, shares folders of this computer with the local cluster instead: they are mounted straight from here with no copy, and a workspace [maps one to a mount path as a volume](#volumes-the-computers-share). The agent still copies what it needs into its own workspace before it edits it.
+
+**Add folder** adds a row and each row has its own remove button:
+
+| Field         | What it is                                                                              |
+| ------------- | --------------------------------------------------------------------------------------- |
+| **Name**      | Lowercase letters, digits and dashes, not ending in `-ro`. It names the folder's claims |
+| **Path**      | The folder on this computer, an absolute path that must exist                           |
+| **Read-only** | No workspace can change what is in the folder                                           |
+
+**Save folders** writes them to `~/.infer/cluster_folders.yaml`, a file of the app's own - the CLI rewrites `compute.yaml` from its own fields and would drop a key it does not know:
+
+```yaml
+# ~/.infer/cluster_folders.yaml
+folders:
+  - name: raw
+    path: /Users/you/Movies/raw
+    read_only: true
+```
+
+**Changing the folders needs the local cluster recreated**, because Docker mounts a folder only into a cluster it creates. When the saved folders differ from the ones the running cluster came up with, the tab shows a warning with **Recreate local cluster** and asks a second time before it starts - **recreating deletes the cluster's machines and everything on them**. **Keep the cluster** leaves the running one alone, and the saved folders wait until you recreate it.
+
+**Folders are a local cluster feature.** Another cluster mounts claims that already exist in its namespace, which is what a [workspace's volumes](#volumes-the-computers-share) do there.
+
+For the detail: each folder gets the claims `folder-<name>` and `folder-<name>-ro` in the workspace namespace, the read-only one being the same folder mounted read-only on the node. **Nothing mounts inside a session until the `infer` CLI and [operator](/operator/) releases that carry folder volumes are out** - until then the folders are shared with the cluster and their claims exist, but a computer comes up without them.
+
 ### Workspaces
 
 The **Workspaces** tab is where you register the computers an agent can run on as [its own computer](#agent-computers), or that you [move a chat to](#moving-a-chat), so you no longer have to edit `~/.infer/daemon.yaml` by hand. Each workspace in the tab is one entry of the `infer` daemon's `workspaces` list in that file - see [Workspace kinds](/cli/#workspace-kinds) for the daemon's own reference. **Kubernetes** is the only type the form offers for now, and a type the form does not know (a `kind: local` entry you wrote yourself, say) is listed and can be deleted, but not edited.
@@ -337,25 +365,25 @@ The daemon only reads `daemon.yaml` when it starts, so saving or deleting shows 
 
 **The form fields and what each one writes:**
 
-| Field                   | `daemon.yaml` key | What it is                                                                                                             |
-| ----------------------- | ----------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| **Cluster**             | `compute`         | The [cluster](#compute) the workspace runs on, or **Its own connection** for none                                      |
-| **Type**                | `kind`            | `kubernetes` is the only choice for now. Only for a workspace with its own connection                                  |
-| **Name**                | `name`            | How the workspace is picked in an agent's editor. Required, and two workspaces cannot share one                        |
-| **Kubernetes context**  | `context`         | The cluster to run in, suggested from the contexts of your kubeconfig. Only for a workspace with its own connection    |
-| **Namespace**           | `namespace`       | Where the sessions run. Only for a workspace with its own connection                                                   |
-| **Image**               | `image`           | The image every session's pod runs. It needs the `infer` CLI                                                           |
-| **Storage**             | `storage`         | The size of a session's volume, for example `5Gi`                                                                      |
-| **Idle after**          | `idle_ttl`        | How long a pod stays up without work, for example `2h`                                                                 |
-| **Keep suspended for**  | `retention`       | How long the operator keeps a suspended session before deleting it, for example `24h`                                  |
-| **Provider keys**       | `gateway_env`     | Variable **names** only, comma separated. Only for a workspace with its own connection - a cluster's are under Compute |
-| **Forwarded variables** | `forward_env`     | Names of variables the agent itself gets, such as a token it pushes with                                               |
-| **Environment**         | `env`             | One `NAME=value` per line. Not for secrets, which belong in the [Secrets](#secrets) tab - these land in the pod's spec |
-| **User data**           | `user_data`       | A script the pod runs as root when it boots, to install what the agent needs. Must start with `#!`                     |
-| **Volumes**             | `volumes`         | [Existing PersistentVolumeClaims](#volumes-the-computers-share) mounted into every computer of the workspace           |
-| **Computer use**        | `env`             | [Lets an agent drive this workspace's computers](#what-a-workspace-computer-can-do) without asking                     |
-| **Browser use**         | `user_data`       | [Installs Firefox with the opentask extension](#what-a-workspace-computer-can-do) on each computer                     |
-| **Recording**           | `env`             | [Gives the computers the `RecordStart` and `RecordStop` tools](#what-a-workspace-computer-can-do)                      |
+| Field                   | `daemon.yaml` key | What it is                                                                                                                                      |
+| ----------------------- | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Cluster**             | `compute`         | The [cluster](#compute) the workspace runs on, or **Its own connection** for none                                                               |
+| **Type**                | `kind`            | `kubernetes` is the only choice for now. Only for a workspace with its own connection                                                           |
+| **Name**                | `name`            | How the workspace is picked in an agent's editor. Required, and two workspaces cannot share one                                                 |
+| **Kubernetes context**  | `context`         | The cluster to run in, suggested from the contexts of your kubeconfig. Only for a workspace with its own connection                             |
+| **Namespace**           | `namespace`       | Where the sessions run. Only for a workspace with its own connection                                                                            |
+| **Image**               | `image`           | The image every session's pod runs. It needs the `infer` CLI                                                                                    |
+| **Storage**             | `storage`         | The size of a session's volume, for example `5Gi`                                                                                               |
+| **Idle after**          | `idle_ttl`        | How long a pod stays up without work, for example `2h`                                                                                          |
+| **Keep suspended for**  | `retention`       | How long the operator keeps a suspended session before deleting it, for example `24h`                                                           |
+| **Provider keys**       | `gateway_env`     | Variable **names** only, comma separated. Only for a workspace with its own connection - a cluster's are under Compute                          |
+| **Forwarded variables** | `forward_env`     | Names of variables the agent itself gets, such as a token it pushes with                                                                        |
+| **Environment**         | `env`             | One `NAME=value` per line. Not for secrets, which belong in the [Secrets](#secrets) tab - these land in the pod's spec                          |
+| **User data**           | `user_data`       | A script the pod runs as root when it boots, to install what the agent needs. Must start with `#!`                                              |
+| **Volumes**             | `volumes`         | [Existing claims, or folders of this computer on the local cluster](#volumes-the-computers-share), mounted into every computer of the workspace |
+| **Computer use**        | `env`             | [Lets an agent drive this workspace's computers](#what-a-workspace-computer-can-do) without asking                                              |
+| **Browser use**         | `user_data`       | [Installs Firefox with the opentask extension](#what-a-workspace-computer-can-do) on each computer                                              |
+| **Recording**           | `env`             | [Gives the computers the `RecordStart` and `RecordStop` tools](#what-a-workspace-computer-can-do)                                               |
 
 **Provider keys are names, not values.** The value of each name is taken from what you saved under [API Keys](#api-keys) and sent to the gateway, never into the agent's pod, so nothing the agent runs can read a provider key into its context. Clearing a field removes its key from the entry, and an edit keeps the keys the form does not know (`mode`, `protocol`) along with every other entry of the file. A workspace put on a cluster loses the keys a cluster owns from its own entry, so the two can never disagree.
 
@@ -389,7 +417,11 @@ workspaces:
 
 **Volumes are fixed when a computer is created**, like **User data**, so a change reaches the chats started after it and a machine already running keeps the volumes it came up with.
 
-The feature needs the first `infer` release after **v0.254.0**, the one whose daemon reads `volumes`, and the operator at **v0.36.0 or newer**, which mounts the claims into the pod as [`spec.sandbox.volumes`](/operator/#mount-existing-volumes-into-a-sandbox). Mounting a folder of this Mac as a volume is not available yet.
+**On the local cluster a volume row maps a folder of this computer to a mount path.** The row's first field lists the [folders of the Compute tab](#local-cluster-folders) by their path instead of asking for a claim, so a volume reads as `/Users/you/Movies/raw -> /mnt/raw`, and **An existing claim** is the last entry of that list for a claim you created yourself. The folder shows up **one level below the mount path**, as `<mount path>/<folder name>` - `/mnt/raw/raw` for the row above - because the claim the pod mounts is a directory of the node that holds the shared folder inside it.
+
+**Read-only has two levels.** On the Compute tab it holds for every workspace, and on a workspace's volume row it holds for that workspace alone - the row is saved on the folder's `folder-<name>-ro` claim. A folder that is already read-only on the Compute tab shows the row's switch ticked and locked, since no workspace can be given write access to it.
+
+The feature needs the first `infer` release after **v0.254.0**, the one whose daemon reads `volumes`, and the operator at **v0.36.0 or newer**, which mounts the claims into the pod as [`spec.sandbox.volumes`](/operator/#mount-existing-volumes-into-a-sandbox). Nothing mounts in a session before those releases, folders included.
 
 #### What a workspace computer can do
 
