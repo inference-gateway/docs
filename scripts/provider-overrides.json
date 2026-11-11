@@ -120,6 +120,11 @@
       "displayName": "ElevenLabs",
       "urlLabel": "ElevenLabs",
       "keyLabel": "ElevenLabs"
+    },
+    "mirelo": {
+      "displayName": "Mirelo",
+      "urlLabel": "Mirelo",
+      "keyLabel": "Mirelo"
     }
   }
 }

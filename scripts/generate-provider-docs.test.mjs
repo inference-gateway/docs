@@ -58,6 +58,7 @@ test('fixture yields the full canonical provider set in schema order', () => {
     'zai',
     'webwright',
     'elevenlabs',
+    'mirelo',
   ]);
 });
 
