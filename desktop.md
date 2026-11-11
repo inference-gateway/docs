@@ -352,6 +352,7 @@ The daemon only reads `daemon.yaml` when it starts, so saving or deleting shows 
 | **Forwarded variables** | `forward_env`     | Names of variables the agent itself gets, such as a token it pushes with                                               |
 | **Environment**         | `env`             | One `NAME=value` per line. Not for secrets, which belong in the [Secrets](#secrets) tab - these land in the pod's spec |
 | **User data**           | `user_data`       | A script the pod runs as root when it boots, to install what the agent needs. Must start with `#!`                     |
+| **Volumes**             | `volumes`         | [Existing PersistentVolumeClaims](#volumes-the-computers-share) mounted into every computer of the workspace           |
 | **Computer use**        | `env`             | [Lets an agent drive this workspace's computers](#what-a-workspace-computer-can-do) without asking                     |
 | **Browser use**         | `user_data`       | [Installs Firefox with the opentask extension](#what-a-workspace-computer-can-do) on each computer                     |
 | **Recording**           | `env`             | [Gives the computers the `RecordStart` and `RecordStop` tools](#what-a-workspace-computer-can-do)                      |
@@ -359,6 +360,36 @@ The daemon only reads `daemon.yaml` when it starts, so saving or deleting shows 
 **Provider keys are names, not values.** The value of each name is taken from what you saved under [API Keys](#api-keys) and sent to the gateway, never into the agent's pod, so nothing the agent runs can read a provider key into its context. Clearing a field removes its key from the entry, and an edit keeps the keys the form does not know (`mode`, `protocol`) along with every other entry of the file. A workspace put on a cluster loses the keys a cluster owns from its own entry, so the two can never disagree.
 
 **User data is how a computer gets its software.** The field is a [cloud-init](https://cloudinit.readthedocs.io/) user-data script, run as root inside the pod when it boots and before the daemon starts, so what an agent needs is installed into the published image instead of baked into one of your own - see [`user_data`](/cli/#software-the-image-does-not-ship-user-data) for the daemon's own reference. The form asks for a script starting with `#!` and will not save one without it, and the pod writes the script's output to `/var/log/cloud-init-output.log`. The script is kept in the session's Kubernetes Secret, never in the workspace's `Orchestrator`.
+
+#### Volumes the computers share
+
+A workspace's computers start empty and **User data** runs again on every boot, so a heavy application is installed again on each machine and raw content has to be copied into each session. **Volumes** mounts PersistentVolumeClaims that **already exist in the workspace's namespace** into every computer of the workspace, which is the form's view over [`volumes`](/cli/#volumes-the-sessions-share-volumes) in `daemon.yaml`. **Add volume** adds a row, each row has its own remove button, and removing the last row takes the `volumes` key out of the entry again.
+
+| Field          | `daemon.yaml` key | What it is                                                               |
+| -------------- | ----------------- | ------------------------------------------------------------------------ |
+| **Name**       | `name`            | Identifies the volume, unique in the workspace                           |
+| **Claim**      | `claim`           | The PersistentVolumeClaim to mount, which must already exist             |
+| **Mount path** | `mount_path`      | Where the computers mount it, starting with `/`                          |
+| **Read-only**  | `read_only`       | Mounts it read-only, for originals the agent copies before it edits them |
+
+```yaml
+# ~/.infer/daemon.yaml
+workspaces:
+  - name: ubuntu-desktop
+    volumes:
+      - name: footage
+        claim: raw-footage
+        mount_path: /mnt/footage
+        read_only: true
+```
+
+**Read-only is for material the agent must not change.** Tick it for source footage, a dataset or a reference corpus the agent copies into `/workspace` before it edits the copy, and leave it off for a volume the pod writes to - an installed application's directory or a cache.
+
+**The claim is yours, not the app's.** It is created and filled outside the app with `kubectl`, and the app never creates or deletes one. The form refuses a missing name, a name used twice, an empty claim and a mount path that does not start with `/`, and the workspace's own [prerequisites check](#compute) lists each volume's claim and names the one to create when it does not exist in the namespace. A claim that is missing when a computer starts leaves its pod unscheduled.
+
+**Volumes are fixed when a computer is created**, like **User data**, so a change reaches the chats started after it and a machine already running keeps the volumes it came up with.
+
+The feature needs the first `infer` release after **v0.254.0**, the one whose daemon reads `volumes`, and the operator at **v0.36.0 or newer**, which mounts the claims into the pod as [`spec.sandbox.volumes`](/operator/#mount-existing-volumes-into-a-sandbox). Mounting a folder of this Mac as a volume is not available yet.
 
 #### What a workspace computer can do
 
