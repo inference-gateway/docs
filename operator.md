@@ -504,6 +504,8 @@ spec:
       key: userdata
 ```
 
+The image also ships Vulkan, so a desktop app uses a GPU the pod is given through `spec.resources` and renders on the CPU otherwise. See [GPU acceleration on a computer](/cli/#gpu-acceleration-on-a-computer).
+
 The Secret key is mounted **read-only** (mode `0400`) at cloud-init's NoCloud seed path, `/var/lib/cloud/seed/nocloud/user-data`, and the image runs it and then drops to the daemon's user. A CEL rule limits `userData` to `runtime: Sandbox`, so the Deployment runtime never silently ignores it.
 
 **The pod is root in a user namespace, not root on the node.** The Sandbox runtime otherwise forces pods to run as non-root with every capability dropped, and a pod with `userData` gets no blanket exception. It runs with [`hostUsers: false`](https://kubernetes.io/docs/concepts/workloads/pods/user-namespaces/), so its root maps to an unprivileged user on the node, and such a pod still passes the Restricted Pod Security Standard. Capabilities are dropped to nothing and then narrowed back to `CHOWN`, `DAC_OVERRIDE`, `FOWNER`, `FSETID`, `SETUID` and `SETGID` - what a package install needs and no more - while `allowPrivilegeEscalation: false` and the `RuntimeDefault` seccomp profile stay. A pod without `userData` is unchanged.

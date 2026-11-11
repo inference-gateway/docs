@@ -2039,6 +2039,16 @@ workspaces:
 
 Copying a `.desktop` file into `/etc/xdg/autostart` is what opens that application when the computer boots. The image is published from `infer` **v0.251.0**.
 
+#### GPU acceleration on a computer
+
+**Vulkan is on the image** from `infer` **v0.256.0**: `libvulkan1`, `mesa-vulkan-drivers` and `vulkan-tools`. An app on a computer uses the host's GPU when the pod has one and renders on the CPU when it does not, with nothing installed through `user_data` first. `vulkaninfo --summary` on the computer reports which device an app gets.
+
+On **arm64** the Venus driver is built with a downstream change for the 16 KiB memory pages of an Apple silicon host, where the driver Ubuntu ships fails. amd64 keeps Ubuntu's driver.
+
+**The image does not give a pod a GPU by itself.** Whatever runs the pod has to hand it the device - for the operator that is `resources.limits` on the [`Orchestrator`](/operator/#orchestrator), alongside the device plugin for your hardware. The desktop app's [local cluster](/desktop/#compute) does not pass a device through yet.
+
+**A GPU does not make every app faster.** Video decoding and encoding stay on the CPU in a Linux VM on a Mac.
+
 ### Display Server Support
 
 Automatic display server detection - no configuration needed:

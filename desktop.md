@@ -282,7 +282,7 @@ Every cluster row shows its name, its `context / namespace` and how many session
 
 - runs k3s as a Docker container named `infer-k3s`, on a fixed local port so the kubeconfig keeps working across restarts
 - installs agent-sandbox and the [Inference Gateway operator](/operator/) inside it, the Gateway API CRDs coming with k3s itself
-- pulls the [published computer image](/cli/#the-computer-image), `ghcr.io/inference-gateway/computer`, at your installed `infer` version - the app no longer builds a desktop image of its own
+- pulls the [published computer image](/cli/#the-computer-image), `ghcr.io/inference-gateway/computer`, at your installed `infer` version - the app no longer builds a desktop image of its own. It ships [Vulkan](/cli/#gpu-acceleration-on-a-computer), so apps on a computer use a GPU the pod is given, and the local cluster does not pass a device through yet
 - creates the `infer-workspaces` namespace and labels it for the operator
 - adds an `infer-k3s` context to `~/.kube/config`, merged by entry name and leaving your current context alone. An unreadable kubeconfig stops the run rather than being overwritten
 - registers the `infer-k3s` cluster in `~/.infer/compute.yaml` with your saved [API keys](#api-keys) as its provider keys, and the `ubuntu-desktop` [workspace](#workspaces) on it in `~/.infer/daemon.yaml`
