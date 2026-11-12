@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.26](https://github.com/inference-gateway/docs/compare/0.9.25...0.9.26) (2026-11-12)
+
+### 👷 CI
+
+* **preview:** skip preview for fork PRs and harden workflow ([#1198](https://github.com/inference-gateway/docs/issues/1198)) ([ac9280e](https://github.com/inference-gateway/docs/commit/ac9280e111aef75f9f55b715dad7c2286dc46686))
+
+### 📚 Documentation
+
+* **cli:** document infer tools list ([#1199](https://github.com/inference-gateway/docs/issues/1199)) ([7f9c924](https://github.com/inference-gateway/docs/commit/7f9c9249fd23f118f6e4c2015e88914cc6d9c86b))
+* **cli:** document workspace volumes in daemon.yaml ([#1189](https://github.com/inference-gateway/docs/issues/1189)) ([eafe773](https://github.com/inference-gateway/docs/commit/eafe773925269d52299c8df120649fbd1110abe7))
+* **cli:** skipping unchanged screen frames ([#1178](https://github.com/inference-gateway/docs/issues/1178)) ([1afabdf](https://github.com/inference-gateway/docs/commit/1afabdfb5381da7d0b5bc94c879d64c46fca6d0a))
+* **cli:** suggestions read the session's recent errors ([#1182](https://github.com/inference-gateway/docs/issues/1182)) ([745964b](https://github.com/inference-gateway/docs/commit/745964b096a4e8ede05dff96ea20d6fc782792ec))
+* **computer:** document Vulkan on the computer image ([#1197](https://github.com/inference-gateway/docs/issues/1197)) ([139a141](https://github.com/inference-gateway/docs/commit/139a141101e86c3e1b6aba34a62de74c2c19cd31))
+* **desktop:** document local cluster folders ([#1193](https://github.com/inference-gateway/docs/issues/1193)) ([1703698](https://github.com/inference-gateway/docs/commit/17036984a685e63e05da8b83e496475cff547289))
+* **desktop:** document volumes on a workspace ([#1191](https://github.com/inference-gateway/docs/issues/1191)) ([a53f2fb](https://github.com/inference-gateway/docs/commit/a53f2fb52a96df6c54827bab1eb3c7e1e1161899))
+* **desktop:** per-workspace computer, browser and recording switches ([#1185](https://github.com/inference-gateway/docs/issues/1185)) ([965a515](https://github.com/inference-gateway/docs/commit/965a515e9dd48ed2f320a154c1f3982be1a45268))
+* **desktop:** skipping unchanged screen frames ([#1180](https://github.com/inference-gateway/docs/issues/1180)) ([ce83ea8](https://github.com/inference-gateway/docs/commit/ce83ea868baa64f76c38a28078e17423eccbdc42))
+* document the mirelo provider for sound-effect generation ([#1196](https://github.com/inference-gateway/docs/issues/1196)) ([3dcaa9a](https://github.com/inference-gateway/docs/commit/3dcaa9a1bee32aa4ef0bc1f1a2df70bd56913004))
+* **operator:** document spec.sandbox.volumes ([#1187](https://github.com/inference-gateway/docs/issues/1187)) ([a9db2ff](https://github.com/inference-gateway/docs/commit/a9db2ffe2f4b38211fd1855a3beded8b3dab2f2c))
+
+### 🔧 Miscellaneous
+
+* **deps:** bump claude-code 2.1.308 -> 2.1.318 ([#1183](https://github.com/inference-gateway/docs/issues/1183)) ([3bf7796](https://github.com/inference-gateway/docs/commit/3bf7796c9cba9e51c4e24a69708fe6e379217683))
+
 ## [0.9.25](https://github.com/inference-gateway/docs/compare/0.9.24...0.9.25) (2026-11-10)
 
 ### 👷 CI
