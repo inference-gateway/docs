@@ -1170,6 +1170,7 @@ This is the shape the [daemon](#daemon) spawns its [session workers](#what-the-d
 | `approval_response`      | Unchanged: `tool_call_id`, `approved`, `scope` for a pending tool call                                                                                                                                                                                                                                |
 | `user_question_response` | Unchanged: the collected `AskUserQuestion` answers, or a dismissal                                                                                                                                                                                                                                    |
 | `computer_use_control`   | Unchanged: `action` is `pause` or `resume` - see [pause and resume control](#pause-and-resume-control-ipc)                                                                                                                                                                                            |
+| `rewind_conversation`    | Drops the prompt its `content` and `occurrence` name, and everything after it, then answers `conversation_rewound` - see [conversation rewind](/opentask/#conversation-rewind). Refused while a turn runs or is queued                                                                                |
 
 Only the **first** run of a resumed session opens with a [`MESSAGES_SNAPSHOT`](#ag-ui-resume-snapshot); later runs on the same worker start with `RUN_STARTED` alone, because the host already has the history.
 
@@ -1665,22 +1666,23 @@ Every transport carries the same vocabulary, with no envelope around it: AG-UI e
 
 **App frames in:**
 
-| Frame                                                       | Purpose                                                                                                 |
-| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `new_session` / `resume_conversation`                       | Open a thread in a project directory, optionally [as a named agent](#opening-a-thread-as-a-named-agent) |
-| `user_message`                                              | Send a message into the thread; queued when the agent is busy                                           |
-| `interrupt`                                                 | Stop the streaming turn, which ends `cancelled`                                                         |
-| `approval_response`                                         | `tool_call_id`, `approved`, `scope` - the decision for a pending tool call                              |
-| `user_question_response`                                    | The collected answers, or a dismissal                                                                   |
-| `computer_use_control`                                      | `action` is `pause` or `resume`, for computer use                                                       |
-| `list_conversations` / `list_history`                       | Browse the project's stored conversations                                                               |
-| `list_skills` / `list_models` / `select_model` / `set_mode` | Inspect and change what the thread runs with                                                            |
-| `list_shortcuts`                                            | The project's [shortcut registry](/opentask/#shortcuts), for the `/` menu                               |
-| `list_issues`                                               | The project's recent open issues, for the [`#` autocomplete](#github-issue-references)                  |
-| `list_files`                                                | The project's files, for the [`@` autocomplete](/opentask/#project-file-references)                     |
-| `list_tasks` / `cancel_task`                                | List and stop a [session's background jobs](/opentask/#background-jobs)                                 |
-| `tool_request` / `tool_result`                              | Run a tool directly, scoped to a project directory                                                      |
-| `list_artifacts` / `read_artifact`                          | List a [session's artifacts](/opentask/#session-artifacts) and read one                                 |
+| Frame                                                       | Purpose                                                                                                                       |
+| ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `new_session` / `resume_conversation`                       | Open a thread in a project directory, optionally [as a named agent](#opening-a-thread-as-a-named-agent)                       |
+| `user_message`                                              | Send a message into the thread; queued when the agent is busy                                                                 |
+| `interrupt`                                                 | Stop the streaming turn, which ends `cancelled`                                                                               |
+| `approval_response`                                         | `tool_call_id`, `approved`, `scope` - the decision for a pending tool call                                                    |
+| `user_question_response`                                    | The collected answers, or a dismissal                                                                                         |
+| `computer_use_control`                                      | `action` is `pause` or `resume`, for computer use                                                                             |
+| `list_conversations` / `list_history`                       | Browse the project's stored conversations                                                                                     |
+| `list_skills` / `list_models` / `select_model` / `set_mode` | Inspect and change what the thread runs with                                                                                  |
+| `list_shortcuts`                                            | The project's [shortcut registry](/opentask/#shortcuts), for the `/` menu                                                     |
+| `list_issues`                                               | The project's recent open issues, for the [`#` autocomplete](#github-issue-references)                                        |
+| `list_files`                                                | The project's files, for the [`@` autocomplete](/opentask/#project-file-references)                                           |
+| `list_tasks` / `cancel_task`                                | List and stop a [session's background jobs](/opentask/#background-jobs)                                                       |
+| `tool_request` / `tool_result`                              | Run a tool directly, scoped to a project directory                                                                            |
+| `list_artifacts` / `read_artifact`                          | List a [session's artifacts](/opentask/#session-artifacts) and read one                                                       |
+| `rewind_conversation`                                       | Send an earlier prompt again, dropping it and everything after it - see [conversation rewind](/opentask/#conversation-rewind) |
 
 Unknown `type` and `name` values are ignored on both sides, so the vocabulary stays additive. The full per-event reference lives with the CLI source, in [`docs/ag-ui-output.md`](https://github.com/inference-gateway/cli/blob/main/docs/ag-ui-output.md).
 

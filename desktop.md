@@ -682,6 +682,17 @@ You click **Approve** to allow the action or **Deny** to reject it. This keeps t
 
 An image in a tool's result, such as a screenshot, renders in the transcript as a thumbnail you click to see full size - see [Images in chat](#images-in-chat).
 
+### Resending a prompt
+
+Every user bubble carries a **Resend prompt** button next to the copy button. Clicking it drops that prompt and everything after it from the conversation, then sends the prompt again as a new turn.
+
+- The deletion is **permanent** and there is no confirmation step, the same as the restore in the CLI's chat TUI.
+- The button is **disabled while a run is in progress**.
+- A prompt sent earlier in the same chat is identified by its text, so resending the older of two identical prompts drops the newer one too.
+- A prompt that used an [`@file` reference](#the--file-menu) cannot be resent until the chat is reopened, because the worker stores the expanded text rather than the token. Nothing is deleted in that case.
+
+The button needs an `infer` release that carries the `rewind_conversation` frame, and a chat on a [workspace](#agent-computers) needs that release in its pod too. Against an older `infer` the request is never answered and the app reports an error. The frames are documented under [conversation rewind](/opentask/#conversation-rewind).
+
 ### Turn time
 
 While a turn runs, a live counter sits next to the status text in the transcript bubble - `Starting ubuntu-desktop (Moving to ubuntu-desktop: provisioning)... 42s` - and the status bar carries a **time** stat next to `in`, `out`, `cached` and `tool calls`. The stat ticks while the turn runs and then keeps the final duration until the next turn starts.
