@@ -1,6 +1,6 @@
 ---
 title: Supported Providers
-description: Provider matrix for Inference Gateway covering OpenAI, Anthropic, Cohere, Groq, Cloudflare, Ollama, Ollama Cloud, Google, DeepSeek, Mistral, MiniMax, Moonshot, Nvidia and the audio-only ElevenLabs (speech, sound effects, music and avatar videos), with auth modes, default URLs, vision support, and per-provider request examples.
+description: Provider matrix for Inference Gateway covering OpenAI, Anthropic, Cohere, Groq, Cloudflare, Ollama, Ollama Cloud, Google, DeepSeek, Mistral, MiniMax, Moonshot, Nvidia, the audio-only ElevenLabs (speech, sound effects, music and avatar videos) and Mirelo (sound effects), with auth modes, default URLs, vision support, and per-provider request examples.
 ---
 
 # Supported Providers
@@ -30,10 +30,11 @@ Inference Gateway provides a unified interface to interact with multiple LLM pro
 | Z-AI         | Bearer Token     | `https://api.z.ai/api/coding/paas/v4`                           | No             |
 | WebWright    | Bearer Token     | `https://webwright.ai/v1`                                       | No             |
 | ElevenLabs   | X-Header         | `https://api.elevenlabs.io/v1`                                  | No             |
+| Mirelo       | Bearer Token     | `https://api.mirelo.ai/v3`                                      | No             |
 
 <!-- GENERATED:providers-table END (do not edit - run: task generate) -->
 
-Every provider above serves `/v1/chat/completions` except **ElevenLabs**, which has no chat-completions API: it is audio-only and answers the [Audio API](/api-reference/#audio-api) alone - speech synthesis with `elevenlabs/<model>` and an ElevenLabs voice id, plus [sound-effect generation](/api-reference/#sound-effects) through `POST /v1/audio/sfx` with `elevenlabs/eleven_text_to_sound_v2`, and [music generation](/api-reference/#music) through `POST /v1/audio/music` - it is the only provider serving sound effects and music today. It is also the first provider behind the [Videos API](/api-reference/#videos-api): `elevenlabs/creatify-aurora` renders audio-driven talking avatars at `480p` or `720p` (chosen through the `size` field). Routing a chat request to it is not supported.
+Every provider above serves `/v1/chat/completions` except **ElevenLabs** and **Mirelo**, which have no chat-completions API and answer the [Audio API](/api-reference/#audio-api) alone. ElevenLabs covers speech synthesis with `elevenlabs/<model>` and an ElevenLabs voice id, plus [sound-effect generation](/api-reference/#sound-effects) through `POST /v1/audio/sfx` with `elevenlabs/eleven_text_to_sound_v2`, and [music generation](/api-reference/#music) through `POST /v1/audio/music` - it is the only provider serving music today. It is also the first provider behind the [Videos API](/api-reference/#videos-api): `elevenlabs/creatify-aurora` renders audio-driven talking avatars at `480p` or `720p` (chosen through the `size` field). Mirelo serves [sound-effect generation](/api-reference/#sound-effects) only, through `POST /v1/audio/sfx` with `mirelo/sfx-2.0` - no chat, speech or music. Routing a chat request to either is not supported.
 
 **OpenAI** is the only provider serving the [Responses API](/api-reference/#responses-api) and the [Decisions API](/api-reference/#decisions-api) (`POST /v1/decisions`). Sending either to another provider returns `400 Bad Request` with `The Decisions API is not supported by this provider yet.` for decisions - use `/v1/chat/completions` instead.
 
@@ -91,7 +92,7 @@ Each provider requires specific configuration through environment variables:
 
 <!-- GENERATED:provider-uppercase START (do not edit - run: task generate) -->
 
-Replace "PROVIDER" with the provider name (uppercase): OPENAI, DEEPSEEK, ANTHROPIC, COHERE, GROQ, CLOUDFLARE, OLLAMA_CLOUD, OLLAMA, LLAMACPP, GOOGLE, MISTRAL, MINIMAX, MOONSHOT, NVIDIA, ZAI, WEBWRIGHT, ELEVENLABS.
+Replace "PROVIDER" with the provider name (uppercase): OPENAI, DEEPSEEK, ANTHROPIC, COHERE, GROQ, CLOUDFLARE, OLLAMA_CLOUD, OLLAMA, LLAMACPP, GOOGLE, MISTRAL, MINIMAX, MOONSHOT, NVIDIA, ZAI, WEBWRIGHT, ELEVENLABS, MIRELO.
 
 <!-- GENERATED:provider-uppercase END (do not edit - run: task generate) -->
 
@@ -526,3 +527,13 @@ curl -s 'http://localhost:8080/v1/models?provider=elevenlabs&include=modalities'
 ```
 
 `pricing` and `context_window` are `null` for every ElevenLabs model: billing is credit-based and there is no token window.
+
+### Mirelo Provider
+
+Mirelo is sound-effects-only: it serves [sound effects](/api-reference/#sound-effects) through `POST /v1/audio/sfx` with models such as `mirelo/sfx-2.0`. It has no chat-completions, speech or music API.
+
+List available models:
+
+```bash
+curl http://localhost:8080/v1/models?provider=mirelo
+```

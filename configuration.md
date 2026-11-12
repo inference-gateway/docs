@@ -10,7 +10,7 @@ const generalSettings = [
   { variable: 'DISALLOWED_MODELS', description: 'Comma-separated list of models to disallow. If empty, no models will be blocked. Takes lower precedence than ALLOWED_MODELS', defaultValue: '""' },
   { variable: 'VISION_ENABLED', description: 'Enable vision/multimodal handling for all providers. When enabled, image content is stripped from requests to models known to accept only non-image input; unknown models are passed through. When disabled, image content is forwarded to the provider untouched', defaultValue: 'false' },
   { variable: 'IMAGES_ENABLED', description: 'Enable the Images API (POST /v1/images/generations and /v1/images/edits). When disabled, the endpoints return a 404', defaultValue: 'false' },
-  { variable: 'AUDIO_ENABLED', description: 'Enable the Audio API (POST /v1/audio/speech, /v1/audio/sfx and /v1/audio/music). When disabled, the endpoints return a 404. Speech is served by the openai and elevenlabs providers and by the local llama-tts engine (local/qwen3-tts); sound effects and music are served by elevenlabs only; llamacpp speech is a work in progress and not supported yet', defaultValue: 'false' },
+  { variable: 'AUDIO_ENABLED', description: 'Enable the Audio API (POST /v1/audio/speech, /v1/audio/sfx and /v1/audio/music). When disabled, the endpoints return a 404. Speech is served by the openai and elevenlabs providers and by the local llama-tts engine (local/qwen3-tts); sound effects are served by elevenlabs and mirelo, and music by elevenlabs only; llamacpp speech is a work in progress and not supported yet', defaultValue: 'false' },
   { variable: 'VIDEOS_ENABLED', description: 'Enable the Videos API (POST /v1/videos, GET /v1/videos/{video_id} and GET /v1/videos/{video_id}/content). When disabled, the endpoints return a 404', defaultValue: 'false' },
   { variable: 'DECISIONS_ENABLED', description: 'Enable the Decisions API (POST /v1/decisions). When disabled, the endpoint returns a 404. Served by the openai, ollama and ollama_cloud providers and by llamacpp decision models', defaultValue: 'false' },
   { variable: 'AUDIO_LOCAL_AUTO_DOWNLOAD', description: 'Allow downloading the llama-tts binary and GGUF models, in the background at startup when the Audio API is enabled. The pinned GGUF models are treated as done once present in the cache, whoever wrote them (an earlier run, the CLI, a mounted volume, a pre-baked image layer), while a cached binary whose sha256 differs from the latest release is replaced. A llama-tts found on PATH is left alone - upgrading it is left to the operator. When false, the gateway serves only from the existing cache or PATH and returns an actionable error when assets are missing', defaultValue: 'true' },
@@ -159,6 +159,11 @@ const elevenlabsSettings = [
   { variable: 'ELEVENLABS_API_KEY', description: 'ElevenLabs API Key', defaultValue: '""' },
 ];
 
+const mireloSettings = [
+  { variable: 'MIRELO_API_URL', description: 'Mirelo API URL', defaultValue: 'https://api.mirelo.ai/v3' },
+  { variable: 'MIRELO_API_KEY', description: 'Mirelo API Key', defaultValue: '""' },
+];
+
 // GENERATED:provider-settings END (do not edit - run: task generate)
 
 const mcpSettings = [
@@ -269,7 +274,7 @@ Environment variables are the primary method for configuring Inference Gateway. 
 
 `VISION_ENABLED` controls whether the gateway inspects image content in chat completion requests. When disabled (the default), the gateway does not look at image content at all - image parts are forwarded to the provider untouched. When set to `true`, the gateway checks each request's model against the community modalities table: image parts are stripped only for models the table lists as accepting non-image input only (the request continues with the text parts only). Models the table does not cover are treated as image-capable and passed through. Either way, the gateway never rejects a request because it contains an image.
 
-`IMAGES_ENABLED`, `AUDIO_ENABLED` and `VIDEOS_ENABLED` are separate opt-ins for the [Images API](/api-reference/#images-api), the [Audio API](/api-reference/#audio-api) and the Videos API. While they are `false`, those endpoints return `404`. Only providers that implement the corresponding API can serve them; other providers return `400`. Audio is served by `openai` (speech) and `elevenlabs` (speech, sound effects and music), plus the built-in `local/qwen3-tts` engine for speech. The `llamacpp` provider has a speech endpoint wired in the gateway registry, but that path is a work in progress and is not supported yet.
+`IMAGES_ENABLED`, `AUDIO_ENABLED` and `VIDEOS_ENABLED` are separate opt-ins for the [Images API](/api-reference/#images-api), the [Audio API](/api-reference/#audio-api) and the Videos API. While they are `false`, those endpoints return `404`. Only providers that implement the corresponding API can serve them; other providers return `400`. Audio is served by `openai` (speech), `elevenlabs` (speech, sound effects and music) and `mirelo` (sound effects), plus the built-in `local/qwen3-tts` engine for speech. The `llamacpp` provider has a speech endpoint wired in the gateway registry, but that path is a work in progress and is not supported yet.
 
 The `AUDIO_LOCAL_*` variables tune the built-in [local speech engine](/api-reference/#local-speech-engine-local-qwen3-tts) that serves the reserved model id `local/qwen3-tts` without any provider. They are ignored when the request routes to a provider.
 
@@ -402,7 +407,7 @@ On Kubernetes these paths are set for you from Secret references on the Gateway 
 
 Configure access to various LLM providers. At minimum, you should configure the providers you plan to use.
 
-ElevenLabs is the one exception to "LLM provider": it has no chat-completions API and serves only the [Audio API](/api-reference/#audio-api), so `ELEVENLABS_API_KEY` is worth setting only when you synthesize speech.
+ElevenLabs and Mirelo are the exceptions to "LLM provider": neither has a chat-completions API and both serve only the [Audio API](/api-reference/#audio-api), so `ELEVENLABS_API_KEY` is worth setting only when you synthesize speech or generate audio, and `MIRELO_API_KEY` only for sound effects.
 
 <!-- GENERATED:provider-config-sections START (do not edit - run: task generate) -->
 
@@ -473,6 +478,10 @@ ElevenLabs is the one exception to "LLM provider": it has no chat-completions AP
 #### ElevenLabs
 
 <ConfigTable :rows="elevenlabsSettings" />
+
+#### Mirelo
+
+<ConfigTable :rows="mireloSettings" />
 
 <!-- GENERATED:provider-config-sections END (do not edit - run: task generate) -->
 

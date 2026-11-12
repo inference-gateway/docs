@@ -27,6 +27,7 @@ components:
         - zai
         - webwright
         - elevenlabs
+        - mirelo
       x-provider-configs:
         openai:
           url: https://api.openai.com/v1
@@ -203,3 +204,13 @@ components:
             speech:
               method: POST
               path: /text-to-speech/{voice}
+        mirelo:
+          url: https://api.mirelo.ai/v3
+          auth_type: bearer
+          endpoints:
+            models:
+              method: GET
+              path: /models
+            sfx:
+              method: POST
+              path: /text-to-sfx/generations

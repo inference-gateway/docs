@@ -908,7 +908,7 @@ With `AUDIO_LOCAL_AUTO_DOWNLOAD=false` the gateway never downloads anything and 
 POST /v1/audio/sfx?provider={provider}
 ```
 
-`elevenlabs` is the only provider that serves it today, with `eleven_text_to_sound_v2`.
+Two providers serve it today: `elevenlabs`, with `eleven_text_to_sound_v2`, and `mirelo`, with `mirelo/sfx-2.0`. Mirelo serves sound effects only - it has no speech or music endpoint.
 
 ```bash
 curl -X POST http://localhost:8080/v1/audio/sfx \
@@ -937,7 +937,7 @@ The `CreateSFXRequest` fields:
 
 | Field              | Type      | Required | Description                                                                                                                                                                                                                                               |
 | ------------------ | --------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `model`            | `string`  | Yes      | Model ID to use for sound-effect generation, for example `elevenlabs/eleven_text_to_sound_v2`.                                                                                                                                                            |
+| `model`            | `string`  | Yes      | Model ID to use for sound-effect generation, for example `elevenlabs/eleven_text_to_sound_v2` or `mirelo/sfx-2.0`.                                                                                                                                        |
 | `prompt`           | `string`  | Yes      | Description of the sound to generate, for example `distant thunder rolling over a valley`.                                                                                                                                                                |
 | `duration_seconds` | `number`  |          | Length of the clip, between `0.5` and `30`. Omit it to let the provider pick a length that fits the prompt.                                                                                                                                               |
 | `prompt_influence` | `number`  |          | How closely the generation follows the prompt, between `0` and `1` - higher stays closer, lower varies more. Omit it for the provider default.                                                                                                            |
@@ -990,7 +990,7 @@ sfx = client.create_sfx(
 
 The Go SDK does not wrap it yet - call it over plain HTTP in the meantime.
 
-Set `ELEVENLABS_API_KEY` (and optionally `ELEVENLABS_API_URL`) so the gateway can authenticate - see [Configuration](/configuration/#elevenlabs).
+Set `ELEVENLABS_API_KEY` (and optionally `ELEVENLABS_API_URL`) so the gateway can authenticate - see [Configuration](/configuration/#elevenlabs). For Mirelo, set `MIRELO_API_KEY` (and optionally `MIRELO_API_URL`) instead - see [Configuration](/configuration/#mirelo).
 
 The CLI wraps this endpoint in the opt-in [`TextToSFX` tool](/cli/#texttosfx-tool), so the agent can generate a clip during a chat.
 
