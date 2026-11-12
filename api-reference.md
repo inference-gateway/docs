@@ -898,6 +898,10 @@ With `AUDIO_LOCAL_AUTO_DOWNLOAD=false` the gateway never downloads anything and 
 | `AUDIO_LOCAL_MAX_CONCURRENCY` | `2`     | Concurrent syntheses; requests beyond the limit queue rather than fail |
 | `AUDIO_LOCAL_TIMEOUT`         | `300`   | Per-request synthesis timeout in seconds, surfaced as `504`            |
 
+**A synthesis outlives `SERVER_WRITE_TIMEOUT`.** A `local/qwen3-tts` request keeps its response open up to `AUDIO_LOCAL_TIMEOUT`, so a long passage is not cut off by the server's ordinary write deadline - before, a synthesis over 30 seconds lost its response. Raise `AUDIO_LOCAL_TIMEOUT`, not `SERVER_WRITE_TIMEOUT`, to allow for longer text.
+
+**Memory.** The engine runs the model in the gateway's own process. Measured on an arm64 CPU node with the `latest` image and one cloned sentence: about **6 GiB** for one synthesis and **11.5 GiB** for two at once, the default `AUDIO_LOCAL_MAX_CONCURRENCY`. A 4Gi container limit was OOM-killed, so give a containerized gateway **16Gi** - see [Audio (`spec.audio`)](/operator/#audio-spec-audio) for the Kubernetes side. Speed follows the CPU: roughly 10 seconds a sentence with no CPU limit, about 20 seconds at 2 CPUs.
+
 **Known ceiling.** Each request pays model and graph initialization (roughly 1s warm, slower cold or on GPU) and there is no cross-request batching - fine for agent speech, not for bulk synthesis. The local path is a stopgap until llama.cpp ships server-side TTS, after which the gateway can proxy to `llama-server` instead.
 
 #### Sound effects

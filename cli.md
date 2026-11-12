@@ -1371,7 +1371,7 @@ workspaces:
       - release-manager-credentials
 ```
 
-A workspace on compute takes its **kind and its connection** from it, and keeps what describes the computer itself: `image`, `storage`, `protocol`, `idle_ttl`, `env`, `forward_env`, `secrets` and `mcp_servers`. Setting `kind`, or any key its compute already sets, **fails at startup**, and so does naming compute `compute.yaml` does not define.
+A workspace on compute takes its **kind and its connection** from it, and keeps what describes the computer itself: `image`, `storage`, `protocol`, `idle_ttl`, `env`, `forward_env`, `forward_voice_samples`, `secrets` and `mcp_servers`. Setting `kind`, or any key its compute already sets, **fails at startup**, and so does naming compute `compute.yaml` does not define.
 
 **One Gateway per cluster.** Every `standard`-mode workspace on one cluster shares that cluster's `Gateway` and credentials Secret instead of each deploying its own, and the last session to go takes them along. The namespace belongs to the cluster too, because an Orchestrator only references a Gateway in its own namespace.
 
@@ -1407,6 +1407,8 @@ workspaces:
 | `all-in-one`           | Nothing beside the pod. A teleport seals the `gateway_env` values along with `forward_env` and the pod's workers run the gateway themselves on `127.0.0.1:8080`. One pod less, but the keys sit in the agent's environment                                                                                                                                     |
 
 In `standard` mode the Gateway and its Secret are owned by **every** session's Orchestrator, so they are garbage-collected with the last session. Without `gateway_env` no gateway is deployed at all and the pod calls whatever `INFER_GATEWAY_URL` names.
+
+**The Audio API follows the workspace's `env`.** In `standard` mode the shared Gateway serves [`/v1/audio/speech`](/api-reference/#audio-api) and its siblings when a workspace's `env` sets `INFER_TEXT_TO_SPEECH_ENABLED`, `INFER_TEXT_TO_MUSIC_ENABLED` or `INFER_TEXT_TO_SFX_ENABLED` to `true`. Workspaces on one cluster share that Gateway, so one of them asking is enough. The Gateway then gets [`spec.audio.enabled: true`](/operator/#audio-spec-audio) and a memory limit of **16Gi**, because the local speech engine held 11.5 GiB with two sentences at once when measured. It needs the operator at **v0.37.0 or newer** - an older one has no `spec.audio`, drops the field, and speech answers `404`. The engine's 1.4 GB of models lives in the pod's ephemeral storage, so it downloads again each time the Gateway comes back from having no pod.
 
 Use `gateway_env` for credentials only the model calls need, and `forward_env` for credentials the **agent itself** needs - a `GITHUB_TOKEN` it pushes with, for example. `forward_env` values never land in a Kubernetes object, but the agent can read them, which is exactly why provider keys belong under `gateway_env`.
 
@@ -1454,6 +1456,8 @@ That makes `secrets` the fourth way a Kubernetes workspace gets a value, and the
 | `gateway_env` | The gateway's Secret, written by each teleport                    | The gateway only, not the agent               |
 | `forward_env` | Sealed from this machine on each teleport, never a cluster object | The agent                                     |
 | `secrets`     | Secrets the cluster already holds, referenced by the pod          | The agent, and never this machine             |
+
+Files reach the pod the same way. `forward_voice_samples: true` carries this machine's [voice samples library](/cli-text-to-speech/#the-voice-samples-library) with every teleport to the workspace - the top-level `.wav` files of `~/.infer/voice/samples`, up to 64 MiB, landing in the target's own library where `TextToSpeech` finds a `voice_sample` by its bare name. A sample of the same name is replaced and the target's other samples stay. A library over the cap fails the teleport, and a teleport back carries none.
 
 A hosted MCP server is the usual reason to want one: put the key in the workspace's Secret and have [`mcp.yaml`](#mcp-integration) expand it from the pod's own environment, and name the server under [`mcp_servers`](#mcp-servers-for-the-pod-mcp-servers).
 
@@ -2715,12 +2719,12 @@ The same split applies to an image file on disk: a vision model reads it with [`
 
 #### TextToSpeech Tool
 
-Synthesize speech from text with a local TTS engine and save it as a WAV file. The chat model calls the tool when the user asks to say something aloud or to clone a voice; synthesis shells out to llama.cpp's `llama-tts` binary running Qwen3-TTS GGUF models, fully offline. **Disabled by default** - while `text_to_speech.enabled` is `false`, the tool definition is not sent to the LLM at all.
+Synthesize speech from text and save it as a WAV file. The chat model calls the tool when the user asks to say something aloud or to clone a voice. Synthesis goes through the gateway's Audio API (`POST /v1/audio/speech`) using the configured `provider/model`, `local/qwen3-tts` by default, so requests show up in gateway logs and traces. **Disabled by default** - while `text_to_speech.enabled` is `false`, the tool definition is not sent to the LLM at all.
 
 **Parameters:**
 
 - `text` (required): The text to speak
-- `voice_sample` (optional): Bare file name of a WAV of the target speaker (~10-30s of clean speech) to clone, resolved against the working directory first and then the [voice samples library](/cli-text-to-speech/#the-voice-samples-library) at `~/.infer/models/tts/samples/`; a name found in neither fails with an error listing both paths tried
+- `voice_sample` (optional): Bare file name of a WAV of the target speaker (~10-30s of clean speech) to clone, resolved against the working directory first and then the [voice samples library](/cli-text-to-speech/#the-voice-samples-library) at `~/.infer/voice/samples/`; a name found in neither fails with an error listing both paths tried
 - `output_path` (optional): Destination WAV; defaults to a timestamped file under `text_to_speech.output_dir` (`tts/` in the [media root](#media-directories))
 
 **Configuration:**
@@ -2730,7 +2734,7 @@ text_to_speech:
   enabled: true
 ```
 
-See [Text-to-Speech](/cli-text-to-speech/) for prerequisites, the full configuration reference, model presets, and voice-cloning guidance.
+See [Text-to-Speech](/cli-text-to-speech/) for the full configuration reference, the gateway's Audio API gate, and voice-cloning guidance.
 
 #### TextToMusic Tool
 
