@@ -165,6 +165,7 @@ Deploys the gateway proxy. Source: [`api/v1alpha1/gateway_types.go`](https://git
 | `gatewayAPI.{enabled,gateway,httpRoute}`                                                       | North-south traffic via the Kubernetes Gateway API (`gateway.networking.k8s.io`). Successor to the removed `ingress` field. See [Routing (Gateway API)](#routing-gateway-api).             |
 | `hpa.{enabled,config}`                                                                         | Wraps a `HorizontalPodAutoscalerSpec`. See the [Kubernetes HPA docs](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/) for the `metrics[]` and `behavior` shape. |
 | `guardrails.{enabled,failMode,externalUrl,externalTimeout,configMapRef}`                       | OPA/Rego policy enforcement. See [Guardrails (`spec.guardrails`)](#guardrails-spec-guardrails).                                                                                            |
+| `audio.enabled`                                                                                | Serve the gateway's Audio API (`AUDIO_ENABLED`, default `false`). See [Audio (`spec.audio`)](#audio-spec-audio).                                                                           |
 | `serviceAccount.{create,name}`                                                                 | Pod service account.                                                                                                                                                                       |
 | `resources.requests` / `resources.limits`                                                      | CPU and memory.                                                                                                                                                                            |
 | `pod.{labels,annotations,containers,initContainers,volumes,nodeSelector,tolerations,affinity}` | Shapes the pods the operator creates. See [Pod customization (`spec.pod`)](#pod-customization-spec-pod).                                                                                   |
@@ -1249,6 +1250,34 @@ spec:
       name: guardrails-policies
 ```
 
+## Audio (`spec.audio`)
+
+`spec.audio` turns on the gateway's [Audio API](/api-reference/#audio-api) - speech, music and sound effects under `/v1/audio`. The gateway serves none of them unless it is enabled.
+
+| Field     | Maps to         | Description                                                                                                         |
+| --------- | --------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `enabled` | `AUDIO_ENABLED` | Serve the Audio API (default `false`). When `true`, the operator sets `AUDIO_ENABLED=true` on the gateway container |
+
+```yaml
+apiVersion: core.inference-gateway.com/v1alpha1
+kind: Gateway
+metadata:
+  name: my-gateway
+  namespace: inference-gateway
+spec:
+  audio:
+    enabled: true
+  resources:
+    limits:
+      memory: 16Gi
+```
+
+`spec.audio` needs the operator at **v0.37.0 or newer**. An older one does not know the field, so the API server drops it and the Audio API stays off.
+
+**Give the local speech engine memory.** The gateway's built-in [`local/qwen3-tts`](/api-reference/#local-speech-engine-local-qwen3-tts) engine runs the model in the gateway's own pod. Measured on an arm64 CPU node with the `latest` image and one cloned sentence: about **6 GiB** of memory for one synthesis and **11.5 GiB** for two at once, which is what `AUDIO_LOCAL_MAX_CONCURRENCY` allows by default. A **4Gi** limit was OOM-killed, so set `spec.resources.limits.memory` to **16Gi** for a gateway that serves speech locally. Speed follows the CPU: roughly 10 seconds a sentence with no CPU limit, and about 20 seconds at 2 CPUs. A provider model such as `openai/gpt-4o-mini-tts` needs none of this - only `audio.enabled`.
+
+**The models are not persisted.** The engine's binary and GGUF weights, about 1.4 GB, are downloaded into the pod's **ephemeral storage** on first use. A restarted or rescheduled pod downloads them again, and requests answer `503` with a `Retry-After` while it does.
+
 ## Routing (Gateway API)
 
 `spec.gatewayAPI` exposes the gateway to north-south traffic through the [Kubernetes Gateway API](https://gateway-api.sigs.k8s.io/) (`gateway.networking.k8s.io`). It is the `v1alpha1` successor to the removed `ingress` field: instead of an `Ingress` fronted by ingress-nginx, the operator provisions a Gateway API `Gateway` and `HTTPRoute` for the gateway Service, served by [Envoy Gateway](https://gateway.envoyproxy.io/) (the `envoy` GatewayClass). It is unrelated to [`spec.routing`](#model-routing) (gateway-native model routing) above - the field was renamed from `spec.routing` to `spec.gatewayAPI` to free that name for model routing.
@@ -1427,15 +1456,15 @@ The `Gateway` status surfaces:
 - `a2aAgents[]` / `a2aAgentCount` - the sorted `name=url` entries (static plus discovered) the pod is configured with, mirroring `A2A_AGENTS`, and their count (`0` when A2A is disabled). See [A2A Agents (`spec.a2a`)](#a2a-agents-spec-a2a).
 - `conditions[]` - standard `Available` / `Progressing` / `ReplicaFailure` conditions.
 
-`kubectl get gateways` prints the two counts as the `MCPS` and `A2A` columns, so a wired-up gateway is visible without `describe`:
+`kubectl get gateways` prints the two counts as the `MCPS` and `A2A` columns, so a wired-up gateway is visible without `describe`. The `AUDIO` column next to them is [`spec.audio.enabled`](#audio-spec-audio), which defaults to `false` so the column always shows a value:
 
 ```bash
 kubectl get gateways -n inference-gateway
 ```
 
 ```text
-NAME         URL                                   PORT   PROVIDERS   MCPS   A2A   AGE
-my-gateway   https://api.inference-gateway.local   8080   openai      3      2     5m
+NAME         URL                                   PORT   PROVIDERS   MCPS   A2A   AUDIO   AGE
+my-gateway   https://api.inference-gateway.local   8080   openai      3      2     false   5m
 ```
 
 Read the full agent list the same way as the MCP one:

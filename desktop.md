@@ -425,13 +425,16 @@ The feature needs the first `infer` release after **v0.254.0**, the one whose da
 
 #### What a workspace computer can do
 
-Three switches in the form decide what the workspace's computers can do. Each one is a view over the workspace's **Environment** and **User data**, so ticking a switch writes those entries and unticking it takes them away again - you can still read or edit the same lines in the two fields below:
+Four switches in the form decide what the workspace's computers can do. Each one is a view over the workspace's **Environment** and **User data**, so ticking a switch writes those entries and unticking it takes them away again - you can still read or edit the same lines in the two fields below:
 
-| Switch           | What it writes                                                                                                                                                                                              |
-| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Computer use** | `INFER_COMPUTER_USE_ENABLED=true` and `INFER_COMPUTER_USE_APPROVAL=never` in **Environment**, so an agent sees and drives the screen without an approval per click                                          |
-| **Browser use**  | The boot script that installs **Firefox** with the [opentask extension](/opentask/) in **User data**, bridged to the pod's own daemon, so the agent uses the cheaper `browser_*` tools instead of the mouse |
-| **Recording**    | `INFER_COMPUTER_USE_RECORDING_ENABLED=true`, `INFER_COMPUTER_USE_RECORDING_REQUIRE_APPROVAL=false` and `INFER_COMPUTER_USE_RECORDING_OUTPUT_DIR=/home/infer/.infer/artifacts` in **Environment**            |
+| Switch             | What it writes                                                                                                                                                                                              |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Computer use**   | `INFER_COMPUTER_USE_ENABLED=true` and `INFER_COMPUTER_USE_APPROVAL=never` in **Environment**, so an agent sees and drives the screen without an approval per click                                          |
+| **Browser use**    | The boot script that installs **Firefox** with the [opentask extension](/opentask/) in **User data**, bridged to the pod's own daemon, so the agent uses the cheaper `browser_*` tools instead of the mouse |
+| **Recording**      | `INFER_COMPUTER_USE_RECORDING_ENABLED=true`, `INFER_COMPUTER_USE_RECORDING_REQUIRE_APPROVAL=false` and `INFER_COMPUTER_USE_RECORDING_OUTPUT_DIR=/home/infer/.infer/artifacts` in **Environment**            |
+| **Text to speech** | `INFER_TEXT_TO_SPEECH_ENABLED=true`, `INFER_TEXT_TO_SPEECH_MODEL=local/qwen3-tts` and `INFER_TEXT_TO_SPEECH_REQUIRE_APPROVAL=false` in **Environment**, plus `forward_voice_samples: true` on the workspace |
+
+**Text to speech also sends your voice samples along.** `forward_voice_samples` is not an environment variable: it carries this computer's [voice samples library](#voice-samples) with every teleport to the workspace, so an agent there clones from a sample by its bare name the way it does at home - see [Sessions on a workspace](/cli-text-to-speech/#sessions-on-a-workspace). And because the variable turns on a tool that needs the Audio API, the cluster's shared gateway comes up with [`spec.audio.enabled`](/operator/#audio-spec-audio) and a 16Gi memory limit, which needs the operator at **v0.37.0 or newer** - the [provisioned local cluster](#compute) installs it.
 
 **Recording is what gives a computer the recording tools.** [`RecordStart` and `RecordStop`](/cli/#screen-recording) are absent from an agent's payload until the workspace has those variables, and with them the agent records a take of its own screen unattended and writes the MP4 next to its other artifacts.
 
@@ -441,7 +444,7 @@ Three switches in the form decide what the workspace's computers can do. Each on
 
 A workspace saved **before these switches existed** keeps running exactly as it was, with none of the variables. Tick what it should have and save, and the computers created **after** that - a new chat, or one you move there - come up with it. A machine already running keeps the tools it started with.
 
-**Settings -> General covers this computer only.** The [**Computer Use**](/cli/#computer-use) and [**Browser Use**](#browser-use-opentask-extension) toggles there act on your own machine and never reach a workspace's computers - what an agent on a workspace may do is decided by these three switches.
+**Settings -> General covers this computer only.** The [**Computer Use**](/cli/#computer-use) and [**Browser Use**](#browser-use-opentask-extension) toggles there act on your own machine and never reach a workspace's computers - what an agent on a workspace may do is decided by these four switches.
 
 **A workspace's `secrets` are managed from the [Secrets](#secrets) tab**, not here. That list names the Kubernetes Secrets the workspace's pod reads, and assigning a secret to a workspace is what writes it - an edit in this form leaves the list alone.
 
@@ -1385,7 +1388,7 @@ The other direction - spoken audio out - is handled by the [`infer` CLI's `TextT
 
 Saving writes `text_to_speech.enabled` to `~/.infer/config.yaml` and, if the toggle changed, restarts the desktop-owned gateway - the same restart path as saving an API key. The restart is what makes the feature work: the gateway reads `AUDIO_ENABLED=true` and `AUDIO_LOCAL_AUTO_DOWNLOAD=true` at spawn, and those are only passed while the toggle is on, so [`POST /v1/audio/speech`](/api-reference/#audio-api) is unreachable until the gateway comes back up.
 
-Only `enabled` is written. The other keys in the `text_to_speech` section - `engine`, `model`, `voice`, `output_dir` and the rest of the [configuration reference](/cli-text-to-speech/#configuration-reference) - are CLI-managed and pass through untouched, so a config you tuned for the CLI survives a save from the desktop.
+Only `enabled` is written. The other keys in the `text_to_speech` section - `model`, `voice`, `output_dir` and the rest of the [configuration reference](/cli-text-to-speech/#configuration-reference) - are CLI-managed and pass through untouched, so a config you tuned for the CLI survives a save from the desktop.
 
 ### Playback in the transcript
 
@@ -1393,11 +1396,17 @@ A WAV produced by the tool renders inline in the transcript as an audio player r
 
 The same player is used for [voice samples](#voice-samples).
 
-**Output-dir caveat:** only WAVs inside the app's asset scope can be played or downloaded - the [media root](/cli/#media-directories) of the project whose sessions the app runs (`tts/` under it is the default `text_to_speech.output_dir`), plus `~/.infer/models/tts/samples/` and the legacy `~/.infer/tts/`. Point `output_dir` at a directory outside those and the turn degrades to a plain tool card showing the path - the audio is still generated, it just cannot be played or downloaded from the app.
+**Output-dir caveat:** only WAVs inside the app's asset scope can be played or downloaded - the [media root](/cli/#media-directories) of the project whose sessions the app runs (`tts/` under it is the default `text_to_speech.output_dir`), plus `~/.infer/voice/samples/` and the legacy `~/.infer/tts/`. Point `output_dir` at a directory outside those and the turn degrades to a plain tool card showing the path - the audio is still generated, it just cannot be played or downloaded from the app.
 
 ### Voice samples
 
-**Settings -> Voice samples** is a managed library of WAV reference recordings for zero-shot voice cloning, stored flat in `~/.infer/models/tts/samples/` (created on first use, next to the CLI's TTS model cache). Only `.wav` files are listed, non-recursively, sorted by name.
+**Settings -> Voice samples** is a managed library of WAV reference recordings for zero-shot voice cloning, stored flat in `~/.infer/voice/samples/` (created on first use). Only `.wav` files are listed, non-recursively, sorted by name.
+
+The library used to live at `~/.infer/models/tts/samples/`, next to the CLI's TTS model cache. Move an existing one over once and both the app and the CLI find it again:
+
+```bash
+mkdir -p ~/.infer/voice && mv ~/.infer/models/tts/samples ~/.infer/voice/samples
+```
 
 | Action      | How                                                                                                                                           |
 | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
