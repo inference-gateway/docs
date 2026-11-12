@@ -513,6 +513,45 @@ Daemon -> client, the whole file in base64:
 - `data` carries the file in **one frame, capped at 64 MiB**, the binding's frame limit. A larger file answers with `error` naming its size instead.
 - `error` replaces the payload on both replies when the directory cannot be read, the name is refused or the file is missing.
 
+### Conversation rewind
+
+A client can send an earlier prompt again: the worker drops that prompt and everything after it from the conversation, then runs the prompt as a new turn. This is what the [desktop app's **Resend prompt** button](/desktop/#resending-a-prompt) uses.
+
+Client -> daemon, name the prompt by its text:
+
+```json
+{
+  "type": "rewind_conversation",
+  "project_dir": "/abs/path/to/project",
+  "id": "<conversation id>",
+  "content": "<the prompt's text>",
+  "occurrence": 1
+}
+```
+
+Daemon -> client, the conversation as it is after the deletion:
+
+```json
+{ "type": "conversation_rewound", "id": "<conversation id>", "messages": [] }
+```
+
+Daemon -> client, when the worker refused:
+
+```json
+{
+  "type": "conversation_rewound",
+  "id": "<conversation id>",
+  "messages": null,
+  "error": "the conversation has no such prompt"
+}
+```
+
+- The deletion is **permanent** and has no confirmation step, the same as the chat TUI's restore.
+- `occurrence` counts the times the user sent that exact text, from the newest. `1`, or no `occurrence` at all, is the last time.
+- The frame runs **only on the session its `project_dir` and `id` name**. A session that is not open answers `RUN_ERROR`.
+- A worker that is **running a turn, or has one queued, refuses** and leaves the conversation as it was. So does one whose conversation has no such prompt. `error` says which it was and `messages` is `null`.
+- A prompt sent with an [`@file` reference](#project-file-references) cannot be resent until the chat is reopened, because the worker stores the expanded text rather than the token. Nothing is deleted in that case.
+
 ### A2A peer endpoint
 
 A **peer daemon** can carry the daemon-to-daemon teleport vocabulary over A2A JSON-RPC instead of the WebSocket, which is what a [workspace entry](/cli/#workspace-kinds) with `protocol: a2a` dials. The binding serves it at `POST /a2a` on the same listener, behind the same auth as the socket - the bearer token, or a client certificate the listener verified - and the frames themselves are unchanged. Extension and desktop clients keep using the WebSocket.
@@ -594,6 +633,8 @@ Browser and session frames specific to this transport; the AG-UI and CUSTOM even
 | `artifacts`                           | daemon -> client | Artifact list with `name`, `size`, `modified_at`                                 |
 | `read_artifact`                       | client -> daemon | Read one artifact of a session by file name                                      |
 | `artifact`                            | daemon -> client | The artifact's bytes in base64, capped at 64 MiB                                 |
+| `rewind_conversation`                 | client -> daemon | Drop a prompt and everything after it, named by `content` and `occurrence`       |
+| `conversation_rewound`                | daemon -> client | The conversation after the deletion, or `error` with `messages` as `null`        |
 
 ## Related
 
