@@ -21,7 +21,7 @@ concurrency:
 jobs:
   preview:
     name: Deploy preview
-    if: github.event.action != 'closed' && github.actor != 'dependabot[bot]'
+    if: github.event.action != 'closed' && github.actor != 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-24.04
     environment:
       name: preview-pr-${{ github.event.number }}
@@ -38,6 +38,8 @@ jobs:
 
       - name: Checkout
         uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2.2.0
@@ -58,21 +60,23 @@ jobs:
           echo "url=https://preview-$alias.inference-gateway.com" >> "$GITHUB_OUTPUT"
 
       - name: Upload preview version
-        run: bunx wrangler@4.123.0 versions upload --preview-alias "${{ steps.alias.outputs.alias }}"
+        run: bunx wrangler@4.123.0 versions upload --preview-alias "$ALIAS"
         env:
+          ALIAS: ${{ steps.alias.outputs.alias }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
       - name: Comment preview URL
         run: |
-          gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --edit-last --create-if-none --body ":rocket: Preview deployed: https://preview-${{ steps.alias.outputs.alias }}.inference-gateway.com"
+          gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --edit-last --create-if-none --body ":rocket: Preview deployed: $URL"
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           PR: ${{ github.event.number }}
+          URL: ${{ steps.alias.outputs.url }}
 
   teardown:
     name: Destroy preview
-    if: github.event.action == 'closed' && github.actor != 'dependabot[bot]'
+    if: github.event.action == 'closed' && github.actor != 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/create-github-app-token@v3.3.0
@@ -86,6 +90,8 @@ jobs:
 
       - name: Checkout
         uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2.2.0
@@ -100,8 +106,9 @@ jobs:
         run: |
           mkdir -p .tombstone
           printf '<!doctype html><title>Preview destroyed</title><h1>410</h1><p>This preview environment was destroyed when its pull request closed.</p>' > .tombstone/index.html
-          bunx wrangler@4.123.0 versions upload --assets .tombstone --preview-alias "${{ steps.alias.outputs.alias }}"
+          bunx wrangler@4.123.0 versions upload --assets .tombstone --preview-alias "$ALIAS"
         env:
+          ALIAS: ${{ steps.alias.outputs.alias }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
