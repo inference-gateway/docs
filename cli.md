@@ -294,7 +294,7 @@ infer version
 | `infer headless <task>`  | Autonomous task execution        | Background operation, task planning, validation                  |
 | `infer headless --serve` | Long-lived AG-UI worker          | One run per `run_agent_input` frame over stdio, no task argument |
 | `infer config <cmd>`     | Configuration management         | Generic `get`/`set` for any config key                           |
-| `infer tools <cmd>`      | Run agent tools directly         | Execute a tool or validate a bash command                        |
+| `infer tools <cmd>`      | Run agent tools directly         | List the tools, execute one or validate a bash command           |
 | `infer stats`            | Summarize local telemetry        | Token usage, tool outcomes, and cost across sessions             |
 | `infer traces`           | View a session's trace span tree | Offline span-tree viewer, `--list` and JSON output               |
 
@@ -3265,9 +3265,13 @@ infer config get tools
 
 ### Running Tools Directly
 
-Run any enabled tool outside a chat session, or check whether a bash command would pass the allowed-list, with the top-level `infer tools` command.
+List the tools the agent can call, run any enabled tool outside a chat session, or check whether a bash command would pass the allowed-list, with the top-level `infer tools` command.
 
 ```bash
+# List the tools the agent can call, sorted by name
+infer tools list
+infer tools list --format json
+
 # Execute a tool by name with JSON arguments (tool names are case-insensitive)
 infer tools execute Read '{"file_path":"README.md"}'
 infer tools execute grep '{"pattern":"func main","path":"."}'
@@ -3278,6 +3282,8 @@ infer tools validate "git status"
 # Gate a command on the allowed-list
 infer tools validate "$cmd" && eval "$cmd"
 ```
+
+`infer tools list` prints the tools the agent can call with the effective configuration. `--format json` prints `{"tools": [...], "total": n}`, the list clients such as the desktop status bar count from. MCP server tools are not listed - they register once their servers connect, and `infer mcp status` counts them.
 
 `infer tools execute <tool> [json-args]` resolves tool names case-insensitively in the CLI - the agent itself still uses the exact PascalCase names. `infer tools validate <command>` reports whether a bash command would be permitted by the configured allowed-list, without executing it.
 
