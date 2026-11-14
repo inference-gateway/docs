@@ -951,7 +951,7 @@ With `AUDIO_LOCAL_AUTO_DOWNLOAD=false` the gateway never downloads anything and 
 POST /v1/audio/sfx?provider={provider}
 ```
 
-Two providers serve it today: `elevenlabs`, with `eleven_text_to_sound_v2`, and `mirelo`, with `mirelo/sfx-2.0`. Mirelo serves sound effects only - it has no speech or music endpoint - and it also [scores a video](#scoring-a-video) when the body is `multipart/form-data` instead of JSON.
+Two providers serve it today: `elevenlabs`, with `eleven_text_to_sound_v2`, and `mirelo`, with `mirelo/sfx-2.0`. Mirelo serves sound effects only - it has no speech or music endpoint. Both [score a video](#scoring-a-video) when the body is `multipart/form-data` instead of JSON, Mirelo with `mirelo/sfx-2.0` and ElevenLabs with one of its music models.
 
 ```bash
 curl -X POST http://localhost:8080/v1/audio/sfx \
@@ -1039,7 +1039,7 @@ The CLI wraps this endpoint in the opt-in [`TextToSFX` tool](/cli/#texttosfx-too
 
 ##### Scoring a video
 
-The same endpoint scores a video when the body is `multipart/form-data` with a `video` part instead of JSON: Mirelo watches the clip and generates the sound that fits it, optionally keeping or separating the speech already in it. Only `mirelo/sfx-2.0` serves this form - the JSON body stays the way to generate from a prompt alone.
+The same endpoint scores a video when the body is `multipart/form-data` with a `video` part instead of JSON: the provider watches the clip and generates the sound that fits it. Two providers serve this form - `mirelo/sfx-2.0` and an ElevenLabs music model such as `elevenlabs/music_v2_5` - and the model you name decides which fields apply. The JSON body stays the way to generate from a prompt alone.
 
 ```bash
 curl -X POST http://localhost:8080/v1/audio/sfx \
@@ -1052,18 +1052,36 @@ curl -X POST http://localhost:8080/v1/audio/sfx \
 
 The response is the raw audio bytes, exactly as for the JSON form. The form fields:
 
-| Field                  | Type      | Required | Description                                                                                                                                                                       |
-| ---------------------- | --------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `model`                | `string`  | Yes      | `mirelo/sfx-2.0`.                                                                                                                                                                 |
-| `video`                | `file`    | Yes      | The clip to score. The gateway uploads it to Mirelo as an asset.                                                                                                                  |
-| `prompt`               | `string`  |          | Description of the sound you want over the clip. Omit it to let Mirelo decide from what it sees.                                                                                  |
-| `duration_seconds`     | `number`  |          | Length of the window to score. Omit it to score the whole clip.                                                                                                                   |
-| `start_offset_seconds` | `number`  |          | Where in the clip the scored window starts. Defaults to the beginning.                                                                                                            |
-| `preserve_speech`      | `boolean` |          | Keep the clip's own dialogue under the generated sound.                                                                                                                           |
-| `output`               | `string`  |          | Which track comes back: `mix` (default), `sfx` (the generated sound alone, which turns `preserve_speech` off unless you set it) or `speech` (the clip's dialogue, separated out). |
-| `response_format`      | `string`  |          | `mp3` (default) or `flac`.                                                                                                                                                        |
+| Field                  | Type      | Required | Providers       | Description                                                                                                                                                                       |
+| ---------------------- | --------- | -------- | --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `model`                | `string`  | Yes      | Both            | `mirelo/sfx-2.0`, or an ElevenLabs music model such as `elevenlabs/music_v2_5`.                                                                                                   |
+| `video`                | `file`    | Yes      | Both            | The clip to score. On Mirelo the gateway uploads it as an asset. On ElevenLabs the part may repeat to score several clips as one timeline.                                        |
+| `prompt`               | `string`  |          | Both            | Description of the sound you want over the clip. Omit it to let the provider decide from what it sees.                                                                            |
+| `duration_seconds`     | `number`  |          | Mirelo          | Length of the window to score. Omit it to score the whole clip. ElevenLabs answers `400 Bad Request` naming the field.                                                            |
+| `start_offset_seconds` | `number`  |          | Mirelo          | Where in the clip the scored window starts. Defaults to the beginning. ElevenLabs answers `400 Bad Request` naming the field.                                                     |
+| `preserve_speech`      | `boolean` |          | Mirelo          | Keep the clip's own dialogue under the generated sound. ElevenLabs answers `400 Bad Request` naming the field.                                                                    |
+| `output`               | `string`  |          | Both, see notes | Which track comes back: `mix` (default), `sfx` (the generated sound alone, which turns `preserve_speech` off unless you set it) or `speech` (the clip's dialogue, separated out). |
+| `response_format`      | `string`  |          | Both, see notes | `mp3` (default) or `flac` on Mirelo. `mp3` (default), `opus` or `pcm` on ElevenLabs.                                                                                              |
 
-**The upload shares the request body limit.** The whole multipart body must fit inside `SERVER_MAX_REQUEST_BODY_SIZE` (10 MiB by default) or the gateway answers `413 Request Entity Too Large` before the clip reaches Mirelo - shorten or re-encode the video, or raise the limit.
+**ElevenLabs scores the whole clip in one call.** The request goes to ElevenLabs' video-to-music API, which answers with the audio directly instead of a job to poll, so the response comes back on the same call. It needs a paid ElevenLabs plan. It also always scores the clip end to end: `duration_seconds`, `start_offset_seconds`, `preserve_speech` and `output=speech` each answer `400 Bad Request` naming the field, because there is no window to narrow and no speech track to separate. Mirelo serves all four.
+
+**`output` on ElevenLabs.** `mix`, the default, returns the single mixed file. `output=sfx` returns the generated sound effects alone - ElevenLabs answers with an archive of separate tracks, and the gateway unpacks the sound-effects track from it so the response is still plain audio bytes.
+
+**Several clips as one timeline.** Repeat the `video` part on ElevenLabs and the clips are scored in order as a single timeline, within the 10 clips, 200 MB and 600 seconds ElevenLabs allows for the combined request - and within `SERVER_MAX_REQUEST_BODY_SIZE`, which is the lower ceiling at its default.
+
+```bash
+curl -X POST http://localhost:8080/v1/audio/sfx \
+  -H "Authorization: Bearer $INFERENCE_GATEWAY_API_KEY" \
+  -F model="elevenlabs/music_v2_5" \
+  -F video="@shot-1.mp4" \
+  -F video="@shot-2.mp4" \
+  -F prompt="slow strings building under a city at dusk" \
+  -F output="sfx" \
+  -F response_format="opus" \
+  -o scored.opus
+```
+
+**The upload shares the request body limit.** The whole multipart body must fit inside `SERVER_MAX_REQUEST_BODY_SIZE` (10 MiB by default) or the gateway answers `413 Request Entity Too Large` before the clip reaches the provider - shorten or re-encode the video, or raise the limit.
 
 **Credits.** Mirelo bills `duration x variants` at the same rate as text-to-sfx, so scoring a whole clip costs what generating a clip of that length costs.
 
