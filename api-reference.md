@@ -1211,9 +1211,9 @@ The SDKs wrap this endpoint as a single call that returns the raw audio: [`creat
 
 ### Videos API
 
-Generate a video from a prompt, a reference image, or an audio clip. The API is shaped like the Videos API OpenAI retired on 2026-09-24 - it is a gateway API, not an OpenAI-compatible one - and is split into three operations because video generation is **asynchronous at every provider**: `POST /v1/videos` creates a job and returns at once, `GET /v1/videos/{video_id}` polls it, and `GET /v1/videos/{video_id}/content` downloads the rendered bytes once `status` is `completed`. All three require `VIDEOS_ENABLED=true`; while disabled they return `404 Not Found`.
+Generate a video from a prompt, a reference image, or an audio clip - or [dub an existing clip](#dubbing-a-video) by uploading it. The API is shaped like the Videos API OpenAI retired on 2026-09-24 - it is a gateway API, not an OpenAI-compatible one - and is split into three operations because video generation is **asynchronous at every provider**: `POST /v1/videos` creates a job and returns at once, `GET /v1/videos/{video_id}` polls it, and `GET /v1/videos/{video_id}/content` downloads the rendered bytes once `status` is `completed`. All three require `VIDEOS_ENABLED=true`; while disabled they return `404 Not Found`.
 
-`elevenlabs` is the only provider that serves it today, with `elevenlabs/creatify-aurora` - a talking-avatar model that renders at `480p` or `720p`. Set `ELEVENLABS_API_KEY` (and optionally `ELEVENLABS_API_URL`) so the gateway can authenticate - see [Configuration](/configuration/#elevenlabs).
+Two providers serve it today. `elevenlabs` renders with `elevenlabs/creatify-aurora` - a talking-avatar model that renders at `480p` or `720p`. `mirelo` does not render a clip from scratch: it [dubs one you upload](#dubbing-a-video), generating the sound that fits the footage and returning the same clip with that sound as its new soundtrack. Set `ELEVENLABS_API_KEY` (and optionally `ELEVENLABS_API_URL`) so the gateway can authenticate - see [Configuration](/configuration/#elevenlabs) - or `MIRELO_API_KEY` (and optionally `MIRELO_API_URL`) for Mirelo, see [Configuration](/configuration/#mirelo).
 
 The gateway keeps **no job state**. The job `id` is opaque - it may encode the provider - and must be sent back verbatim; the two `GET` operations take the same optional `provider` query parameter as `POST` for when the id alone is not enough to route the request.
 
@@ -1264,8 +1264,16 @@ The `CreateVideoRequest` fields:
 | `input_reference`  | `file`   |          | Image used as the first frame or, for avatar models, the portrait to animate.                                                                                                                                                                                                                                    |
 | `reference_images` | `file[]` |          | Repeated binary parts carrying reference images of the subject - the same person or object from several angles - for models that keep a character consistent across shots. Distinct from `input_reference`; avatar (lip-sync) models ignore it. See [Reference images](#reference-images).                       |
 | `audio`            | `file`   |          | **Non-standard**: an `audio/wav` or `audio/mpeg` clip that drives a talking-avatar render. When present, the model lip-syncs `input_reference` to it and the video lasts as long as the clip, so `seconds` is ignored. Forwarded as-is; only providers with avatar support honor it, others ignore or reject it. |
-| `seconds`          | `string` |          | Requested duration in seconds, as a string (`4`, `8`, `12`). Providers accept a limited set; omit for the provider default. Ignored when `audio` is present.                                                                                                                                                     |
-| `size`             | `string` |          | Requested resolution as `widthxheight` (for example `720x1280`). Providers accept a limited set - `creatify-aurora` maps to `480p` and `720p`. Omit for the provider default.                                                                                                                                    |
+| `video`            | `file`   |          | **Non-standard**: the clip to [dub](#dubbing-a-video). Mutually exclusive with `input_reference` and `reference_images` - sending it alongside either answers `400 Bad Request`.                                                                                                                                 |
+| `seconds`          | `string` |          | Requested duration in seconds, as a string (`4`, `8`, `12`). Providers accept a limited set; omit for the provider default. Ignored when `audio` is present. When dubbing, the length of the window to score instead.                                                                                            |
+| `size`             | `string` |          | Requested resolution as `widthxheight` (for example `720x1280`). Providers accept a limited set - `creatify-aurora` maps to `480p` and `720p`. Omit for the provider default. Ignored when dubbing, which keeps the uploaded clip's resolution.                                                                  |
+
+Two more fields apply only when `video` is present - see [Dubbing a video](#dubbing-a-video):
+
+| Field                  | Type      | Required | Description                                                                     |
+| ---------------------- | --------- | -------- | ------------------------------------------------------------------------------- |
+| `start_offset_seconds` | `number`  |          | Where in the clip the scored window starts. Defaults to the beginning.          |
+| `preserve_speech`      | `boolean` |          | Keep the clip's own dialogue under the generated sound instead of replacing it. |
 
 #### Reference images
 
@@ -1305,6 +1313,60 @@ Every part counts against the gateway's request body limit: `SERVER_MAX_REQUEST_
 A model the gateway knows renders from a prompt - `elevenlabs/veo-3.1-*`, `bytedance-seedance-v2*` - **answers `400 Bad Request`** when `audio` is sent, rather than rendering a silent clip that ignores it. Send `audio` to an avatar model, and `input_reference` along with it: `audio` without a portrait is also a `400`. Models the gateway does not recognize are left to the provider.
 
 A common pipeline synthesizes the dialogue first with [`/v1/audio/speech`](#speech-synthesis), then feeds the resulting file to `/v1/videos` as `audio`.
+
+#### Dubbing a video
+
+Send a `video` part and the endpoint dubs instead of renders: the gateway uploads the clip to Mirelo, which generates the sound that fits what it sees and re-renders the clip with that sound as its new soundtrack. The job is asynchronous like any other video job - create, poll, download - and the id carries a `mirelo:` prefix.
+
+```bash
+curl -X POST http://localhost:8080/v1/videos \
+  -H "Authorization: Bearer $INFERENCE_GATEWAY_API_KEY" \
+  -F model=mirelo/sfx-2.0 \
+  -F video=@scene.mov \
+  -F prompt="soft keyboard taps, gentle office ambience" \
+  -F seconds=8 \
+  -F start_offset_seconds=2 \
+  -F preserve_speech=true
+```
+
+```http
+Status: 200 OK
+Content-Type: application/json
+
+{
+  "id": "mirelo:job_01k7c3b9ts",
+  "object": "video",
+  "model": "mirelo/sfx-2.0",
+  "status": "queued",
+  "progress": 0,
+  "created_at": 1758550200,
+  "completed_at": null,
+  "seconds": "8",
+  "size": null,
+  "error": null
+}
+```
+
+Poll it with `GET /v1/videos/mirelo:job_01k7c3b9ts`, which maps Mirelo's own job state onto the usual `queued`, `in_progress`, `completed` and `failed`, then download the dubbed MP4:
+
+```bash
+curl http://localhost:8080/v1/videos/mirelo:job_01k7c3b9ts/content \
+  -H "Authorization: Bearer $INFERENCE_GATEWAY_API_KEY" \
+  -o dubbed.mp4
+```
+
+The dubbing-only fields, and what the shared ones mean here:
+
+- `video` - the clip, required. It replaces `input_reference` and `reference_images`, which cannot be sent with it.
+- `prompt` - what the sound should be. Omit it and Mirelo decides from the footage alone.
+- `seconds` and `start_offset_seconds` - the window to score. Omit `seconds` to score the rest of the clip from `start_offset_seconds` on.
+- `preserve_speech` - keeps the dialogue already in the clip under the generated sound.
+
+Mirelo's limits:
+
+- **Only the mix is laid onto the clip.** The separated `sfx` and `speech` tracks are not available as video - get them as audio from [`POST /v1/audio/sfx`](#scoring-a-video) with `output: sfx` or `output: speech`.
+- **`sfx-1.6` with `preserve_speech` caps the scored window at 60 seconds.** Longer windows are rejected - split the clip or drop `preserve_speech`.
+- **The upload shares the request body limit.** The whole multipart body must fit inside `SERVER_MAX_REQUEST_BODY_SIZE` (10 MiB by default) or the gateway answers `413 Request Entity Too Large` before the clip reaches Mirelo.
 
 #### Poll the job
 
