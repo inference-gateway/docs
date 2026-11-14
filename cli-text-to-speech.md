@@ -32,6 +32,19 @@ text_to_speech:
 
 Leaving `require_approval` unset is not the same as setting it to `false`: unset keeps the tool's own default, an explicit value pins the policy.
 
+### An ElevenLabs voice
+
+The tool writes WAV, and ElevenLabs serves `wav` natively at 48 kHz, so an ElevenLabs model works too - put its **voice id** in `voice`:
+
+```yaml
+text_to_speech:
+  enabled: true
+  model: elevenlabs/eleven_v4_turbo
+  voice: 21m00Tcm4TlvDq8ikWAM # ElevenLabs voice id, stock or cloned in your account
+```
+
+The gateway needs `ELEVENLABS_API_KEY` - see [Configuration](/configuration/#elevenlabs). A `voice_sample` is not cloned by ElevenLabs: clone the voice in your ElevenLabs account and use its id here instead.
+
 ## The gateway's Audio API
 
 The gateway serves `/v1/audio/speech` only when it runs with `AUDIO_ENABLED=true`.
@@ -87,7 +100,7 @@ With `text_to_speech.enabled` set, the agent gains a `TextToSpeech` tool:
 
 In chat, just ask: _"say this out loud and write it to say.wav"_ for a stock voice, or _"read this in the voice of narrator.wav"_ to clone.
 
-Cloning works where the model supports it. `local/qwen3-tts` clones from the sample, and providers without cloning support, such as OpenAI, ignore or reject it.
+Cloning works where the model supports it. `local/qwen3-tts` clones from the sample, and providers without cloning support, such as OpenAI and ElevenLabs, ignore or reject it.
 
 ### The voice samples library
 
