@@ -1,6 +1,6 @@
 ---
 title: Supported Providers
-description: Provider matrix for Inference Gateway covering OpenAI, Anthropic, Cohere, Groq, Cloudflare, Ollama, Ollama Cloud, Google, DeepSeek, Mistral, MiniMax, Moonshot, Nvidia, the audio-only ElevenLabs (speech, sound effects, music and avatar videos) and Mirelo (sound effects), with auth modes, default URLs, vision support, and per-provider request examples.
+description: Provider matrix for Inference Gateway covering OpenAI, Anthropic, Cohere, Groq, Cloudflare, Ollama, Ollama Cloud, Google, DeepSeek, Mistral, MiniMax, Moonshot, Nvidia, the audio-only ElevenLabs (speech, sound effects, music and avatar videos) and Mirelo (sound effects and video dubbing), with auth modes, default URLs, vision support, and per-provider request examples.
 ---
 
 # Supported Providers
@@ -535,6 +535,8 @@ curl -s 'http://localhost:8080/v1/models?provider=elevenlabs&include=modalities'
 Mirelo is sound-effects-only: it serves [sound effects](/api-reference/#sound-effects) through `POST /v1/audio/sfx` with models such as `mirelo/sfx-2.0`. It has no chat-completions, speech or music API.
 
 It is also the only provider that [scores a video](/api-reference/#scoring-a-video): send the same endpoint a `multipart/form-data` body with a `video` part and Mirelo generates the sound that fits the clip, keeping or separating the speech already in it.
+
+The same clip comes back dubbed - the generated sound laid onto the footage as its new soundtrack - from the [Videos API](/api-reference/#dubbing-a-video), where Mirelo joins `elevenlabs` as a provider behind `VIDEOS_ENABLED`. Send `POST /v1/videos` a `video` part, poll the `mirelo:`-prefixed job and download the MP4.
 
 List available models:
 
