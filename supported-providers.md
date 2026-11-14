@@ -517,9 +517,11 @@ curl http://localhost:8080/v1/models?provider=zai
 
 ### ElevenLabs Provider
 
-ElevenLabs is audio-only: [speech](/api-reference/#elevenlabs-voices), [sound effects](/api-reference/#sound-effects), [music](/api-reference/#music) and [avatar videos](/api-reference/#videos-api). It has no chat-completions API.
+ElevenLabs is media-only: [speech](/api-reference/#elevenlabs-voices), [sound effects](/api-reference/#sound-effects), [music](/api-reference/#music), [avatar videos](/api-reference/#videos-api) and [image edits](/api-reference/#elevenlabs-image-edits). It has no chat-completions API.
 
-ElevenLabs' own models endpoint lists speech models only. The gateway appends the sound-effect (`eleven_text_to_sound_v2`), music (`music_v2`, `music_v2_5`) and video (`creatify-aurora`) models to `/v1/models` so clients can discover them. Filter on `modalities` to pick the ones you need:
+Image edits go through `POST /v1/images/edits` with the `gpt-image-*` (`gpt-image-1`, `gpt-image-1.5`, `gpt-image-2`, `gpt-image-2.5-flare`, `gpt-image-2.5-sunburst`), `bytedance-seedream-5-*` and `gemini-*-image` models under the `elevenlabs/` prefix, so one ElevenLabs key covers editing a portrait, voicing it and lip-syncing it. Image generation (`POST /v1/images/generations`) is not served - send the source image to the edit endpoint instead.
+
+ElevenLabs' own models endpoint lists speech models only. The gateway appends the sound-effect (`eleven_text_to_sound_v2`), music (`music_v2`, `music_v2_5`), video (`creatify-aurora`, `veo-3.1-*`, `bytedance-seedance-v2*`) and image-edit (`gpt-image-*`, `bytedance-seedream-5-*`, `gemini-*-image`) models to `/v1/models` so clients can discover them. Filter on `modalities` to pick the ones you need:
 
 ```bash
 curl -s 'http://localhost:8080/v1/models?provider=elevenlabs&include=modalities' \

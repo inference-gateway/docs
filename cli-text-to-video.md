@@ -131,7 +131,21 @@ Creating an avatar **normalises the photo first**: a JPEG is turned upright acco
 
 `create` never overwrites an existing avatar - delete it first if you want to rebuild it.
 
-> **Privacy:** generating views uploads the photo to the image-edit provider (OpenAI by default), and an avatar render uploads the portrait and the audio clip to the video provider. Drop images into `~/.infer/avatars/<name>/` by hand to build a library without the image-edit round trip.
+> **Privacy:** generating views uploads the photo to the provider behind `tools.image_edit.model` (OpenAI by default), and an avatar render uploads the portrait and the audio clip to the video provider. Drop images into `~/.infer/avatars/<name>/` by hand to build a library without the image-edit round trip.
+
+#### With only an ElevenLabs key
+
+The gateway serves [image edits through ElevenLabs](/api-reference/#elevenlabs-image-edits) too, so an avatar needs no OpenAI key: point the [`ImageEdit` tool](/cli/#imageedit-tool) at an ElevenLabs image model and the generated views, the voice track and the render all run on the one key.
+
+```yaml
+# ~/.infer/tools.yaml
+tools:
+  image_edit:
+    enabled: true
+    model: elevenlabs/gpt-image-2
+```
+
+ElevenLabs renders an image as a job, so each generated view takes longer than an OpenAI edit - up to five minutes before the gateway gives up. `infer avatars create` generates two views by default, so expect the command to sit for a while; narrow `--angles` to one view, or pass `angles: []` to `CreateAvatar`, to store the photo alone.
 
 ### Creating avatars from chat
 

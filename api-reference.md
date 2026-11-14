@@ -667,6 +667,8 @@ Create and modify images using the OpenAI-compatible Images endpoints. Both retu
 
 Not every provider implements the Images API. Requests routed to a provider that does not support it return `400 Bad Request`; use `/v1/chat/completions` for those providers.
 
+`openai` serves both endpoints. `elevenlabs` serves [`/v1/images/edits`](#elevenlabs-image-edits) only, so a portrait can be edited, voiced and lip-synced with a single ElevenLabs key.
+
 #### Generations
 
 ```http
@@ -747,6 +749,41 @@ The form fields:
 | `response_format` | `string` |          | Response format: `url` (default) or `b64_json`.                |
 
 The response is the same `ImagesResponse` shown above.
+
+#### ElevenLabs image edits
+
+ElevenLabs has no OpenAI-shaped Images API, so the gateway translates the form into an ElevenLabs image generation and waits for it to finish - the same request and response shape as above, with a model such as `elevenlabs/gpt-image-2` (the `gpt-image-*`, `bytedance-seedream-5-*` and `gemini-*-image` models are all routable). Set `ELEVENLABS_API_KEY` so the gateway can authenticate - see [Configuration](/configuration/#elevenlabs).
+
+```bash
+curl -X POST "http://localhost:8080/v1/images/edits" \
+  -H "Authorization: Bearer $INFERENCE_GATEWAY_API_KEY" \
+  -F image="@front.jpg" \
+  -F prompt="The same person seen from a three-quarter left view" \
+  -F model="elevenlabs/gpt-image-2" \
+  -F size="1024x1536" \
+  -F quality="high"
+```
+
+```json
+{
+  "created": 1792570901,
+  "data": [{ "url": "https://.../signed/portrait.png" }]
+}
+```
+
+How the form fields map:
+
+| Field             | Behavior on ElevenLabs                                                                                                        |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `image`           | Sent as a reference image. Repeat the part (or use `image[]`) to send several.                                                |
+| `prompt`          | The edit to make, as everywhere else.                                                                                         |
+| `mask`            | Honored - its transparent areas mark where the edit applies.                                                                  |
+| `size`            | Reduced to an aspect ratio, so `1024x1536` becomes `2:3`. Must be `auto` or a `WIDTHxHEIGHT` the model's aspect ratios cover. |
+| `quality`         | `low`, `medium` and `high` are passed on; `auto` and `standard` leave the model's default.                                    |
+| `n`               | A generation yields one image, so anything above `1` answers `400 Bad Request`.                                               |
+| `response_format` | `url` (default) returns the signed URL ElevenLabs produced, valid for about an hour. `b64_json` has the gateway download it.  |
+
+ElevenLabs renders an image as a job while the OpenAI shape answers with the image, so the gateway holds the request open and polls - **expect a wait of up to five minutes**, after which the request gives up. Set client timeouts accordingly. A generation ElevenLabs declines (moderation, invalid parameters) comes back as `400 Bad Request`.
 
 #### Unsupported providers
 
@@ -1174,7 +1211,7 @@ The SDKs wrap this endpoint as a single call that returns the raw audio: [`creat
 
 ### Videos API
 
-Generate a video from a prompt, a reference image, or an audio clip. The API mirrors the OpenAI Videos API and is split into three operations because video generation is **asynchronous at every provider**: `POST /v1/videos` creates a job and returns at once, `GET /v1/videos/{video_id}` polls it, and `GET /v1/videos/{video_id}/content` downloads the rendered bytes once `status` is `completed`. All three require `VIDEOS_ENABLED=true`; while disabled they return `404 Not Found`.
+Generate a video from a prompt, a reference image, or an audio clip. The API is shaped like the Videos API OpenAI retired on 2026-09-24 - it is a gateway API, not an OpenAI-compatible one - and is split into three operations because video generation is **asynchronous at every provider**: `POST /v1/videos` creates a job and returns at once, `GET /v1/videos/{video_id}` polls it, and `GET /v1/videos/{video_id}/content` downloads the rendered bytes once `status` is `completed`. All three require `VIDEOS_ENABLED=true`; while disabled they return `404 Not Found`.
 
 `elevenlabs` is the only provider that serves it today, with `elevenlabs/creatify-aurora` - a talking-avatar model that renders at `480p` or `720p`. Set `ELEVENLABS_API_KEY` (and optionally `ELEVENLABS_API_URL`) so the gateway can authenticate - see [Configuration](/configuration/#elevenlabs).
 
@@ -1263,7 +1300,9 @@ Every part counts against the gateway's request body limit: `SERVER_MAX_REQUEST_
 
 #### Audio-driven avatars
 
-`audio` is a gateway extension the way `reference_audio` is on [`/v1/audio/speech`](#voice-cloning): OpenAI's Videos API has no audio field. Pair it with `input_reference` (the portrait) and the model lip-syncs the face to the clip; the output is exactly as long as the audio. Keep `prompt` to framing, lighting and camera notes - anything spoken must come from the clip, and a prompt that contains dialogue is not read aloud. Today only `elevenlabs/creatify-aurora` honors the field.
+`audio` is a gateway extension the way `reference_audio` is on [`/v1/audio/speech`](#voice-cloning): the retired OpenAI Videos API had no audio field. Pair it with `input_reference` (the portrait) and the model lip-syncs the face to the clip; the output is exactly as long as the audio. Keep `prompt` to framing, lighting and camera notes - anything spoken must come from the clip, and a prompt that contains dialogue is not read aloud. Today only `elevenlabs/creatify-aurora` honors the field.
+
+A model the gateway knows renders from a prompt - `elevenlabs/veo-3.1-*`, `bytedance-seedance-v2*` - **answers `400 Bad Request`** when `audio` is sent, rather than rendering a silent clip that ignores it. Send `audio` to an avatar model, and `input_reference` along with it: `audio` without a portrait is also a `400`. Models the gateway does not recognize are left to the provider.
 
 A common pipeline synthesizes the dialogue first with [`/v1/audio/speech`](#speech-synthesis), then feeds the resulting file to `/v1/videos` as `audio`.
 

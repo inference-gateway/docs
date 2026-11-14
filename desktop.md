@@ -1471,7 +1471,7 @@ Lip-sync takes a single image, so the **first image in sort order** is the one t
 
 > **Only your own likeness, or one you have the rights to use.** Do not create an avatar of someone else without their permission.
 
-**Privacy:** creating an avatar uploads the photo to the image-edit provider to generate the extra views, and every render uploads the portrait and the voice clip to the video provider. Nothing is stored as an avatar at either provider - the library is yours, on your disk. Drop images into `~/.infer/avatars/<name>/` by hand to skip the image-edit round trip entirely.
+**Privacy:** creating an avatar uploads the photo to the provider behind the image edit model - OpenAI by default, or ElevenLabs when `tools.image_edit.model` names an [ElevenLabs image model](/cli-text-to-video/#with-only-an-elevenlabs-key) - and every render uploads the portrait and the voice clip to the video provider. Nothing is stored as an avatar at either provider - the library is yours, on your disk. Drop images into `~/.infer/avatars/<name>/` by hand to skip the image-edit round trip entirely.
 
 ## Related
 
