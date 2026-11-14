@@ -517,7 +517,9 @@ curl http://localhost:8080/v1/models?provider=zai
 
 ### ElevenLabs Provider
 
-ElevenLabs is media-only: [speech](/api-reference/#elevenlabs-voices), [sound effects](/api-reference/#sound-effects), [music](/api-reference/#music), [avatar videos](/api-reference/#videos-api) and [image edits](/api-reference/#elevenlabs-image-edits). It has no chat-completions API.
+ElevenLabs is media-only: [speech](/api-reference/#elevenlabs-voices), [sound effects](/api-reference/#sound-effects), [music](/api-reference/#music), [video scoring](/api-reference/#scoring-a-video), [avatar videos](/api-reference/#videos-api) and [image edits](/api-reference/#elevenlabs-image-edits). It has no chat-completions API.
+
+Video scoring shares the sound-effects endpoint with Mirelo: a `multipart/form-data` body with a `video` part and a music model (`elevenlabs/music_v2_5`) is scored through ElevenLabs' video-to-music API, which answers in one call and needs a paid plan. It always scores the whole clip, so `preserve_speech`, `output=speech`, `start_offset_seconds` and `duration_seconds` answer `400 Bad Request` naming the field.
 
 Image edits go through `POST /v1/images/edits` with the `gpt-image-*` (`gpt-image-1`, `gpt-image-1.5`, `gpt-image-2`, `gpt-image-2.5-flare`, `gpt-image-2.5-sunburst`), `bytedance-seedream-5-*` and `gemini-*-image` models under the `elevenlabs/` prefix, so one ElevenLabs key covers editing a portrait, voicing it and lip-syncing it. Image generation (`POST /v1/images/generations`) is not served - send the source image to the edit endpoint instead.
 
@@ -534,7 +536,7 @@ curl -s 'http://localhost:8080/v1/models?provider=elevenlabs&include=modalities'
 
 Mirelo is sound-effects-only: it serves [sound effects](/api-reference/#sound-effects) through `POST /v1/audio/sfx` with models such as `mirelo/sfx-2.0`. It has no chat-completions, speech or music API.
 
-It is also the only provider that [scores a video](/api-reference/#scoring-a-video): send the same endpoint a `multipart/form-data` body with a `video` part and Mirelo generates the sound that fits the clip, keeping or separating the speech already in it.
+It also [scores a video](/api-reference/#scoring-a-video), as ElevenLabs does: send the same endpoint a `multipart/form-data` body with a `video` part and Mirelo generates the sound that fits the clip. Mirelo is the provider that keeps or separates the speech already in the clip and scores a window of it rather than the whole thing - those fields answer `400 Bad Request` on ElevenLabs.
 
 List available models:
 
