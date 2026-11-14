@@ -912,7 +912,7 @@ With `AUDIO_LOCAL_AUTO_DOWNLOAD=false` the gateway never downloads anything and 
 POST /v1/audio/sfx?provider={provider}
 ```
 
-Two providers serve it today: `elevenlabs`, with `eleven_text_to_sound_v2`, and `mirelo`, with `mirelo/sfx-2.0`. Mirelo serves sound effects only - it has no speech or music endpoint.
+Two providers serve it today: `elevenlabs`, with `eleven_text_to_sound_v2`, and `mirelo`, with `mirelo/sfx-2.0`. Mirelo serves sound effects only - it has no speech or music endpoint - and it also [scores a video](#scoring-a-video) when the body is `multipart/form-data` instead of JSON.
 
 ```bash
 curl -X POST http://localhost:8080/v1/audio/sfx \
@@ -997,6 +997,44 @@ The Go SDK does not wrap it yet - call it over plain HTTP in the meantime.
 Set `ELEVENLABS_API_KEY` (and optionally `ELEVENLABS_API_URL`) so the gateway can authenticate - see [Configuration](/configuration/#elevenlabs). For Mirelo, set `MIRELO_API_KEY` (and optionally `MIRELO_API_URL`) instead - see [Configuration](/configuration/#mirelo).
 
 The CLI wraps this endpoint in the opt-in [`TextToSFX` tool](/cli/#texttosfx-tool), so the agent can generate a clip during a chat.
+
+##### Scoring a video
+
+The same endpoint scores a video when the body is `multipart/form-data` with a `video` part instead of JSON: Mirelo watches the clip and generates the sound that fits it, optionally keeping or separating the speech already in it. Only `mirelo/sfx-2.0` serves this form - the JSON body stays the way to generate from a prompt alone.
+
+```bash
+curl -X POST http://localhost:8080/v1/audio/sfx \
+  -H "Authorization: Bearer $INFERENCE_GATEWAY_API_KEY" \
+  -F model="mirelo/sfx-2.0" \
+  -F video="@scene.mov" \
+  -F prompt="soft keyboard taps, gentle office ambience" \
+  -o scored.mp3
+```
+
+The response is the raw audio bytes, exactly as for the JSON form. The form fields:
+
+| Field                  | Type      | Required | Description                                                                                                                                                                       |
+| ---------------------- | --------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `model`                | `string`  | Yes      | `mirelo/sfx-2.0`.                                                                                                                                                                 |
+| `video`                | `file`    | Yes      | The clip to score. The gateway uploads it to Mirelo as an asset.                                                                                                                  |
+| `prompt`               | `string`  |          | Description of the sound you want over the clip. Omit it to let Mirelo decide from what it sees.                                                                                  |
+| `duration_seconds`     | `number`  |          | Length of the window to score. Omit it to score the whole clip.                                                                                                                   |
+| `start_offset_seconds` | `number`  |          | Where in the clip the scored window starts. Defaults to the beginning.                                                                                                            |
+| `preserve_speech`      | `boolean` |          | Keep the clip's own dialogue under the generated sound.                                                                                                                           |
+| `output`               | `string`  |          | Which track comes back: `mix` (default), `sfx` (the generated sound alone, which turns `preserve_speech` off unless you set it) or `speech` (the clip's dialogue, separated out). |
+| `response_format`      | `string`  |          | `mp3` (default) or `flac`.                                                                                                                                                        |
+
+**The upload shares the request body limit.** The whole multipart body must fit inside `SERVER_MAX_REQUEST_BODY_SIZE` (10 MiB by default) or the gateway answers `413 Request Entity Too Large` before the clip reaches Mirelo - shorten or re-encode the video, or raise the limit.
+
+**Credits.** Mirelo bills `duration x variants` at the same rate as text-to-sfx, so scoring a whole clip costs what generating a clip of that length costs.
+
+**Narration.** Mirelo does not synthesize speech. Generate the voice with [`POST /v1/audio/speech`](#speech-synthesis) and mix the two files yourself:
+
+```bash
+ffmpeg -i scored.mp3 -i narration.wav -filter_complex amix=inputs=2:duration=first narrated.mp3
+```
+
+Two cases answer `502 Bad Gateway` with Mirelo's own message: asking for `output: speech` on a clip that has no dialogue, because there is no `speech` track to return, and an upload Mirelo refuses - an unsupported container or a clip it cannot read. A job still running when the gateway stops waiting answers `504 Gateway Timeout` instead.
 
 #### Music
 
