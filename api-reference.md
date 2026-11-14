@@ -841,6 +841,8 @@ curl -X POST http://localhost:8080/v1/audio/speech \
   }'
 ```
 
+ElevenLabs speech accepts `response_format` `mp3`, `opus`, `pcm` and `wav` - `wav` is ElevenLabs' native 48 kHz output, so WAV-only clients such as the CLI's [`TextToSpeech` tool](/cli-text-to-speech/) can use an ElevenLabs model. `aac` and `flac` are rejected with a `400 Bad Request` naming the supported set.
+
 ElevenLabs has no chat-completions API, so it is audio-only - speech, [sound effects](#sound-effects) and [music](#music): a `/v1/chat/completions` request routed to it is not supported.
 
 #### Voice cloning
