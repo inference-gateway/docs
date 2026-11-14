@@ -1274,6 +1274,28 @@ spec:
 
 `spec.audio` needs the operator at **v0.37.0 or newer**. An older one does not know the field, so the API server drops it and the Audio API stays off.
 
+**Enable the provider that serves the audio.** `audio.enabled` only opens the endpoints - the clip still comes from a provider, so add its block to [`spec.providers`](#quick-start-minimal-gateway). `OpenAI` serves speech, `Elevenlabs` serves speech, [sound effects](/api-reference/#sound-effects) and music, and `Mirelo` serves sound effects only (`mirelo/sfx-2.0`). A `Mirelo` block needs `MIRELO_API_KEY`, and `MIRELO_API_URL` only to point at something other than `https://api.mirelo.ai/v3`:
+
+```yaml
+apiVersion: core.inference-gateway.com/v1alpha1
+kind: Gateway
+metadata:
+  name: my-gateway
+  namespace: inference-gateway
+spec:
+  audio:
+    enabled: true
+  providers:
+    - name: Mirelo
+      enabled: true
+      env:
+        - name: MIRELO_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: mirelo-secret
+              key: MIRELO_API_KEY
+```
+
 **Give the local speech engine memory.** The gateway's built-in [`local/qwen3-tts`](/api-reference/#local-speech-engine-local-qwen3-tts) engine runs the model in the gateway's own pod. Measured on an arm64 CPU node with the `latest` image and one cloned sentence: about **6 GiB** of memory for one synthesis and **11.5 GiB** for two at once, which is what `AUDIO_LOCAL_MAX_CONCURRENCY` allows by default. A **4Gi** limit was OOM-killed, so set `spec.resources.limits.memory` to **16Gi** for a gateway that serves speech locally. Speed follows the CPU: roughly 10 seconds a sentence with no CPU limit, and about 20 seconds at 2 CPUs. A provider model such as `openai/gpt-4o-mini-tts` needs none of this - only `audio.enabled`.
 
 **The models are not persisted.** The engine's binary and GGUF weights, about 1.4 GB, are downloaded into the pod's **ephemeral storage** on first use. A restarted or rescheduled pod downloads them again, and requests answer `503` with a `Retry-After` while it does.
