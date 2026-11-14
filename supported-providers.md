@@ -532,6 +532,8 @@ curl -s 'http://localhost:8080/v1/models?provider=elevenlabs&include=modalities'
 
 Mirelo is sound-effects-only: it serves [sound effects](/api-reference/#sound-effects) through `POST /v1/audio/sfx` with models such as `mirelo/sfx-2.0`. It has no chat-completions, speech or music API.
 
+It is also the only provider that [scores a video](/api-reference/#scoring-a-video): send the same endpoint a `multipart/form-data` body with a `video` part and Mirelo generates the sound that fits the clip, keeping or separating the speech already in it.
+
 List available models:
 
 ```bash
