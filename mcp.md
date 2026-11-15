@@ -766,7 +766,7 @@ See [Observability](/observability/#metrics) for the full metric and label refer
 
 ### Docker Compose Example
 
-See the complete [Docker Compose MCP example](https://github.com/inference-gateway/inference-gateway/tree/main/examples/docker-compose/mcp) that includes:
+See the complete [Docker Compose MCP example](https://github.com/inference-gateway/inference-gateway/tree/main/examples/mcp/docker-compose) that includes:
 
 - Inference Gateway with MCP enabled
 - Multiple MCP servers (time, search, filesystem)
@@ -775,7 +775,7 @@ See the complete [Docker Compose MCP example](https://github.com/inference-gatew
 
 ### Kubernetes Example
 
-See the [Kubernetes MCP example](https://github.com/inference-gateway/inference-gateway/tree/main/examples/kubernetes/mcp) that demonstrates:
+See the [Kubernetes MCP example](https://github.com/inference-gateway/inference-gateway/tree/main/examples/mcp/kubernetes) that demonstrates:
 
 - Gateway deployment with MCP configuration
 - Multiple MCP servers as Kubernetes services
@@ -866,8 +866,8 @@ If you only need to add a tool to the [CLI](/cli/) and you control the program b
 - [Custom Tools (CLI)](/cli/#custom-tools)
 - [Model Context Protocol Documentation](https://modelcontextprotocol.io/)
 - [MCP Specification](https://modelcontextprotocol.io/specification)
-- [Docker Compose Example](https://github.com/inference-gateway/inference-gateway/tree/main/examples/docker-compose/mcp)
-- [Kubernetes Example](https://github.com/inference-gateway/inference-gateway/tree/main/examples/kubernetes/mcp)
+- [Docker Compose Example](https://github.com/inference-gateway/inference-gateway/tree/main/examples/mcp/docker-compose)
+- [Kubernetes Example](https://github.com/inference-gateway/inference-gateway/tree/main/examples/mcp/kubernetes)
 - [Inference Gateway Repository](https://github.com/inference-gateway/inference-gateway)
 
 Ready to get started? Try our [examples](/examples/) or check out the [Getting Started guide](/getting-started/) to set up your first MCP-enabled Inference Gateway.

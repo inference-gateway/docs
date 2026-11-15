@@ -956,7 +956,7 @@ spec:
 
 `name` is matched case-insensitively against the schema `Provider` enum, so `Llamacpp` resolves to the `llamacpp` provider. `LLAMACPP_API_URL` defaults to `http://llamacpp:8080/v1`; override it (as above) to reach your own `llama-server` Service. Address models with the `llamacpp/` prefix, for example `llamacpp/llama-3.2-3b-instruct`. Ollama follows the same keyless shape with `OLLAMA_API_URL`.
 
-The `llamacpp` provider requires operator `>= v0.19.0` - earlier releases do not recognize it, so pin at least that version when installing (see [Installation](#installation)). The gateway's hybrid example ([`examples/kubernetes/hybrid`](https://github.com/inference-gateway/inference-gateway/tree/main/examples/kubernetes/hybrid)) pins `v0.25.1` and ships the `Llamacpp` block already enabled, so `task deploy-llamacpp` brings up the local llama.cpp path with no manual edit to `gateway.yaml`.
+The `llamacpp` provider requires operator `>= v0.19.0` - earlier releases do not recognize it, so pin at least that version when installing (see [Installation](#installation)). The gateway's hybrid example ([`examples/hybrid/kubernetes`](https://github.com/inference-gateway/inference-gateway/tree/main/examples/hybrid/kubernetes)) pins `v0.25.1` and ships the `Llamacpp` block already enabled, so `task deploy-llamacpp` brings up the local llama.cpp path with no manual edit to `gateway.yaml`.
 
 ## MCP Servers (`spec.mcp`)
 
@@ -1304,7 +1304,7 @@ spec:
 
 `spec.gatewayAPI` exposes the gateway to north-south traffic through the [Kubernetes Gateway API](https://gateway-api.sigs.k8s.io/) (`gateway.networking.k8s.io`). It is the `v1alpha1` successor to the removed `ingress` field: instead of an `Ingress` fronted by ingress-nginx, the operator provisions a Gateway API `Gateway` and `HTTPRoute` for the gateway Service, served by [Envoy Gateway](https://gateway.envoyproxy.io/) (the `envoy` GatewayClass). It is unrelated to [`spec.routing`](#model-routing) (gateway-native model routing) above - the field was renamed from `spec.routing` to `spec.gatewayAPI` to free that name for model routing.
 
-The `ingress:` field and the NGINX Ingress path are gone - Kubernetes deployments now front the gateway with the Gateway API. This mirrors the migration in the gateway's [`examples/kubernetes`](https://github.com/inference-gateway/inference-gateway/tree/main/examples/kubernetes).
+The `ingress:` field and the NGINX Ingress path are gone - Kubernetes deployments now front the gateway with the Gateway API. This mirrors the migration in the gateway's [Kubernetes examples](https://github.com/inference-gateway/inference-gateway/blob/main/examples/README.md).
 
 ### Install the Gateway API and Envoy Gateway
 
@@ -1334,7 +1334,7 @@ spec:
 EOF
 ```
 
-The gateway's [`examples/kubernetes`](https://github.com/inference-gateway/inference-gateway/tree/main/examples/kubernetes) wrap these steps as `task deploy-infrastructure` (cluster + Gateway API + Envoy Gateway + operator).
+The gateway's [`examples/basic/kubernetes`](https://github.com/inference-gateway/inference-gateway/tree/main/examples/basic/kubernetes) wraps these steps as `task deploy-infrastructure` (cluster + Gateway API + Envoy Gateway + operator).
 
 ### `spec.gatewayAPI`
 
