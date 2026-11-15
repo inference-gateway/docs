@@ -10,6 +10,8 @@ The [Inference Gateway CLI](/cli/) can render short video clips through the `Tex
 - **Prompt render** - a text prompt in, an MP4 out. Optionally pass a portrait as the first frame, or an avatar from the library as [reference images](#reference-images-in-prompt-renders) so the same person shows up in the clip.
 - **Avatar render (lip-sync)** - a portrait plus a `.wav` or `.mp3` clip in, an MP4 of that face speaking the audio out. Pair it with [Text-to-Speech](/cli-text-to-speech/) to go from a script to a talking-head clip without leaving the chat.
 
+A clip you already have can also be **dubbed** - a `.mov`, `.mp4`, `.m4v` or `.webm` file in, the same clip re-rendered with a generated soundtrack out, through the separate `DubVideo` tool on the same Videos API. See [Dubbing](#dubbing).
+
 Rendering goes through the gateway's Videos API (`POST /v1/videos`, then polling `GET /v1/videos/{id}` until the job finishes and downloading `GET /v1/videos/{id}/content`) - the CLI holds no provider key, the gateway does, so renders show up in gateway logs, traces and pricing.
 
 > **Disabled by default.** While `text_to_video.enabled` is `false`, the `TextToVideo` tool definition is not sent to the LLM at all, so it costs zero prompt tokens. Avatar renders upload a picture of your face and a recording of your voice to a third-party provider - that is why this feature is opt-in rather than on by default.
@@ -64,6 +66,26 @@ With `text_to_video.enabled` set, the agent gains a `TextToVideo` tool - see [Te
 - _"make my alice avatar say this"_ (with a generated or recorded audio clip) - lip-synced render with `avatar_model`.
 
 **Limits:** the portrait plus the audio clip travel in one request, so together they must stay under the gateway's 10 MiB request body limit - trim the clip or downscale the portrait if a render is rejected. `creatify-aurora` renders at 480p or 720p and keeps the portrait's aspect ratio, so a vertical portrait yields a vertical video.
+
+## Dubbing
+
+`video_to_sfx` adds the sound half of the Content workflow - `TextToVideo` renders the face, [Text-to-Speech](/cli-text-to-speech/) gives it a voice, and `DubVideo` scores the result. With `video_to_sfx.enabled` and `video_to_sfx.dub` both `true` the agent gains a [`DubVideo`](/cli/#dubvideo-tool) tool, the way `text_to_video.create_avatar` gates `CreateAvatar`:
+
+```yaml
+video_to_sfx:
+  enabled: true # also registers the VideoToSFX tool - both upload the clip to a third-party provider
+  dub: true # also register the DubVideo tool
+  # model: mirelo/sfx-2.0 # gateway provider/model id
+```
+
+It posts the clip to the gateway's Videos API (`POST /v1/videos`, gateway v0.66.0 or newer) with `video_to_sfx.model`, polls the job with the same `text_to_video.timeout` and `text_to_video.poll_interval` knobs as a render, and downloads the finished MP4 from `/content` - the clip with the generated sound in place of its soundtrack.
+
+- **`video` (required)** - a bare `.mov`, `.mp4`, `.m4v` or `.webm` file name, looked up in the working directory, then in the `TextToVideo` output directory, so a clip just rendered can be dubbed by its file name in the next tool call.
+- **`prompt` (optional)** - guidance on the sound; the clip itself drives the result. `preserve_speech: true` keeps the clip's own dialogue under the generated sound.
+- **`output_path` (optional)** - a bare file name inside `text_to_video.output_dir`; otherwise a timestamped `dub-*.mp4` is written there. Dubbed clips share the rendered clips' folder.
+- **Mirelo's limit** - only the generated mix is laid onto the clip. The separated speech and sfx tracks come back as audio from the SFX scoring flow (`/v1/audio/sfx`, the [`VideoToSFX`](/cli/#videotosfx-tool) tool) only, so `DubVideo` has no `track` parameter. The clip is uploaded to a third-party provider and must stay under 10 MiB.
+
+Dubbing needs `VIDEOS_ENABLED=true` on the gateway - set for a CLI-started gateway while `text_to_video.enabled` or the dub switch is on - and a Mirelo API key configured there. A failed dub surfaces the gateway's error and leaves no partial file.
 
 ## The avatar library
 
@@ -188,6 +210,7 @@ The tool **never overwrites** an avatar and has **no delete counterpart** - the 
 | `400` naming a reference-image limit        | The avatar folder holds more images than the model takes (Veo 3.1: 3, Seedance v2: 9, v2.5: 30) - trim it or switch model |
 | Reference images are ignored or rejected    | `reference_images` needs gateway v0.55.0+; lip-sync models ignore it by design                                            |
 | The model never calls `CreateAvatar`        | Set both `text_to_video.enabled` and `text_to_video.create_avatar` to `true`                                              |
+| The model never calls `DubVideo`            | Set both `video_to_sfx.enabled` and `video_to_sfx.dub` to `true`; dubbing also needs gateway v0.66.0+                     |
 
 ## Related
 
@@ -197,4 +220,5 @@ The tool **never overwrites** an avatar and has **no delete counterpart** - the 
 - [Desktop App](/desktop/#avatars) - manage the same avatar library from **Settings -> Avatars**, and place renders on a Content project timeline
 - [Text-to-Speech](/cli-text-to-speech/) - generate the voice track an avatar render lip-syncs to
 - [TextToMusic](/cli/#texttomusic-tool) and [TextToSFX](/cli/#texttosfx-tool) - the audio siblings, with the same `output_path` rules
+- [DubVideo](/cli/#dubvideo-tool) - the tool reference entry for dubbing an existing clip
 - [Configuration](/configuration/) - full configuration system across the gateway and CLI
