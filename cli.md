@@ -2774,6 +2774,8 @@ Every key also has an `INFER_TEXT_TO_MUSIC_`-prefixed environment variable that 
 
 A gateway without the endpoint, or a provider that rejects the request, fails the tool call with a one-line error naming the configured model (`music generation with elevenlabs/music_v2_5 failed: ...`). The agent run still completes and no partial file is left behind.
 
+> For a runnable version, see [`examples/media-audio`](https://github.com/inference-gateway/cli/tree/main/examples/media-audio) in the CLI repository - one headless task each for `TextToSpeech`, `TextToMusic` and `TextToSFX`. The [tokenless](https://github.com/inference-gateway/tokenless) mock (v0.14.0+) answers the gateway's Audio API endpoints with canned clips, so it runs offline with no API key.
+
 #### TextToSFX Tool
 
 Generate a short sound effect or ambience clip from a text prompt and save it as a WAV file. The chat model calls the tool when the user asks for a whoosh, a click, a riser or room tone - non-speech audio that `TextToSpeech` (it would read the words aloud) and `TextToMusic` (it composes songs) cannot cover. Generation goes through the gateway's [SFX API](/api-reference/#sound-effects) (`POST /v1/audio/sfx`) using the configured `provider/model` - the CLI holds no provider key, the gateway does, so requests show up in gateway logs and traces. **Disabled by default** - while `text_to_sfx.enabled` is `false`, the tool definition is not sent to the LLM at all.
@@ -2848,6 +2850,8 @@ Every key also has an `INFER_VIDEO_TO_SFX_`-prefixed environment variable that t
 **Limits.** The whole upload must fit the gateway's `SERVER_MAX_REQUEST_BODY_SIZE` (10 MiB by default) - a larger clip comes back as a `413` whose message names the limit - and the tool's deadline covers the upload plus the gateway's 150 s scoring budget.
 
 **Gateway requirements:** the same Audio API gate as `TextToSFX` - `AUDIO_ENABLED=true` and a key for the provider behind `model` (a Mirelo key for the default) on the gateway, not in the CLI.
+
+> For a runnable version, see [`examples/media-video`](https://github.com/inference-gateway/cli/tree/main/examples/media-video) in the CLI repository - `TextToVideo`, `VideoToSFX` and `DubVideo` in one headless run, plus the avatar library and the `infer models` local-model path. The [tokenless](https://github.com/inference-gateway/tokenless) mock (v0.14.0+) answers the gateway's Videos API and Audio API with canned media, so it runs offline with no API key.
 
 ### Video Tools
 
