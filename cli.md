@@ -2331,20 +2331,20 @@ When tools are enabled, LLMs have access to a comprehensive suite across multipl
 
 ### Tool Categories
 
-| Category              | Tools                                                                              | Description                                                                                                                                                                                                                                                  |
-| --------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **File System**       | Read, Write, Edit, MultiEdit, Delete, Tree, Grep                                   | File operations and search with safety controls                                                                                                                                                                                                              |
-| **Command Execution** | Bash, BashOutput, KillShell, ListShells, Wait                                      | Allow-listed shell execution (including `gh` for GitHub), background shell control, and blocking wait for conditions                                                                                                                                         |
-| **Web**               | WebSearch, WebFetch                                                                | Internet research and content fetching                                                                                                                                                                                                                       |
-| **Workflow**          | TodoWrite, Schedule, RequestPlanApproval, AskUserQuestion, RequestApproval, Memory | Task tracking, cron jobs, plan-mode approval, clarifying questions, judge-rejection escalation, and persistent cross-session memory                                                                                                                          |
-| **A2A Integration**   | A2A_QueryAgent, A2A_SubmitTask, A2A_QueryTask                                      | Delegate to external specialized agents - see [A2A](/a2a/)                                                                                                                                                                                                   |
-| **Local Subagents**   | Agent                                                                              | Fan out short-lived local subagents in parallel - see [Local Subagents](#local-subagents-agent-tool)                                                                                                                                                         |
-| **Computer Use**      | Computer, GetLatestFrame, RecordStart, RecordStop                                  | Accessibility-tree reads, presses, screenshots, and pointer/keyboard control - see the Computer Use section above; screen recording is opt-in via `computer_use.recording.enabled`, see [Screen Recording](#screen-recording)                                |
-| **Image**             | ImageGeneration, ImageEdit, ImageVariation                                         | Generate, edit, and vary images using the configured image model - independent of the chat session model                                                                                                                                                     |
-| **Audio**             | TextToSpeech, TextToMusic, TextToSFX                                               | Local speech synthesis and voice cloning - opt-in via `text_to_speech.enabled`, see [Text-to-Speech](/cli-text-to-speech/); music composition and sound-effect generation through the gateway - opt-in via `text_to_music.enabled` and `text_to_sfx.enabled` |
-| **Video**             | TextToVideo, CreateAvatar                                                          | Prompt and lip-synced avatar renders through the gateway, plus avatar-library creation - opt-in via `text_to_video.enabled` and `text_to_video.create_avatar`, see [Text-to-Video and Avatars](/cli-text-to-video/)                                          |
-| **MCP**               | `MCP_<server>_<tool>`                                                              | Dynamically registered tools from MCP servers - see [MCP](/mcp/)                                                                                                                                                                                             |
-| **Custom**            | Any name you give them                                                             | Tools you add yourself with one YAML manifest per tool, run as a program with the arguments as JSON on stdin - see [Custom Tools](#custom-tools)                                                                                                             |
+| Category              | Tools                                                                              | Description                                                                                                                                                                                                                                                                                         |
+| --------------------- | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **File System**       | Read, Write, Edit, MultiEdit, Delete, Tree, Grep                                   | File operations and search with safety controls                                                                                                                                                                                                                                                     |
+| **Command Execution** | Bash, BashOutput, KillShell, ListShells, Wait                                      | Allow-listed shell execution (including `gh` for GitHub), background shell control, and blocking wait for conditions                                                                                                                                                                                |
+| **Web**               | WebSearch, WebFetch                                                                | Internet research and content fetching                                                                                                                                                                                                                                                              |
+| **Workflow**          | TodoWrite, Schedule, RequestPlanApproval, AskUserQuestion, RequestApproval, Memory | Task tracking, cron jobs, plan-mode approval, clarifying questions, judge-rejection escalation, and persistent cross-session memory                                                                                                                                                                 |
+| **A2A Integration**   | A2A_QueryAgent, A2A_SubmitTask, A2A_QueryTask                                      | Delegate to external specialized agents - see [A2A](/a2a/)                                                                                                                                                                                                                                          |
+| **Local Subagents**   | Agent                                                                              | Fan out short-lived local subagents in parallel - see [Local Subagents](#local-subagents-agent-tool)                                                                                                                                                                                                |
+| **Computer Use**      | Computer, GetLatestFrame, RecordStart, RecordStop                                  | Accessibility-tree reads, presses, screenshots, and pointer/keyboard control - see the Computer Use section above; screen recording is opt-in via `computer_use.recording.enabled`, see [Screen Recording](#screen-recording)                                                                       |
+| **Image**             | ImageGeneration, ImageEdit, ImageVariation                                         | Generate, edit, and vary images using the configured image model - independent of the chat session model                                                                                                                                                                                            |
+| **Audio**             | TextToSpeech, TextToMusic, TextToSFX, VideoToSFX                                   | Local speech synthesis and voice cloning - opt-in via `text_to_speech.enabled`, see [Text-to-Speech](/cli-text-to-speech/); music composition, sound-effect generation and video scoring through the gateway - opt-in via `text_to_music.enabled`, `text_to_sfx.enabled` and `video_to_sfx.enabled` |
+| **Video**             | TextToVideo, CreateAvatar                                                          | Prompt and lip-synced avatar renders through the gateway, plus avatar-library creation - opt-in via `text_to_video.enabled` and `text_to_video.create_avatar`, see [Text-to-Video and Avatars](/cli-text-to-video/)                                                                                 |
+| **MCP**               | `MCP_<server>_<tool>`                                                              | Dynamically registered tools from MCP servers - see [MCP](/mcp/)                                                                                                                                                                                                                                    |
+| **Custom**            | Any name you give them                                                             | Tools you add yourself with one YAML manifest per tool, run as a program with the arguments as JSON on stdin - see [Custom Tools](#custom-tools)                                                                                                                                                    |
 
 ### File System Tools
 
@@ -2809,6 +2809,43 @@ Every key also has an `INFER_TEXT_TO_SFX_`-prefixed environment variable that ta
 **Gateway requirements:** the SFX endpoint is part of the gateway's Audio API (gateway v0.54.0 or newer), so the gateway must run with `AUDIO_ENABLED=true` and hold credentials for the provider behind `model` (an ElevenLabs API key for the default). The CLI-managed local gateway is started with `AUDIO_ENABLED=true` automatically when `text_to_sfx.enabled` is on, and an already-running instance without the Audio API is restarted. Point the CLI at an externally managed gateway and you set `AUDIO_ENABLED=true` and the provider key there yourself.
 
 A gateway without the endpoint, or a provider that rejects the request, fails the tool call with a one-line error naming the configured model (`sfx generation with elevenlabs/eleven_text_to_sound_v2 failed: ...`). The agent run still completes and no partial file is left behind.
+
+#### VideoToSFX Tool
+
+Score a video clip - generate the sound that fits the picture - and save the wanted track as an audio file. The chat model calls the tool when the user asks for sound under a clip they already have, rather than from a text prompt. Scoring goes through the same [SFX endpoint](/api-reference/#scoring-a-video) as `TextToSFX`, as a `multipart/form-data` request with the clip as its `video` part, using the configured `provider/model` (`mirelo/sfx-2.0` by default). **Disabled by default** - while `video_to_sfx.enabled` is `false` the tool definition is not sent to the LLM at all, because the user's footage is uploaded to a third-party provider for scoring.
+
+**Parameters:**
+
+- `video` (required): Bare file name of a `.mov`, `.mp4`, `.m4v` or `.webm` clip, looked up in the working directory first and then in the [`TextToVideo` output directory](#texttovideo-tool), so a clip the agent just rendered can be scored by name
+- `prompt` (optional): Guidance on the sound to generate - the clip itself drives the result
+- `seconds` (optional): Length of the scored window in seconds (at least `1`), counted from `start_seconds`; both omitted score the whole clip
+- `start_seconds` (optional): Offset in seconds where the scored window starts; omitted scores from the beginning
+- `track` (optional): Which track comes back - `mix` (default, the generated sound with any kept speech), `sfx` (the generated sound alone) or `speech` (the clip's own dialogue). A clip without dialogue has no `speech` track, so asking for it fails with the provider's message
+- `preserve_speech` (optional): `true` to keep the clip's dialogue under the generated sound
+- `output_path` (optional): Bare file name (no directories, no absolute paths) for the saved audio, written inside `video_to_sfx.output_dir` and carrying the returned audio's extension; defaults to a timestamped file
+
+**Configuration:**
+
+```yaml
+video_to_sfx:
+  enabled: true
+  # model: mirelo/sfx-2.0 # gateway provider/model id
+  # output_dir: ~/.infer/projects/<project-slug>/tmp/media/sfx
+  require_approval: false # optional; unset = no approval, like the other media tools
+```
+
+Every key also has an `INFER_VIDEO_TO_SFX_`-prefixed environment variable that takes precedence over the config file:
+
+| Config key                      | Environment variable                  | Type   | Default                                           | Notes                                                                                       |
+| ------------------------------- | ------------------------------------- | ------ | ------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `video_to_sfx.enabled`          | `INFER_VIDEO_TO_SFX_ENABLED`          | bool   | `false`                                           | Feature flag - must be `true` for the `VideoToSFX` tool to reach the LLM                    |
+| `video_to_sfx.model`            | `INFER_VIDEO_TO_SFX_MODEL`            | string | `mirelo/sfx-2.0`                                  | Gateway `provider/model` id used for scoring                                                |
+| `video_to_sfx.output_dir`       | `INFER_VIDEO_TO_SFX_OUTPUT_DIR`       | string | `sfx/` under the [media root](#media-directories) | Where the scored track is written                                                           |
+| `video_to_sfx.require_approval` | `INFER_VIDEO_TO_SFX_REQUIRE_APPROVAL` | bool   | unset (no approval)                               | Tri-state: unset keeps the tool's own default, an explicit value pins the policy either way |
+
+**Limits.** The whole upload must fit the gateway's `SERVER_MAX_REQUEST_BODY_SIZE` (10 MiB by default) - a larger clip comes back as a `413` whose message names the limit - and the tool's deadline covers the upload plus the gateway's 150 s scoring budget.
+
+**Gateway requirements:** the same Audio API gate as `TextToSFX` - `AUDIO_ENABLED=true` and a key for the provider behind `model` (a Mirelo key for the default) on the gateway, not in the CLI.
 
 ### Video Tools
 
@@ -3624,16 +3661,16 @@ Every generated and retained media file lives under one **media root**, with a s
 - **In a project** - `~/.infer/projects/<project-slug>/tmp/media/`. The desktop app runs a selected project's sessions there, so its media lands in that project's root too.
 - **No project open** - `~/.infer/tmp/media/`, used when the working directory is `$HOME` or the desktop's `~/.infer/workspace`.
 
-| Subdirectory   | Contents                                             | Config default of                   |
-| -------------- | ---------------------------------------------------- | ----------------------------------- |
-| `tts/`         | Generated speech WAVs                                | `text_to_speech.output_dir`         |
-| `music/`       | Generated music MP3s                                 | `text_to_music.output_dir`          |
-| `sfx/`         | Generated sound-effect WAVs                          | `text_to_sfx.output_dir`            |
-| `video/`       | Rendered MP4 clips                                   | `text_to_video.output_dir`          |
-| `recordings/`  | [`RecordStart`](#screen-recording) screen recordings | `computer_use.recording.output_dir` |
-| `screenshots/` | Browser and computer-use screenshots                 | `computer_use.screenshot.temp_dir`  |
-| `voice/`       | Retained inbound voice recordings                    | `speech_to_text.recordings_dir`     |
-| `attachments/` | Retained inbound Telegram photos and videos          | `channels.telegram.media.dir`       |
+| Subdirectory   | Contents                                             | Config default of                                   |
+| -------------- | ---------------------------------------------------- | --------------------------------------------------- |
+| `tts/`         | Generated speech WAVs                                | `text_to_speech.output_dir`                         |
+| `music/`       | Generated music MP3s                                 | `text_to_music.output_dir`                          |
+| `sfx/`         | Generated sound-effect WAVs and scored video tracks  | `text_to_sfx.output_dir`, `video_to_sfx.output_dir` |
+| `video/`       | Rendered MP4 clips                                   | `text_to_video.output_dir`                          |
+| `recordings/`  | [`RecordStart`](#screen-recording) screen recordings | `computer_use.recording.output_dir`                 |
+| `screenshots/` | Browser and computer-use screenshots                 | `computer_use.screenshot.temp_dir`                  |
+| `voice/`       | Retained inbound voice recordings                    | `speech_to_text.recordings_dir`                     |
+| `attachments/` | Retained inbound Telegram photos and videos          | `channels.telegram.media.dir`                       |
 
 The media root is agent-readable and writable by design - retained recordings and attachments are assets the agent consumes, and generated speech is output it can reference. The rest of `~/.infer/` is covered by the `.infer/` denial in the [file sandbox](#file-sandbox), which asks before every read and write. [`/reset`](#reset-shortcut) empties both tmp trees through their `tmp` parents; the owning subsystems recreate the subdirectories on next use. Directories you explicitly point outside `~/.infer` are left alone.
 
