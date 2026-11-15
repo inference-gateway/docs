@@ -2342,7 +2342,7 @@ When tools are enabled, LLMs have access to a comprehensive suite across multipl
 | **Computer Use**      | Computer, GetLatestFrame, RecordStart, RecordStop                                  | Accessibility-tree reads, presses, screenshots, and pointer/keyboard control - see the Computer Use section above; screen recording is opt-in via `computer_use.recording.enabled`, see [Screen Recording](#screen-recording)                                                                       |
 | **Image**             | ImageGeneration, ImageEdit, ImageVariation                                         | Generate, edit, and vary images using the configured image model - independent of the chat session model                                                                                                                                                                                            |
 | **Audio**             | TextToSpeech, TextToMusic, TextToSFX, VideoToSFX                                   | Local speech synthesis and voice cloning - opt-in via `text_to_speech.enabled`, see [Text-to-Speech](/cli-text-to-speech/); music composition, sound-effect generation and video scoring through the gateway - opt-in via `text_to_music.enabled`, `text_to_sfx.enabled` and `video_to_sfx.enabled` |
-| **Video**             | TextToVideo, CreateAvatar                                                          | Prompt and lip-synced avatar renders through the gateway, plus avatar-library creation - opt-in via `text_to_video.enabled` and `text_to_video.create_avatar`, see [Text-to-Video and Avatars](/cli-text-to-video/)                                                                                 |
+| **Video**             | TextToVideo, CreateAvatar, DubVideo                                                | Prompt and lip-synced avatar renders through the gateway, plus avatar-library creation and dubbing an existing clip with a generated soundtrack - opt-in via `text_to_video.enabled`, `text_to_video.create_avatar` and `video_to_sfx.dub`, see [Text-to-Video and Avatars](/cli-text-to-video/)    |
 | **MCP**               | `MCP_<server>_<tool>`                                                              | Dynamically registered tools from MCP servers - see [MCP](/mcp/)                                                                                                                                                                                                                                    |
 | **Custom**            | Any name you give them                                                             | Tools you add yourself with one YAML manifest per tool, run as a program with the arguments as JSON on stdin - see [Custom Tools](#custom-tools)                                                                                                                                                    |
 
@@ -2829,6 +2829,7 @@ Score a video clip - generate the sound that fits the picture - and save the wan
 ```yaml
 video_to_sfx:
   enabled: true
+  # dub: false # also register the DubVideo tool
   # model: mirelo/sfx-2.0 # gateway provider/model id
   # output_dir: ~/.infer/projects/<project-slug>/tmp/media/sfx
   require_approval: false # optional; unset = no approval, like the other media tools
@@ -2836,12 +2837,13 @@ video_to_sfx:
 
 Every key also has an `INFER_VIDEO_TO_SFX_`-prefixed environment variable that takes precedence over the config file:
 
-| Config key                      | Environment variable                  | Type   | Default                                           | Notes                                                                                       |
-| ------------------------------- | ------------------------------------- | ------ | ------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `video_to_sfx.enabled`          | `INFER_VIDEO_TO_SFX_ENABLED`          | bool   | `false`                                           | Feature flag - must be `true` for the `VideoToSFX` tool to reach the LLM                    |
-| `video_to_sfx.model`            | `INFER_VIDEO_TO_SFX_MODEL`            | string | `mirelo/sfx-2.0`                                  | Gateway `provider/model` id used for scoring                                                |
-| `video_to_sfx.output_dir`       | `INFER_VIDEO_TO_SFX_OUTPUT_DIR`       | string | `sfx/` under the [media root](#media-directories) | Where the scored track is written                                                           |
-| `video_to_sfx.require_approval` | `INFER_VIDEO_TO_SFX_REQUIRE_APPROVAL` | bool   | unset (no approval)                               | Tri-state: unset keeps the tool's own default, an explicit value pins the policy either way |
+| Config key                      | Environment variable                  | Type   | Default                                           | Notes                                                                                                              |
+| ------------------------------- | ------------------------------------- | ------ | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `video_to_sfx.enabled`          | `INFER_VIDEO_TO_SFX_ENABLED`          | bool   | `false`                                           | Feature flag - must be `true` for the `VideoToSFX` tool to reach the LLM                                           |
+| `video_to_sfx.dub`              | `INFER_VIDEO_TO_SFX_DUB`              | bool   | `false`                                           | Also register the [`DubVideo`](#dubvideo-tool) tool; needs `enabled` too                                           |
+| `video_to_sfx.model`            | `INFER_VIDEO_TO_SFX_MODEL`            | string | `mirelo/sfx-2.0`                                  | Gateway `provider/model` id used for scoring and dubbing                                                           |
+| `video_to_sfx.output_dir`       | `INFER_VIDEO_TO_SFX_OUTPUT_DIR`       | string | `sfx/` under the [media root](#media-directories) | Where the scored track is written                                                                                  |
+| `video_to_sfx.require_approval` | `INFER_VIDEO_TO_SFX_REQUIRE_APPROVAL` | bool   | unset (no approval)                               | Tri-state shared with `DubVideo`: unset keeps the tool's own default, an explicit value pins the policy either way |
 
 **Limits.** The whole upload must fit the gateway's `SERVER_MAX_REQUEST_BODY_SIZE` (10 MiB by default) - a larger clip comes back as a `413` whose message names the limit - and the tool's deadline covers the upload plus the gateway's 150 s scoring budget.
 
@@ -2903,6 +2905,34 @@ Build an avatar folder at `~/.infer/avatars/<name>/` from a photo - the agent-si
 It **never overwrites** an existing avatar - a name already in the library fails the call - and there is no delete counterpart, so the agent cannot remove an avatar. A failed view generation removes the half-built folder.
 
 > **Privacy:** generating views sends the photo to the image-edit provider (OpenAI by default). Before anything is stored or uploaded, a JPEG is turned upright per its EXIF orientation and re-encoded without its metadata, so camera and GPS tags never reach the library or a provider. PNG and WebP pass through unchanged.
+
+#### DubVideo Tool
+
+Dub a clip the user already has: the provider generates the sound that fits the picture and re-renders the clip with that sound as its new soundtrack, and the finished MP4 is saved. It is the sound half of the Content workflow - [`TextToVideo`](#texttovideo-tool) renders the face, [`TextToSpeech`](/cli-text-to-speech/) gives it a voice, `DubVideo` scores the result. The dub runs through the gateway's Videos API (`POST /v1/videos`, polled and downloaded like a render) with `video_to_sfx.model` (`mirelo/sfx-2.0` by default) - the CLI holds no provider key, the gateway does.
+
+**Opt-in twice.** The tool is registered only when both `video_to_sfx.enabled` and `video_to_sfx.dub` (`INFER_VIDEO_TO_SFX_DUB`) are `true`; `dub` defaults to `false`, because the clip is uploaded to a third-party provider. Job polling reuses `text_to_video.timeout` and `text_to_video.poll_interval`, and approval follows the shared `video_to_sfx.require_approval` policy.
+
+**Parameters:**
+
+- `video` (required): Bare file name (no directories, no absolute paths) of a `.mov`, `.mp4`, `.m4v` or `.webm` clip, looked up in the working directory first and then in the [`TextToVideo` output directory](#texttovideo-tool), so a clip the agent just rendered can be dubbed by name
+- `prompt` (optional): Description of the sound (a busy cafe hubbub, a tense orchestral underscore) - the clip itself drives the result, the prompt is only guidance
+- `preserve_speech` (optional): `true` to keep the clip's own dialogue under the generated sound
+- `output_path` (optional): Bare file name (no directories, no absolute paths) for the dubbed MP4, written inside `text_to_video.output_dir` next to the rendered clips; defaults to a timestamped `dub-*.mp4`
+
+**Configuration:**
+
+```yaml
+video_to_sfx:
+  enabled: true # also registers the VideoToSFX tool
+  dub: true # register DubVideo as well
+  # model: mirelo/sfx-2.0 # gateway provider/model id
+```
+
+**Mirelo's limit:** only the generated mix is laid onto the clip - the separated speech and sfx tracks come back as audio from the [SFX scoring flow](#videotosfx-tool) only, so `DubVideo` has no `track` parameter. The clip must stay under the gateway's 10 MiB request body limit.
+
+**Gateway requirements:** the Videos API must be enabled (`VIDEOS_ENABLED=true`, gateway v0.66.0 or newer) with a Mirelo API key configured on the gateway. A CLI-managed local gateway gets `VIDEOS_ENABLED=true` automatically while `text_to_video.enabled` or the dub switch is on. A failed dub surfaces the gateway's error and leaves no partial file.
+
+See [Dubbing](/cli-text-to-video/#dubbing) for the full setup.
 
 ### GitHub Operations
 
