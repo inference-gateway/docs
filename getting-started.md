@@ -18,11 +18,11 @@ docker run --rm -it -p 8080:8080 -e OPENAI_API_KEY=your_key_here ghcr.io/inferen
 
 ### Using Docker Compose
 
-Checkout the examples in the [Docker Compose examples](https://github.com/inference-gateway/inference-gateway/tree/main/examples/docker-compose).
+Checkout the [basic Docker Compose example](https://github.com/inference-gateway/inference-gateway/tree/main/examples/basic/docker-compose), or the [examples index](https://github.com/inference-gateway/inference-gateway/blob/main/examples/README.md) for one entry per domain (auth, mcp, monitoring, hybrid, and more).
 
 ### Using Kubernetes
 
-Deploy to Kubernetes with the [Kubernetes Operator](/operator/) - the recommended path. It manages the gateway and related resources declaratively as Custom Resources. Follow the [Operator quick start](/operator/#quick-start-minimal-gateway) to apply your first `Gateway`, or browse the runnable [Kubernetes examples](https://github.com/inference-gateway/inference-gateway/tree/main/examples/kubernetes).
+Deploy to Kubernetes with the [Kubernetes Operator](/operator/) - the recommended path. It manages the gateway and related resources declaratively as Custom Resources. Follow the [Operator quick start](/operator/#quick-start-minimal-gateway) to apply your first `Gateway`, or browse the runnable [basic Kubernetes example](https://github.com/inference-gateway/inference-gateway/tree/main/examples/basic/kubernetes) and the [examples index](https://github.com/inference-gateway/inference-gateway/blob/main/examples/README.md).
 
 ## Basic Usage
 

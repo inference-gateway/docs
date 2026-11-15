@@ -25,7 +25,7 @@ services:
       - '8080:8080'
 ```
 
-For more [Docker Compose examples](https://github.com/inference-gateway/inference-gateway/tree/main/examples/docker-compose), check the official examples repository.
+For more runnable examples, check the [examples index](https://github.com/inference-gateway/inference-gateway/blob/main/examples/README.md) in the official repository - each domain (basic, auth, mcp, monitoring, hybrid, and more) ships a `docker-compose` variant.
 
 ## Kubernetes Examples
 
@@ -59,7 +59,7 @@ spec:
                   key: openai-api-key
 ```
 
-For complete Kubernetes deployment examples including Services, ConfigMaps, and Secrets, visit the [Kubernetes examples](https://github.com/inference-gateway/inference-gateway/tree/main/examples/kubernetes) in the GitHub repository.
+For complete Kubernetes deployment examples including Services, ConfigMaps, and Secrets, visit the [examples index](https://github.com/inference-gateway/inference-gateway/blob/main/examples/README.md) in the GitHub repository - each domain ships a `kubernetes` variant.
 
 ## API Usage Examples
 

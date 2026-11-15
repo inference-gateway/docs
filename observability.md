@@ -335,8 +335,8 @@ spec:
 
 A reference Grafana dashboard for these metrics is maintained in the main gateway repo:
 
-- Docker Compose example: [`examples/docker-compose/monitoring/grafana/dashboards/inference-gateway.json`](https://github.com/inference-gateway/inference-gateway/blob/main/examples/docker-compose/monitoring/grafana/dashboards/inference-gateway.json)
-- Kubernetes example with provisioned dashboards: [`examples/kubernetes/monitoring`](https://github.com/inference-gateway/inference-gateway/tree/main/examples/kubernetes/monitoring)
+- Docker Compose example: [`examples/monitoring/docker-compose/grafana/dashboards/inference-gateway.json`](https://github.com/inference-gateway/inference-gateway/blob/main/examples/monitoring/docker-compose/grafana/dashboards/inference-gateway.json)
+- Kubernetes example with provisioned dashboards: [`examples/monitoring/kubernetes`](https://github.com/inference-gateway/inference-gateway/tree/main/examples/monitoring/kubernetes)
 
 Import it into Grafana via **Dashboards -> New -> Import**, paste the JSON, and bind it to your Prometheus data source.
 
@@ -611,8 +611,8 @@ When the CLI runs as an [Orchestrator](/operator/#orchestrator) under the Kubern
 
 For a runnable end-to-end setup (Prometheus + Grafana + Loki + dashboards already wired), see the official examples:
 
-- Docker Compose: [`examples/docker-compose/monitoring`](https://github.com/inference-gateway/inference-gateway/tree/main/examples/docker-compose/monitoring)
-- Kubernetes (kube-prometheus-stack): [`examples/kubernetes/monitoring`](https://github.com/inference-gateway/inference-gateway/tree/main/examples/kubernetes/monitoring)
+- Docker Compose: [`examples/monitoring/docker-compose`](https://github.com/inference-gateway/inference-gateway/tree/main/examples/monitoring/docker-compose)
+- Kubernetes (kube-prometheus-stack): [`examples/monitoring/kubernetes`](https://github.com/inference-gateway/inference-gateway/tree/main/examples/monitoring/kubernetes)
 
 Both bring up the gateway with `TELEMETRY_ENABLED=true`, scrape `/metrics`, provision the reference Grafana dashboards, and (in the Kubernetes example) install a `ServiceMonitor` for kube-prometheus-stack.
 

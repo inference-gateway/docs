@@ -76,12 +76,12 @@ Opaque (non-JWT) tokens are not supported - the gateway does not perform RFC 766
 
 Each identity provider ships as a Docker Compose example and a matching Kubernetes example in the [gateway repository](https://github.com/inference-gateway/inference-gateway):
 
-| Provider           | Docker Compose                                                                                                            | Kubernetes                                                                                                            |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| Keycloak           | [`auth-keycloak`](https://github.com/inference-gateway/inference-gateway/tree/main/examples/docker-compose/auth-keycloak) | [`auth-keycloak`](https://github.com/inference-gateway/inference-gateway/tree/main/examples/kubernetes/auth-keycloak) |
-| Microsoft Entra ID | [`auth-entra`](https://github.com/inference-gateway/inference-gateway/tree/main/examples/docker-compose/auth-entra)       | [`auth-entra`](https://github.com/inference-gateway/inference-gateway/tree/main/examples/kubernetes/auth-entra)       |
-| Google             | [`auth-gcp`](https://github.com/inference-gateway/inference-gateway/tree/main/examples/docker-compose/auth-gcp)           | [`auth-gcp`](https://github.com/inference-gateway/inference-gateway/tree/main/examples/kubernetes/auth-gcp)           |
-| Amazon Cognito     | [`auth-cognito`](https://github.com/inference-gateway/inference-gateway/tree/main/examples/docker-compose/auth-cognito)   | [`auth-cognito`](https://github.com/inference-gateway/inference-gateway/tree/main/examples/kubernetes/auth-cognito)   |
+| Provider           | Docker Compose                                                                                                                           | Kubernetes                                                                                                                       |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Keycloak           | [`auth/keycloak/docker-compose`](https://github.com/inference-gateway/inference-gateway/tree/main/examples/auth/keycloak/docker-compose) | [`auth/keycloak/kubernetes`](https://github.com/inference-gateway/inference-gateway/tree/main/examples/auth/keycloak/kubernetes) |
+| Microsoft Entra ID | [`auth/entra/docker-compose`](https://github.com/inference-gateway/inference-gateway/tree/main/examples/auth/entra/docker-compose)       | [`auth/entra/kubernetes`](https://github.com/inference-gateway/inference-gateway/tree/main/examples/auth/entra/kubernetes)       |
+| Google             | [`auth/gcp/docker-compose`](https://github.com/inference-gateway/inference-gateway/tree/main/examples/auth/gcp/docker-compose)           | [`auth/gcp/kubernetes`](https://github.com/inference-gateway/inference-gateway/tree/main/examples/auth/gcp/kubernetes)           |
+| Amazon Cognito     | [`auth/cognito/docker-compose`](https://github.com/inference-gateway/inference-gateway/tree/main/examples/auth/cognito/docker-compose)   | [`auth/cognito/kubernetes`](https://github.com/inference-gateway/inference-gateway/tree/main/examples/auth/cognito/kubernetes)   |
 
 The three cloud examples hold only what differs from the Keycloak one - the `AUTH_*` values, an env template with the provider's ids, and a one-command `get-token.sh` - so read the Keycloak example first.
 
@@ -137,13 +137,13 @@ This section provides a detailed guide for integrating Keycloak with Inference G
 
 #### Option 1: Using the Authentication Example
 
-Inference Gateway provides a complete example for setting up Keycloak authentication in a Kubernetes environment (for a laptop-sized version, use the [Docker Compose example](https://github.com/inference-gateway/inference-gateway/tree/main/examples/docker-compose/auth-keycloak) instead):
+Inference Gateway provides a complete example for setting up Keycloak authentication in a Kubernetes environment (for a laptop-sized version, use the [Docker Compose example](https://github.com/inference-gateway/inference-gateway/tree/main/examples/auth/keycloak/docker-compose) instead):
 
 1. Clone the repository:
 
    ```bash
    git clone https://github.com/inference-gateway/inference-gateway.git
-   cd inference-gateway/examples/kubernetes/auth-keycloak
+   cd inference-gateway/examples/auth/keycloak/kubernetes
    ```
 
 2. Deploy the infrastructure (Keycloak, PostgreSQL, etc.):
