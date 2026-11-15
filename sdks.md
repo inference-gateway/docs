@@ -1535,6 +1535,39 @@ The `CreateImageRequest` fields mirror the OpenAI `POST /v1/images/generations` 
 
 A runnable example lives at [sdk/examples/images](https://github.com/inference-gateway/sdk/tree/main/examples/images).
 
+### Video generation and dubbing
+
+`CreateVideo(ctx, provider, CreateVideoRequest) (*VideoJob, error)` posts the multipart body of the gateway's [Videos API](/api-reference/#videos-api). The gateway must run with `VIDEOS_ENABLED=true` - disabled, every call fails with `404`. Two providers serve it today: `elevenlabs` renders a clip from a prompt (the [audio-driven avatar](/api-reference/#audio-driven-avatars) flow, carried by `InputReference` and `Audio`), while `mirelo` [dubs a clip you upload](/api-reference/#dubbing-a-video) - send `Video` and the endpoint dubs instead of renders. Poll with `RetrieveVideo(ctx, provider, videoID)` and download the finished bytes with `DownloadVideoContent(ctx, provider, videoID)` - the returned `[]byte` is the raw MP4, ready for `os.WriteFile`.
+
+```go
+clip, _ := os.ReadFile("scene.mov")
+
+var video openapi_types.File
+video.InitFromBytes(clip, "scene.mov")
+
+job, err := client.CreateVideo(ctx, sdk.Mirelo, sdk.CreateVideoRequest{
+    Model:              "sfx-2.0",
+    Prompt:             new("soft keyboard taps, gentle office ambience"),
+    Seconds:            new("8"),
+    Video:              &video,
+    PreserveSpeech:     new(true),
+    StartOffsetSeconds: new(float32(2)),
+})
+if err != nil {
+    log.Fatalf("Error: %v", err)
+}
+```
+
+The three dubbing inputs (wire names `video`, `preserve_speech` and `start_offset_seconds`):
+
+| Field                | Go type               | Description                                                                                                                                                                          |
+| -------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `Video`              | `*openapi_types.File` | The clip to dub, built with `InitFromBytes(data, filename)`. Mutually exclusive with `InputReference` and `ReferenceImages` - sending it alongside either answers `400 Bad Request`. |
+| `PreserveSpeech`     | `*bool`               | Keep the clip's own dialogue under the generated sound instead of replacing it.                                                                                                      |
+| `StartOffsetSeconds` | `*float32`            | Where in the clip the scored window starts. Defaults to the beginning.                                                                                                               |
+
+The remaining fields (`Model`, `Prompt`, `Seconds`, `Size`, `InputReference`, `ReferenceImages`, `Audio`) mirror the [CreateVideoRequest body](/api-reference/#videos-api) - the pointer ones are omitted from the request when left unset.
+
 ### Speech synthesis
 
 `CreateSpeech(ctx, provider, CreateSpeechRequest) ([]byte, error)` synthesizes speech via the OpenAI-compatible `POST /v1/audio/speech` endpoint. Unlike the other methods it returns no struct - the `[]byte` is the raw audio in the requested `ResponseFormat` (`mp3` by default), ready to write to a file or stream to a player.

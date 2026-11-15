@@ -1295,6 +1295,8 @@ Two more fields apply only when `video` is present - see [Dubbing a video](#dubb
 | `start_offset_seconds` | `number`  |          | Where in the clip the scored window starts. Defaults to the beginning.          |
 | `preserve_speech`      | `boolean` |          | Keep the clip's own dialogue under the generated sound instead of replacing it. |
 
+The Go `sdk.Client` sends the same multipart body: these two are the `PreserveSpeech` and `StartOffsetSeconds` fields of `CreateVideoRequest`, and the `video` part is `Video` - see [Video generation and dubbing](/sdks/#video-generation-and-dubbing).
+
 #### Reference images
 
 `reference_images` is an array, so send one multipart part **per image, all under the same field name** - do not index or bracket the name:
@@ -1417,7 +1419,7 @@ As with audio, the response is **not JSON** - it is the raw video bytes, with a 
 
 #### End-to-end: create, poll, download
 
-The SDKs do not wrap these operations yet - call them over plain HTTP in the meantime:
+Only the Go SDK wraps these operations today - `CreateVideo` builds the same multipart body and, since SDK `v1.47.0`, forwards the [dubbing](#dubbing-a-video) inputs too. See [Video generation and dubbing](/sdks/#video-generation-and-dubbing); the other languages should call them over plain HTTP in the meantime:
 
 ```typescript
 const base = 'http://localhost:8080/v1';
