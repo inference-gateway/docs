@@ -1613,7 +1613,57 @@ audio, err := client.CreateSpeech(ctx, sdk.Provider(""), sdk.CreateSpeechRequest
 })
 ```
 
-See the [Audio API reference](/api-reference/#audio-api) for the endpoint-level details. The sibling [sound effects](/api-reference/#sound-effects) and [music](/api-reference/#music) endpoints have no `CreateSFX` / `CreateMusic` yet - call them over plain HTTP in the meantime.
+See the [Audio API reference](/api-reference/#audio-api) for the endpoint-level details.
+
+#### Sound effects and music generation
+
+`CreateSFX(ctx, provider, CreateSFXRequest) ([]byte, error)` and `CreateMusic(ctx, provider, CreateMusicRequest) ([]byte, error)` are the `CreateSpeech` siblings for the gateway's [sound effects](/api-reference/#sound-effects) and [music](/api-reference/#music) extensions (`POST /v1/audio/sfx` and `POST /v1/audio/music`). Both have shipped since SDK `v1.38.0` and return the raw audio bytes in the requested `ResponseFormat` (`mp3` by default), exactly like `CreateSpeech` - there is no response struct. A provider without support answers `400 Bad Request`, which arrives as a Go error carrying the gateway's message and a `nil` slice.
+
+```go
+sfx, err := client.CreateSFX(ctx, sdk.Elevenlabs, sdk.CreateSFXRequest{
+    Model:          "elevenlabs/eleven_text_to_sound_v2",
+    Prompt:         "rain on a tin roof, steady",
+    DurationSeconds: ptr(float32(10)),
+    Loop:           ptr(true),
+})
+if err != nil {
+    log.Fatalf("Error: %v", err)
+}
+
+_ = os.WriteFile("rain.mp3", sfx, 0o644)
+
+music, err := client.CreateMusic(ctx, sdk.Elevenlabs, sdk.CreateMusicRequest{
+    Model:           "elevenlabs/music_v2_5",
+    Prompt:          "upbeat lo-fi hip hop with a warm piano loop",
+    DurationSeconds: ptr(float32(30)),
+    Instrumental:    ptr(true),
+})
+```
+
+The `CreateSFXRequest` fields:
+
+| Field                | Go type                           | Description                                                                                                                                              |
+| -------------------- | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Model`              | `string`                          | Model ID to use, for example `elevenlabs/eleven_text_to_sound_v2`, `mirelo/sfx-2.0`, or `elevenlabs/music_v2_5` to score a video (required).             |
+| `Prompt`             | `string`                          | Description of the sound to generate. Required unless `Video` is set, where it is optional guidance.                                                     |
+| `DurationSeconds`    | `*float32`                        | Length of the generated audio - the clip length for a text prompt, the scored window for a video. Omit for a provider-chosen length.                     |
+| `PromptInfluence`    | `*float32`                        | Text prompt only. How closely the generation follows the prompt. Only models with prompt-influence support honor it.                                     |
+| `Loop`               | `*bool`                           | Text prompt only. Generate a clip that loops seamlessly.                                                                                                 |
+| `Video`              | `*string`                         | Video to score, as an https URL or a `data:video/...` base64 URI. The gateway never downloads the URL itself.                                            |
+| `PreserveSpeech`     | `*bool`                           | Video input only. Keep the clip's own speech under the generated sound.                                                                                  |
+| `StartOffsetSeconds` | `*float32`                        | Video input only. Where in the clip the scored window starts.                                                                                            |
+| `Output`             | `*CreateSFXRequestOutput`         | Video input only. Which track to return: `sdk.CreateSFXRequestOutputMix`, `...OutputSFX`, or `...OutputSpeech`.                                          |
+| `ResponseFormat`     | `*CreateSFXRequestResponseFormat` | Audio format: `sdk.CreateSFXRequestResponseFormatMp3` (default), `...Opus`, `...Aac`, `...Flac`, or `...Pcm`. There is no `wav` option on this endpoint. |
+
+The `CreateMusicRequest` fields:
+
+| Field             | Go type                             | Description                                                                                                                                                |
+| ----------------- | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Model`           | `string`                            | Model ID to use for music generation, for example `elevenlabs/music_v2_5` (required).                                                                      |
+| `Prompt`          | `string`                            | Description of the music to compose - genre, mood, instruments, tempo (required).                                                                          |
+| `DurationSeconds` | `*float32`                          | Length of the clip. Omit to let the provider pick a length that fits the prompt.                                                                           |
+| `Instrumental`    | `*bool`                             | Guarantee the generated clip has no vocals.                                                                                                                |
+| `ResponseFormat`  | `*CreateMusicRequestResponseFormat` | Audio format: `sdk.CreateMusicRequestResponseFormatMp3` (default), `...Opus`, `...Aac`, `...Flac`, or `...Pcm`. There is no `wav` option on this endpoint. |
 
 ### Models, tools, and health
 

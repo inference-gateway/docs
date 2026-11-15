@@ -1031,7 +1031,16 @@ sfx = client.create_sfx(
 )
 ```
 
-The Go SDK does not wrap it yet - call it over plain HTTP in the meantime.
+The [Go SDK](/sdks/#sound-effects-and-music-generation) wraps it as `CreateSFX`, returning the raw audio as `[]byte`:
+
+```go
+sfx, err := client.CreateSFX(ctx, sdk.Elevenlabs, sdk.CreateSFXRequest{
+    Model:           "elevenlabs/eleven_text_to_sound_v2",
+    Prompt:          "rain on a tin roof, steady",
+    DurationSeconds: ptr(float32(10)),
+    Loop:            ptr(true),
+})
+```
 
 Set `ELEVENLABS_API_KEY` (and optionally `ELEVENLABS_API_URL`) so the gateway can authenticate - see [Configuration](/configuration/#elevenlabs). For Mirelo, set `MIRELO_API_KEY` (and optionally `MIRELO_API_URL`) instead - see [Configuration](/configuration/#mirelo).
 
@@ -1188,7 +1197,16 @@ music = client.create_music(
 )
 ```
 
-The Go SDK does not wrap it yet - call it over plain HTTP in the meantime.
+The [Go SDK](/sdks/#sound-effects-and-music-generation) wraps it as `CreateMusic`, the `CreateSFX` sibling, returning `[]byte`:
+
+```go
+music, err := client.CreateMusic(ctx, sdk.Elevenlabs, sdk.CreateMusicRequest{
+    Model:           "elevenlabs/music_v2_5",
+    Prompt:          "upbeat lo-fi hip hop with a warm piano loop",
+    DurationSeconds: ptr(float32(30)),
+    Instrumental:    ptr(true),
+})
+```
 
 #### Unsupported providers
 
