@@ -16,6 +16,8 @@ Speech always goes through the gateway's [`POST /v1/audio/speech`](/api-referenc
 
 The feature is **disabled by default**: while `text_to_speech.enabled` is `false`, the `TextToSpeech` tool definition is not sent to the LLM at all, so it costs zero prompt tokens.
 
+> **Runnable example:** [`examples/media-audio`](https://github.com/inference-gateway/cli/tree/main/examples/media-audio) in the CLI repository runs one headless task each for `TextToSpeech`, `TextToMusic` and `TextToSFX`, printing the saved file path from the tool result. The [tokenless](https://github.com/inference-gateway/tokenless) mock (v0.14.0+) answers the gateway's Audio API endpoints - `/v1/audio/speech`, `/v1/audio/music` and `/v1/audio/sfx` - with canned clips, so it runs offline with no API key and no gateway. Its **With a real model** section names the switches, the default models and the provider key the gateway needs for each tool.
+
 ## Enabling
 
 Add a `text_to_speech` section to `.infer/config.yaml` (project) or `~/.infer/config.yaml` (user):

@@ -16,6 +16,8 @@ Rendering goes through the gateway's Videos API (`POST /v1/videos`, then polling
 
 > **Disabled by default.** While `text_to_video.enabled` is `false`, the `TextToVideo` tool definition is not sent to the LLM at all, so it costs zero prompt tokens. Avatar renders upload a picture of your face and a recording of your voice to a third-party provider - that is why this feature is opt-in rather than on by default.
 
+**Runnable example:** [`examples/media-video`](https://github.com/inference-gateway/cli/tree/main/examples/media-video) in the CLI repository walks the whole pipeline in one headless run - `TextToVideo` renders a clip, `VideoToSFX` scores it and `DubVideo` dubs it - plus the avatar library (`infer avatars create presenter --from photo.png`, `infer avatars list` and a lip-synced render through `text_to_video.avatar_model`) and the `infer models` local-model path (`infer models search musetalk`, `infer models list` and an `infer models download` feeding `INFER_TEXT_TO_VIDEO_AVATAR_MODEL=local/musetalk`). The [tokenless](https://github.com/inference-gateway/tokenless) mock (v0.14.0+) answers the gateway's Videos API job lifecycle and the Audio API endpoints with canned media, so the render, the score and the dub all run offline with no API key and no gateway. Its **With a real model** section names `VIDEOS_ENABLED`, `AUDIO_ENABLED`, the default models and the provider key the gateway needs.
+
 ## Enabling
 
 Add a top-level `text_to_video` section to `.infer/config.yaml` (project) or `~/.infer/config.yaml` (user):
