@@ -1035,7 +1035,7 @@ The Go SDK does not wrap it yet - call it over plain HTTP in the meantime.
 
 Set `ELEVENLABS_API_KEY` (and optionally `ELEVENLABS_API_URL`) so the gateway can authenticate - see [Configuration](/configuration/#elevenlabs). For Mirelo, set `MIRELO_API_KEY` (and optionally `MIRELO_API_URL`) instead - see [Configuration](/configuration/#mirelo).
 
-The CLI wraps this endpoint in the opt-in [`TextToSFX` tool](/cli/#texttosfx-tool), so the agent can generate a clip during a chat.
+The CLI wraps this endpoint in the opt-in [`TextToSFX` tool](/cli/#texttosfx-tool), so the agent can generate a clip during a chat, and in the [`VideoToSFX` tool](/cli/#videotosfx-tool) for the video form below.
 
 ##### Scoring a video
 
@@ -1091,7 +1091,9 @@ curl -X POST http://localhost:8080/v1/audio/sfx \
 ffmpeg -i scored.mp3 -i narration.wav -filter_complex amix=inputs=2:duration=first narrated.mp3
 ```
 
-Two cases answer `502 Bad Gateway` with Mirelo's own message: asking for `output: speech` on a clip that has no dialogue, because there is no `speech` track to return, and an upload Mirelo refuses - an unsupported container or a clip it cannot read. A job still running when the gateway stops waiting answers `504 Gateway Timeout` instead.
+**The scoring budget is 150 seconds.** The gateway waits that long for the provider to score the clip. A job still running when the budget runs out answers `504 Gateway Timeout`, so give a long clip a narrower window with `start_offset_seconds` and `duration_seconds`, or score it in parts.
+
+Two cases answer `502 Bad Gateway` with Mirelo's own message: asking for `output: speech` on a clip that has no dialogue, because there is no `speech` track to return, and an upload Mirelo refuses - an unsupported container or a clip it cannot read.
 
 #### Music
 
