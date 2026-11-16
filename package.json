@@ -26,6 +26,7 @@
     "prettier": "^3.10.1",
     "vitepress": "^1.6.4",
     "vitepress-plugin-mermaid": "^2.0.17",
-    "vue": "^3.5.45"
+    "vue": "^3.5.45",
+    "wrangler": "^4.163.0"
   }
 }
