@@ -12,6 +12,13 @@ const OG_IMAGE_TYPE = 'image/webp';
 const SITEMAP_PAGE_PRIORITY = 0.8;
 const SITEMAP_HOME_PRIORITY = 1.0;
 const SITEMAP_CHANGE_FREQUENCY = 'weekly';
+const LAZY_MERMAID_CHUNK_NAMES =
+  '[A-Za-z0-9]*Diagram-|diagram-|classDiagram|stateDiagram|wardley(?:Diagram)?-|dagre-|cose-bilkent-|cytoscape\\.esm|katex|sankey|kanban-definition|timeline-definition|mindmap-definition|virtual_mermaid';
+const LAZY_MERMAID_PRELOAD_LINK = new RegExp(
+  `<link[^>]+rel="modulepreload"[^>]+href="[^"]*/assets/chunks/(?:${LAZY_MERMAID_CHUNK_NAMES})[^"]*"[^>]*>\\s*`,
+  'g'
+);
+const LAZY_MERMAID_CHUNK_PATH = new RegExp(`(?:^|/)(?:${LAZY_MERMAID_CHUNK_NAMES})`);
 const withTrailingSlash = (url: string) => (url.endsWith('/') ? url : `${url}/`);
 const pageLink = (url: string) => (url === '/' ? url : withTrailingSlash(url));
 const isHomeUrl = (url: string | undefined) =>
@@ -96,10 +103,7 @@ export default withMermaid(
       writeFileSync(join(siteConfig.outDir, '.nojekyll'), '');
     },
     transformHtml(html) {
-      return html.replace(
-        /<link[^>]+rel="modulepreload"[^>]+href="[^"]*\/assets\/chunks\/(?:[A-Za-z0-9]*Diagram-|diagram-|classDiagram|stateDiagram|wardley(?:Diagram)?-|dagre-|cose-bilkent-|cytoscape\.esm|katex|sankey|kanban-definition|timeline-definition|mindmap-definition|virtual_mermaid)[^"]*"[^>]*>\s*/g,
-        ''
-      );
+      return html.replace(LAZY_MERMAID_PRELOAD_LINK, '');
     },
     head: [
       ['link', { rel: 'icon', type: 'image/png', href: '/logo.png' }],
@@ -389,12 +393,7 @@ export default withMermaid(
         chunkSizeWarningLimit: 1500,
         modulePreload: {
           resolveDependencies: (_filename, deps) =>
-            deps.filter(
-              (d) =>
-                !/(?:^|\/)(?:[A-Za-z0-9]*Diagram-|diagram-|classDiagram|stateDiagram|wardley(?:Diagram)?-|dagre-|cose-bilkent-|cytoscape\.esm|katex|sankey|kanban-definition|timeline-definition|mindmap-definition|virtual_mermaid)/.test(
-                  d
-                )
-            ),
+            deps.filter((d) => !LAZY_MERMAID_CHUNK_PATH.test(d)),
         },
       },
     },
