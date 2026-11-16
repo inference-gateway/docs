@@ -24,10 +24,10 @@
 //   SCHEMA_REF   git ref (tag or commit) to pin (default main). Pin to a tag or
 //                commit SHA for reproducible builds.
 //
-// Zero runtime dependencies: runs under both bun and node (>=18) with no install.
+// Requires Bun (for Bun.YAML.parse); no packages to install.
 
 import { readFileSync, writeFileSync } from 'node:fs';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
@@ -72,166 +72,15 @@ async function loadSchemaText() {
   return await res.text();
 }
 
-// ---------------------------------------------------------------------------
-// Minimal block-YAML reader, scoped to the Provider schema subtree.
-//
-// This deliberately parses only the small, well-behaved subset the Provider
-// block uses (block mappings, a block sequence of scalars, and scalar values).
-// It never parses the whole OpenAPI document, so folded/anchored/flow YAML
-// elsewhere in the file cannot trip it up.
-// ---------------------------------------------------------------------------
-
-function indentOf(line) {
-  return line.length - line.replace(/^ +/, '').length;
-}
-
-function stripInlineComment(value) {
-  if (value.startsWith('"') || value.startsWith("'")) return value;
-  const i = value.indexOf(' #');
-  return i === -1 ? value : value.slice(0, i).trimEnd();
-}
-
-function parseScalar(raw) {
-  const v = raw.trim();
-  if (
-    (v.startsWith('"') && v.endsWith('"') && v.length >= 2) ||
-    (v.startsWith("'") && v.endsWith("'") && v.length >= 2)
-  ) {
-    return v.slice(1, -1);
-  }
-  if (v === 'true') return true;
-  if (v === 'false') return false;
-  if (v === 'null' || v === '~' || v === '') return null;
-  if (/^-?\d+$/.test(v)) return Number(v);
-  return v;
-}
-
-// Turn raw lines into { indent, content } tokens, dropping blank and
-// comment-only lines.
-function tokenize(lines) {
-  const tokens = [];
-  for (const line of lines) {
-    if (/^\s*$/.test(line)) continue;
-    const content = line.replace(/^ +/, '');
-    if (content.startsWith('#')) continue;
-    tokens.push({ indent: indentOf(line), content });
-  }
-  return tokens;
-}
-
-function parseMap(tokens, start, indent) {
-  const obj = {};
-  let i = start;
-  while (i < tokens.length && tokens[i].indent === indent) {
-    const { content } = tokens[i];
-    const colon = content.indexOf(':');
-    if (colon === -1) break;
-    const key = content.slice(0, colon).trim();
-    const rest = stripInlineComment(content.slice(colon + 1).trim());
-    if (/^[|>][+-]?\d*$/.test(rest)) {
-      let j = i + 1;
-      while (j < tokens.length && tokens[j].indent > indent) j++;
-      obj[key] = '';
-      i = j;
-      continue;
-    }
-    if (rest === '') {
-      if (i + 1 < tokens.length && tokens[i + 1].indent > indent) {
-        const childIndent = tokens[i + 1].indent;
-        const [child, next] = parseNode(tokens, i + 1, childIndent);
-        obj[key] = child;
-        i = next;
-      } else {
-        obj[key] = null;
-        i += 1;
-      }
-    } else {
-      obj[key] = parseScalar(rest);
-      i += 1;
-    }
-  }
-  return [obj, i];
-}
-
-function parseSeq(tokens, start, indent) {
-  const arr = [];
-  let i = start;
-  while (i < tokens.length && tokens[i].indent === indent && tokens[i].content.startsWith('- ')) {
-    arr.push(parseScalar(stripInlineComment(tokens[i].content.slice(2))));
-    i += 1;
-  }
-  return [arr, i];
-}
-
-function parseNode(tokens, start, indent) {
-  if (tokens[start] && tokens[start].content.startsWith('- ')) {
-    return parseSeq(tokens, start, indent);
-  }
-  return parseMap(tokens, start, indent);
-}
-
-// Return the raw lines of the subtree nested under the line at `keyIndex`.
-function subtreeLines(lines, keyIndex) {
-  const base = indentOf(lines[keyIndex]);
-  const out = [];
-  for (let i = keyIndex + 1; i < lines.length; i += 1) {
-    const line = lines[i];
-    if (/^\s*$/.test(line) || /^\s*#/.test(line)) {
-      out.push(line);
-      continue;
-    }
-    if (indentOf(line) <= base) break;
-    out.push(line);
-  }
-  return out;
-}
-
-function findKeyIndex(lines, key, withinIndentGreaterThan = -1) {
-  const re = new RegExp(`^( *)${key.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')}:\\s*$`);
-  for (let i = 0; i < lines.length; i += 1) {
-    const m = lines[i].match(re);
-    if (m && m[1].length > withinIndentGreaterThan) return i;
-  }
-  return -1;
-}
-
 export function extractProviderModel(schemaText) {
-  const lines = schemaText.split('\n');
-
-  let providerIndex = -1;
-  const providerRe = /^( +)Provider:\s*$/;
-  for (let i = 0; i < lines.length; i += 1) {
-    if (!providerRe.test(lines[i])) continue;
-    const sub = subtreeLines(lines, i);
-    if (sub.some((l) => /^\s*x-provider-configs:\s*$/.test(l))) {
-      providerIndex = i;
-      break;
-    }
-  }
-  if (providerIndex === -1) {
+  const provider = Bun.YAML.parse(schemaText)?.components?.schemas?.Provider;
+  if (provider == null || provider['x-provider-configs'] == null) {
     throw new Error(
       'Could not locate components.schemas.Provider with an x-provider-configs block in the schema.'
     );
   }
-
-  const providerLines = subtreeLines(lines, providerIndex);
-
-  const enumIdx = findKeyIndex(providerLines, 'enum');
-  let enumIds = [];
-  if (enumIdx !== -1) {
-    const enumTokens = tokenize(subtreeLines(providerLines, enumIdx));
-    if (enumTokens.length) {
-      enumIds = parseNode(enumTokens, 0, enumTokens[0].indent)[0];
-    }
-  }
-
-  const configIdx = findKeyIndex(providerLines, 'x-provider-configs');
-  if (configIdx === -1) {
-    throw new Error('Provider schema is missing the x-provider-configs extension.');
-  }
-  const configTokens = tokenize(subtreeLines(providerLines, configIdx));
-  const configs = configTokens.length ? parseNode(configTokens, 0, configTokens[0].indent)[0] : {};
-
+  const configs = provider['x-provider-configs'];
+  const enumIds = provider.enum ?? [];
   return { enumIds: enumIds.length ? enumIds : Object.keys(configs), configs };
 }
 
@@ -488,15 +337,8 @@ async function main() {
   console.log(`Updated: ${written.join(', ')}`);
 }
 
-// Only run when invoked directly (bun/node scripts/generate-provider-docs.mjs),
-// not when imported by the fixture test. import.meta.main is set under bun and
-// node >=24; older node falls back to comparing the entry path.
-let isEntrypoint = import.meta.main;
-if (isEntrypoint === undefined) {
-  isEntrypoint = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
-}
-
-if (isEntrypoint) {
+// Only run when invoked directly, not when imported by the fixture test.
+if (import.meta.main) {
   main().catch((err) => {
     console.error(`generate-provider-docs: ${err.message}`);
     process.exit(1);
