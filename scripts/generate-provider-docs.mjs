@@ -14,6 +14,7 @@
 //
 // Usage:
 //   bun scripts/generate-provider-docs.mjs
+//   bun scripts/generate-provider-docs.mjs --check
 //   SCHEMA_FILE=scripts/__fixtures__/openapi.sample.yaml bun scripts/generate-provider-docs.mjs
 //
 // Environment:
@@ -24,8 +25,10 @@
 //   SCHEMA_REF   git ref (tag or commit) to pin (default main). Pin to a tag or
 //                commit SHA for reproducible builds.
 //
-// Requires Bun (for Bun.YAML.parse); no packages to install.
+// Requires Bun (for Bun.YAML.parse); no packages to install. Entrypoint runs
+// also format their output via `bunx prettier`.
 
+import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -303,30 +306,39 @@ function updateFile(relPath, regions) {
 // Main
 // ---------------------------------------------------------------------------
 
+const GENERATED_FILES = [
+  'supported-providers.md',
+  'configuration.md',
+  'sdks.md',
+  'rust-adk.md',
+  'typescript-adk.md',
+];
+
+const REGIONS_BY_FILE = {
+  'supported-providers.md': (providers) => [
+    ['providers-table', renderProvidersTable(providers)],
+    ['provider-uppercase', renderUppercaseList(providers)],
+    ['vision-list', renderVisionList(providers)],
+  ],
+  'configuration.md': (providers) => [
+    ['provider-settings', renderSettingsConsts(providers)],
+    ['provider-config-sections', renderConfigSections(providers)],
+  ],
+  'sdks.md': (providers) => [['sdks-provider-list', renderSdksProviderList(providers)]],
+  'rust-adk.md': (providers) => [['adk-provider-table', renderAdkProviderTable(providers)]],
+  'typescript-adk.md': (providers) => [['adk-provider-table', renderAdkProviderTable(providers)]],
+};
+
 async function main() {
   const overrides = JSON.parse(readFileSync(join(SCRIPT_DIR, 'provider-overrides.json'), 'utf8'));
   const schemaText = await loadSchemaText();
   const model = extractProviderModel(schemaText);
   const providers = buildProviders(model, overrides);
 
-  const written = [];
-  written.push(
-    updateFile('supported-providers.md', [
-      ['providers-table', renderProvidersTable(providers)],
-      ['provider-uppercase', renderUppercaseList(providers)],
-      ['vision-list', renderVisionList(providers)],
-    ])
-  );
-  written.push(
-    updateFile('configuration.md', [
-      ['provider-settings', renderSettingsConsts(providers)],
-      ['provider-config-sections', renderConfigSections(providers)],
-    ])
-  );
-  written.push(updateFile('sdks.md', [['sdks-provider-list', renderSdksProviderList(providers)]]));
-  const adkTable = renderAdkProviderTable(providers);
-  written.push(updateFile('rust-adk.md', [['adk-provider-table', adkTable]]));
-  written.push(updateFile('typescript-adk.md', [['adk-provider-table', adkTable]]));
+  for (const file of GENERATED_FILES) {
+    updateFile(file, REGIONS_BY_FILE[file](providers));
+  }
+  formatWithPrettier(GENERATED_FILES);
 
   const localFile = argValue('schema-file') || process.env.SCHEMA_FILE;
   const source = localFile ? `local file ${localFile}` : SCHEMA_URL;
@@ -334,13 +346,40 @@ async function main() {
     `Generated ${providers.length} providers (${providers.map((p) => p.id).join(', ')}) ` +
       `from ${source}.`
   );
-  console.log(`Updated: ${written.join(', ')}`);
+  console.log(`Updated: ${GENERATED_FILES.join(', ')}`);
+}
+
+function formatWithPrettier(paths) {
+  execFileSync('bunx', ['prettier', '--write', ...paths], {
+    cwd: REPO_ROOT,
+    stdio: 'inherit',
+  });
 }
 
 // Only run when invoked directly, not when imported by the fixture test.
 if (import.meta.main) {
-  main().catch((err) => {
+  runEntrypoint().catch((err) => {
     console.error(`generate-provider-docs: ${err.message}`);
     process.exit(1);
   });
+}
+
+async function runEntrypoint() {
+  if (!process.argv.includes('--check')) {
+    await main();
+    return;
+  }
+  const before = new Map(
+    GENERATED_FILES.map((file) => [file, readFileSync(join(REPO_ROOT, file), 'utf8')])
+  );
+  await main();
+  const stale = GENERATED_FILES.filter(
+    (file) => readFileSync(join(REPO_ROOT, file), 'utf8') !== before.get(file)
+  );
+  if (stale.length === 0) return;
+  console.error('');
+  console.error('ERROR: provider docs are out of date with the canonical openapi.yaml.');
+  console.error(`Stale files: ${stale.join(', ')}`);
+  console.error('Run `task generate` and commit the result.');
+  process.exit(1);
 }

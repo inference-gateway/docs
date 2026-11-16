@@ -3,7 +3,6 @@ version: '3'
 vars:
   SCHEMA_REPO: '{{.SCHEMA_REPO | default "inference-gateway/schemas"}}'
   SCHEMA_REF: '{{.SCHEMA_REF | default "main"}}'
-  GENERATED_FILES: supported-providers.md configuration.md rust-adk.md typescript-adk.md sdks.md
 
 tasks:
   default:
@@ -56,8 +55,7 @@ tasks:
       SCHEMA_REPO: '{{.SCHEMA_REPO}}'
       SCHEMA_REF: '{{.SCHEMA_REF}}'
     cmds:
-      - bun scripts/generate-provider-docs.mjs
-      - bunx prettier --write {{.GENERATED_FILES}}
+      - bun run generate
 
   generate:check:
     desc: Fail if the committed docs have drifted from the canonical openapi.yaml
@@ -65,15 +63,7 @@ tasks:
       SCHEMA_REPO: '{{.SCHEMA_REPO}}'
       SCHEMA_REF: '{{.SCHEMA_REF}}'
     cmds:
-      - task: generate
-      - cmd: |
-          git diff --exit-code -- {{.GENERATED_FILES}} || {
-            echo ''
-            echo 'ERROR: provider docs are out of date with the canonical openapi.yaml.'
-            echo 'Run `task generate` and commit the result.'
-            exit 1
-          }
-        silent: true
+      - bun run generate:check
 
   test:
     desc: Run the provider-docs generator regression tests against the fixture
