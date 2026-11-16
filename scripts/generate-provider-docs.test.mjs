@@ -1,7 +1,7 @@
 // Regression net for the provider-docs generator. Runs the pure render pipeline
 // against the bundled fixture schema and asserts every generated region still
-// matches what is committed in the docs. This exercises the hand-rolled block
-// YAML reader, the schema/override merge and its validation, and all seven
+// matches what is committed in the docs. This exercises the Bun.YAML schema
+// reader, the schema/override merge and its validation, and all seven
 // renderers - with no network access and no prettier pass. Run with: bun test.
 import { test, expect } from 'bun:test';
 import { readFileSync } from 'node:fs';
@@ -144,4 +144,31 @@ test('injectRegion rejects a file with duplicate markers (the merge trap)', () =
   const one = ['<!-- GENERATED:x START -->', '', 'old', '', '<!-- GENERATED:x END -->'];
   const dup = [...one, ...one].join('\n');
   expect(() => injectRegion(dup, 'x', ['new'])).toThrow(/Expected exactly one GENERATED:x region/);
+});
+
+test('a schema without the Provider schema throws the locator error', () => {
+  expect(() => extractProviderModel('openapi: 3.1.0\ncomponents:\n  schemas: {}')).toThrow(
+    /Could not locate components.schemas.Provider/
+  );
+});
+
+test('a Provider schema without x-provider-configs throws the locator error', () => {
+  const schema = ['components:', '  schemas:', '    Provider:', '      enum: [zai]'].join('\n');
+  expect(() => extractProviderModel(schema)).toThrow(
+    /Could not locate components.schemas.Provider/
+  );
+});
+
+test('a missing enum falls back to the x-provider-configs keys', () => {
+  const schema = [
+    'components:',
+    '  schemas:',
+    '    Provider:',
+    '      x-provider-configs:',
+    '        zai: { url: https://api.z.ai, auth_type: bearer }',
+    '        openai: { url: https://api.openai.com/v1, auth_type: bearer }',
+  ].join('\n');
+  const model = extractProviderModel(schema);
+  expect(model.enumIds).toEqual(['zai', 'openai']);
+  expect(model.configs.openai.url).toBe('https://api.openai.com/v1');
 });
