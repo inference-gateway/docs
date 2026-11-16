@@ -2497,6 +2497,21 @@ For every mode except the `.*` sentinel, each command passes a **clean-command g
 
 A rejected command returns an actionable hint naming what tripped the guard; the model is told to stop and ask, or use an allowed alternative, rather than retry the same call.
 
+##### Paths stay inside the sandbox
+
+An allowed command runs without approval only when every path it names passes the same [file sandbox](#file-sandbox) check as the file tools - `filesystem.allowed` and `filesystem.denied`, with symlinks resolved. Operands, `--flag=value` and `-Xvalue` values, input redirections (`< file`), `~`, `$VAR` and globs are checked, so `head ~/.aws/credentials` or a `ls links/*` that leaves the project asks first.
+
+Values a command never opens as a file are text, not paths, and are skipped:
+
+- The jq filter after `gh -q` / `--jq`.
+- The free text after `--title` / `--body`.
+- The commit or tag message after `git -m`.
+- The HTTP endpoint after `gh api`.
+- `/dev/null` as a read operand.
+- Every argument of `echo` and `printf`, which never open their arguments.
+
+The hard limits stay: the value of a file-opening option (`--body-file`, `--input`, a glued `--flag=path`) and every other operand - including the operands that follow a skipped text value - still pass the sandbox check. A path that cannot be known in advance (`${VAR:-x}`, `$1`, `{a,b}`, `~user`) asks, and so does a glob that can reach the parent directory (`.*`, `.?`) or that bash reads differently from the check (`[!a]`, `[[:alpha:]]`).
+
 ##### Append-only override (CI)
 
 The `mode.all` baseline takes an **append-only override** so CI can add a few safe commands without rewriting config or shipping `.*`:
