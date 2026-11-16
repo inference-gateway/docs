@@ -285,18 +285,19 @@ infer version
 
 ## Core Commands
 
-| Command                  | Description                      | Key Features                                                     |
-| ------------------------ | -------------------------------- | ---------------------------------------------------------------- |
-| `infer init`             | Seed the userspace baseline      | Creates `~/.infer/` defaults - writes nothing to the project     |
-| `infer status`           | Check gateway health             | Shows resource usage and connectivity, `--format json\|yaml`     |
-| `infer chat`             | Interactive chat TUI             | Streaming, scrolling, tool expansion, mode switching             |
-| `infer chat --web`       | [Web terminal](#web-terminal)    | Browser interface, tabbed sessions, remote access, live screen   |
-| `infer headless <task>`  | Autonomous task execution        | Background operation, task planning, validation                  |
-| `infer headless --serve` | Long-lived AG-UI worker          | One run per `run_agent_input` frame over stdio, no task argument |
-| `infer config <cmd>`     | Configuration management         | Generic `get`/`set` for any config key                           |
-| `infer tools <cmd>`      | Run agent tools directly         | List the tools, execute one or validate a bash command           |
-| `infer stats`            | Summarize local telemetry        | Token usage, tool outcomes, and cost across sessions             |
-| `infer traces`           | View a session's trace span tree | Offline span-tree viewer, `--list` and JSON output               |
+| Command                  | Description                      | Key Features                                                                           |
+| ------------------------ | -------------------------------- | -------------------------------------------------------------------------------------- |
+| `infer init`             | Seed the userspace baseline      | Creates `~/.infer/` defaults - writes nothing to the project                           |
+| `infer status`           | Check gateway health             | Shows resource usage and connectivity, `--format json\|yaml`                           |
+| `infer chat`             | Interactive chat TUI             | Streaming, scrolling, tool expansion, mode switching                                   |
+| `infer chat --web`       | [Web terminal](#web-terminal)    | Browser interface, tabbed sessions, remote access, live screen                         |
+| `infer headless <task>`  | Autonomous task execution        | Background operation, task planning, validation                                        |
+| `infer headless --serve` | Long-lived AG-UI worker          | One run per `run_agent_input` frame over stdio, no task argument                       |
+| `infer config <cmd>`     | Configuration management         | Generic `get`/`set` for any config key                                                 |
+| `infer tools <cmd>`      | Run agent tools directly         | List the tools, execute one or validate a bash command                                 |
+| `infer debug <cmd>`      | Inspect agent internals          | Effective [sandbox](#inspecting-internals-infer-debug) and the assembled system prompt |
+| `infer stats`            | Summarize local telemetry        | Token usage, tool outcomes, and cost across sessions                                   |
+| `infer traces`           | View a session's trace span tree | Offline span-tree viewer, `--list` and JSON output                                     |
 
 ### Gateway Status
 
@@ -661,7 +662,7 @@ The built-in plan-mode guidance names the scratchpad and tells the model to copy
 Two limits worth knowing:
 
 - Writing inside the scratchpad still goes through the normal [approval rules](#approval-workflow), so a scratch write can still prompt you in Standard-style gating.
-- The pinned working directory applies to every plan-mode command, including the baseline ones - `git status` in plan mode reports on the scratchpad, not on your project. An allow-listed command can also still reach outside the scratchpad through an absolute path argument: the file tools are the hard boundary, the shell is allowed-list plus approval.
+- The pinned working directory applies to every plan-mode command, including the baseline ones - `git status` in plan mode reports on the scratchpad, not on your project. An allow-listed command can also still **read** outside the scratchpad through an absolute path argument - but a **write** outside it fails in the kernel ([`filesystem.enforce`](#kernel-enforcement-filesystem-enforce)), and on macOS so does reading a file a blocking `denied` entry names.
 
 #### How mode instructions are delivered
 
@@ -2512,6 +2513,19 @@ Values a command never opens as a file are text, not paths, and are skipped:
 
 The hard limits stay: the value of a file-opening option (`--body-file`, `--input`, a glued `--flag=path`) and every other operand - including the operands that follow a skipped text value - still pass the sandbox check. A path that cannot be known in advance (`${VAR:-x}`, `$1`, `{a,b}`, `~user`) asks, and so does a glob that can reach the parent directory (`.*`, `.?`) or that bash reads differently from the check (`[!a]`, `[[:alpha:]]`).
 
+##### Kernel-confined writes
+
+A command the allowed-list runs **unattended** also runs inside an OS sandbox ([`filesystem.enforce`](#kernel-enforcement-filesystem-enforce), default on - Landlock on Linux, Seatbelt on macOS, nothing on Windows). It may read and execute anything, but writes only land under the writable [sandbox](#file-sandbox) paths, the grants, the built-in carve-outs, the temp dir and the Go, cargo and npm caches. A write outside them fails in the kernel with `Operation not permitted` (macOS) or `Permission denied` (Linux), followed by the hint:
+
+```text
+the sandbox confines writes to the writable paths of ~/.infer/sandbox.yaml
+(filesystem.allowed) and refuses to read, rename or delete its denied files
+(filesystem.denied): work inside them, or ask the user to approve the command
+or add the path
+```
+
+Reads are unconfined except on **macOS**, where the kernel refuses to read, rename or delete the files the blocking `denied` entries name - under any spelling, symlink, copy or clone - and returns the same hint. Every other read follows the allowed-list [path check](#file-sandbox) on the command's path arguments. A command the **user approved** runs unconfined.
+
 ##### Append-only override (CI)
 
 The `mode.all` baseline takes an **append-only override** so CI can add a few safe commands without rewriting config or shipping `.*`:
@@ -3381,7 +3395,24 @@ infer tools validate "$cmd" && eval "$cmd"
 
 `infer tools validate` **exits non-zero** when the command is not allowed or when tools are disabled, and prints the reason on stderr, so it can gate a shell conditional as above. An allowed command exits 0.
 
+A command naming a **denied** path exits non-zero with `access to path '...' is excluded for security` rather than being reported as needing approval - a blocking [`filesystem.denied`](#file-sandbox) entry is not something an approval can unlock.
+
 > `infer tools execute` and `infer tools validate` moved from `config tools exec`/`config tools validate` to the top-level `infer tools` command.
+
+### Inspecting Internals (`infer debug`)
+
+`infer debug` surfaces internal state for debugging. `infer debug agent system_prompt` prints the prompt context a fresh chat session would send (`--tokens` for per-section size stats instead), and `infer debug sandbox` prints the effective [file sandbox](#file-sandbox) **from the current directory**:
+
+```bash
+infer debug sandbox
+```
+
+It prints four blocks:
+
+- **Policy** - a table of the `allowed` and `denied` entries of `~/.infer/sandbox.yaml` over the defaults, each with its effect (`read and write`, `read only`, `blocked, no approval`, `asks before read and write`) and what it covers: an anchored entry as the absolute path it resolves to from here, a pattern as `any depth`. Denied rows read `any case`, since [denied entries fold case](#entry-forms).
+- **Built-in carve-outs** - the writable ones (skills, plugins, plans, insights, memory, artifacts, media) and the read-only library dirs, so you can see what stays open although the config dirs ask.
+- **Kernel confinement of unattended Bash** - the kernel in use, then every path a confined command may write with its access in `standard, auto` and in `plan` (`everything else` is `read and execute`), followed by the files the kernel refuses to read, rename or delete. With [`filesystem.enforce`](#kernel-enforcement-filesystem-enforce) off, or on a platform without a kernel sandbox, the block says so and names the policy as the only guard. On Linux it notes that reads stay with the policy, since the kernel only grants.
+- **Bash allow-list sizes** - how many patterns each mode runs unattended (`every command in auto` when the `.*` sentinel is in play), and a pointer to [`infer tools validate <command>`](#running-tools-directly) to check one.
 
 ## Custom Tools
 
@@ -3680,7 +3711,7 @@ chmod 600 ~/.infer/auth.yaml
 ```
 
 - **Permissions**: `0600` is recommended. Broader permissions still work but log a warning.
-- **Sandboxed**: `auth.yaml` is on the `filesystem.denied` list of the [file sandbox](#file-sandbox) - agent tools cannot read or edit it.
+- **Sandboxed**: `auth.yaml` is on the `filesystem.denied` list of the [file sandbox](#file-sandbox) - agent tools cannot read or edit it, and on macOS an unattended [Bash](#kernel-confined-writes) command cannot read it either, since the kernel refuses it.
 - **Graceful degradation**: a missing or unreadable file changes nothing; a malformed file is ignored with a logged warning. Key resolution never fails because of `auth.yaml`.
 - **Legacy `auth.json`**: the old JSON file is still read as a fallback when `auth.yaml` is absent, so existing credentials keep working. Move your keys into `auth.yaml` - JSON is valid YAML, so the contents can be pasted as-is.
 
@@ -5656,6 +5687,7 @@ Which paths the file tools may read and write is decided by a **userspace policy
 
 ```yaml
 filesystem:
+  enforce: true # confine unattended Bash writes in the kernel (default true)
   allowed: # the sandbox. Outside it the user is asked. First match wins.
     - .
     - /tmp
@@ -5681,6 +5713,8 @@ Each entry is either a path string or a map:
 
 Paths are either **anchored** (`/abs`, `~/x`, `.`, `./x` - matched at that location) or **patterns** matched at any depth (`dir/`, `*.glob`, `name`).
 
+`denied` entries match **case-insensitively**, so `.ENV` is `.env` and `Auth.yaml` is `auth.yaml` - a different spelling cannot slip a secret past the policy on a case-insensitive filesystem.
+
 #### Defaults
 
 - `allowed`: `.` and `/tmp`.
@@ -5696,6 +5730,34 @@ The config dirs (`.infer/` and `~/.infer/`) therefore **ask before every read an
 | Rust     | `$CARGO_HOME/registry/src` and `$CARGO_HOME/git/checkouts` (default `~/.cargo`), plus `$RUSTUP_HOME/toolchains/*/lib/rustlib/src` (default `~/.rustup`) |
 
 Writes under these directories stay **denied** - the carve-out is read-only, so the agent cannot edit a vendored dependency in place.
+
+#### Kernel enforcement (`filesystem.enforce`)
+
+`filesystem.enforce` (default `true`) backs the policy with an **OS sandbox** around every [Bash](#bash) command the allowed-list runs unattended - in [Auto-Accept mode](#auto-accept-mode) that is every command. The confined command may read and execute anything, but may **write** only under:
+
+- the **writable** `filesystem.allowed` entries and the session [grants](#grants) (a `read` entry is not writable),
+- the built-in **writable carve-outs** - skills, plugins, plans, insights, [memory](#persistent-memory), the [artifacts directory](#artifacts-directory) and the [media root](#media-directories),
+- the **temp dir**, and the **Go, cargo and npm caches**, so builds and installs still work.
+
+In [plan mode](#plan-mode) the project gives way to the [scratchpad](#the-scratchpad), matching what the file tools allow there.
+
+A write anywhere else fails **in the kernel**, not in a path check: Landlock on Linux, Seatbelt on macOS, nothing on Windows (there the path check stays the only guard). A command the **user approved** runs as approved and **unconfined**, so approving a path outside the sandbox keeps its meaning.
+
+**Reads.** On macOS the kernel also refuses to **read, rename or delete** the files the blocking `denied` entries name (`auth.yaml`, `*.env`, `*.key`, ...), under any spelling, symlink, copy or clone - a path the policy check cannot predict still fails. Directory entries such as `.git/` stay with the path check, so git keeps reading its own tree. On Linux reads stay with the path check: Landlock only grants, so it cannot deny a pattern inside a granted tree.
+
+Turn the confinement off where the OS sandbox cannot run:
+
+```yaml
+# ~/.infer/sandbox.yaml
+filesystem:
+  enforce: false
+```
+
+Limits worth knowing:
+
+- A Linux kernel **without Landlock** runs the command unconfined and logs it at debug level - `enforce` is best effort. A kernel that has Landlock but **refuses** the ruleset fails the command with a message naming `filesystem.enforce`.
+- A tool cache outside the listed ones (for example `~/.bun`) needs its own `allowed` entry.
+- Run [`infer debug sandbox`](#inspecting-internals-infer-debug) to see the effective write paths per mode and the files the kernel refuses to read.
 
 #### Decision order
 
