@@ -16,6 +16,8 @@
     "format:check": "prettier --check .",
     "lint:md": "markdownlint \"**/*.md\" --ignore node_modules --ignore .vitepress",
     "lint:md:fix": "markdownlint \"**/*.md\" --ignore node_modules --ignore .vitepress --fix",
+    "generate": "bun scripts/generate-provider-docs.mjs",
+    "generate:check": "bun scripts/generate-provider-docs.mjs --check",
     "test": "bun test"
   },
   "devDependencies": {
