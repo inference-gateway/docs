@@ -60,7 +60,7 @@ jobs:
           echo "url=https://preview-$alias.inference-gateway.com" >> "$GITHUB_OUTPUT"
 
       - name: Upload preview version
-        run: bunx wrangler@4.123.0 versions upload --preview-alias "$ALIAS"
+        run: bunx wrangler versions upload --preview-alias "$ALIAS"
         env:
           ALIAS: ${{ steps.alias.outputs.alias }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -98,6 +98,9 @@ jobs:
         with:
           bun-version-file: .bun-version
 
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
       - name: Resolve branch alias
         id: alias
         run: echo "alias=$(echo "$GITHUB_HEAD_REF" | tr '/_.' '---' | tr '[:upper:]' '[:lower:]' | cut -c1-28 | sed 's/-*$//')" >> "$GITHUB_OUTPUT"
@@ -106,7 +109,7 @@ jobs:
         run: |
           mkdir -p .tombstone
           printf '<!doctype html><title>Preview destroyed</title><h1>410</h1><p>This preview environment was destroyed when its pull request closed.</p>' > .tombstone/index.html
-          bunx wrangler@4.123.0 versions upload --assets .tombstone --preview-alias "$ALIAS"
+          bunx wrangler versions upload --assets .tombstone --preview-alias "$ALIAS"
         env:
           ALIAS: ${{ steps.alias.outputs.alias }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
