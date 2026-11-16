@@ -4,7 +4,7 @@ VitePress documentation site for [Inference Gateway](https://github.com/inferenc
 
 ## Commands
 
-Use Bun (>= 1.3, pinned in `.bun-version`). Every `bun run <name>` has a `task <name>` equivalent.
+Use Bun (>= 1.4, pinned in `.bun-version`). Every `bun run <name>` has a `task <name>` equivalent.
 
 - `bun install` — install from `bun.lock`
 - `bun run dev` — VitePress dev server (<http://localhost:5173>)
