@@ -73,8 +73,4 @@ jobs:
         run: bun test
 
       - name: Fail on schema drift
-        run: |
-          bun scripts/generate-provider-docs.mjs
-          bunx prettier --write supported-providers.md configuration.md rust-adk.md typescript-adk.md
-          git diff --exit-code -- supported-providers.md configuration.md rust-adk.md typescript-adk.md \
-            || { echo 'Provider docs drifted from openapi.yaml - run `task generate` and commit.'; exit 1; }
+        run: bun run generate:check

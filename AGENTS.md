@@ -42,7 +42,7 @@ Sections between `GENERATED:*` markers in `supported-providers.md`, `configurati
 
 1. `gh api "repos/inference-gateway/schemas/contents/openapi.yaml?ref=main" -H "Accept: application/vnd.github.raw" > .schema.yaml`
 2. `bun scripts/generate-provider-docs.mjs --schema-file=.schema.yaml` (use the `--schema-file=` form - the `SCHEMA_FILE=` env form can be blocked)
-3. `bunx prettier --write` the regenerated files, then `bun test`
+3. `bun test` (the generator formats its output with prettier itself)
 4. Delete `.schema.yaml` (untracked, trips `format:check`)
 
 When a provider's hard facts change (auth type, base URL, vision flag), update `scripts/__fixtures__/openapi.sample.yaml` too or `bun test` fails its byte-for-byte comparison. `adkKeyNote` in `provider-overrides.json` only applies to `auth_type: none` providers.
