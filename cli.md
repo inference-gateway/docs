@@ -608,12 +608,12 @@ Select a range with `space`/`v`, navigate, then apply to stage just those lines 
 
 Toggle between modes anytime during chat using **Shift+Tab**.
 
-| Mode                   | Tools                                                                                                | Approval                             | Best For                                            |
-| ---------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------ | --------------------------------------------------- |
-| **Standard** (Default) | All configured                                                                                       | Required for Write/Edit/Delete/Bash  | General development, collaborative coding           |
-| **Plan**               | Read, Grep, Tree, read-only subagents, plus writes and Bash inside the [scratchpad](#the-scratchpad) | Standard rules inside the scratchpad | Code reviews, architecture analysis, planning       |
-| **Auto-Accept** (YOLO) | All configured                                                                                       | None - immediate execution           | Trusted environments, rapid prototyping, automation |
-| **Auto+Judge**         | All configured                                                                                       | An LLM judge answers every gate      | Unattended CI/headless runs that still want a gate  |
+| Mode                   | Tools                                                                                                                     | Approval                             | Best For                                            |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ | --------------------------------------------------- |
+| **Standard** (Default) | All configured                                                                                                            | Required for Write/Edit/Delete/Bash  | General development, collaborative coding           |
+| **Plan**               | Read, Grep, Tree, WebFetch, WebSearch, read-only subagents, plus writes and Bash inside the [scratchpad](#the-scratchpad) | Standard rules inside the scratchpad | Code reviews, architecture analysis, planning       |
+| **Auto-Accept** (YOLO) | All configured                                                                                                            | None - immediate execution           | Trusted environments, rapid prototyping, automation |
+| **Auto+Judge**         | All configured                                                                                                            | An LLM judge answers every gate      | Unattended CI/headless runs that still want a gate  |
 
 ### Standard Mode
 
@@ -627,7 +627,7 @@ infer chat
 
 ### Plan Mode
 
-Analysis and planning, with your working tree read-only until the plan is approved. `Write`, `Edit`, `MultiEdit`, `Delete` and `Bash` do execute while planning, but only inside one directory - the [scratchpad](#the-scratchpad) - so the agent can copy a file in, try the change, build or test it, and write a plan backed by evidence instead of guesswork.
+Analysis and planning, with your working tree read-only until the plan is approved. `Write`, `Edit`, `MultiEdit`, `Delete` and `Bash` do execute while planning, but only inside one directory - the [scratchpad](#the-scratchpad) - so the agent can copy a file in, try the change, build or test it, and write a plan backed by evidence instead of guesswork. The web tools `WebFetch` and `WebSearch` are available for online research - a `WebFetch` call with `download=true`, or one that returns a binary response, saves the file into the [scratchpad](#the-scratchpad) instead of the session [artifacts directory](#artifacts-directory).
 
 ```bash
 infer chat
@@ -655,6 +655,7 @@ How it behaves:
 - **Lazily created** on the first write or the first plan-mode command.
 - **Outside the git working tree**, so nothing leaks into commits. It is wiped by `/reset` along with the other runtime directories.
 - **Survives plan approval** into the fresh session that executes the plan, so the executing agent can still read what was verified.
+- **Receives [WebFetch](#webfetch) downloads** - in plan mode a `download=true` call or a binary response saves here instead of the per-session [artifacts directory](#artifacts-directory).
 - **A write outside it is a plain error** naming the scratchpad path. No grant can unlock plan mode, so the rejection does not offer the usual sandbox-grant approval prompt. `../` traversal out of the scratchpad, and a symlink inside it pointing outside, are rejected the same way.
 
 The built-in plan-mode guidance names the scratchpad and tells the model to copy files in rather than edit originals, verify there, report what it proved under the plan's `## Verification` section, and keep the scratchpad out of `## Files to Modify` - it is never part of the change.
@@ -2661,7 +2662,7 @@ tools:
 
 Fetch content from an allowed URL. Optionally save the response to disk.
 
-- **Parameters**: `url` (required), `format` (`text` or `json`), `download` (default `false` - when `true`, saves under [`.infer/artifacts/<session-id>/`](#artifacts-directory))
+- **Parameters**: `url` (required), `format` (`text` or `json`), `download` (default `false` - when `true`, saves under [`.infer/artifacts/<session-id>/`](#artifacts-directory), except in [plan mode](#plan-mode) where downloads and binary responses save into the [scratchpad](#the-scratchpad) instead)
 - **Notes**: only allowed domains can be fetched; responses are cached (default 15-minute TTL)
 
 ```yaml
@@ -3722,7 +3723,7 @@ Files the agent produces for you land in `.infer/artifacts/<session-id>/`, under
 What lands there:
 
 - Images from the [ImageGeneration, ImageEdit, and ImageVariation tools](#image-tools) - `image-<timestamp>.png`.
-- [WebFetch](#webfetch) downloads and binary fetches.
+- [WebFetch](#webfetch) downloads and binary fetches - in [plan mode](#plan-mode) they land in the [scratchpad](#the-scratchpad) instead.
 - Auto-downloaded [A2A task artifacts](#a2a-integration).
 
 `.infer/artifacts` is **not** the same as `.infer/tmp`:
