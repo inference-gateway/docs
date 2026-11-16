@@ -23,7 +23,7 @@ Inference Gateway offers a unified API layer to interact with multiple LLM provi
 
 ## Development
 
-This documentation site is built with **VitePress** 1.x and Vue 3, and uses [Bun](https://bun.sh) (>= 1.3.13) as the runtime, package manager, and script runner.
+This documentation site is built with **VitePress** 1.x and Vue 3, and uses [Bun](https://bun.sh) (>= 1.4.4) as the runtime, package manager, and script runner.
 
 ```bash
 # Install dependencies
