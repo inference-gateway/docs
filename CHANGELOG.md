@@ -2,6 +2,60 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.27](https://github.com/inference-gateway/docs/compare/0.9.26...0.9.27) (2026-11-17)
+
+### ♻️ Improvements
+
+* **scripts:** use Bun.YAML.parse in generate-provider-docs ([#1241](https://github.com/inference-gateway/docs/issues/1241)) ([bdfad7c](https://github.com/inference-gateway/docs/commit/bdfad7c63f3bbd944ff92b3f13c06e9494b6ec2b))
+* **vitepress:** derive Mermaid lazy-chunk regexes from one constant ([#1243](https://github.com/inference-gateway/docs/issues/1243)) ([65de689](https://github.com/inference-gateway/docs/commit/65de689d1a82153d014eef929c1c639fa9d08140))
+
+### 🐛 Bug Fixes
+
+* **ci:** reuse generate:check in the drift job and cover sdks.md ([#1245](https://github.com/inference-gateway/docs/issues/1245)) ([b34ee2d](https://github.com/inference-gateway/docs/commit/b34ee2ddb7c55f6c60a0fff287c5878cc89f1e07))
+
+### 👷 CI
+
+* align Dependabot schedule and grouping ([#1231](https://github.com/inference-gateway/docs/issues/1231)) ([40f417f](https://github.com/inference-gateway/docs/commit/40f417f607db3dfcfcf5a0604aff6723d7c09f19))
+* set up orchestrators from repos.yaml ([#1246](https://github.com/inference-gateway/docs/issues/1246)) ([6e03863](https://github.com/inference-gateway/docs/commit/6e03863c617276a65f3d49ca31222060be68d1cf))
+
+### 📚 Documentation
+
+* **api:** document messages api and nullable stop_reason ([#1268](https://github.com/inference-gateway/docs/issues/1268)) ([02e10df](https://github.com/inference-gateway/docs/commit/02e10df8e15076b7ee19df1d35fecc70e1e226b7))
+* **api:** document nullable and optional stream chunk fields ([#1267](https://github.com/inference-gateway/docs/issues/1267)) ([a0923a4](https://github.com/inference-gateway/docs/commit/a0923a4d9a85fe394556fc9dc7041adbbbc25832))
+* **cli:** cover plan-mode web tools and the WebFetch scratchpad redirect ([#1248](https://github.com/inference-gateway/docs/issues/1248)) ([cdfa57e](https://github.com/inference-gateway/docs/commit/cdfa57e121f19b6c6fa101a8f36cb1b8e864e886))
+* **cli:** surface the skills, plugins and hooks runnable examples ([#1258](https://github.com/inference-gateway/docs/issues/1258)) ([78c2686](https://github.com/inference-gateway/docs/commit/78c2686ff1a6a2a76019c7f4bc254ba97922bccb))
+* document bash path-check text exemptions ([#1234](https://github.com/inference-gateway/docs/issues/1234)) ([395c17c](https://github.com/inference-gateway/docs/commit/395c17ced1560b66b87413554db42a8ab3504d92))
+* document kernel-confined bash writes in CLI sandbox ([#1235](https://github.com/inference-gateway/docs/issues/1235)) ([2a78ac0](https://github.com/inference-gateway/docs/commit/2a78ac0871bee098938ddf5011f51caa981cad63))
+* document the Video, PreserveSpeech and StartOffsetSeconds inputs on the Go SDK CreateVideo ([#1223](https://github.com/inference-gateway/docs/issues/1223)) ([264018f](https://github.com/inference-gateway/docs/commit/264018f7621c50851b48fa1c1b848c55023fef85))
+* dubbing a video with mirelo through the videos api ([#1214](https://github.com/inference-gateway/docs/issues/1214)) ([cf0141c](https://github.com/inference-gateway/docs/commit/cf0141c61a5b07bed13fb53dbc2dbc8ab2a20276))
+* dubvideo tool and the video_to_sfx dub switch ([#1222](https://github.com/inference-gateway/docs/issues/1222)) ([ac93910](https://github.com/inference-gateway/docs/commit/ac9391089560e57342a3e6c7dca4f99ffe00176c))
+* elevenlabs video scoring on the sfx endpoint ([#1215](https://github.com/inference-gateway/docs/issues/1215)) ([8469b96](https://github.com/inference-gateway/docs/commit/8469b96f8246dba050a0922b7c9d418fb54c9cc5))
+* go sdk CreateSFX and CreateMusic are shipped ([#1225](https://github.com/inference-gateway/docs/issues/1225)) ([48d348f](https://github.com/inference-gateway/docs/commit/48d348f4811280fa18e8443c7162fdd3035c17a3))
+* image edits through elevenlabs and avatars with one key ([#1211](https://github.com/inference-gateway/docs/issues/1211)) ([df745fc](https://github.com/inference-gateway/docs/commit/df745fcb4130248ce61934f4d9a3b6161d60c96f))
+* link the CLI media-audio and media-video examples ([#1228](https://github.com/inference-gateway/docs/issues/1228)) ([aee7e9e](https://github.com/inference-gateway/docs/commit/aee7e9ec7ca0c2b9efaa0f1f4c77dd499bdd8437))
+* link the subagents and ag-ui runnable examples ([#1256](https://github.com/inference-gateway/docs/issues/1256)) ([534af1c](https://github.com/inference-gateway/docs/commit/534af1cf34fd1974fea8e9da022c0264ea7fdca4))
+* **observability:** add gateway tracing walkthrough with Jaeger ([#1250](https://github.com/inference-gateway/docs/issues/1250)) ([54951f7](https://github.com/inference-gateway/docs/commit/54951f708d5cc294f6b92f5ebc3339938d12f487))
+* **operator:** document Gateway server and MCP request timeouts ([#1254](https://github.com/inference-gateway/docs/issues/1254)) ([aff281e](https://github.com/inference-gateway/docs/commit/aff281e02aa0d0d649cdebbdf274d0e771897d79))
+* **operator:** mirelo provider block for spec.audio ([#1209](https://github.com/inference-gateway/docs/issues/1209)) ([c3f03b8](https://github.com/inference-gateway/docs/commit/c3f03b82735bf78f6b1cf301c7dc011a3130f237))
+* **operator:** wire GPU runtime as openai provider, drop custom ([#1253](https://github.com/inference-gateway/docs/issues/1253)) ([7334cdf](https://github.com/inference-gateway/docs/commit/7334cdfdd234abefedbc79f6b1b0043f97c8b450))
+* repoint example links to domain-first layout ([#1217](https://github.com/inference-gateway/docs/issues/1217)) ([d596bb5](https://github.com/inference-gateway/docs/commit/d596bb5659a665e61cc95da6df61ad69ac9513d5))
+* resending a prompt and conversation rewind frames ([#1203](https://github.com/inference-gateway/docs/issues/1203)) ([63a42b2](https://github.com/inference-gateway/docs/commit/63a42b24e0a97df245a69a67a735db94dfad2964))
+* scoring a video on the sound-effects endpoint ([#1210](https://github.com/inference-gateway/docs/issues/1210)) ([1d03ef9](https://github.com/inference-gateway/docs/commit/1d03ef9aedd8ec27e39c296a348ec9ca12cd4159))
+* **sdks:** bump TypeScript SDK to 0.30.0 and note pin upgrade ([#1265](https://github.com/inference-gateway/docs/issues/1265)) ([bd42f1a](https://github.com/inference-gateway/docs/commit/bd42f1a47c4a0fc3f9c31c686838726c6b57ed2e))
+* **sdks:** document Go SDK audio modes, keys and examples ([#1266](https://github.com/inference-gateway/docs/issues/1266)) ([98601de](https://github.com/inference-gateway/docs/commit/98601de27dd134f665cff5337222bebc6ba1caed))
+* **sdks:** read python stream chunks as plain json ([#1264](https://github.com/inference-gateway/docs/issues/1264)) ([93276e5](https://github.com/inference-gateway/docs/commit/93276e5840e748f6abb05e973d021681a1ca772b))
+* speech through the gateway and spec.audio ([#1201](https://github.com/inference-gateway/docs/issues/1201)) ([979ae1e](https://github.com/inference-gateway/docs/commit/979ae1ed2f76a72dd6a31e515842c42dbd2e699e))
+* videotosfx tool and the sfx scoring budget ([#1221](https://github.com/inference-gateway/docs/issues/1221)) ([4e08dc8](https://github.com/inference-gateway/docs/commit/4e08dc8b9bc8ad6b563223d7f38ab139c8cd6c34))
+* wav output for elevenlabs speech ([#1208](https://github.com/inference-gateway/docs/issues/1208)) ([d36e358](https://github.com/inference-gateway/docs/commit/d36e3588cb32660d5a8e518e60589c1579e75f66))
+
+### 🔧 Miscellaneous
+
+* **deps-dev:** bump prettier from 3.9.10 to 3.10.1 in the bun group ([#1226](https://github.com/inference-gateway/docs/issues/1226)) ([d82d26e](https://github.com/inference-gateway/docs/commit/d82d26e5f58dbf16be1e516aa1259607fb59eb56))
+* **deps:** bump bun to 1.4.4 ([#1242](https://github.com/inference-gateway/docs/issues/1242)) ([f5cf0fc](https://github.com/inference-gateway/docs/commit/f5cf0fcb232bdcf778077aaef029f8a17407f295))
+* **deps:** bump flox dependencies to latest ([#1229](https://github.com/inference-gateway/docs/issues/1229)) ([c0b5858](https://github.com/inference-gateway/docs/commit/c0b585805afcd04649dafaeb6b850814e9ed4731))
+* **deps:** bump flox dependencies to latest ([#1230](https://github.com/inference-gateway/docs/issues/1230)) ([1cf291c](https://github.com/inference-gateway/docs/commit/1cf291cbb77054eb4118d7c5367499083f5af733))
+* **deps:** resolve wrangler via devDependencies instead of pinned bunx literals ([#1244](https://github.com/inference-gateway/docs/issues/1244)) ([35c4c29](https://github.com/inference-gateway/docs/commit/35c4c294561e7f4b4a71700fbc4a0079b1d4facb))
+
 ## [0.9.26](https://github.com/inference-gateway/docs/compare/0.9.25...0.9.26) (2026-11-12)
 
 ### 👷 CI
