@@ -639,11 +639,13 @@ with InferenceGatewayClient(
 
 ## TypeScript
 
-The TypeScript SDK targets Node 18+ and runs in any environment with `fetch` and Web Streams (Node, Deno, Bun, modern browsers, edge runtimes).
+The TypeScript SDK targets Node 24.15+ and runs in any environment with `fetch` and Web Streams (Node, Deno, Bun, modern browsers, edge runtimes).
 
-- Package: [`@inference-gateway/sdk`](https://www.npmjs.com/package/@inference-gateway/sdk) (latest: `0.11.0`)
+- Package: [`@inference-gateway/sdk`](https://www.npmjs.com/package/@inference-gateway/sdk) (latest: `0.30.0`)
 - Repository: [inference-gateway/typescript-sdk](https://github.com/inference-gateway/typescript-sdk)
-- Examples: [typescript-sdk/examples](https://github.com/inference-gateway/typescript-sdk/tree/main/examples)
+- Examples: [typescript-sdk/examples](https://github.com/inference-gateway/typescript-sdk/tree/main/examples) - every example pins `^0.30.0`. The `list` example discovers MCP tools through `mcpJsonRpc` (`tools/list`) and needs the gateway started with `MCP_ENABLED=true` and `MCP_EXPOSE=true`.
+
+> **Upgrading from 0.x pins.** A caret range on a 0.x version only allows patch updates - `^0.15.0` resolves to `0.15.x`, never `0.30.0`. Raise the pin by hand to pick up a new minor release. `listTools()` was removed - list tools with `mcpJsonRpc({ jsonrpc: '2.0', id: 1, method: 'tools/list' })` as shown in [Models, tools, and health](#models-tools-and-health-1) below.
 
 ```bash
 npm i @inference-gateway/sdk
