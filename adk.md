@@ -245,7 +245,7 @@ See [`ai-powered`](https://github.com/inference-gateway/adk/tree/main/examples/a
 
 `/.well-known/agent-card.json` is served with HTTP caching headers per [A2A spec section 8.6](https://a2a-protocol.org/latest/specification/#86-agent-card-caching): `Cache-Control: public, max-age=300`, an `ETag` derived from the card body, and a `Last-Modified` of server start. A conditional request carrying `If-None-Match` or `If-Modified-Since` is answered with `304 Not Modified`, so polling clients revalidate cheaply. The five-minute freshness window is fixed and not configurable.
 
-The default handlers delegate to the agent registered via `WithAgent` when one is present; without an agent they fall back to a built-in reply, which is what lets the [minimal server](#minimal-server) run with no LLM wired up. Storage, authentication, telemetry, and artifacts are driven by `Config` (see the [configuration reference](#configuration-reference)) and applied during `Build()`.
+The default handlers delegate to the agent registered via `WithAgent` when one is present. Without an agent they fall back to a built-in reply, which is what lets the [minimal server](#minimal-server) run with no LLM wired up. Storage, authentication, telemetry, and artifacts are driven by `Config` (see the [configuration reference](#configuration-reference)) and applied during `Build()`.
 
 ## AgentBuilder
 
@@ -278,7 +278,7 @@ Convenience constructors wrap common combinations: `SimpleAgent(logger)`, `Agent
 
 ## Tools and the ToolBox
 
-A `ToolBox` is a named collection of `Tool`s the agent exposes to the model as OpenAI-style function calls. The quickest way to define a tool is `NewBasicTool(name, description, parametersSchema, executor)`; register it with `toolBox.AddTool(tool)`.
+A `ToolBox` is a named collection of `Tool`s the agent exposes to the model as OpenAI-style function calls. The quickest way to define a tool is `NewBasicTool(name, description, parametersSchema, executor)`. Register it with `toolBox.AddTool(tool)`.
 
 ```go
 toolBox := server.NewToolBox() // or NewDefaultToolBox(&cfg.AgentConfig.ToolBoxConfig)
@@ -298,7 +298,7 @@ toolBox.AddTool(server.NewBasicTool(
 - **`input_required`** - always present. The agent intercepts calls to it and pauses the task in the `input-required` state, surfacing the tool's `message` argument to the caller. This is the mechanism behind interactive, multi-turn conversations.
 - **`create_artifact`** - registered only when `ToolBoxConfig.EnableCreateArtifact` is `true` (env `AGENT_CLIENT_TOOLS_CREATE_ARTIFACT=true`). It lets the model autonomously persist content as a downloadable artifact. See [Artifacts](#artifacts).
 
-To implement a richer tool, satisfy the `Tool` interface directly (`GetName`, `GetDescription`, `GetParameters`, `Execute`); `BasicTool` is just the function-callback implementation of it. To expose tools from an external MCP server instead of defining them inline, see the [MCP client](#mcp-client).
+To implement a richer tool, satisfy the `Tool` interface directly (`GetName`, `GetDescription`, `GetParameters`, `Execute`). `BasicTool` is just the function-callback implementation of it. To expose tools from an external MCP server instead of defining them inline, see the [MCP client](#mcp-client).
 
 ## MCP client
 
@@ -308,7 +308,7 @@ The ADK can connect an agent to one or more [Model Context Protocol](https://mod
 
 A single MCP server can expose dozens or hundreds of tools, and loading every schema into the model context would overwhelm the window. So the ADK does **not** register MCP tools individually. Instead the `MCPClientManager` registers just **two selector tools** into the [ToolBox](#tools-and-the-toolbox), regardless of how many tools the servers offer:
 
-- **`mcp_list_tools`** - lists discovered tools (server, name, description, input schema); accepts an optional `search` filter.
+- **`mcp_list_tools`** - lists discovered tools (server, name, description, input schema). Accepts an optional `search` filter.
 - **`mcp_call_tool`** - invokes a tool by `name` (optionally disambiguated by `server`) with an `arguments` object.
 
 A typical turn: the model calls `mcp_list_tools` to find a relevant tool, reads its input schema, then calls `mcp_call_tool` to run it. Only the metadata the model actually asks for reaches the context window. The catalog is discovered in the background and refreshed on an interval, so `mcp_list_tools` returns fast from an in-memory snapshot.
@@ -344,7 +344,7 @@ agent, _ := server.NewAgentBuilder(logger).
 
 With `MCP_ENABLED=true` and `MCP_SERVERS` set, `NewMCPClientManager` returns an error when no client is wired, naming the import and the option to add - there is no default transport to fall back on.
 
-`Start` returns immediately; it never blocks server startup when an MCP server is not yet up. See the [`mcp` example](https://github.com/inference-gateway/adk/tree/main/examples/mcp) for a full runnable server.
+`Start` returns immediately. It never blocks server startup when an MCP server is not yet up. See the [`mcp` example](https://github.com/inference-gateway/adk/tree/main/examples/mcp) for a full runnable server.
 
 ### Resilience
 
@@ -362,13 +362,13 @@ The client seam is exported, so a transport other than streamable HTTP can be su
 - **`server.MCPToolCaller`** - what a transport implements: connect, list the server's tools, and call one.
 - **`server.MCPToolEntry`** - the catalog entry a transport returns per tool (server, name, description, input schema), which the selector tools surface to the model.
 
-Pass the constructor to `server.WithMCPClientFactory`; `http.NewHTTPMCPClient` is simply the implementation the ADK ships.
+Pass the constructor to `server.WithMCPClientFactory`. `http.NewHTTPMCPClient` is simply the implementation the ADK ships.
 
 ### Limitations
 
-- The only transport the ADK ships is streamable **HTTP** (`server/mcp/http`); stdio/subprocess MCP servers are not wired - implement [`MCPToolCaller`](#custom-transports) for anything else.
+- The only transport the ADK ships is streamable **HTTP** (`server/mcp/http`). Stdio/subprocess MCP servers are not wired - implement [`MCPToolCaller`](#custom-transports) for anything else.
 - Tool listing fetches a single page - cursor-based pagination is not yet handled.
-- MCP resources and prompts are not exposed; tools only.
+- MCP resources and prompts are not exposed. Tools only.
 
 ## Task handlers
 
@@ -389,7 +389,7 @@ type StreamableTaskHandler interface {
 ```
 
 - **`TaskHandler`** backs `SendMessage` and background queue processing. It runs the task to a terminal state and returns the updated `Task`.
-- **`StreamableTaskHandler`** backs `SendStreamingMessage`. It returns a channel of [CloudEvents](#streaming-and-cloudevents) that the protocol handler forwards to the client as Server-Sent Events; close the channel when streaming is complete.
+- **`StreamableTaskHandler`** backs `SendStreamingMessage`. It returns a channel of [CloudEvents](#streaming-and-cloudevents) that the protocol handler forwards to the client as Server-Sent Events. Close the channel when streaming is complete.
 
 You can register your own (`WithBackgroundTaskHandler` / `WithStreamingTaskHandler`) or use the bundled defaults (`WithDefaultBackgroundTaskHandler` / `WithDefaultStreamingTaskHandler` / `WithDefaultTaskHandlers`). The default handlers consume the agent's event stream, drive task status transitions, attach [usage metadata](#usage-metadata) on terminal states, and handle input-required pausing automatically. Streaming handlers require an agent to be configured.
 
@@ -420,7 +420,7 @@ resp, err := a2a.SendTask(ctx, types.MessageSendParams{
 
 ### Answering without a task
 
-A background handler may also implement the optional `server.MessageResponder` interface. When `RespondToMessage` returns a non-nil `Message`, `SendMessage` answers with that message directly and creates **no** task; returning `nil` falls through to the regular task flow. This suits trivial request/response exchanges where task bookkeeping buys nothing.
+A background handler may also implement the optional `server.MessageResponder` interface. When `RespondToMessage` returns a non-nil `Message`, `SendMessage` answers with that message directly and creates **no** task. Returning `nil` falls through to the regular task flow. This suits trivial request/response exchanges where task bookkeeping buys nothing.
 
 ```go
 type GreetHandler struct{ agent server.OpenAICompatibleAgent }
@@ -465,21 +465,21 @@ if ok {
 
 ## Streaming and CloudEvents
 
-Agents emit progress as [CloudEvents](https://cloudevents.io/). A `StreamableTaskHandler` returns `<-chan cloudevents.Event`; each event carries a typed payload you read with `event.DataAs(&target)`. The event types are stable string constants in the `types` package, all under the `adk.agent.*` namespace:
+Agents emit progress as [CloudEvents](https://cloudevents.io/). A `StreamableTaskHandler` returns `<-chan cloudevents.Event`. Each event carries a typed payload you read with `event.DataAs(&target)`. The event types are stable string constants in the `types` package, all under the `adk.agent.*` namespace:
 
 | Constant                         | Type string                       | Emitted when                                                              |
 | -------------------------------- | --------------------------------- | ------------------------------------------------------------------------- |
 | `types.EventDelta`               | `adk.agent.delta`                 | An incremental token/text delta is produced.                              |
-| `types.EventIterationCompleted`  | `adk.agent.iteration.completed`   | One chat-completion iteration finishes; carries a `Message`.              |
+| `types.EventIterationCompleted`  | `adk.agent.iteration.completed`   | One chat-completion iteration finishes. Carries a `Message`.              |
 | `types.EventToolStarted`         | `adk.agent.tool.started`          | A tool call begins.                                                       |
 | `types.EventToolCompleted`       | `adk.agent.tool.completed`        | A tool call returns successfully.                                         |
 | `types.EventToolFailed`          | `adk.agent.tool.failed`           | A tool call errors.                                                       |
 | `types.EventToolResult`          | `adk.agent.tool.result`           | A tool result is available.                                               |
-| `types.EventInputRequired`       | `adk.agent.input.required`        | The agent needs more input; the task pauses.                              |
+| `types.EventInputRequired`       | `adk.agent.input.required`        | The agent needs more input. The task pauses.                              |
 | `types.EventTaskInterrupted`     | `adk.agent.task.interrupted`      | The task is interrupted.                                                  |
 | `types.EventTaskStatusChanged`   | `adk.agent.task.status.changed`   | The task transitions to a new `TaskStatus` state.                         |
 | `types.EventStreamFailed`        | `adk.agent.stream.failed`         | The agent stream fails.                                                   |
-| `types.EventTaskArtifactUpdated` | `adk.agent.task.artifact.updated` | An artifact is produced or extended; carries a `TaskArtifactUpdateEvent`. |
+| `types.EventTaskArtifactUpdated` | `adk.agent.task.artifact.updated` | An artifact is produced or extended. Carries a `TaskArtifactUpdateEvent`. |
 
 A handler typically drives the agent with `agent.RunWithStream(ctx, messages)` and reacts to the events:
 
@@ -534,11 +534,11 @@ chunk.Parts = []types.Part{types.CreateTextPart("chunk-2")}
 events <- artifactEvent(chunk, true, true)
 ```
 
-Because the update is recorded on the task, a later `GetTask` returns the assembled artifact even for a client that missed the stream. The [`tck-sut`](https://github.com/inference-gateway/adk/tree/main/examples/tck-sut) example is a reference handler covering chunked artifacts, `MessageResponder`, and interrupted-task subscription; CI runs the A2A TCK against it.
+Because the update is recorded on the task, a later `GetTask` returns the assembled artifact even for a client that missed the stream. The [`tck-sut`](https://github.com/inference-gateway/adk/tree/main/examples/tck-sut) example is a reference handler covering chunked artifacts, `MessageResponder`, and interrupted-task subscription. CI runs the A2A TCK against it.
 
 ## Lifecycle callbacks
 
-Callbacks hook into agent execution at six points, grouped into three Before/After pairs. Register them on the agent with `WithCallbacks(&server.CallbackConfig{...})`; each field is a slice, so multiple callbacks run in order.
+Callbacks hook into agent execution at six points, grouped into three Before/After pairs. Register them on the agent with `WithCallbacks(&server.CallbackConfig{...})`. Each field is a slice, so multiple callbacks run in order.
 
 ```go
 callbacks := &server.CallbackConfig{
@@ -572,9 +572,9 @@ The **Before** and **After** callbacks differ in how a non-nil return is treated
 
 Flow-control details that hold across all six:
 
-- **Before** callbacks run in sequence; the **first** non-nil return wins and skips both the default behavior and any remaining Before callbacks.
+- **Before** callbacks run in sequence. The **first** non-nil return wins and skips both the default behavior and any remaining Before callbacks.
 - **After** callbacks **chain** - each receives the previous callback's (possibly modified) output, and the final non-nil value is used.
-- A panic in any callback is recovered and logged; execution then continues with the next callback or the default behavior.
+- A panic in any callback is recovered and logged. Execution then continues with the next callback or the default behavior.
 - `AfterModel` always runs, even when `BeforeModel` supplied a synthetic response, so post-processing (logging, redaction) sees every response.
 
 `CallbackContext` (agent/model callbacks) and `ToolContext` (tool callbacks) expose `AgentName`, `InvocationID`, `TaskID`, `ContextID`, a mutable `State map[string]any`, and a `Logger`. See the [`callbacks`](https://github.com/inference-gateway/adk/tree/main/examples/callbacks) example for guardrail, caching, and logging patterns.
@@ -705,8 +705,8 @@ resp, err := a2a.SendTask(ctx, types.MessageSendParams{
 })
 ```
 
-- **Helper vs. literal.** `types.CreateFilePart` takes plain `string` name and media type, but the generated `types.FilePart` it builds has optional `Name` and `MediaType` (`*string`). Reading a part back means dereferencing them; building a literal means taking addresses. `types.MessageSendParams.Message` is a required value-typed `types.Message`, as above.
-- **Bytes vs URI.** `fileWithBytes` (the `&encoded` argument above) is inlined as a `data:<mediaType>;base64,<bytes>` URL. `fileWithUri` - the fourth argument - is passed through unchanged, so the **provider** has to fetch it. Artifact-server URLs that only resolve inside your cluster are typically unreachable from a hosted provider; send bytes in that case.
+- **Helper vs. literal.** `types.CreateFilePart` takes plain `string` name and media type, but the generated `types.FilePart` it builds has optional `Name` and `MediaType` (`*string`). Reading a part back means dereferencing them. Building a literal means taking addresses. `types.MessageSendParams.Message` is a required value-typed `types.Message`, as above.
+- **Bytes vs URI.** `fileWithBytes` (the `&encoded` argument above) is inlined as a `data:<mediaType>;base64,<bytes>` URL. `fileWithUri` - the fourth argument - is passed through unchanged, so the **provider** has to fetch it. Artifact-server URLs that only resolve inside your cluster are typically unreachable from a hosted provider. Send bytes in that case.
 - **Ordering.** Text and image parts reach the model in the order they appear in the A2A message.
 - **What is forwarded.** Only `image/*` parts on **user**-role messages. Other media types (PDF, audio) are skipped, and file parts on agent-role messages are never sent, because OpenAI-compatible assistant messages cannot carry images.
 - **Model.** The operator picks the model with `AGENT_CLIENT_MODEL`. A model without vision support rejects the request, and the task ends as `failed` carrying the provider error.
@@ -752,7 +752,7 @@ for evt := range events {
 
 ### Push-notification configuration
 
-Register webhooks the server POSTs to as a task changes state. The four methods form a CRUD cycle keyed by the task ID; both the methods themselves and server-side push require `CAPABILITIES_PUSH_NOTIFICATIONS=true`, which puts `capabilities.pushNotifications: true` on the agent card.
+Register webhooks the server POSTs to as a task changes state. The four methods form a CRUD cycle keyed by the task ID. Both the methods themselves and server-side push require `CAPABILITIES_PUSH_NOTIFICATIONS=true`, which puts `capabilities.pushNotifications: true` on the agent card.
 
 ```go
 configID := uuid.New().String()
@@ -797,7 +797,7 @@ A card whose `capabilities.pushNotifications` is `false` or absent is unsupporte
 
 > **Behavior change.** Earlier versions stored and returned push-notification configs even with the capability disabled - only the outbound sender was gated. Agents that relied on that must now advertise the capability (`CAPABILITIES_PUSH_NOTIFICATIONS=true`, or `PushNotifications: &[]bool{true}[0]` on a hand-built card).
 
-`TaskPushNotificationConfig.Name` (the `set` payload) is a plain `string`, but the `get` / `list` / `delete` params are aliases for the generated request types, where `Name` and `Parent` are `*string` - pass an address, as above. The same holds for `TaskResubscriptionParams.Name` and `CancelTaskRequest.Name`; `types.TaskIdParams.ID`, used by `CancelTask`, stays a `string`.
+`TaskPushNotificationConfig.Name` (the `set` payload) is a plain `string`, but the `get` / `list` / `delete` params are aliases for the generated request types, where `Name` and `Parent` are `*string` - pass an address, as above. The same holds for `TaskResubscriptionParams.Name` and `CancelTaskRequest.Name`. `types.TaskIdParams.ID`, used by `CancelTask`, stays a `string`.
 
 ### Authenticated extended card
 
@@ -838,13 +838,13 @@ Finished tasks (completed, failed, cancelled) are kept after they terminate, bou
 
 | Variable                             | Default | Purpose                                         |
 | ------------------------------------ | ------- | ----------------------------------------------- |
-| `TASK_RETENTION_MAX_COMPLETED_TASKS` | `100`   | Completed tasks retained; `0` disables the cap. |
-| `TASK_RETENTION_MAX_FAILED_TASKS`    | `50`    | Failed/cancelled tasks retained; `0` disables.  |
+| `TASK_RETENTION_MAX_COMPLETED_TASKS` | `100`   | Completed tasks retained. `0` disables the cap. |
+| `TASK_RETENTION_MAX_FAILED_TASKS`    | `50`    | Failed/cancelled tasks retained. `0` disables.  |
 | `TASK_RETENTION_CLEANUP_INTERVAL`    | `5m`    | How often retention trims tasks over the caps.  |
 
-Every `TASK_RETENTION_CLEANUP_INTERVAL` tick the oldest finished tasks beyond each cap are deleted; everything within the caps stays queryable via `GetTask` and `ListTasks`. Raise the caps to keep more history, and remember that the in-memory provider still loses everything on restart - use `QUEUE_PROVIDER=redis` for retention that survives restarts.
+Every `TASK_RETENTION_CLEANUP_INTERVAL` tick the oldest finished tasks beyond each cap are deleted. Everything within the caps stays queryable via `GetTask` and `ListTasks`. Raise the caps to keep more history, and remember that the in-memory provider still loses everything on restart - use `QUEUE_PROVIDER=redis` for retention that survives restarts.
 
-`QUEUE_CLEANUP_INTERVAL` is deprecated and unused. It previously purged **every** finished task on each tick (default `120s`), ignoring the retention caps; setting it now has no effect and it can be removed from your configuration.
+`QUEUE_CLEANUP_INTERVAL` is deprecated and unused. It previously purged **every** finished task on each tick (default `120s`), ignoring the retention caps. Setting it now has no effect and it can be removed from your configuration.
 
 ## Authentication
 
@@ -854,7 +854,7 @@ Enable OIDC/OAuth2 bearer-token authentication with the `AUTH_*` variables. When
 | ----------------- | ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
 | `AUTH_ENABLED`    | `false`                                               | Enable OIDC authentication.                                                                                 |
 | `AUTH_ISSUER_URL` | `http://keycloak:8080/realms/inference-gateway-realm` | OIDC issuer for discovery/JWKS.                                                                             |
-| `AUTH_CLIENT_ID`  | `inference-gateway-client`                            | OIDC client ID; used as the expected token audience when `AUTH_AUDIENCE` is empty.                          |
+| `AUTH_CLIENT_ID`  | `inference-gateway-client`                            | OIDC client ID. Used as the expected token audience when `AUTH_AUDIENCE` is empty.                          |
 | `AUTH_AUDIENCE`   | _(empty)_                                             | Comma-separated list of accepted `aud` values, for example an API identifier. Empty means `AUTH_CLIENT_ID`. |
 
 ### Card-driven authentication flow
@@ -864,7 +864,7 @@ Beyond validating bearer tokens, the ADK implements the [A2A spec, section 7](ht
 1. **Discovery** - the client fetches the public card from `/.well-known/agent-card.json` (always unauthenticated). The card declares `securitySchemes` (named schemes the agent accepts: `apiKey`, `http`, `oauth2`, `openIdConnect`, `mutualTLS`) and `securityRequirements` (a requirement list with OR-of-ANDs semantics - satisfying any one entry is sufficient).
 2. **Credential acquisition is out-of-band** - the client obtains a token/key however the chosen scheme dictates.
 3. **Transmission** - the client sends the credential (e.g. `Authorization: Bearer <token>`) on every request.
-4. **Server enforcement** - with `AUTH_ENABLED=true` the `/a2a` endpoint is protected; unauthenticated requests get `401` with a `WWW-Authenticate` challenge.
+4. **Server enforcement** - with `AUTH_ENABLED=true` the `/a2a` endpoint is protected. Unauthenticated requests get `401` with a `WWW-Authenticate` challenge.
 5. **Extended card** - if the card sets `capabilities.extendedAgentCard: true`, an authenticated client MAY call `GetExtendedAgentCard` for a richer card and SHOULD replace its cached public card with the response.
 
 #### Declaring security schemes on the card
@@ -896,7 +896,7 @@ If `AUTH_ENABLED=true` but the card declares no `securitySchemes` (or the invers
 
 #### The authenticated extended card
 
-The extended card is served only to authenticated callers via `GetExtendedAgentCard`. Configure it with the builder; `WithExtendedAgentCard` also forces `capabilities.extendedAgentCard: true` on the public card:
+The extended card is served only to authenticated callers via `GetExtendedAgentCard`. Configure it with the builder. `WithExtendedAgentCard` also forces `capabilities.extendedAgentCard: true` on the public card:
 
 ```go
 srv, _ := server.NewA2AServerBuilder(cfg, logger).
@@ -939,7 +939,7 @@ resp, _ := authed.GetAuthenticatedExtendedCard(ctx, types.GetAuthenticatedExtend
 
 #### Authorization via callbacks
 
-Authentication answers "who is calling"; authorization ("may they do this") is implementation-specific per spec 7.5. Use the agent [lifecycle callbacks](#lifecycle-callbacks) as the policy seam rather than framework code - a non-nil `BeforeAgent` return short-circuits the request (deny):
+Authentication answers "who is calling". Authorization ("may they do this") is implementation-specific per spec 7.5. Use the agent [lifecycle callbacks](#lifecycle-callbacks) as the policy seam rather than framework code - a non-nil `BeforeAgent` return short-circuits the request (deny):
 
 ```go
 agent, _ := server.NewAgentBuilder(logger).
@@ -957,7 +957,7 @@ agent, _ := server.NewAgentBuilder(logger).
 
 `BeforeTool` / `BeforeModel` callbacks work the same way for finer-grained gating. The [`authentication`](https://github.com/inference-gateway/adk/tree/main/examples/authentication) example wires the server and client flow end to end.
 
-> **Out of scope for app code.** mTLS is transport-layer (terminate at the proxy; a card may still declare the `mutualTLS` scheme). OAuth2 credential acquisition is out-of-band (spec 7.3) - the client only transmits credentials.
+> **Out of scope for app code.** mTLS is transport-layer (terminate at the proxy - a card may still declare the `mutualTLS` scheme). OAuth2 credential acquisition is out-of-band (spec 7.3) - the client only transmits credentials.
 
 ## Artifacts
 
@@ -1030,7 +1030,7 @@ services:
       A2A_ARTIFACTS_SERVER_PORT: 8081
 ```
 
-No bucket-init container is needed - the storage backend creates the bucket itself. RustFS runs as UID/GID `10001`, so a named volume mounted at `/data` has to be writable by that user. Downloads are proxied through the artifacts server by default; point `ARTIFACTS_STORAGE_BASE_URL` at `http://rustfs:9000` to have clients download straight from the object store, which means access control moves to the bucket policy.
+No bucket-init container is needed - the storage backend creates the bucket itself. RustFS runs as UID/GID `10001`, so a named volume mounted at `/data` has to be writable by that user. Downloads are proxied through the artifacts server by default. Point `ARTIFACTS_STORAGE_BASE_URL` at `http://rustfs:9000` to have clients download straight from the object store, which means access control moves to the bucket policy.
 
 ### Storage Layout
 
@@ -1044,15 +1044,15 @@ Download URLs mirror the storage layout. When proxied through the artifacts HTTP
 
 Clients are unaffected - they always fetch the opaque `uri` returned on the file part.
 
-By default downloads are **proxied** through the artifacts HTTP server (`ARTIFACTS_SERVER_PORT`, default `8081`) for auth and logging; set `ARTIFACTS_STORAGE_BASE_URL` to serve **direct** download URLs from the storage backend instead.
+By default downloads are **proxied** through the artifacts HTTP server (`ARTIFACTS_SERVER_PORT`, default `8081`) for auth and logging. Set `ARTIFACTS_STORAGE_BASE_URL` to serve **direct** download URLs from the storage backend instead.
 
 ### Artifact retention
 
 | Variable                               | Default | Purpose                                                            |
 | -------------------------------------- | ------- | ------------------------------------------------------------------ |
-| `ARTIFACTS_RETENTION_MAX_ARTIFACTS`    | `5`     | Artifacts kept per context, oldest deleted first; `0` = unlimited. |
-| `ARTIFACTS_RETENTION_MAX_AGE`          | `168h`  | Maximum artifact age; `0` = no age limit.                          |
-| `ARTIFACTS_RETENTION_CLEANUP_INTERVAL` | `24h`   | How often cleanup runs; `0` = manual cleanup only.                 |
+| `ARTIFACTS_RETENTION_MAX_ARTIFACTS`    | `5`     | Artifacts kept per context, oldest deleted first. `0` = unlimited. |
+| `ARTIFACTS_RETENTION_MAX_AGE`          | `168h`  | Maximum artifact age. `0` = no age limit.                          |
+| `ARTIFACTS_RETENTION_CLEANUP_INTERVAL` | `24h`   | How often cleanup runs. `0` = manual cleanup only.                 |
 
 `ARTIFACTS_RETENTION_MAX_ARTIFACTS` is a **per-context** cap: each cleanup run keeps the newest N artifacts under `{contextId}/` and deletes the rest. Both caps are enforced by that background run on the `ARTIFACTS_RETENTION_CLEANUP_INTERVAL` schedule, not at artifact creation - so a context can exceed the cap between runs, and growth is bounded by the interval as much as by the cap. The [Rust ADK](/rust-adk/#artifacts-configuration-reference) uses the same variable name and default but caps the store as a whole rather than per context.
 
@@ -1113,11 +1113,11 @@ for evt := range events {
 
 Artifacts attached to a task without an `artifactUpdate` event never reach the stream as chunks - they appear on the task snapshot, or via `GetTask` once the task completes.
 
-The [`artifacts-filesystem`](https://github.com/inference-gateway/adk/tree/main/examples/artifacts-filesystem), [`artifacts-s3`](https://github.com/inference-gateway/adk/tree/main/examples/artifacts-s3), [`artifacts-autonomous-tool`](https://github.com/inference-gateway/adk/tree/main/examples/artifacts-autonomous-tool), and [`artifacts-with-default-handlers`](https://github.com/inference-gateway/adk/tree/main/examples/artifacts-with-default-handlers) examples cover each path; the upstream [artifacts guide](https://github.com/inference-gateway/adk/blob/main/docs/artifacts.md) has the full API.
+The [`artifacts-filesystem`](https://github.com/inference-gateway/adk/tree/main/examples/artifacts-filesystem), [`artifacts-s3`](https://github.com/inference-gateway/adk/tree/main/examples/artifacts-s3), [`artifacts-autonomous-tool`](https://github.com/inference-gateway/adk/tree/main/examples/artifacts-autonomous-tool), and [`artifacts-with-default-handlers`](https://github.com/inference-gateway/adk/tree/main/examples/artifacts-with-default-handlers) examples cover each path. The upstream [artifacts guide](https://github.com/inference-gateway/adk/blob/main/docs/artifacts.md) has the full API.
 
 ## Telemetry
 
-The ADK's telemetry layer is built on [OpenTelemetry](https://opentelemetry.io/). `TELEMETRY_ENABLED=true` is the master switch; once it is on, the standard `OTEL_*` variables select which exporters run per signal. Metrics are exported either through a **Prometheus pull** endpoint (`/metrics`, default port `9090`) or **pushed via OTLP** to a collector; traces are exported over OTLP by default. The OpenTelemetry `service.name` resource attribute is derived from the agent's build-time name (the agent card `name`), and `service.version` from the build-time version - so no extra variables are needed. For agents generated by the [ADL CLI](/adl-cli/), these values are sourced from the ADL manifest `metadata.name` and `metadata.version` via Go linker flags. They are **build-time metadata** and are NOT overridable via environment variables (the ADK does not env-map them).
+The ADK's telemetry layer is built on [OpenTelemetry](https://opentelemetry.io/). `TELEMETRY_ENABLED=true` is the master switch. Once it is on, the standard `OTEL_*` variables select which exporters run per signal. Metrics are exported either through a **Prometheus pull** endpoint (`/metrics`, default port `9090`) or **pushed via OTLP** to a collector. Traces are exported over OTLP by default. The OpenTelemetry `service.name` resource attribute is derived from the agent's build-time name (the agent card `name`), and `service.version` from the build-time version - so no extra variables are needed. For agents generated by the [ADL CLI](/adl-cli/), these values are sourced from the ADL manifest `metadata.name` and `metadata.version` via Go linker flags. They are **build-time metadata** and are NOT overridable via environment variables (the ADK does not env-map them).
 
 ```bash
 export TELEMETRY_ENABLED=true
@@ -1147,7 +1147,7 @@ The session-id and tool-call-id keys used for both baggage propagation and the s
 | `TELEMETRY_ATTR_SESSION_ID_KEY`   | `session.id`          | Baggage member and span attribute key for the session id.   |
 | `TELEMETRY_ATTR_TOOL_CALL_ID_KEY` | `gen_ai.tool.call.id` | Baggage member and span attribute key for the tool-call id. |
 
-The original `TELEMETRY_*` names remain supported as **deprecated aliases** (`TELEMETRY_METRICS_HOST`/`PORT`, `TELEMETRY_TRACE_ENDPOINT`, `TELEMETRY_TRACE_HEADERS`); the `OTEL_*` variable wins whenever both are set. Prefer the standard names in new deployments. See the upstream [telemetry guide](https://github.com/inference-gateway/adk/blob/main/docs/telemetry.md) for the full reference.
+The original `TELEMETRY_*` names remain supported as **deprecated aliases** (`TELEMETRY_METRICS_HOST`/`PORT`, `TELEMETRY_TRACE_ENDPOINT`, `TELEMETRY_TRACE_HEADERS`). The `OTEL_*` variable wins whenever both are set. Prefer the standard names in new deployments. See the upstream [telemetry guide](https://github.com/inference-gateway/adk/blob/main/docs/telemetry.md) for the full reference.
 
 ## Build-time agent metadata
 
@@ -1186,7 +1186,7 @@ Reference them in code as `server.BuildAgentName`, etc., when constructing the `
 
 ## Configuration reference
 
-`config.Config` is loaded with `config.Load(ctx, &base)`, which overlays environment variables onto an optional base config and applies struct-tag defaults. Variables are grouped by prefix; every value is optional and falls back to the default shown.
+`config.Config` is loaded with `config.Load(ctx, &base)`, which overlays environment variables onto an optional base config and applies struct-tag defaults. Variables are grouped by prefix. Every value is optional and falls back to the default shown.
 
 **Core server** - the listener and top-level toggles.
 
@@ -1231,7 +1231,7 @@ Reference them in code as `server.BuildAgentName`, etc., when constructing the `
 
 `CAPABILITIES_STATE_TRANSITION_HISTORY` is gone: the A2A v1.0.1 AgentCard dropped the flag, so the ADK no longer reads it and generated configurations no longer set it.
 
-**MCP client** (`MCP_` prefix) - connect the agent to [MCP servers](#mcp-client); disabled by default. When the ADK config is nested under `A2A_` (as in the examples), the prefix becomes `A2A_MCP_`.
+**MCP client** (`MCP_` prefix) - connect the agent to [MCP servers](#mcp-client). Disabled by default. When the ADK config is nested under `A2A_` (as in the examples), the prefix becomes `A2A_MCP_`.
 
 | Variable                 | Default   | Purpose                                                           |
 | ------------------------ | --------- | ----------------------------------------------------------------- |

@@ -93,7 +93,7 @@ The `context_window` field resolves in the following order (first hit wins):
 1. **`runtime`** - the serving runtime's configured window (e.g. llama.cpp `--ctx-size` / `/props` n_ctx, Ollama `num_ctx` / `context_length`). This can be smaller than the model's theoretical maximum and is the limit clients must respect.
 2. **`provider`** - a window published by the upstream provider in its model listing (e.g. Mistral `max_context_length`, Cohere `context_length`).
 3. **`community`** - a window from a table synced from the community-maintained [models.dev](https://models.dev) dataset (its `[limit]` section) and committed in the gateway repository. Maintainers refresh the table with `task contextwindow:sync` in the gateway repository (separate from `task pricing:sync`). Community limits can be conservative or tier-specific (e.g. free-tier listings below a model's native window), which is why runtime and provider values take precedence.
-4. **`null`** - no window could be resolved from any source; a slow or failing lookup also resolves to `null` without failing the request. Local providers (`ollama`, `llamacpp`) are intentionally absent from the community table, so their models return an explicit `null` unless the runtime reports a window.
+4. **`null`** - no window could be resolved from any source. A slow or failing lookup also resolves to `null` without failing the request. Local providers (`ollama`, `llamacpp`) are intentionally absent from the community table, so their models return an explicit `null` unless the runtime reports a window.
 
 Example response for a llama.cpp model with a reduced `--ctx-size` of 4096:
 
@@ -122,13 +122,13 @@ Content-Type: application/json
 
 The `pricing` field resolves in the following order (first hit wins):
 
-1. **`provider`** - rates published by the upstream provider's model listing. If the provider publishes any per-token rate, provider pricing wins outright; the gateway never fills gaps with community rates.
+1. **`provider`** - rates published by the upstream provider's model listing. If the provider publishes any per-token rate, provider pricing wins outright. The gateway never fills gaps with community rates.
 2. **`community`** - rates from a table synced from the community-maintained [models.dev](https://models.dev) dataset and committed in the gateway repository. Free-tier models carry explicit `"0"` rates. Lookups tolerate common model-ID variants (Google's `models/` prefix, `-latest` aliases, and `-YYYYMMDD` date pins). Maintainers refresh the table with `task pricing:sync` in the gateway repository.
 3. **`null`** - no pricing could be resolved. Local providers (`ollama`, `llamacpp`) are intentionally absent from the community table.
 
 Monetary values are USD per-token decimal strings (e.g. `"0.00000027"`) to avoid floating-point precision loss. Rates the source does not publish are omitted entirely (never `0` or `null`).
 
-The pricing object may also include an optional `subscription` field (boolean, default `false`). When `true`, the model is gated behind a paid subscription: access is billed as a flat fee, not per token. The flag and the per-token rates are independent - a subscription-gated model may carry `"0"` rates or non-zero `input_per_token` / `output_per_token` rates. Non-zero rates on a subscription model are informational only (the provider's pay-as-you-go price for the same model) and must not be used to meter a session; the `subscription` flag decides billing. Models without the field (or with `subscription: false`) and zero rates are free-tier models with genuine zero per-token rates.
+The pricing object may also include an optional `subscription` field (boolean, default `false`). When `true`, the model is gated behind a paid subscription: access is billed as a flat fee, not per token. The flag and the per-token rates are independent - a subscription-gated model may carry `"0"` rates or non-zero `input_per_token` / `output_per_token` rates. Non-zero rates on a subscription model are informational only (the provider's pay-as-you-go price for the same model) and must not be used to meter a session. The `subscription` flag decides billing. Models without the field (or with `subscription: false`) and zero rates are free-tier models with genuine zero per-token rates.
 
 Every `ollama_cloud/*` model is subscription-gated: the community table applies the rule at the provider level, so all Ollama Cloud models resolve to a populated pricing object with `subscription: true` rather than `pricing: null`. Ollama Cloud sells both flat-fee subscription plans and pay-as-you-go API access, and models.dev publishes the pay-as-you-go rates, so priced Ollama Cloud models keep their rates alongside the flag. Clients should classify them as Subscription, not Free, and bill them at zero per-token cost - see how the [CLI handles subscription models](/cli/#model-categories-free-pay-as-you-go-subscription). See [Ollama Cloud Provider](/supported-providers/#ollama-cloud-provider) for the provider setup.
 
@@ -177,7 +177,7 @@ Content-Type: application/json
 }
 ```
 
-In this example, `openai/gpt-5.6-sol` carries provider-published rates while `openai/gpt-5.6-luna` fell back to the community table (`source: "community"`; community entries omit `updated_at`).
+In this example, `openai/gpt-5.6-sol` carries provider-published rates while `openai/gpt-5.6-luna` fell back to the community table (`source: "community"` - community entries omit `updated_at`).
 
 Example response for subscription-gated Ollama Cloud models with `include=pricing`:
 
@@ -224,7 +224,7 @@ Content-Type: application/json
 }
 ```
 
-Both models carry `subscription: true`, indicating they require a paid subscription. `deepseek-v4-pro` has no published pay-as-you-go rate, so its rates are `"0"`; `glm-5.3-flash` keeps the models.dev pay-as-you-go rate for reference, but the flag still applies and a subscription client bills it at zero. The flag is not limited to specific families - every Ollama Cloud model carries it. Compare with a free-tier model that also has zero rates but omits the `subscription` field entirely.
+Both models carry `subscription: true`, indicating they require a paid subscription. `deepseek-v4-pro` has no published pay-as-you-go rate, so its rates are `"0"`. `glm-5.3-flash` keeps the models.dev pay-as-you-go rate for reference, but the flag still applies and a subscription client bills it at zero. The flag is not limited to specific families - every Ollama Cloud model carries it. Compare with a free-tier model that also has zero rates but omits the `subscription` field entirely.
 
 Models with no resolvable per-token pricing - locally hosted models or anything absent from both the provider listing and the community table - return `"pricing": null`.
 
@@ -476,7 +476,7 @@ The gateway exposes an OpenAI-compatible `POST /v1/responses` endpoint. The requ
 POST /v1/responses?provider={provider}
 ```
 
-Only providers that natively implement the Responses API are supported (currently `openai`); other providers return `400 Bad Request`.
+Only providers that natively implement the Responses API are supported (currently `openai`). Other providers return `400 Bad Request`.
 
 **Request Body:**
 
@@ -740,7 +740,7 @@ Create and modify images using the OpenAI-compatible Images endpoints. Both retu
 | `POST /v1/images/generations` | `application/json`    | Generate images from a text prompt. |
 | `POST /v1/images/edits`       | `multipart/form-data` | Edit or extend a source image.      |
 
-Not every provider implements the Images API. Requests routed to a provider that does not support it return `400 Bad Request`; use `/v1/chat/completions` for those providers.
+Not every provider implements the Images API. Requests routed to a provider that does not support it return `400 Bad Request`. Use `/v1/chat/completions` for those providers.
 
 `openai` serves both endpoints. `elevenlabs` serves [`/v1/images/edits`](#elevenlabs-image-edits) only, so a portrait can be edited, voiced and lip-synced with a single ElevenLabs key.
 
@@ -854,7 +854,7 @@ How the form fields map:
 | `prompt`          | The edit to make, as everywhere else.                                                                                         |
 | `mask`            | Honored - its transparent areas mark where the edit applies.                                                                  |
 | `size`            | Reduced to an aspect ratio, so `1024x1536` becomes `2:3`. Must be `auto` or a `WIDTHxHEIGHT` the model's aspect ratios cover. |
-| `quality`         | `low`, `medium` and `high` are passed on; `auto` and `standard` leave the model's default.                                    |
+| `quality`         | `low`, `medium` and `high` are passed on. `auto` and `standard` leave the model's default.                                    |
 | `n`               | A generation yields one image, so anything above `1` answers `400 Bad Request`.                                               |
 | `response_format` | `url` (default) returns the signed URL ElevenLabs produced, valid for about an hour. `b64_json` has the gateway download it.  |
 
@@ -875,7 +875,7 @@ Content-Type: application/json
 
 ### Audio API
 
-Generate audio from text. Three operations share the API: `POST /v1/audio/speech` synthesizes a voice, [`POST /v1/audio/sfx`](#sound-effects) generates a non-speech clip - a sound effect or ambience - and [`POST /v1/audio/music`](#music) composes a music clip. All three require `AUDIO_ENABLED=true`; while disabled they return `404 Not Found` with `The Audio API is not enabled. Set AUDIO_ENABLED=true to enable it.`
+Generate audio from text. Three operations share the API: `POST /v1/audio/speech` synthesizes a voice, [`POST /v1/audio/sfx`](#sound-effects) generates a non-speech clip - a sound effect or ambience - and [`POST /v1/audio/music`](#music) composes a music clip. All three require `AUDIO_ENABLED=true`. While disabled they return `404 Not Found` with `The Audio API is not enabled. Set AUDIO_ENABLED=true to enable it.`
 
 #### Speech synthesis
 
@@ -933,12 +933,12 @@ The `CreateSpeechRequest` fields:
 | `response_format` | `string` |          | Audio format: `mp3` (default), `opus`, `aac`, `flac`, `wav`, or `pcm`.                                                                                                                                                                                                        |
 | `speed`           | `number` |          | Playback speed between `0.25` and `4.0` (default `1.0`).                                                                                                                                                                                                                      |
 | `instructions`    | `string` |          | Extra guidance on how the voice should sound (4096 characters maximum). Ignored by `tts-1` and `tts-1-hd`.                                                                                                                                                                    |
-| `reference_audio` | `string` |          | Base64-encoded audio sample for zero-shot voice cloning. Only `local/qwen3-tts` honors it today; OpenAI does not support cloning.                                                                                                                                             |
-| `language`        | `string` |          | ISO 639-1 language code hint for synthesis (default `en`). Non-standard: forwarded to providers as-is; `local/qwen3-tts` validates it (see below).                                                                                                                            |
+| `reference_audio` | `string` |          | Base64-encoded audio sample for zero-shot voice cloning. Only `local/qwen3-tts` honors it today. OpenAI does not support cloning.                                                                                                                                             |
+| `language`        | `string` |          | ISO 639-1 language code hint for synthesis (default `en`). Non-standard: forwarded to providers as-is. `local/qwen3-tts` validates it (see below).                                                                                                                            |
 
 #### ElevenLabs voices
 
-ElevenLabs is reached with `"model": "elevenlabs/<model>"` and an ElevenLabs **voice id** in `voice` - either a stock voice or one you cloned in your ElevenLabs account. Set `ELEVENLABS_API_KEY` (and optionally `ELEVENLABS_API_URL`); the gateway authenticates with the `xi-api-key` header on your behalf. See [Configuration](/configuration/#elevenlabs).
+ElevenLabs is reached with `"model": "elevenlabs/<model>"` and an ElevenLabs **voice id** in `voice` - either a stock voice or one you cloned in your ElevenLabs account. Set `ELEVENLABS_API_KEY` (and optionally `ELEVENLABS_API_URL`). The gateway authenticates with the `xi-api-key` header on your behalf. See [Configuration](/configuration/#elevenlabs).
 
 ```bash
 curl -X POST http://localhost:8080/v1/audio/speech \
@@ -993,23 +993,23 @@ curl -X POST http://localhost:8080/v1/audio/speech \
   -d '{"model":"local/qwen3-tts","input":"Hallo vom Inference Gateway.","voice":"default","language":"de","response_format":"wav"}'
 ```
 
-**Assets and cache.** The binary and weights are fetched in the background at startup when `AUDIO_ENABLED=true`, and on demand otherwise, then cached in fixed, non-configurable locations shared with the [CLI](/cli-text-to-speech/): GGUF models in `~/.infer/models/tts`, binaries in `~/.infer/bin`. A `llama-tts` already on `PATH` wins; otherwise the binary comes from the [inference-gateway/binaries](https://github.com/inference-gateway/binaries) release assets and is sha256-verified against the published `checksums.txt`. A cached `llama-tts` is replaced when its sha256 no longer matches the latest release's `checksums.txt`; a binary found on `PATH` and already present GGUF weights are never re-downloaded, whether they came from an earlier run, the CLI, a mounted volume, or a pre-baked image layer. Downloads write to a temp file and atomically rename, so a CLI and a gateway downloading at the same time never corrupt the cache.
+**Assets and cache.** The binary and weights are fetched in the background at startup when `AUDIO_ENABLED=true`, and on demand otherwise, then cached in fixed, non-configurable locations shared with the [CLI](/cli-text-to-speech/): GGUF models in `~/.infer/models/tts`, binaries in `~/.infer/bin`. A `llama-tts` already on `PATH` wins. Otherwise the binary comes from the [inference-gateway/binaries](https://github.com/inference-gateway/binaries) release assets and is sha256-verified against the published `checksums.txt`. A cached `llama-tts` is replaced when its sha256 no longer matches the latest release's `checksums.txt`. A binary found on `PATH` and already present GGUF weights are never re-downloaded, whether they came from an earlier run, the CLI, a mounted volume, or a pre-baked image layer. Downloads write to a temp file and atomically rename, so a CLI and a gateway downloading at the same time never corrupt the cache.
 
-**While assets are downloading**, the endpoint answers `503 Service Unavailable` with a `Retry-After` header and download progress in the body rather than holding the request open. Boot and chat routes are never blocked; a failed download is retried in the background on the next request.
+**While assets are downloading**, the endpoint answers `503 Service Unavailable` with a `Retry-After` header and download progress in the body rather than holding the request open. Boot and chat routes are never blocked. A failed download is retried in the background on the next request.
 
 ```http
 Status: 503 Service Unavailable
 Retry-After: 30
 ```
 
-With `AUDIO_LOCAL_AUTO_DOWNLOAD=false` the gateway never downloads anything and consumes only pre-existing `PATH`/cache assets; when they are missing the request fails with an actionable error naming what to install or place in the cache.
+With `AUDIO_LOCAL_AUTO_DOWNLOAD=false` the gateway never downloads anything and consumes only pre-existing `PATH`/cache assets. When they are missing the request fails with an actionable error naming what to install or place in the cache.
 
 **Tuning** (see [Configuration](/configuration/#general-settings)):
 
 | Variable                      | Default | Effect                                                                 |
 | ----------------------------- | ------- | ---------------------------------------------------------------------- |
 | `AUDIO_LOCAL_AUTO_DOWNLOAD`   | `true`  | Allow downloading the binary and weights, in the background at startup |
-| `AUDIO_LOCAL_MAX_CONCURRENCY` | `2`     | Concurrent syntheses; requests beyond the limit queue rather than fail |
+| `AUDIO_LOCAL_MAX_CONCURRENCY` | `2`     | Concurrent syntheses. Requests beyond the limit queue rather than fail |
 | `AUDIO_LOCAL_TIMEOUT`         | `300`   | Per-request synthesis timeout in seconds, surfaced as `504`            |
 
 **A synthesis outlives `SERVER_WRITE_TIMEOUT`.** A `local/qwen3-tts` request keeps its response open up to `AUDIO_LOCAL_TIMEOUT`, so a long passage is not cut off by the server's ordinary write deadline - before, a synthesis over 30 seconds lost its response. Raise `AUDIO_LOCAL_TIMEOUT`, not `SERVER_WRITE_TIMEOUT`, to allow for longer text.
@@ -1060,7 +1060,7 @@ The `CreateSFXRequest` fields:
 | `duration_seconds` | `number`  |          | Length of the clip, between `0.5` and `30`. Omit it to let the provider pick a length that fits the prompt.                                                                                                                                               |
 | `prompt_influence` | `number`  |          | How closely the generation follows the prompt, between `0` and `1` - higher stays closer, lower varies more. Omit it for the provider default.                                                                                                            |
 | `loop`             | `boolean` |          | Generate a clip that loops seamlessly. Useful for ambience beds.                                                                                                                                                                                          |
-| `response_format`  | `string`  |          | Audio format: `mp3` (default), `opus`, `aac`, `flac`, or `pcm`. `wav` is not accepted here (unlike `/v1/audio/speech`) - use `mp3` instead. ElevenLabs produces only `mp3`, `opus` and `pcm`; the rest return `400 Bad Request` naming the supported set. |
+| `response_format`  | `string`  |          | Audio format: `mp3` (default), `opus`, `aac`, `flac`, or `pcm`. `wav` is not accepted here (unlike `/v1/audio/speech`) - use `mp3` instead. ElevenLabs produces only `mp3`, `opus` and `pcm`. The rest return `400 Bad Request` naming the supported set. |
 
 The [Rust SDK](/sdks/#sound-effects-and-music-2) wraps this endpoint as [`create_sfx`](/sdks/#sound-effects-and-music-2), which returns the raw audio bytes:
 
@@ -1324,11 +1324,11 @@ The SDKs wrap this endpoint as a single call that returns the raw audio: [`creat
 
 ### Videos API
 
-Generate a video from a prompt, a reference image, or an audio clip - or [dub an existing clip](#dubbing-a-video) by uploading it. The API is shaped like the Videos API OpenAI retired on 2026-09-24 - it is a gateway API, not an OpenAI-compatible one - and is split into three operations because video generation is **asynchronous at every provider**: `POST /v1/videos` creates a job and returns at once, `GET /v1/videos/{video_id}` polls it, and `GET /v1/videos/{video_id}/content` downloads the rendered bytes once `status` is `completed`. All three require `VIDEOS_ENABLED=true`; while disabled they return `404 Not Found`.
+Generate a video from a prompt, a reference image, or an audio clip - or [dub an existing clip](#dubbing-a-video) by uploading it. The API is shaped like the Videos API OpenAI retired on 2026-09-24 - it is a gateway API, not an OpenAI-compatible one - and is split into three operations because video generation is **asynchronous at every provider**: `POST /v1/videos` creates a job and returns at once, `GET /v1/videos/{video_id}` polls it, and `GET /v1/videos/{video_id}/content` downloads the rendered bytes once `status` is `completed`. All three require `VIDEOS_ENABLED=true`. While disabled they return `404 Not Found`.
 
 Two providers serve it today. `elevenlabs` renders with `elevenlabs/creatify-aurora` - a talking-avatar model that renders at `480p` or `720p`. `mirelo` does not render a clip from scratch: it [dubs one you upload](#dubbing-a-video), generating the sound that fits the footage and returning the same clip with that sound as its new soundtrack. Set `ELEVENLABS_API_KEY` (and optionally `ELEVENLABS_API_URL`) so the gateway can authenticate - see [Configuration](/configuration/#elevenlabs) - or `MIRELO_API_KEY` (and optionally `MIRELO_API_URL`) for Mirelo, see [Configuration](/configuration/#mirelo).
 
-The gateway keeps **no job state**. The job `id` is opaque - it may encode the provider - and must be sent back verbatim; the two `GET` operations take the same optional `provider` query parameter as `POST` for when the id alone is not enough to route the request.
+The gateway keeps **no job state**. The job `id` is opaque - it may encode the provider - and must be sent back verbatim. The two `GET` operations take the same optional `provider` query parameter as `POST` for when the id alone is not enough to route the request.
 
 #### Create a video generation job
 
@@ -1375,10 +1375,10 @@ The `CreateVideoRequest` fields:
 | `model`            | `string` | Yes      | Model ID to use for video generation, for example `elevenlabs/creatify-aurora`.                                                                                                                                                                                                                                  |
 | `prompt`           | `string` |          | Text description of the video. Optional for audio-driven avatar models, where the dialogue comes from `audio` and the prompt describes framing only - never the spoken words.                                                                                                                                    |
 | `input_reference`  | `file`   |          | Image used as the first frame or, for avatar models, the portrait to animate.                                                                                                                                                                                                                                    |
-| `reference_images` | `file[]` |          | Repeated binary parts carrying reference images of the subject - the same person or object from several angles - for models that keep a character consistent across shots. Distinct from `input_reference`; avatar (lip-sync) models ignore it. See [Reference images](#reference-images).                       |
-| `audio`            | `file`   |          | **Non-standard**: an `audio/wav` or `audio/mpeg` clip that drives a talking-avatar render. When present, the model lip-syncs `input_reference` to it and the video lasts as long as the clip, so `seconds` is ignored. Forwarded as-is; only providers with avatar support honor it, others ignore or reject it. |
+| `reference_images` | `file[]` |          | Repeated binary parts carrying reference images of the subject - the same person or object from several angles - for models that keep a character consistent across shots. Distinct from `input_reference`. Avatar (lip-sync) models ignore it. See [Reference images](#reference-images).                       |
+| `audio`            | `file`   |          | **Non-standard**: an `audio/wav` or `audio/mpeg` clip that drives a talking-avatar render. When present, the model lip-syncs `input_reference` to it and the video lasts as long as the clip, so `seconds` is ignored. Forwarded as-is. Only providers with avatar support honor it, others ignore or reject it. |
 | `video`            | `file`   |          | **Non-standard**: the clip to [dub](#dubbing-a-video). Mutually exclusive with `input_reference` and `reference_images` - sending it alongside either answers `400 Bad Request`.                                                                                                                                 |
-| `seconds`          | `string` |          | Requested duration in seconds, as a string (`4`, `8`, `12`). Providers accept a limited set; omit for the provider default. Ignored when `audio` is present. When dubbing, the length of the window to score instead.                                                                                            |
+| `seconds`          | `string` |          | Requested duration in seconds, as a string (`4`, `8`, `12`). Providers accept a limited set. Omit for the provider default. Ignored when `audio` is present. When dubbing, the length of the window to score instead.                                                                                            |
 | `size`             | `string` |          | Requested resolution as `widthxheight` (for example `720x1280`). Providers accept a limited set - `creatify-aurora` maps to `480p` and `720p`. Omit for the provider default. Ignored when dubbing, which keeps the uploaded clip's resolution.                                                                  |
 
 Two more fields apply only when `video` is present - see [Dubbing a video](#dubbing-a-video):
@@ -1423,7 +1423,7 @@ Every part counts against the gateway's request body limit: `SERVER_MAX_REQUEST_
 
 #### Audio-driven avatars
 
-`audio` is a gateway extension the way `reference_audio` is on [`/v1/audio/speech`](#voice-cloning): the retired OpenAI Videos API had no audio field. Pair it with `input_reference` (the portrait) and the model lip-syncs the face to the clip; the output is exactly as long as the audio. Keep `prompt` to framing, lighting and camera notes - anything spoken must come from the clip, and a prompt that contains dialogue is not read aloud. Today only `elevenlabs/creatify-aurora` honors the field.
+`audio` is a gateway extension the way `reference_audio` is on [`/v1/audio/speech`](#voice-cloning): the retired OpenAI Videos API had no audio field. Pair it with `input_reference` (the portrait) and the model lip-syncs the face to the clip. The output is exactly as long as the audio. Keep `prompt` to framing, lighting and camera notes - anything spoken must come from the clip, and a prompt that contains dialogue is not read aloud. Today only `elevenlabs/creatify-aurora` honors the field.
 
 A model the gateway knows renders from a prompt - `elevenlabs/veo-3.1-*`, `bytedance-seedance-v2*` - **answers `400 Bad Request`** when `audio` is sent, rather than rendering a silent clip that ignores it. Send `audio` to an avatar model, and `input_reference` along with it: `audio` without a portrait is also a `400`. Models the gateway does not recognize are left to the provider.
 
@@ -1494,7 +1494,7 @@ curl http://localhost:8080/v1/videos/elevenlabs:vid_01j9x5k2m4 \
   -H "Authorization: Bearer $INFERENCE_GATEWAY_API_KEY"
 ```
 
-Returns the same `VideoJob` shape as create. `status` moves through `queued`, `in_progress` and ends at `completed` or `failed`; `progress` is a `0`-`100` percentage, `completed_at` is `null` until the job finishes, and `error` (`code` + `message`) is set only on failure.
+Returns the same `VideoJob` shape as create. `status` moves through `queued`, `in_progress` and ends at `completed` or `failed`. `progress` is a `0`-`100` percentage, `completed_at` is `null` until the job finishes, and `error` (`code` + `message`) is set only on failure.
 
 #### Download the rendered video
 
@@ -1512,7 +1512,7 @@ As with audio, the response is **not JSON** - it is the raw video bytes, with a 
 
 #### End-to-end: create, poll, download
 
-Only the Go SDK wraps these operations today - `CreateVideo` builds the same multipart body and, since SDK `v1.47.0`, forwards the [dubbing](#dubbing-a-video) inputs too. See [Video generation and dubbing](/sdks/#video-generation-and-dubbing); the other languages should call them over plain HTTP in the meantime:
+Only the Go SDK wraps these operations today - `CreateVideo` builds the same multipart body and, since SDK `v1.47.0`, forwards the [dubbing](#dubbing-a-video) inputs too. See [Video generation and dubbing](/sdks/#video-generation-and-dubbing). The other languages should call them over plain HTTP in the meantime:
 
 ```typescript
 const base = 'http://localhost:8080/v1';
@@ -1604,13 +1604,13 @@ Every request's `params._meta` carries `io.modelcontextprotocol/protocolVersion`
 | ---------------------- | ---------------- | --------------------------------------------------------- |
 | `MCP-Protocol-Version` | always           | `params._meta["io.modelcontextprotocol/protocolVersion"]` |
 | `Mcp-Method`           | always           | The JSON-RPC `method`                                     |
-| `Mcp-Name`             | for `tools/call` | `params.name`; non-ASCII values use `=?base64?<value>?=`  |
+| `Mcp-Name`             | for `tools/call` | `params.name`. Non-ASCII values use `=?base64?<value>?=`  |
 
 Proxies and ingresses must forward these three headers unchanged - stripping or rewriting one answers `400` with `-32020`.
 
-Requests and responses are plain JSON - one JSON-RPC message per `POST`, one JSON body back. There is no SSE response stream; `GET /mcp` and `DELETE /mcp` answer `405`, and a request carrying an `Origin` header is refused with `403` (MCP clients are not browsers - this blocks DNS rebinding). With no `Mcp-Session-Id`, the endpoint needs no session affinity and load-balances freely across replicas. Do not point a probe or ingress health check at it; use `GET /health`.
+Requests and responses are plain JSON - one JSON-RPC message per `POST`, one JSON body back. There is no SSE response stream. `GET /mcp` and `DELETE /mcp` answer `405`, and a request carrying an `Origin` header is refused with `403` (MCP clients are not browsers - this blocks DNS rebinding). With no `Mcp-Session-Id`, the endpoint needs no session affinity and load-balances freely across replicas. Do not point a probe or ingress health check at it. Use `GET /health`.
 
-Tool names are namespaced <code v-pre>mcp_&lt;server alias&gt;_&lt;tool name&gt;</code>, for example `mcp_deepwiki_ask_question`. Aliases come from the `alias=url` syntax in `MCP_SERVERS`. `MCP_INCLUDE_TOOLS` and `MCP_EXCLUDE_TOOLS` apply to this endpoint too: a filtered tool is neither listed nor callable. `tools/list` returns the tools of the healthy servers and skips unreachable ones instead of failing; a `tools/call` routed to an unavailable server returns `-32603`.
+Tool names are namespaced <code v-pre>mcp_&lt;server alias&gt;_&lt;tool name&gt;</code>, for example `mcp_deepwiki_ask_question`. Aliases come from the `alias=url` syntax in `MCP_SERVERS`. `MCP_INCLUDE_TOOLS` and `MCP_EXCLUDE_TOOLS` apply to this endpoint too: a filtered tool is neither listed nor callable. `tools/list` returns the tools of the healthy servers and skips unreachable ones instead of failing. A `tools/call` routed to an unavailable server returns `-32603`.
 
 ```http
 POST /mcp
@@ -1638,7 +1638,7 @@ Mcp-Name: mcp_deepwiki_ask_question
 }
 ```
 
-Protocol errors are returned with HTTP `200` and a JSON-RPC error envelope: `-32700` parse error, `-32600` invalid request, `-32602` invalid params (unknown tool name or bad arguments), `-32603` internal error (upstream MCP server failure or unavailability); `-32601` method not found answers `404`. Header and version failures answer HTTP `400` - `-32020` when a required header is missing, malformed, or disagrees with the body (a legacy `initialize` request lands here too), `-32022` for an unsupported protocol version, whose `data` carries `requested` and `supported`. A [guardrails](/configuration/#guardrails) block answers HTTP `403` with the server-defined code `-32001` and the policy's message, for a block at any phase - `pre_call` on the request body, or `tool_args` / `tool_output` around a `tools/call`. Transport-level failures use HTTP status codes - `401` when auth is enabled and the token is missing or invalid, `403` when the MCP surface is not exposed.
+Protocol errors are returned with HTTP `200` and a JSON-RPC error envelope: `-32700` parse error, `-32600` invalid request, `-32602` invalid params (unknown tool name or bad arguments), `-32603` internal error (upstream MCP server failure or unavailability). `-32601` method not found answers `404`. Header and version failures answer HTTP `400` - `-32020` when a required header is missing, malformed, or disagrees with the body (a legacy `initialize` request lands here too), `-32022` for an unsupported protocol version, whose `data` carries `requested` and `supported`. A [guardrails](/configuration/#guardrails) block answers HTTP `403` with the server-defined code `-32001` and the policy's message, for a block at any phase - `pre_call` on the request body, or `tool_args` / `tool_output` around a `tools/call`. Transport-level failures use HTTP status codes - `401` when auth is enabled and the token is missing or invalid, `403` when the MCP surface is not exposed.
 
 The endpoint is covered by the gateway's global auth, so with `AUTH_ENABLED=true` it requires a bearer token like every route except `/health` and the metadata document below. See the [MCP guide](/mcp/#gateway-as-an-mcp-server) for a walkthrough and client configuration.
 
@@ -1662,9 +1662,9 @@ The [RFC 9728](https://datatracker.ietf.org/doc/html/rfc9728) Protected Resource
 | -------------------------- | ---------- | --------------------------------------------------------------------- |
 | `resource`                 | `string`   | Canonical public URL of the protected resource (`POST /mcp`)          |
 | `authorization_servers`    | `string[]` | Issuer identifiers of the authorization servers minting tokens for it |
-| `bearer_methods_supported` | `string[]` | How a bearer token may be sent; the gateway reads the header only     |
+| `bearer_methods_supported` | `string[]` | How a bearer token may be sent. The gateway reads the header only     |
 
-Returns `404` unless `AUTH_ENABLED=true` and the MCP endpoint is exposed (`MCP_ENABLED=true` and `MCP_EXPOSE=true`). `resource` is `MCP_RESOURCE_URL` when set, otherwise the request scheme (honouring `X-Forwarded-Proto`) and `Host` with `/mcp` appended. Tokens must be issued for that resource ([RFC 8707](https://datatracker.ietf.org/doc/html/rfc8707)); see [MCP resource discovery](/authentication/#mcp-resource-discovery-rfc-9728).
+Returns `404` unless `AUTH_ENABLED=true` and the MCP endpoint is exposed (`MCP_ENABLED=true` and `MCP_EXPOSE=true`). `resource` is `MCP_RESOURCE_URL` when set, otherwise the request scheme (honouring `X-Forwarded-Proto`) and `Host` with `/mcp` appended. Tokens must be issued for that resource ([RFC 8707](https://datatracker.ietf.org/doc/html/rfc8707)). See [MCP resource discovery](/authentication/#mcp-resource-discovery-rfc-9728).
 
 #### MCP status endpoints
 
@@ -1948,7 +1948,7 @@ curl -X POST http://localhost:8080/v1/chat/completions \
 
 ### Controlling Tool Selection
 
-By default the model decides whether to call a tool (`tool_choice` defaults to `"auto"` when `tools` are present). Use `tool_choice` to override that: `"none"` forces a plain text reply, `"required"` forces at least one tool call, and a named function forces that specific call. The model can return several tool calls in one turn; set `parallel_tool_calls` to `false` to force them one at a time.
+By default the model decides whether to call a tool (`tool_choice` defaults to `"auto"` when `tools` are present). Use `tool_choice` to override that: `"none"` forces a plain text reply, `"required"` forces at least one tool call, and a named function forces that specific call. The model can return several tool calls in one turn. Set `parallel_tool_calls` to `false` to force them one at a time.
 
 ```bash
 curl -X POST http://localhost:8080/v1/chat/completions \
@@ -2005,7 +2005,7 @@ curl -X POST http://localhost:8080/v1/chat/completions \
 
 ### Reasoning Effort
 
-For reasoning-capable models, `reasoning_effort` trades reasoning depth for latency and token cost. Supported values are `minimal`, `low`, `medium`, and `high`; lower effort yields faster responses with fewer reasoning tokens. Pair it with `reasoning_format` (`raw` or `parsed`) to control how the reasoning is returned.
+For reasoning-capable models, `reasoning_effort` trades reasoning depth for latency and token cost. Supported values are `minimal`, `low`, `medium`, and `high`. Lower effort yields faster responses with fewer reasoning tokens. Pair it with `reasoning_format` (`raw` or `parsed`) to control how the reasoning is returned.
 
 ```bash
 curl -X POST http://localhost:8080/v1/chat/completions \
@@ -2090,7 +2090,7 @@ curl -X POST http://localhost:8080/v1/chat/completions \
 - Moonshot (Kimi K2, Kimi K2 Thinking)
 - NVIDIA (Nemotron, Llama, DeepSeek, Mistral, Qwen)
 
-**Note:** When `VISION_ENABLED=false` (the default), the gateway does not inspect image content - it is forwarded to the provider untouched, and the provider decides how to handle it. When `VISION_ENABLED=true`, image parts are stripped only from requests to models known to accept non-image input only and the request continues with text only; every other model, including ones the gateway has no modality information for, is passed through. The gateway does not reject a request for containing an image in either mode.
+**Note:** When `VISION_ENABLED=false` (the default), the gateway does not inspect image content - it is forwarded to the provider untouched, and the provider decides how to handle it. When `VISION_ENABLED=true`, image parts are stripped only from requests to models known to accept non-image input only and the request continues with text only. Every other model, including ones the gateway has no modality information for, is passed through. The gateway does not reject a request for containing an image in either mode.
 
 ### Direct API Proxy
 
@@ -2126,7 +2126,7 @@ A model descriptor returned in the `data` array of a `ListModelsResponse`.
 | `owned_by`       | `string`           | Organization that owns the model                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | `served_by`      | `string`           | Provider serving the model                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | `context_window` | `object` \| `null` | Context window object with `tokens` (int) and `source` (`"runtime"`, `"provider"`, or `"community"`). Only present when `include=context_window` is requested. Resolution order, first hit wins: (1) `runtime` - the serving runtime's configured window (e.g. llama.cpp `--ctx-size`, Ollama `num_ctx`), (2) `provider` - the upstream provider's published window, (3) `community` - a window from a table synced from the community-maintained [models.dev](https://models.dev) dataset, (4) `null` - no window could be resolved (models absent from the community table, such as local providers, return an explicit `null`).                                                                                                                                                                                                                                                      |
-| `pricing`        | `object` \| `null` | Pricing information. Only present when `include=pricing` is requested. Returns a pricing object with `currency` (string), `input_per_token` (decimal string), `output_per_token` (decimal string), optionally `cache_read_per_token` and `cache_write_per_token` (decimal strings), `source` (`"provider"` or `"community"`), optionally `updated_at` (ISO 8601 string), and optionally `subscription` (boolean, default `false`). When `subscription` is `true`, the model is gated behind a paid subscription with zero per-token rates. Provider-published pricing wins; otherwise rates resolve from a table synced from the community-maintained [models.dev](https://models.dev) dataset (`source: "community"`). Rates the source does not publish are omitted. Models resolvable from neither source (including local providers such as `ollama` and `llamacpp`) return `null`. |
+| `pricing`        | `object` \| `null` | Pricing information. Only present when `include=pricing` is requested. Returns a pricing object with `currency` (string), `input_per_token` (decimal string), `output_per_token` (decimal string), optionally `cache_read_per_token` and `cache_write_per_token` (decimal strings), `source` (`"provider"` or `"community"`), optionally `updated_at` (ISO 8601 string), and optionally `subscription` (boolean, default `false`). When `subscription` is `true`, the model is gated behind a paid subscription with zero per-token rates. Provider-published pricing wins. Otherwise rates resolve from a table synced from the community-maintained [models.dev](https://models.dev) dataset (`source: "community"`). Rates the source does not publish are omitted. Models resolvable from neither source (including local providers such as `ollama` and `llamacpp`) return `null`. |
 
 #### `ListModelsResponse`
 
@@ -2156,21 +2156,21 @@ The raw response body returned by proxy endpoints (`{METHOD} /proxy/{provider}/{
 
 #### `CreateChatCompletionRequest`
 
-The body sent to `POST /v1/chat/completions`. Only `model` and `messages` are required; every other field is optional and falls back to the model/provider default.
+The body sent to `POST /v1/chat/completions`. Only `model` and `messages` are required. Every other field is optional and falls back to the model/provider default.
 
 | Field                   | Type                             | Required | Description                                                                                                                                                                                                              |
 | ----------------------- | -------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `model`                 | `string`                         | Yes      | Model identifier (e.g., `"deepseek/deepseek-v4-flash"`). Use the `nvidia/` prefix to route to NVIDIA NIM models (e.g. `"nvidia/meta/llama-3.1-8b-instruct"`). Alternatively, use `?provider=nvidia` in the query string. |
 | `messages`              | `Message[]`                      | Yes      | Conversation history                                                                                                                                                                                                     |
 | `max_completion_tokens` | `integer`                        |          | Upper bound for generated tokens, including visible output and reasoning tokens                                                                                                                                          |
-| `max_tokens`            | `integer`                        |          | **Deprecated** - use `max_completion_tokens`. Maximum tokens to generate; not compatible with o-series                                                                                                                   |
+| `max_tokens`            | `integer`                        |          | **Deprecated** - use `max_completion_tokens`. Maximum tokens to generate. Not compatible with o-series                                                                                                                   |
 | `temperature`           | `number`                         |          | Sampling temperature, `0`-`2` (default `1`). Higher values make output more random                                                                                                                                       |
 | `top_p`                 | `number`                         |          | Nucleus sampling mass, `0`-`1` (default `1`). Alter this or `temperature`, not both                                                                                                                                      |
 | `frequency_penalty`     | `number`                         |          | `-2`-`2` (default `0`). Positive values penalize tokens by their existing frequency                                                                                                                                      |
 | `presence_penalty`      | `number`                         |          | `-2`-`2` (default `0`). Positive values penalize tokens that already appeared                                                                                                                                            |
 | `n`                     | `integer`                        |          | Number of completion choices to generate, `1`-`128` (default `1`)                                                                                                                                                        |
 | `stop`                  | `string` \| `string[]`           |          | Up to 4 sequences where the API stops generating further tokens                                                                                                                                                          |
-| `seed`                  | `integer`                        |          | Best-effort deterministic sampling; pair with the `system_fingerprint` response field                                                                                                                                    |
+| `seed`                  | `integer`                        |          | Best-effort deterministic sampling. Pair with the `system_fingerprint` response field                                                                                                                                    |
 | `logprobs`              | `boolean`                        |          | Return log probabilities of the output tokens (default `false`)                                                                                                                                                          |
 | `top_logprobs`          | `integer`                        |          | Most likely tokens to return per position, `0`-`20`. Requires `logprobs: true`                                                                                                                                           |
 | `response_format`       | `ResponseFormat`                 |          | Output format: `text`, `json_object`, or `json_schema` (Structured Outputs)                                                                                                                                              |
@@ -2225,9 +2225,9 @@ The `json_schema` object holds:
 
 | Field         | Type                             | Required | Description                                                                       |
 | ------------- | -------------------------------- | -------- | --------------------------------------------------------------------------------- |
-| `name`        | `string`                         | Yes      | Format name. `a-z`, `A-Z`, `0-9`, underscores, and dashes; max length 64          |
+| `name`        | `string`                         | Yes      | Format name. `a-z`, `A-Z`, `0-9`, underscores, and dashes. Max length 64          |
 | `schema`      | `ResponseFormatJsonSchemaSchema` |          | The JSON Schema the output must satisfy                                           |
-| `description` | `string`                         |          | What the format is for; helps the model decide how to respond                     |
+| `description` | `string`                         |          | What the format is for. Helps the model decide how to respond                     |
 | `strict`      | `boolean`                        |          | Enforce exact schema adherence (default `false`). A subset of JSON Schema applies |
 
 #### `ResponseFormatJsonSchemaSchema`

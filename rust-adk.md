@@ -68,7 +68,7 @@ With no `Agent` attached, the default handlers fall back to a built-in echo repl
 
 ### AI-powered server
 
-`Config` is a plain `serde` struct; pick whichever loader you like. The bundled examples use [`envy`](https://docs.rs/envy) with the `A2A_` prefix - the same convention adopted by the sibling Go and TypeScript ADKs. With `A2A_AGENT_CLIENT_*` env vars set, `AgentBuilder` produces a fully wired LLM agent:
+`Config` is a plain `serde` struct. Pick whichever loader you like. The bundled examples use [`envy`](https://docs.rs/envy) with the `A2A_` prefix - the same convention adopted by the sibling Go and TypeScript ADKs. With `A2A_AGENT_CLIENT_*` env vars set, `AgentBuilder` produces a fully wired LLM agent:
 
 ```rust
 use inference_gateway_adk::{A2AServerBuilder, AgentBuilder, Config};
@@ -175,28 +175,28 @@ If your agent is going to receive images, `A2A_AGENT_CLIENT_MODEL` has to name a
 
 `A2AServer` is the runtime that terminates the A2A JSON-RPC protocol. You never construct it directly - `A2AServerBuilder` assembles one with a fluent interface, and `A2AServer::serve(addr)` binds the listener (plaintext, or TLS when `Config.tls_config` is enabled) and - when artifacts are enabled - spawns the artifacts server and retention loop alongside it.
 
-| Method                                                        | Purpose                                                                                     |
-| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `with_config(Config)`                                         | Apply a fully-loaded `Config` - see the note below for what is actually consumed.           |
-| `with_agent(Agent)`                                           | Attach an LLM-backed agent built via `AgentBuilder`.                                        |
-| `with_agent_card(AgentCard)`                                  | Configure the card served at `/.well-known/agent-card.json` from an in-memory value.        |
-| `with_agent_card_from_file(path, Option<AgentCardOverrides>)` | Load the card from a JSON file, applying optional field overrides.                          |
-| `with_gateway_url(url)`                                       | Override the Inference Gateway base URL (default `http://gateway:8080/v1`).                 |
-| `with_storage(Arc<dyn Storage>)`                              | Swap the task store (`InMemoryStorage` default; `RedisStorage` behind the `redis` feature). |
-| `with_background_task_handler(h)`                             | Register a custom `SendMessage` handler.                                                    |
-| `with_streaming_task_handler(h)`                              | Register a custom `SendStreamingMessage` handler.                                           |
-| `with_default_background_task_handler()`                      | Opt into the bundled `SendMessage` default.                                                 |
-| `with_default_streaming_task_handler()`                       | Opt into the bundled `SendStreamingMessage` default.                                        |
-| `with_default_task_handlers()`                                | Opt into both defaults at once.                                                             |
-| `with_workers(n)`                                             | Number of background queue workers (defaults to `A2A_QUEUE_WORKERS`).                       |
-| `with_auth_verifier(Arc<dyn AuthVerifier>)`                   | Plug in a custom verifier (overrides `A2A_AUTH_ENABLED`).                                   |
-| `with_artifact_service(Arc<dyn ArtifactService>)`             | Supply a custom artifact service / storage backend.                                         |
+| Method                                                        | Purpose                                                                                      |
+| ------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `with_config(Config)`                                         | Apply a fully-loaded `Config` - see the note below for what is actually consumed.            |
+| `with_agent(Agent)`                                           | Attach an LLM-backed agent built via `AgentBuilder`.                                         |
+| `with_agent_card(AgentCard)`                                  | Configure the card served at `/.well-known/agent-card.json` from an in-memory value.         |
+| `with_agent_card_from_file(path, Option<AgentCardOverrides>)` | Load the card from a JSON file, applying optional field overrides.                           |
+| `with_gateway_url(url)`                                       | Override the Inference Gateway base URL (default `http://gateway:8080/v1`).                  |
+| `with_storage(Arc<dyn Storage>)`                              | Swap the task store (`InMemoryStorage` default - `RedisStorage` behind the `redis` feature). |
+| `with_background_task_handler(h)`                             | Register a custom `SendMessage` handler.                                                     |
+| `with_streaming_task_handler(h)`                              | Register a custom `SendStreamingMessage` handler.                                            |
+| `with_default_background_task_handler()`                      | Opt into the bundled `SendMessage` default.                                                  |
+| `with_default_streaming_task_handler()`                       | Opt into the bundled `SendStreamingMessage` default.                                         |
+| `with_default_task_handlers()`                                | Opt into both defaults at once.                                                              |
+| `with_workers(n)`                                             | Number of background queue workers (defaults to `A2A_QUEUE_WORKERS`).                        |
+| `with_auth_verifier(Arc<dyn AuthVerifier>)`                   | Plug in a custom verifier (overrides `A2A_AUTH_ENABLED`).                                    |
+| `with_artifact_service(Arc<dyn ArtifactService>)`             | Supply a custom artifact service / storage backend.                                          |
 
 **What `with_config` consumes.** The agent-card URL fallback, TLS, auth, queue, the usage-metadata flag and artifacts. `server_config.port` only feeds the default advertised URL `http(s)://localhost:<port>/a2a` - it never binds a listener, which is always the `SocketAddr` you pass to `A2AServer::serve`. `telemetry_config` is read only by `telemetry::init`, which you call yourself.
 
 > **Builder validation.** `build()` returns an error unless an agent card is configured and at least one task handler is present. It also cross-checks the card's `capabilities.streaming` flag: a streaming-enabled card requires a streaming handler, and a streaming-disabled card requires a background handler. `with_default_task_handlers()` satisfies both.
 
-The default handlers delegate to the registered `Agent` when one is present (via `with_agent`); without an agent they return a built-in echo reply, which is what makes the [minimal server](#minimal-server) above work with no LLM wired up.
+The default handlers delegate to the registered `Agent` when one is present (via `with_agent`). Without an agent they return a built-in echo reply, which is what makes the [minimal server](#minimal-server) above work with no LLM wired up.
 
 ## AgentBuilder
 
@@ -344,7 +344,7 @@ The Rust ADK ships an optional [Model Context Protocol](https://modelcontextprot
 
 A single MCP server can expose dozens or hundreds of tools, and loading every schema into the model context would overwhelm the window. So the client does **not** register MCP tools individually. It registers just **two selector tools** onto the agent, regardless of how many tools the servers offer:
 
-- **`mcp_list_tools`** - lists discovered tools (server, name, description, input schema); accepts an optional `search` filter.
+- **`mcp_list_tools`** - lists discovered tools (server, name, description, input schema). Accepts an optional `search` filter.
 - **`mcp_call_tool`** - invokes a tool by `name` (optionally disambiguated by `server`) with an `arguments` object.
 
 A typical turn: the model calls `mcp_list_tools` to find a relevant tool, reads its input schema, then calls `mcp_call_tool` to run it. Only the metadata the model actually asks for reaches the context window. The catalog is discovered in the background and refreshed on an interval, so `mcp_list_tools` returns fast from an in-memory snapshot.
@@ -381,15 +381,15 @@ Connecting in the background means the agent starts even when an MCP server come
 
 Matching the Go ADK:
 
-- Transport is **Streamable HTTP** only; stdio/subprocess MCP servers are not wired.
+- Transport is **Streamable HTTP** only. Stdio/subprocess MCP servers are not wired.
 - Tool listing fetches a single page - cursor-based pagination is not yet handled.
-- MCP resources and prompts are not exposed; tools only.
+- MCP resources and prompts are not exposed. Tools only.
 
 The `MCP_*` tuning knobs and their defaults are in the [environment variable reference](#environment-variable-reference).
 
 ## Custom task handlers
 
-The server's two extension points for task execution are the `TaskHandler` trait (for `SendMessage`, the background/queue path) and `StreamableTaskHandler` (for `SendStreamingMessage`, the SSE path). The defaults wired in by `with_default_task_handlers()` delegate to the registered `Agent`; implement either trait to plug in custom logic. A `TaskHandler` runs on a queue worker while the `SendMessage` request waits for the task to settle - see [Blocking SendMessage](#blocking-sendmessage).
+The server's two extension points for task execution are the `TaskHandler` trait (for `SendMessage`, the background/queue path) and `StreamableTaskHandler` (for `SendStreamingMessage`, the SSE path). The defaults wired in by `with_default_task_handlers()` delegate to the registered `Agent`. Implement either trait to plug in custom logic. A `TaskHandler` runs on a queue worker while the `SendMessage` request waits for the task to settle - see [Blocking SendMessage](#blocking-sendmessage).
 
 ```rust
 use async_trait::async_trait;
@@ -515,7 +515,7 @@ The client exposes a typed helper for every method in the A2A specification. Eac
 | `DeleteTaskPushNotificationConfig` | `delete_task_push_notification_config` | `DeleteTaskPushNotificationConfigRequest` | `serde_json::Value`                       |
 | `GetExtendedAgentCard`             | `get_authenticated_extended_card`      | `GetExtendedAgentCardRequest`             | `AgentCard`                               |
 
-The method column holds the A2A v1.0.1 wire names, generated from the canonical schema as the `A2aMethod` enum (`A2aMethod::SendMessage`, `A2aMethod::GetTask`, ...). Match on the enum rather than on string literals when you dispatch raw JSON-RPC yourself; the v0.x slash names (`message/send`, `tasks/get`, ...) answer `-32601 Method not found`.
+The method column holds the A2A v1.0.1 wire names, generated from the canonical schema as the `A2aMethod` enum (`A2aMethod::SendMessage`, `A2aMethod::GetTask`, ...). Match on the enum rather than on string literals when you dispatch raw JSON-RPC yourself. The v0.x slash names (`message/send`, `tasks/get`, ...) answer `-32601 Method not found`.
 
 Request `params` follow the normative proto3 JSON mapping of A2A spec section 1.4, so the server accepts either spelling of every field name - the lowerCamelCase form (`pageSize`, `contextId`) or the proto3 form (`page_size`, `context_id`) - and ignores params it does not know instead of answering `-32602 Invalid params`. Hand-rolled clients and clients built against a newer spec revision therefore interoperate without stripping extra fields first. Method names are unaffected: they stay exact-match PascalCase.
 
@@ -616,7 +616,7 @@ Three things are rejected rather than silently creating a task:
 
 - an unknown `taskId` answers `-32001` (`TaskNotFound`),
 - a task already in a terminal state answers `-32004` (`UnsupportedOperation`) - it accepts no further input,
-- a `message.contextId` that disagrees with the task's own answers `-32602` (`InvalidParams`). Omitting `contextId` is fine; the server infers it from the task.
+- a `message.contextId` that disagrees with the task's own answers `-32602` (`InvalidParams`). Omitting `contextId` is fine. The server infers it from the task.
 
 `SendMessageRequest.message` is a required value-typed `Message` - pass it directly, not wrapped in `Some(..)`. Every `tenant` field is optional (`Option<String>`), as are the filters: `page_size` / `page_token` on `ListTaskPushNotificationConfigsRequest`, and `context_id`, `status` and `last_updated_after` on `ListTasksRequest`. The resource identifiers stay plain `String` - `id` on `GetTaskRequest` / `CancelTaskRequest` / `SubscribeToTaskRequest`, `task_id` and `id` on the `pushNotificationConfig` `get` and `delete` requests, and `task_id` on the `list` request.
 
@@ -666,7 +666,7 @@ let response = client
 ```
 
 - **Optional metadata.** `FilePart::media_type` and `FilePart::name` are `Option<String>`, so a literal takes `Some(..)` and reading one back means matching on the `Option`. Set `media_type` on image parts - it is what the agent uses to build the `data:` URL it forwards to the model.
-- **Bytes vs URI.** `fileWithBytes` is inlined as a `data:<mediaType>;base64,<bytes>` URL. `fileWithUri` is passed through unchanged, so the **provider** has to fetch it. Artifact-server URLs that only resolve inside your cluster are typically unreachable from a hosted provider; send bytes in that case. When both are set, the bytes win.
+- **Bytes vs URI.** `fileWithBytes` is inlined as a `data:<mediaType>;base64,<bytes>` URL. `fileWithUri` is passed through unchanged, so the **provider** has to fetch it. Artifact-server URLs that only resolve inside your cluster are typically unreachable from a hosted provider. Send bytes in that case. When both are set, the bytes win.
 - **Ordering.** Text and image parts reach the model in the order they appear in the A2A message. Text-only messages are unchanged - they keep plain string content.
 - **What is forwarded.** Only `image/*` parts on **user**-role messages. Other media types (PDF, audio) are skipped, and file parts on agent-role messages are never converted, because OpenAI-compatible assistant messages cannot carry images. A message whose only part is a skipped file is dropped from the history entirely.
 - **Model.** There is no config flag for this. The operator picks the model with `A2A_AGENT_CLIENT_MODEL`, and a model without vision support rejects the request - the task ends as `failed` carrying the provider error. That is the expected outcome, not a bug.
@@ -679,7 +679,7 @@ No extra wiring is needed: this works with the default task handlers and with cu
 `get_health()` returns the agent's `HealthStatus` for service discovery and load-balancer probes. The `status` string is one of:
 
 - `healthy` - fully operational.
-- `degraded` - partially operational; some functionality may be limited.
+- `degraded` - partially operational. Some functionality may be limited.
 - `unhealthy` - not operational or experiencing significant issues.
 
 ## Push notifications
@@ -738,7 +738,7 @@ Two headers are set from the stored config, each only when that field is present
 
 A webhook that needs its deliveries gated must reject unauthenticated requests itself: with neither field set, the POST goes out unauthenticated.
 
-> **Delivery is at most once.** Each POST gets a 10-second timeout; a failure is logged and **not** retried, and a slow webhook never fails the task that triggered it. Treat notifications as a hint to call `GetTask`, not as the system of record - a receiver that must not miss a transition should reconcile with `GetTask` or `SubscribeToTask`.
+> **Delivery is at most once.** Each POST gets a 10-second timeout. A failure is logged and **not** retried, and a slow webhook never fails the task that triggered it. Treat notifications as a hint to call `GetTask`, not as the system of record - a receiver that must not miss a transition should reconcile with `GetTask` or `SubscribeToTask`.
 
 ## Agent card and metadata
 
@@ -756,7 +756,7 @@ etag: "a3f1c0d49b2e7f58"
 last-modified: Sat, 03 Oct 2026 12:00:00 GMT
 ```
 
-**Runtime overrides** layer on top of whatever was loaded from disk. Pass `AgentCardOverrides` to `with_agent_card_from_file(...)`; the file supplies the baseline and each explicitly-set override wins:
+**Runtime overrides** layer on top of whatever was loaded from disk. Pass `AgentCardOverrides` to `with_agent_card_from_file(...)`. The file supplies the baseline and each explicitly-set override wins:
 
 ```rust
 use inference_gateway_adk::{A2AServerBuilder, AgentCardOverrides, Config};
@@ -814,7 +814,7 @@ The bundled `OidcJwtVerifier`:
 | Variable                 | Default | Purpose                                                                                                             |
 | ------------------------ | ------- | ------------------------------------------------------------------------------------------------------------------- |
 | `A2A_AUTH_ENABLED`       | `false` | When `true`, `POST /a2a` requires a valid bearer token.                                                             |
-| `A2A_AUTH_ISSUER_URL`    | (empty) | OIDC issuer; the server performs discovery + JWKS lookup against it. Required when auth is enabled.                 |
+| `A2A_AUTH_ISSUER_URL`    | (empty) | OIDC issuer. The server performs discovery + JWKS lookup against it. Required when auth is enabled.                 |
 | `A2A_AUTH_CLIENT_ID`     | (empty) | Validated as the JWT audience (`aud`). Required when auth is enabled.                                               |
 | `A2A_AUTH_CLIENT_SECRET` | (empty) | Required when auth is enabled, even though token verification never uses it. Reserved for client-side OAuth2 flows. |
 
@@ -864,7 +864,7 @@ Beyond validating bearer tokens, the ADK implements the [A2A spec, section 7](ht
 1. **Discovery** - the client fetches the public card from `/.well-known/agent-card.json` (always unauthenticated). The card declares `securitySchemes` (named schemes the agent accepts: `apiKey`, `http`, `oauth2`, `openIdConnect`, `mutualTLS`) and `securityRequirements` (a requirement list with OR-of-ANDs semantics - satisfying any one entry is sufficient).
 2. **Credential acquisition is out-of-band** - the client obtains a token/key however the chosen scheme dictates.
 3. **Transmission** - the client sends the credential (e.g. `Authorization: Bearer <token>`) on every request.
-4. **Server enforcement** - with `A2A_AUTH_ENABLED=true` the `POST /a2a` endpoint is protected; unauthenticated requests get `401` with a `WWW-Authenticate: Bearer realm="a2a"` challenge.
+4. **Server enforcement** - with `A2A_AUTH_ENABLED=true` the `POST /a2a` endpoint is protected. Unauthenticated requests get `401` with a `WWW-Authenticate: Bearer realm="a2a"` challenge.
 5. **Extended card** - if the card sets `capabilities.extendedAgentCard: true`, an authenticated client MAY call `GetExtendedAgentCard` for a richer card and SHOULD replace its cached public card with the response.
 
 #### Declaring security schemes on the card
@@ -900,7 +900,7 @@ If `A2A_AUTH_ENABLED=true` but the card declares no `securitySchemes` (or the in
 
 #### The authenticated extended card
 
-The extended card is served only to authenticated callers via `GetExtendedAgentCard`. Configure it with the builder; `with_extended_agent_card` also forces `capabilities.extendedAgentCard: true` on the public card:
+The extended card is served only to authenticated callers via `GetExtendedAgentCard`. Configure it with the builder. `with_extended_agent_card` also forces `capabilities.extendedAgentCard: true` on the public card:
 
 ```rust
 let server = A2AServerBuilder::new()
@@ -945,7 +945,7 @@ async fn my_handler(Extension(peer): Extension<PeerCert>) {
 }
 ```
 
-`PeerCert` is injected on every TLS connection; for plain HTTPS (no `A2A_SERVER_TLS_CLIENT_CA_PATH`) its inner `Option` is `None` because the client presented no certificate. Because the artifacts server reuses the same `build_server_config` machinery, enabling TLS/mTLS on the agent covers the artifacts endpoint too.
+`PeerCert` is injected on every TLS connection. For plain HTTPS (no `A2A_SERVER_TLS_CLIENT_CA_PATH`) its inner `Option` is `None` because the client presented no certificate. Because the artifacts server reuses the same `build_server_config` machinery, enabling TLS/mTLS on the agent covers the artifacts endpoint too.
 
 See [`examples/tls/`](https://github.com/inference-gateway/rust-adk/tree/main/examples/tls) for an end-to-end demo with a `make-certs.sh` script that mints a self-signed CA plus server and client certificates, and exercises both modes via the `tls` and `mtls` Compose profiles.
 
@@ -1007,7 +1007,7 @@ Selecting `ARTIFACTS_STORAGE_PROVIDER=minio` **without** compiling the `minio` f
 On startup `MinioArtifactStorage::from_config` checks for the target bucket and creates it if missing. With `ARTIFACTS_STORAGE_BASE_URL` pointed at the object store's endpoint, `url(...)` emits a path-style `http://<endpoint>/<bucket>/<context_id>/<artifact_id>/<filename>` so clients download **directly from the object store**, bypassing the ADK's artifacts HTTP server entirely - the way you would offload bulk transfer in production. See [Production notes](#production-notes) for the private-bucket trade-off.
 
 ::: warning The example compose stack still runs `minio/minio`
-The `minio/minio` server image is archived upstream. For a new deployment pick a maintained S3-compatible server - the Go ADK's [`artifacts-s3` example](/adk/#s3-compatible-storage-with-rustfs) uses RustFS, which needs no bucket-init container because the backend creates the bucket itself. Only the compose service and the four `ARTIFACTS_STORAGE_*` connection vars change; the ADK code and the `ARTIFACTS_STORAGE_PROVIDER=minio` value stay as they are.
+The `minio/minio` server image is archived upstream. For a new deployment pick a maintained S3-compatible server - the Go ADK's [`artifacts-s3` example](/adk/#s3-compatible-storage-with-rustfs) uses RustFS, which needs no bucket-init container because the backend creates the bucket itself. Only the compose service and the four `ARTIFACTS_STORAGE_*` connection vars change. The ADK code and the `ARTIFACTS_STORAGE_PROVIDER=minio` value stay as they are.
 :::
 
 ### The artifact service
@@ -1018,7 +1018,7 @@ The `minio/minio` server image is archived upstream. For a new deployment pick a
 - `add_artifact_to_task` - attach a created `Artifact` to a stored task so it is included in `GetTask` responses.
 - `retrieve` / `exists` / `cleanup` - read-side and retention helpers used by the artifacts server and the background cleanup loop. `create_file_artifact`, `retrieve`, and `exists` take the `contextId` the artifact belongs to.
 
-Most handlers never call the service directly; they go through the `StreamEmitter` helpers below, which wrap it.
+Most handlers never call the service directly. They go through the `StreamEmitter` helpers below, which wrap it.
 
 ### The artifacts HTTP server
 
@@ -1157,7 +1157,7 @@ The artifacts subsystem is configured entirely through the `ARTIFACTS_*` environ
 | `ARTIFACTS_SERVER_PORT`                | `8081`                  | Port of the artifacts HTTP server.                                                                                                                     |
 | `ARTIFACTS_SERVER_READ_TIMEOUT`        | `30s`                   | Parsed but not yet applied - `ArtifactsServer` sets no read timeout.                                                                                   |
 | `ARTIFACTS_SERVER_WRITE_TIMEOUT`       | `30s`                   | Parsed but not yet applied - `ArtifactsServer` sets no write timeout.                                                                                  |
-| `ARTIFACTS_STORAGE_PROVIDER`           | `filesystem`            | `filesystem` or `minio`. The `minio` provider requires the `minio` Cargo feature; without it, requests fall back to filesystem storage with a `warn!`. |
+| `ARTIFACTS_STORAGE_PROVIDER`           | `filesystem`            | `filesystem` or `minio`. The `minio` provider requires the `minio` Cargo feature. Without it, requests fall back to filesystem storage with a `warn!`. |
 | `ARTIFACTS_STORAGE_BASE_PATH`          | `./artifacts`           | On-disk root for the `filesystem` provider.                                                                                                            |
 | `ARTIFACTS_STORAGE_BASE_URL`           | `http://localhost:8081` | Public URL prefix baked into file artifact URIs. Point it at wherever the artifacts server (or the object store's endpoint) is externally reachable.   |
 | `ARTIFACTS_STORAGE_ENDPOINT`           | unset                   | S3 endpoint URL. A `https://` scheme implies SSL.                                                                                                      |
@@ -1166,7 +1166,7 @@ The artifacts subsystem is configured entirely through the `ARTIFACTS_*` environ
 | `ARTIFACTS_STORAGE_BUCKET_NAME`        | unset                   | Target bucket. Created on startup if missing.                                                                                                          |
 | `ARTIFACTS_STORAGE_REGION`             | unset                   | S3 region.                                                                                                                                             |
 | `ARTIFACTS_STORAGE_USE_SSL`            | `false`                 | Whether to use TLS when talking to the S3 endpoint.                                                                                                    |
-| `ARTIFACTS_RETENTION_MAX_ARTIFACTS`    | `5`                     | Cap on artifacts kept **per `contextId`** (matching the Go ADK); the oldest beyond the cap are pruned. `0` means unlimited.                            |
+| `ARTIFACTS_RETENTION_MAX_ARTIFACTS`    | `5`                     | Cap on artifacts kept **per `contextId`** (matching the Go ADK). The oldest beyond the cap are pruned. `0` means unlimited.                            |
 | `ARTIFACTS_RETENTION_MAX_AGE`          | `168h`                  | Maximum age before an artifact is pruned.                                                                                                              |
 | `ARTIFACTS_RETENTION_CLEANUP_INTERVAL` | `24h`                   | Frequency of the retention loop.                                                                                                                       |
 
@@ -1180,7 +1180,7 @@ Artifact paths used to be `/artifacts/{artifactId}/{filename}` (filesystem and o
 
 - **Drain or wipe the artifact store** before or during the upgrade if artifacts are enabled - old blobs are unreachable and the retention loop skips keys that do not match the three-segment shape.
 - **A custom `ArtifactStorage` or `ArtifactService`** needs its `store` / `retrieve` / `exists` / `delete` / `url` and `create_file_artifact` signatures updated to take the `contextId`. Streaming handlers using `emit_file_artifact` already pass one, so they need no change.
-- **Clients that parse artifact URLs** rather than treating them as opaque need updating for the extra path segment; the bundled Rust client treats them as opaque.
+- **Clients that parse artifact URLs** rather than treating them as opaque need updating for the extra path segment. The bundled Rust client treats them as opaque.
 
 ### Example: filesystem backend
 
@@ -1216,7 +1216,7 @@ cd examples/artifacts-filesystem
 docker compose up --build
 ```
 
-No `.env` and no provider keys are required. The filesystem provider lays files out under `<base_path>/<context_id>/<artifact_id>/<filename>`; the compose stack bind-mounts the container store to `./server/artifacts-data/` so produced files are inspectable after the run. The full artifact URI is printed by the client log line beginning `received file artifact`.
+No `.env` and no provider keys are required. The filesystem provider lays files out under `<base_path>/<context_id>/<artifact_id>/<filename>`. The compose stack bind-mounts the container store to `./server/artifacts-data/` so produced files are inspectable after the run. The full artifact URI is printed by the client log line beginning `received file artifact`.
 
 ### Example: S3-compatible backend
 
@@ -1316,7 +1316,7 @@ The retention and artifacts-server bind variables from the [artifacts configurat
 
 ### Production notes
 
-- **Anonymous-read buckets are a deployment choice, not a default.** If your bucket is private, point `ARTIFACTS_STORAGE_BASE_URL` at the ADK's artifacts HTTP server instead of the object store; the server then proxies the fetch through `ArtifactStorage::retrieve()`. The trade-off is bulk traffic flowing through your agent process rather than straight from the object store.
+- **Anonymous-read buckets are a deployment choice, not a default.** If your bucket is private, point `ARTIFACTS_STORAGE_BASE_URL` at the ADK's artifacts HTTP server instead of the object store. The server then proxies the fetch through `ArtifactStorage::retrieve()`. The trade-off is bulk traffic flowing through your agent process rather than straight from the object store.
 - **Pre-signed URLs are not yet wired in.** A future enhancement could have `MinioArtifactStorage::url(...)` mint a time-limited pre-signed GET so a private bucket needs no proxying.
 - **Retention** runs `cleanup_expired` / `cleanup_oldest` over a listing of stored objects - fine for thousands of artifacts. Past that, prefer bucket lifecycle policies for the bulk of expiry.
 
@@ -1373,7 +1373,7 @@ With export active, the server emits three spans:
 
 - **`a2a.request`** - a server span around each `POST /a2a` request. It extracts the caller's W3C `tracecontext` from the request headers (so a client-initiated trace continues across the hop), records the JSON-RPC method, route, and status, and flags 5xx responses as errors.
 - **`task.process`** - a fresh root span wrapping each background task's execution.
-- **`tool.<name>`** - one span per tool call dispatched by the default task handlers, parented on `task.process`. No instrumentation is required in your tool implementations; the handler wraps every dispatch automatically. Mirrors the [Go ADK](/adk#telemetry) toolbox spans.
+- **`tool.<name>`** - one span per tool call dispatched by the default task handlers, parented on `task.process`. No instrumentation is required in your tool implementations. The handler wraps every dispatch automatically. Mirrors the [Go ADK](/adk#telemetry) toolbox spans.
 
 Each `tool.<name>` span carries:
 
@@ -1387,7 +1387,7 @@ A tool that returns an error marks its span as errored, so failed calls stand ou
 
 ### Configuration
 
-Telemetry loads from the same `A2A_` `Config` as the rest of the server (`config.telemetry_config`). Endpoint precedence: `A2A_TELEMETRY_ENDPOINT` wins when set; otherwise the exporter falls back to the SDK's standard `OTEL_EXPORTER_OTLP_ENDPOINT` resolution, which defaults to `http://localhost:4318`. Standard `OTEL_*` variables are honored by the OpenTelemetry SDK as usual.
+Telemetry loads from the same `A2A_` `Config` as the rest of the server (`config.telemetry_config`). Endpoint precedence: `A2A_TELEMETRY_ENDPOINT` wins when set. Otherwise the exporter falls back to the SDK's standard `OTEL_EXPORTER_OTLP_ENDPOINT` resolution, which defaults to `http://localhost:4318`. Standard `OTEL_*` variables are honored by the OpenTelemetry SDK as usual.
 
 | Variable                      | Default                 | Purpose                                                                            |
 | ----------------------------- | ----------------------- | ---------------------------------------------------------------------------------- |
@@ -1424,14 +1424,14 @@ The [`examples/`](https://github.com/inference-gateway/rust-adk/tree/main/exampl
 | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | [queue-storage](https://github.com/inference-gateway/rust-adk/tree/main/examples/queue-storage)               | Queue-driven `SendMessage` with in-memory or Redis storage, selectable via Compose profiles.                              |
 | [a2a-methods](https://github.com/inference-gateway/rust-adk/tree/main/examples/a2a-methods)                   | One client binary per JSON-RPC method in the A2A spec, sharing a single offline server.                                   |
-| [auth](https://github.com/inference-gateway/rust-adk/tree/main/examples/auth)                                 | Bearer-token auth on `POST /a2a` with public `/health` and `/.well-known/agent-card.json`; static-token or Keycloak OIDC. |
+| [auth](https://github.com/inference-gateway/rust-adk/tree/main/examples/auth)                                 | Bearer-token auth on `POST /a2a` with public `/health` and `/.well-known/agent-card.json`. Static-token or Keycloak OIDC. |
 | [tls](https://github.com/inference-gateway/rust-adk/tree/main/examples/tls)                                   | TLS termination via `axum-server` + `rustls`, with optional mTLS exposing the client-cert subject as the principal.       |
 | [artifacts-filesystem](https://github.com/inference-gateway/rust-adk/tree/main/examples/artifacts-filesystem) | A streaming handler emits a `FilePart` served by the standalone artifacts HTTP server, backed by an on-disk store.        |
 | [artifacts-minio](https://github.com/inference-gateway/rust-adk/tree/main/examples/artifacts-minio)           | The same flow backed by an S3-compatible bucket instead of the local filesystem.                                          |
 
 ## Environment variable reference
 
-The library never reads the environment itself. You pick a loader - typically [`envy::prefixed("A2A_").from_env::<Config>()`](https://docs.rs/envy/latest/envy/fn.prefixed.html) - and hand the resulting `Config` to [`A2AServerBuilder::with_config`](#the-server-and-its-builder). Every variable below is optional and falls back to the default shown; switch prefixes by changing the loader, not the code.
+The library never reads the environment itself. You pick a loader - typically [`envy::prefixed("A2A_").from_env::<Config>()`](https://docs.rs/envy/latest/envy/fn.prefixed.html) - and hand the resulting `Config` to [`A2AServerBuilder::with_config`](#the-server-and-its-builder). Every variable below is optional and falls back to the default shown. Switch prefixes by changing the loader, not the code.
 
 `*_SECS` variables are plain integer seconds. The Go-style duration grammar (`30s`, `15m`, `2h`, `7d`) applies to the `MCP_` durations below and to the `ARTIFACTS_` durations in the [artifacts configuration reference](#artifacts-configuration-reference). The artifacts subsystem loads under its own `ARTIFACTS_` prefix and is **not** part of the `A2A_` surface. The agent card's identity fields and advertised capabilities are **not** configurable through the environment - they come from the card JSON (see [Agent card and metadata](#agent-card-and-metadata)).
 
@@ -1442,13 +1442,13 @@ Log verbosity is controlled by [`RUST_LOG`](https://docs.rs/tracing-subscriber/l
 | Variable                                    | Default     | Purpose                                                                                                                       |
 | ------------------------------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------- |
 | `A2A_SERVER_HOST`                           | `0.0.0.0`   | Inert - `ServerConfig::host` is never read. The bind address comes solely from the `SocketAddr` passed to `A2AServer::serve`. |
-| `A2A_SERVER_PORT`                           | `8080`      | Feeds the default advertised URL `http(s)://localhost:<port>/a2a`; it does not bind the listener either.                      |
+| `A2A_SERVER_PORT`                           | `8080`      | Feeds the default advertised URL `http(s)://localhost:<port>/a2a`. It does not bind the listener either.                      |
 | `A2A_AGENT_URL`                             | _(derived)_ | Public URL advertised in the card - see below.                                                                                |
 | `A2A_STREAMING_STATUS_UPDATE_INTERVAL_SECS` | `1`         | Seconds between `TaskStatusUpdateEvent`s on a streamed task.                                                                  |
 
 `A2A_AGENT_URL` has no fixed default - the server resolves the advertised URL at startup, see [Agent card and metadata](#agent-card-and-metadata) for the full precedence chain.
 
-**Agent (LLM client)** - these mirror the [`AgentBuilder`](#agentbuilder) setters; an explicit setter overrides the env value.
+**Agent (LLM client)** - these mirror the [`AgentBuilder`](#agentbuilder) setters. An explicit setter overrides the env value.
 
 | Variable                                          | Default   | Purpose                                                                                                                  |
 | ------------------------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------ |
@@ -1460,13 +1460,13 @@ Log verbosity is controlled by [`RUST_LOG`](https://docs.rs/tracing-subscriber/l
 | `A2A_AGENT_CLIENT_MAX_RETRIES`                    | `3`       | Retry budget for failed LLM calls.                                                                                       |
 | `A2A_AGENT_CLIENT_MAX_CHAT_COMPLETION_ITERATIONS` | `10`      | Cap on the agent tool loop - chat-completion round trips per turn.                                                       |
 | `A2A_AGENT_CLIENT_MAX_TOKENS`                     | `4096`    | Max tokens per completion. Non-streaming completions only - the gateway SDK omits `max_tokens` from streaming requests.  |
-| `A2A_AGENT_CLIENT_TEMPERATURE`                    | _(unset)_ | Sampling temperature, `0.0` - `2.0`. Sent with streaming and non-streaming completions; unset keeps the gateway default. |
+| `A2A_AGENT_CLIENT_TEMPERATURE`                    | _(unset)_ | Sampling temperature, `0.0` - `2.0`. Sent with streaming and non-streaming completions. Unset keeps the gateway default. |
 | `A2A_AGENT_CLIENT_SYSTEM_PROMPT`                  | _(unset)_ | System prompt prepended to conversations.                                                                                |
 | `A2A_AGENT_CLIENT_ENABLE_USAGE_METADATA`          | `true`    | Serve the [usage extension](#usage-metadata) on terminal tasks.                                                          |
 
-**Capabilities** are not environment-configurable. The served card and the [builder's streaming-handler validation](#the-server-and-its-builder) read the `capabilities` object of your agent card JSON, so set `streaming`, `pushNotifications`, and `extendedAgentCard` there. `pushNotifications` gates the [push-notification-config methods](#push-notifications) and `extendedAgentCard` gates `GetExtendedAgentCard`; a method whose flag is missing answers a JSON-RPC error rather than running. The A2A v1.0.1 card has no `stateTransitionHistory` flag - a card still carrying it fails to deserialize into the ADK's `AgentCapabilities`.
+**Capabilities** are not environment-configurable. The served card and the [builder's streaming-handler validation](#the-server-and-its-builder) read the `capabilities` object of your agent card JSON, so set `streaming`, `pushNotifications`, and `extendedAgentCard` there. `pushNotifications` gates the [push-notification-config methods](#push-notifications) and `extendedAgentCard` gates `GetExtendedAgentCard`. A method whose flag is missing answers a JSON-RPC error rather than running. The A2A v1.0.1 card has no `stateTransitionHistory` flag - a card still carrying it fails to deserialize into the ADK's `AgentCapabilities`.
 
-**MCP client** (`MCP_` prefix) - connect the agent to [MCP servers](#mcp-client); disabled by default. Loaded under its own `MCP_` prefix (like `ARTIFACTS_`), separate from the `A2A_` `Config`.
+**MCP client** (`MCP_` prefix) - connect the agent to [MCP servers](#mcp-client). Disabled by default. Loaded under its own `MCP_` prefix (like `ARTIFACTS_`), separate from the `A2A_` `Config`.
 
 | Variable                 | Default   | Purpose                                                            |
 | ------------------------ | --------- | ------------------------------------------------------------------ |
@@ -1498,7 +1498,7 @@ Log verbosity is controlled by [`RUST_LOG`](https://docs.rs/tracing-subscriber/l
 | `A2A_AUTH_ENABLED`       | `false`   | Enable OIDC bearer-token auth on `POST /a2a`.                                                  |
 | `A2A_AUTH_ISSUER_URL`    | _(empty)_ | OIDC issuer used for discovery + JWKS. Required when auth is enabled.                          |
 | `A2A_AUTH_CLIENT_ID`     | _(empty)_ | Expected `aud` claim on incoming tokens. Required when auth is enabled.                        |
-| `A2A_AUTH_CLIENT_SECRET` | _(empty)_ | Required when auth is enabled; `build()` fails without it, though verification never reads it. |
+| `A2A_AUTH_CLIENT_SECRET` | _(empty)_ | Required when auth is enabled. `build()` fails without it, though verification never reads it. |
 
 **TLS and mTLS** - see [TLS and mTLS](#tls-and-mtls).
 
@@ -1509,7 +1509,7 @@ Log verbosity is controlled by [`RUST_LOG`](https://docs.rs/tracing-subscriber/l
 | `A2A_SERVER_TLS_KEY_PATH`       | _(empty)_ | PEM file with the server private key.                                                                                        |
 | `A2A_SERVER_TLS_CLIENT_CA_PATH` | _(omit)_  | Trusted client-CA bundle. Any value, an empty string included, flips the server into mTLS - omit the variable for plain TLS. |
 
-**Telemetry** - OpenTelemetry OTLP **trace** export; see [Telemetry](#telemetry) for `telemetry::init` usage and the emitted spans. Traces-only over HTTP/protobuf, behind the optional `telemetry` Cargo feature. `A2A_TELEMETRY_ENABLED` is the sole switch, matching the [Go ADK](/adk#telemetry); `A2A_OTEL_TRACES_EXPORTER=none` opts the trace signal out while telemetry stays enabled.
+**Telemetry** - OpenTelemetry OTLP **trace** export. See [Telemetry](#telemetry) for `telemetry::init` usage and the emitted spans. Traces-only over HTTP/protobuf, behind the optional `telemetry` Cargo feature. `A2A_TELEMETRY_ENABLED` is the sole switch, matching the [Go ADK](/adk#telemetry). `A2A_OTEL_TRACES_EXPORTER=none` opts the trace signal out while telemetry stays enabled.
 
 | Variable                      | Default                 | Purpose                                                                                                |
 | ----------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------ |

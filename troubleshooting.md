@@ -19,7 +19,7 @@ If you do not find your issue here, check:
 
 **Symptom.** With `AUTH_ENABLED=true`, every request - including ones carrying what looks like a valid bearer token - fails with `401 Unauthorized`.
 
-**Likely cause.** The OIDC issuer URL does not match the identity provider that minted the token, or the token's `aud` claim is not one of the accepted audiences. The gateway validates JWTs against the configured `AUTH_OIDC_ISSUER`'s JWKS endpoint; any mismatch (trailing slash, wrong realm, http vs https, internal vs external hostname) makes signature verification fail. The gateway only verifies tokens and never requests one, so it has no client secret setting.
+**Likely cause.** The OIDC issuer URL does not match the identity provider that minted the token, or the token's `aud` claim is not one of the accepted audiences. The gateway validates JWTs against the configured `AUTH_OIDC_ISSUER`'s JWKS endpoint. Any mismatch (trailing slash, wrong realm, http vs https, internal vs external hostname) makes signature verification fail. The gateway only verifies tokens and never requests one, so it has no client secret setting.
 
 **Fix.**
 
@@ -94,7 +94,7 @@ For full MCP setup details see [MCP Integration](/mcp/).
 
 **Symptom.** A chat completion carrying an `image_url` or base64 image content succeeds, but the reply only reflects the text - the image appears to have been ignored.
 
-**Likely cause.** With `VISION_ENABLED=true`, the gateway strips image parts only from requests to models known to accept non-image input only and forwards the text only; unknown models are passed through untouched. With `VISION_ENABLED=false` (the default) the gateway forwards image content untouched, so an ignored image means the upstream provider or model dropped it. The gateway does not reject a request for containing an image in either mode.
+**Likely cause.** With `VISION_ENABLED=true`, the gateway strips image parts only from requests to models known to accept non-image input only and forwards the text only. Unknown models are passed through untouched. With `VISION_ENABLED=false` (the default) the gateway forwards image content untouched, so an ignored image means the upstream provider or model dropped it. The gateway does not reject a request for containing an image in either mode.
 
 **Fix.** Verify the model itself supports vision (e.g. `gpt-5`, `claude-opus-4-8`, `gemini-3-flash`) - see [Providers with Vision Support](/supported-providers/#providers-with-vision-support). If it does and images are still ignored, check the flag:
 
@@ -129,7 +129,7 @@ Restart the gateway after changing it, then retry the request.
      http://inference-gateway:8080/proxy/openai/v1/chat/completions
    ```
 
-   If the request succeeds against `/proxy/...` but fails against `/v1/...`, the issue is in the gateway's request transformation; if it fails on both, the issue is upstream (bad model id, missing API key, quota).
+   If the request succeeds against `/proxy/...` but fails against `/v1/...`, the issue is in the gateway's request transformation. If it fails on both, the issue is upstream (bad model id, missing API key, quota).
 
 3. Inspect the metrics:
 
@@ -137,7 +137,7 @@ Restart the gateway after changing it, then retry the request.
    sum by (error_type) (rate(gen_ai_server_request_duration_seconds_count{gen_ai_provider_name="<provider>"}[5m]))
    ```
 
-   to see which errors the provider is returning and at what rate. Drop the `error_type` grouping for total request rate; an empty `error_type` label marks successful requests.
+   to see which errors the provider is returning and at what rate. Drop the `error_type` grouping for total request rate. An empty `error_type` label marks successful requests.
 
 4. Double-check provider credentials. Each provider reads its API key from a dedicated env var (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GROQ_API_KEY`, etc.) - see [Configuration](/configuration/) for the full list.
 
@@ -155,7 +155,7 @@ curl -sS -X POST \
   http://inference-gateway:8080/v1/chat/completions
 ```
 
-The MCP middleware will inspect the header and short-circuit; auth and telemetry still run. This is a client-side escape hatch only - the gateway never sets the header itself. Its own follow-up calls after a tool result are in-process provider calls that do not re-enter the middleware chain.
+The MCP middleware will inspect the header and short-circuit. Auth and telemetry still run. This is a client-side escape hatch only - the gateway never sets the header itself. Its own follow-up calls after a tool result are in-process provider calls that do not re-enter the middleware chain.
 
 To also skip the MCP and telemetry middlewares, use the proxy endpoint instead:
 
@@ -171,7 +171,7 @@ ANY /proxy/{provider}/{path}
 
 **Symptom.** You set `AUTH_ENABLED=true` (or `MCP_ENABLED=true`, `VISION_ENABLED=true`, ...) but the gateway logs `auth disabled` / `mcp disabled` / keeps behaving as if vision handling were off.
 
-**Likely cause.** Variables are not reaching the gateway process. In Docker Compose this usually means the variable is set in the shell but not declared under `environment:` in `docker-compose.yml`; in Kubernetes, the ConfigMap is mounted into a different container or the pod was not restarted.
+**Likely cause.** Variables are not reaching the gateway process. In Docker Compose this usually means the variable is set in the shell but not declared under `environment:` in `docker-compose.yml`. In Kubernetes, the ConfigMap is mounted into a different container or the pod was not restarted.
 
 **Fix.**
 

@@ -321,7 +321,7 @@ adl generate --file agent.yaml --output ./my-agent --ci --cd --deployment cloudr
 | `--cd`             | Generate CD pipeline with semantic-release. Overrides `spec.scm.cd`.     | `false`      |
 | `--deployment`     | Deployment platform: `kubernetes`, `cloudrun`, `vercel`, or `cloudflare` | -            |
 
-> **Manifest-driven equivalents.** `--ci` and `--cd` mirror `spec.scm.ci` and `spec.scm.cd`. The CLI flag is OR-merged on top of the manifest value - passing the flag wins; omitting it falls back to whatever the manifest declares. There is no `--ai` flag on `generate`; AI-assistant generation is entirely manifest-driven via the per-agent toggles under `spec.development.ai.orchestrators.*` (see [AI Assistants](#ai-assistants)).
+> **Manifest-driven equivalents.** `--ci` and `--cd` mirror `spec.scm.ci` and `spec.scm.cd`. The CLI flag is OR-merged on top of the manifest value - passing the flag wins. Omitting it falls back to whatever the manifest declares. There is no `--ai` flag on `generate`. AI-assistant generation is entirely manifest-driven via the per-agent toggles under `spec.development.ai.orchestrators.*` (see [AI Assistants](#ai-assistants)).
 
 **CI Generation** automatically detects the SCM provider from `spec.scm.provider` and creates language-specific workflows with caching, testing, and linting.
 
@@ -343,7 +343,7 @@ Returns validation errors if the file structure or required fields are invalid.
 
 ## ADL Schema Reference
 
-> **Reflects ADL `schema/v1` (JSON Schema Draft-07) as of [`v0.28.0`](https://github.com/inference-gateway/adl/releases/tag/v0.28.0).** The field definitions below are an in-page convenience copy. The single source of truth is [`schema/v1/schema.json`](https://github.com/inference-gateway/adl/blob/main/schema/v1/schema.json) in `inference-gateway/adl` (rendered at [adl.inference-gateway.com](https://adl.inference-gateway.com)) - if anything here disagrees with the canonical schema, the canonical schema wins. `spec.card` and `spec.capabilities` track the [A2A](/a2a/) v1.0.1 `AgentCard`; the pre-release card fields they replaced are listed under [Deprecated card fields](#deprecated-card-fields).
+> **Reflects ADL `schema/v1` (JSON Schema Draft-07) as of [`v0.28.0`](https://github.com/inference-gateway/adl/releases/tag/v0.28.0).** The field definitions below are an in-page convenience copy. The single source of truth is [`schema/v1/schema.json`](https://github.com/inference-gateway/adl/blob/main/schema/v1/schema.json) in `inference-gateway/adl` (rendered at [adl.inference-gateway.com](https://adl.inference-gateway.com)) - if anything here disagrees with the canonical schema, the canonical schema wins. `spec.card` and `spec.capabilities` track the [A2A](/a2a/) v1.0.1 `AgentCard`. The pre-release card fields they replaced are listed under [Deprecated card fields](#deprecated-card-fields).
 
 ### Overview
 
@@ -597,7 +597,7 @@ Optional A2A agent card configuration that controls how your agent is discovered
 
 | Field                  | Type     | Description                                                                           |
 | ---------------------- | -------- | ------------------------------------------------------------------------------------- |
-| `supportedInterfaces`  | object[] | Protocol endpoints the agent serves; the first entry is the preferred one. See below. |
+| `supportedInterfaces`  | object[] | Protocol endpoints the agent serves. The first entry is the preferred one. See below. |
 | `defaultInputModes`    | string[] | Supported input modes (e.g., `["text", "voice"]`)                                     |
 | `defaultOutputModes`   | string[] | Supported output modes (e.g., `["text", "audio"]`)                                    |
 | `documentationUrl`     | string   | URL to agent documentation                                                            |
@@ -708,7 +708,7 @@ spec:
 | `retryInterval`    | string   |          | `2s`    | `A2A_MCP_RETRY_INTERVAL`     | Initial backoff between retries (Go duration string).                                   |
 | `retryMaxInterval` | string   |          | `30s`   | `A2A_MCP_RETRY_MAX_INTERVAL` | Maximum backoff between retries once the interval has grown (Go duration string).       |
 
-Each entry in `servers[]` is one MCP server. `stdio` launches a local subprocess and talks over stdin/stdout (`command`, `args`, `env`); `http` and `sse` connect to a remote endpoint (`url`, `headers`). Only the fields relevant to the chosen `transport` are used.
+Each entry in `servers[]` is one MCP server. `stdio` launches a local subprocess and talks over stdin/stdout (`command`, `args`, `env`). `http` and `sse` connect to a remote endpoint (`url`, `headers`). Only the fields relevant to the chosen `transport` are used.
 
 | Field       | Type     | Required | Description                                                                                            |
 | ----------- | -------- | :------: | ------------------------------------------------------------------------------------------------------ |
@@ -720,7 +720,7 @@ Each entry in `servers[]` is one MCP server. `stdio` launches a local subprocess
 | `url`       | string   |          | Endpoint URL for an `http` or `sse` server. Ignored by `stdio`.                                        |
 | `headers`   | map      |          | Extra HTTP headers sent to an `http` or `sse` server (e.g. `Authorization`).                           |
 
-> **Generation is Go-only and streamable-HTTP-only.** When `enabled: true`, `adl generate` wires an `MCPClientManager` into a **Go** agent's `main.go` - it connects to the servers in the background and registers the `mcp_list_tools` / `mcp_call_tool` selector tools into the toolbox - and emits the `A2A_MCP_*` defaults into `.env.example`. The ADK MCP client speaks **streamable HTTP only**, so `A2A_MCP_SERVERS` is derived from the base URLs of the `http` servers; `stdio` and `sse` servers are dropped from it and the validator warns per server. The whole block is ignored for TypeScript and Rust agents (the validator warns), mirroring how `spec.telemetry` treats Rust.
+> **Generation is Go-only and streamable-HTTP-only.** When `enabled: true`, `adl generate` wires an `MCPClientManager` into a **Go** agent's `main.go` - it connects to the servers in the background and registers the `mcp_list_tools` / `mcp_call_tool` selector tools into the toolbox - and emits the `A2A_MCP_*` defaults into `.env.example`. The ADK MCP client speaks **streamable HTTP only**, so `A2A_MCP_SERVERS` is derived from the base URLs of the `http` servers. `stdio` and `sse` servers are dropped from it and the validator warns per server. The whole block is ignored for TypeScript and Rust agents (the validator warns), mirroring how `spec.telemetry` treats Rust.
 
 ### Tools
 
@@ -796,7 +796,7 @@ skills:
 Generated skills follow the portable `.agents/` convention:
 
 - Each skill is written to `.agents/skills/<id>/SKILL.md`, with any bundled assets under the same `.agents/skills/<id>/` directory.
-- A committed `.claude` -> `.agents` relative symlink exposes the identical tree at `.claude/skills/<id>/SKILL.md`, so the generated agent is directly usable by [Claude Code](https://claude.com/claude-code) (which reads `.claude/skills/`) alongside any runtime that follows the `.agents/` convention. The symlink is created idempotently and committed to the repo. **Known ceiling:** Windows checkouts with `core.symlinks=false` do not materialise the link - generation warns instead of failing; recreate it by hand or point `A2A_SKILLS_DIR` at `.agents/skills`.
+- A committed `.claude` -> `.agents` relative symlink exposes the identical tree at `.claude/skills/<id>/SKILL.md`, so the generated agent is directly usable by [Claude Code](https://claude.com/claude-code) (which reads `.claude/skills/`) alongside any runtime that follows the `.agents/` convention. The symlink is created idempotently and committed to the repo. **Known ceiling:** Windows checkouts with `core.symlinks=false` do not materialise the link - generation warns instead of failing. Recreate it by hand or point `A2A_SKILLS_DIR` at `.agents/skills`.
 - The generated Dockerfiles `COPY .agents/skills` so each `SKILL.md` is readable at startup.
 
 At runtime the skills directory defaults to `.agents/skills` and is overridable with the `A2A_SKILLS_DIR` environment variable. Go, Rust, and TypeScript runtimes all honour it.
@@ -805,7 +805,7 @@ At runtime the skills directory defaults to `.agents/skills` and is overridable 
 
 #### Accepted `license` values
 
-`license` must be one of these SPDX identifiers (or `Proprietary` for closed-source skills); SPDX expressions like `MIT OR Apache-2.0` are not currently accepted:
+`license` must be one of these SPDX identifiers (or `Proprietary` for closed-source skills). SPDX expressions like `MIT OR Apache-2.0` are not currently accepted:
 
 | Identifier     | Notes                                       |
 | -------------- | ------------------------------------------- |
@@ -829,7 +829,7 @@ At runtime the skills directory defaults to `.agents/skills` and is overridable 
 
 In addition to the custom tools you define under `spec.tools`, the ADL CLI ships a small set of **reserved built-in tool IDs** that the generator owns end-to-end. A reserved built-in is an entry under `spec.tools` that contains **only** an `id` field - the generator supplies the tool's name, description, JSON schema, and implementation. You configure its behaviour through `spec.config.tools.<id>`.
 
-All built-ins default to `enabled: false`; you opt in explicitly per tool.
+All built-ins default to `enabled: false`. You opt in explicitly per tool.
 
 The reserved-ID set lives in [`internal/schema/builtin_config.go`](https://github.com/inference-gateway/adl-cli/blob/main/internal/schema/builtin_config.go) in the [adl-cli repo](https://github.com/inference-gateway/adl-cli).
 
@@ -838,10 +838,10 @@ The reserved-ID set lives in [`internal/schema/builtin_config.go`](https://githu
 | ID      | Purpose                            | Config struct        | Notes                                                                                                                                                                                                           |
 | ------- | ---------------------------------- | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `read`  | Read files (capped lines per call) | `ReadBuiltinConfig`  | **Required and enabled** when `spec.skills` is non-empty (validator-enforced) - this is how `SKILL.md` bodies are loaded on demand                                                                              |
-| `write` | Create or overwrite files          | `WriteBuiltinConfig` | Most destructive built-in; strictly opt-in                                                                                                                                                                      |
+| `write` | Create or overwrite files          | `WriteBuiltinConfig` | Most destructive built-in. Strictly opt-in                                                                                                                                                                      |
 | `edit`  | In-place string replace            | `EditBuiltinConfig`  | Preferred file modifier (safer than `write`)                                                                                                                                                                    |
-| `bash`  | Execute shell commands             | `BashBuiltinConfig`  | Command whitelist + timeout; runtime kill switch via `A2A_BASH_DISABLED=1`                                                                                                                                      |
-| `fetch` | HTTP GET / file download           | `FetchBuiltinConfig` | Domain whitelist (suffix match via `.example.com`), `max_bytes`, `timeout_seconds`, `allow_downloads` + scoped `download_dir`, `save_path` traversal/abs-path rejection; kill switch via `A2A_FETCH_DISABLED=1` |
+| `bash`  | Execute shell commands             | `BashBuiltinConfig`  | Command whitelist + timeout. Runtime kill switch via `A2A_BASH_DISABLED=1`                                                                                                                                      |
+| `fetch` | HTTP GET / file download           | `FetchBuiltinConfig` | Domain whitelist (suffix match via `.example.com`), `max_bytes`, `timeout_seconds`, `allow_downloads` + scoped `download_dir`, `save_path` traversal/abs-path rejection. Kill switch via `A2A_FETCH_DISABLED=1` |
 
 #### Declaring built-ins
 
@@ -903,7 +903,7 @@ Built-in tool settings can be overridden at runtime without regenerating code. T
 
 If `spec.skills` is non-empty, the ADL **must** declare `- id: read` under `spec.tools` **and** set `spec.config.tools.read.enabled: true`. The validator rejects ADL files that violate this.
 
-At runtime, only each skill's frontmatter is auto-injected into the system prompt; the model reads the full `SKILL.md` body on demand via the `read` built-in. Disabling `read` would leave the agent unable to load its own skill instructions.
+At runtime, only each skill's frontmatter is auto-injected into the system prompt. The model reads the full `SKILL.md` body on demand via the `read` built-in. Disabling `read` would leave the agent unable to load its own skill instructions.
 
 #### `fetch` specifics
 
@@ -923,7 +923,7 @@ A complete ADL that exercises all five built-ins is available at [`examples/go-a
 
 ### Services
 
-Services provide dependency injection for tools. Define custom services with interfaces and factory functions; tools list them under `inject:` and receive typed handles at runtime.
+Services provide dependency injection for tools. Define custom services with interfaces and factory functions. Tools list them under `inject:` and receive typed handles at runtime.
 
 ```yaml
 services:
@@ -989,7 +989,7 @@ This generates type-safe code where the tool receives `*config.EmailConfig` inst
 
 ### Telemetry
 
-`spec.telemetry` configures [OpenTelemetry](https://opentelemetry.io/) instrumentation for the generated agent. `enabled` is the master switch; the optional `traces` and `metrics` blocks select a per-signal exporter following the [OpenTelemetry SDK declarative-configuration](https://opentelemetry.io/docs/specs/otel/configuration/) model. When `enabled: true`, the generator pulls in the OpenTelemetry dependencies, instruments the built-in tool calls with spans, and turns on the ADK telemetry/metrics server.
+`spec.telemetry` configures [OpenTelemetry](https://opentelemetry.io/) instrumentation for the generated agent. `enabled` is the master switch. The optional `traces` and `metrics` blocks select a per-signal exporter following the [OpenTelemetry SDK declarative-configuration](https://opentelemetry.io/docs/specs/otel/configuration/) model. When `enabled: true`, the generator pulls in the OpenTelemetry dependencies, instruments the built-in tool calls with spans, and turns on the ADK telemetry/metrics server.
 
 ```yaml
 telemetry:
@@ -1036,14 +1036,14 @@ The `otlp` exporter (valid for `traces` and `metrics`):
 
 The `prometheus` exporter (metrics only, pull/scrape):
 
-| Field  | Type    | Description                                        |
-| ------ | ------- | -------------------------------------------------- |
-| `host` | string  | Host/interface the scrape endpoint binds to.       |
-| `port` | integer | Scrape port (1-65535; OpenTelemetry default 9464). |
+| Field  | Type    | Description                                         |
+| ------ | ------- | --------------------------------------------------- |
+| `host` | string  | Host/interface the scrape endpoint binds to.        |
+| `port` | integer | Scrape port (1-65535 - OpenTelemetry default 9464). |
 
 Every field except `enabled` is optional. Selecting `otlp: {}` with no `endpoint`/`protocol` is valid - it turns the exporter on and leaves the details to the standard OTLP environment defaults.
 
-**Environment-variable mapping.** Every manifest field maps 1:1 to a standard `OTEL_*` environment variable, emitted as a generated `.env.example` default. The manifest fixes the field; the runtime always reads the env var, so an operator can override any of these at deploy time.
+**Environment-variable mapping.** Every manifest field maps 1:1 to a standard `OTEL_*` environment variable, emitted as a generated `.env.example` default. The manifest fixes the field. The runtime always reads the env var, so an operator can override any of these at deploy time.
 
 | Manifest                       | Environment variable                                                                     |
 | ------------------------------ | ---------------------------------------------------------------------------------------- |
@@ -1057,7 +1057,7 @@ Every field except `enabled` is optional. Selecting `otlp: {}` with no `endpoint
 | `prometheus.host`              | `OTEL_EXPORTER_PROMETHEUS_HOST`                                                          |
 | `prometheus.port`              | `OTEL_EXPORTER_PROMETHEUS_PORT`                                                          |
 
-When **both** signals use `otlp` with identical settings, the generator may collapse them to the shared `OTEL_EXPORTER_OTLP_ENDPOINT` / `OTEL_EXPORTER_OTLP_PROTOCOL`; when they differ (or only one uses OTLP), it emits the per-signal `OTEL_EXPORTER_OTLP_TRACES_*` / `OTEL_EXPORTER_OTLP_METRICS_*` variants instead.
+When **both** signals use `otlp` with identical settings, the generator may collapse them to the shared `OTEL_EXPORTER_OTLP_ENDPOINT` / `OTEL_EXPORTER_OTLP_PROTOCOL`. When they differ (or only one uses OTLP), it emits the per-signal `OTEL_EXPORTER_OTLP_TRACES_*` / `OTEL_EXPORTER_OTLP_METRICS_*` variants instead.
 
 **Service identity from manifest metadata.** The generated agent's OpenTelemetry `service.name` resource attribute is sourced from the ADL manifest `metadata.name` (via build-time Go linker flags), and `service.version` from `metadata.version`. These are **build-time metadata** baked into the binary - they are NOT overridable via environment variables (the ADK does not env-map them). Before this fix, telemetry-enabled Go agents exported spans with an empty `service.name`, making them unattributable in tracing backends.
 
@@ -1244,7 +1244,7 @@ deployment:
 
 This generates:
 
-- **`vercel.json`** with `regions`, a `functions` map (`memory` / `maxDuration`), and `env` from `vercel.environment`. With `runtime: nodejs` (the default) no `runtime` key is emitted, so Vercel uses its Node.js runtime; setting `runtime: edge` would instead emit `"runtime": "@vercel/edge"`. `framework` is written only when you set it - leaving it unset (the norm for A2A agents) lets Vercel deploy the functions directly.
+- **`vercel.json`** with `regions`, a `functions` map (`memory` / `maxDuration`), and `env` from `vercel.environment`. With `runtime: nodejs` (the default) no `runtime` key is emitted, so Vercel uses its Node.js runtime. Setting `runtime: edge` would instead emit `"runtime": "@vercel/edge"`. `framework` is written only when you set it - leaving it unset (the norm for A2A agents) lets Vercel deploy the functions directly.
 - **`.vercel/project.json`** linking the local project to Vercel (`projectId` from `project`, `orgId` from `team`).
 - A **`deploy` task** in `Taskfile.yml` that runs `vercel link` / `vercel pull` / `vercel deploy` for interactive deploys (requires the `vercel` CLI: `npm i -g vercel`).
 
@@ -1309,7 +1309,7 @@ deployment:
 | `compatibilityFlags` | string[] | No       | Workers runtime compatibility flags. Defaults to `[nodejs_compat]` when omitted (the scaffold relies on Node.js APIs).   |
 | `routes`             | string[] | No       | Custom routes / domains the Worker is served on (e.g. `agent.example.com/*`). Omit to rely on the workers.dev subdomain. |
 | `workersDev`         | boolean  | No       | Whether the Worker is exposed on its `*.workers.dev` subdomain. Set `false` when serving exclusively via custom routes.  |
-| `environment`        | map      | No       | Plain-text environment variables, written to the `[vars]` table. Use `${VAR}` placeholders; never inline secrets.        |
+| `environment`        | map      | No       | Plain-text environment variables, written to the `[vars]` table. Use `${VAR}` placeholders. Never inline secrets.        |
 
 This generates:
 
@@ -1371,7 +1371,7 @@ Features include conventional commit versioning, container publishing to GitHub 
 
 #### Sandbox
 
-`spec.development.sandbox` selects reproducible dev environments. Each is independently toggleable; multiple can be enabled at once.
+`spec.development.sandbox` selects reproducible dev environments. Each is independently toggleable. Multiple can be enabled at once.
 
 ##### Flox
 
@@ -1436,11 +1436,11 @@ development:
 
 Notes:
 
-- `AGENTS.md` is generated **once** and is shared by every enabled agent that reads from it (`codex`, `opencode`, `infer`); its contents are agent-agnostic.
+- `AGENTS.md` is generated **once** and is shared by every enabled agent that reads from it (`codex`, `opencode`, `infer`). Its contents are agent-agnostic.
 - `CLAUDE.md` and `GEMINI.md` are agent-specific and only appear when the matching toggle is on.
 - When `claudecode.enabled: true`, the sandbox environments (Flox, DevContainer) also gain the `claude-code` CLI / extension automatically.
-- The `adl init --ai` flag is an init-time shortcut that writes `spec.development.ai.orchestrators.claudecode.enabled: true` into the manifest. Every other toggle stays `false`; enable additional agents by editing `agent.yaml` after init.
-- The generated `.github/workflows/infer.yml` takes its model from the `INFER_MODEL` repository variable (`vars.INFER_MODEL`) - set it to a `provider/model` value such as `anthropic/claude-opus-5` and add the matching provider API key secret. When the variable is unset, [`infer-action`](/github-action/) applies its own default model; a `/model provider/name` override in the triggering issue or comment still wins for that run. The workflow also needs a GitHub App's client ID and private key in the `INFER_APP_ID` / `INFER_APP_PRIVATE_KEY` secrets (names configurable via `appIdSecret` / `appPrivateKeySecret`).
+- The `adl init --ai` flag is an init-time shortcut that writes `spec.development.ai.orchestrators.claudecode.enabled: true` into the manifest. Every other toggle stays `false`. Enable additional agents by editing `agent.yaml` after init.
+- The generated `.github/workflows/infer.yml` takes its model from the `INFER_MODEL` repository variable (`vars.INFER_MODEL`) - set it to a `provider/model` value such as `anthropic/claude-opus-5` and add the matching provider API key secret. When the variable is unset, [`infer-action`](/github-action/) applies its own default model. A `/model provider/name` override in the triggering issue or comment still wins for that run. The workflow also needs a GitHub App's client ID and private key in the `INFER_APP_ID` / `INFER_APP_PRIVATE_KEY` secrets (names configurable via `appIdSecret` / `appPrivateKeySecret`).
 - The per-agent toggles live under `spec.development.ai.orchestrators`. Older manifests using the single `spec.development.ai.enabled: true` flag or the flat per-agent shape (e.g. `spec.development.ai.claudecode.enabled`, pre-`orchestrators`) are no longer accepted - `adl validate` and `adl generate` will fail with a migration hint. Move each toggle under `orchestrators` (e.g. `spec.development.ai.orchestrators.claudecode.enabled: true`).
 
 ### Hooks
@@ -1514,8 +1514,8 @@ scm:
 | `github_app`      | boolean | Enable GitHub App for enhanced CD security                                                                   |
 | `issue_templates` | boolean | Generate issue templates (bug report, feature request, refactor)                                             |
 | `dependabot`      | boolean | Generate `.github/dependabot.yml`                                                                            |
-| `ci`              | boolean | Generate CI workflow on `adl generate`. Equivalent to passing `--ci`; CLI flag OR-merges with this value.    |
-| `cd`              | boolean | Generate CD pipeline + semantic-release on `adl generate`. Equivalent to passing `--cd`; CLI flag OR-merges. |
+| `ci`              | boolean | Generate CI workflow on `adl generate`. Equivalent to passing `--ci`. CLI flag OR-merges with this value.    |
+| `cd`              | boolean | Generate CD pipeline + semantic-release on `adl generate`. Equivalent to passing `--cd`. CLI flag OR-merges. |
 
 ## Generated Project Structure
 
@@ -1694,7 +1694,7 @@ The gateway discovers agent capabilities automatically via the `/.well-known/age
 - **Version control your ADL file** - Track `agent.yaml` alongside your code
 - **Leverage service injection** - Use the `inject` system instead of global state for testability
 - **Config subsection injection** - Inject only the config sections each tool needs (`config.email` instead of `config`)
-- **Enable AI assistants per agent** - Flip on the assistants you actually use under `spec.development.ai.orchestrators.*.enabled` (start with `claudecode`; add `codex`/`gemini`/`opencode`/`infer` as needed)
+- **Enable AI assistants per agent** - Flip on the assistants you actually use under `spec.development.ai.orchestrators.*.enabled` (start with `claudecode` - add `codex`/`gemini`/`opencode`/`infer` as needed)
 - **Set up CI/CD declaratively** - Set `spec.scm.ci: true` / `spec.scm.cd: true` so pipelines regenerate on every `adl generate` without remembering flags
 
 ## Troubleshooting

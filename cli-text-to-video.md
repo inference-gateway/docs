@@ -46,11 +46,11 @@ All options live under `text_to_video` in `.infer/config.yaml`. Every key also h
 | `text_to_video.enabled`          | `INFER_TEXT_TO_VIDEO_ENABLED`          | bool   | `false`                                                  | Feature flag - must be `true` for the `TextToVideo` tool to reach the LLM                   |
 | `text_to_video.model`            | `INFER_TEXT_TO_VIDEO_MODEL`            | string | `elevenlabs/veo-3.1-fast-generate-001`                   | Gateway `provider/model` id used for prompt renders                                         |
 | `text_to_video.avatar_model`     | `INFER_TEXT_TO_VIDEO_AVATAR_MODEL`     | string | `elevenlabs/creatify-aurora`                             | Gateway `provider/model` id used for lip-synced avatar renders                              |
-| `text_to_video.size`             | `INFER_TEXT_TO_VIDEO_SIZE`             | string | `""`                                                     | `widthxheight` passed through to the provider; empty leaves the provider default            |
+| `text_to_video.size`             | `INFER_TEXT_TO_VIDEO_SIZE`             | string | `""`                                                     | `widthxheight` passed through to the provider. Empty leaves the provider default            |
 | `text_to_video.output_dir`       | `INFER_TEXT_TO_VIDEO_OUTPUT_DIR`       | string | `video/` under the [media root](/cli/#media-directories) | Where rendered MP4s are written                                                             |
 | `text_to_video.timeout`          | `INFER_TEXT_TO_VIDEO_TIMEOUT`          | int    | `900`                                                    | Seconds to wait for a render job before giving up                                           |
 | `text_to_video.poll_interval`    | `INFER_TEXT_TO_VIDEO_POLL_INTERVAL`    | int    | `5`                                                      | Seconds between job status polls                                                            |
-| `text_to_video.create_avatar`    | `INFER_TEXT_TO_VIDEO_CREATE_AVATAR`    | bool   | `false`                                                  | Also register the [`CreateAvatar`](#creating-avatars-from-chat) tool; needs `enabled` too   |
+| `text_to_video.create_avatar`    | `INFER_TEXT_TO_VIDEO_CREATE_AVATAR`    | bool   | `false`                                                  | Also register the [`CreateAvatar`](#creating-avatars-from-chat) tool. Needs `enabled` too   |
 | `text_to_video.require_approval` | `INFER_TEXT_TO_VIDEO_REQUIRE_APPROVAL` | bool   | unset (no approval)                                      | Tri-state: unset keeps the tool's own default, an explicit value pins the policy either way |
 
 For example:
@@ -83,8 +83,8 @@ video_to_sfx:
 It posts the clip to the gateway's Videos API (`POST /v1/videos`, gateway v0.66.0 or newer) with `video_to_sfx.model`, polls the job with the same `text_to_video.timeout` and `text_to_video.poll_interval` knobs as a render, and downloads the finished MP4 from `/content` - the clip with the generated sound in place of its soundtrack.
 
 - **`video` (required)** - a bare `.mov`, `.mp4`, `.m4v` or `.webm` file name, looked up in the working directory, then in the `TextToVideo` output directory, so a clip just rendered can be dubbed by its file name in the next tool call.
-- **`prompt` (optional)** - guidance on the sound; the clip itself drives the result. `preserve_speech: true` keeps the clip's own dialogue under the generated sound.
-- **`output_path` (optional)** - a bare file name inside `text_to_video.output_dir`; otherwise a timestamped `dub-*.mp4` is written there. Dubbed clips share the rendered clips' folder.
+- **`prompt` (optional)** - guidance on the sound. The clip itself drives the result. `preserve_speech: true` keeps the clip's own dialogue under the generated sound.
+- **`output_path` (optional)** - a bare file name inside `text_to_video.output_dir`. Otherwise a timestamped `dub-*.mp4` is written there. Dubbed clips share the rendered clips' folder.
 - **Mirelo's limit** - only the generated mix is laid onto the clip. The separated speech and sfx tracks come back as audio from the SFX scoring flow (`/v1/audio/sfx`, the [`VideoToSFX`](/cli/#videotosfx-tool) tool) only, so `DubVideo` has no `track` parameter. The clip is uploaded to a third-party provider and must stay under 10 MiB.
 
 Dubbing needs `VIDEOS_ENABLED=true` on the gateway - set for a CLI-started gateway while `text_to_video.enabled` or the dub switch is on - and a Mirelo API key configured there. A failed dub surfaces the gateway's error and leaves no partial file.
@@ -169,7 +169,7 @@ tools:
     model: elevenlabs/gpt-image-2
 ```
 
-ElevenLabs renders an image as a job, so each generated view takes longer than an OpenAI edit - up to five minutes before the gateway gives up. `infer avatars create` generates two views by default, so expect the command to sit for a while; narrow `--angles` to one view, or pass `angles: []` to `CreateAvatar`, to store the photo alone.
+ElevenLabs renders an image as a job, so each generated view takes longer than an OpenAI edit - up to five minutes before the gateway gives up. `infer avatars create` generates two views by default, so expect the command to sit for a while. Narrow `--angles` to one view, or pass `angles: []` to `CreateAvatar`, to store the photo alone.
 
 ### Creating avatars from chat
 
@@ -192,8 +192,8 @@ It **requires approval by default**, unlike the other media tools, because it wr
 | Parameter | Required | Default     | Description                                                                                                                   |
 | --------- | -------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------- |
 | `name`    | yes      | -           | Avatar name, which becomes the folder under `~/.infer/avatars/`                                                               |
-| `photo`   | yes      | -           | Bare file name, looked up in the working directory then the session artifacts directory; absolute paths and `..` are rejected |
-| `angles`  | no       | both angles | Extra views to generate; `[]` stores the photo only, with no image-edit call                                                  |
+| `photo`   | yes      | -           | Bare file name, looked up in the working directory then the session artifacts directory. Absolute paths and `..` are rejected |
+| `angles`  | no       | both angles | Extra views to generate. `[]` stores the photo only, with no image-edit call                                                  |
 | `quality` | no       | `high`      | Image quality passed to the image edit API                                                                                    |
 | `size`    | no       | `1024x1536` | Size of the generated views                                                                                                   |
 
@@ -204,15 +204,15 @@ The tool **never overwrites** an avatar and has **no delete counterpart** - the 
 | Symptom                                     | What to check                                                                                                             |
 | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | The model never calls `TextToVideo`         | Set `text_to_video.enabled: true` (or `INFER_TEXT_TO_VIDEO_ENABLED=true`) - the tool is hidden when disabled              |
-| `404` or "videos API not enabled"           | Run the gateway with `VIDEOS_ENABLED=true` (gateway v0.54.0+); an externally managed gateway is not reconfigured for you  |
+| `404` or "videos API not enabled"           | Run the gateway with `VIDEOS_ENABLED=true` (gateway v0.54.0+). An externally managed gateway is not reconfigured for you  |
 | Request rejected as too large               | Portrait plus audio must fit in the gateway's 10 MiB request body - shorten the clip or downscale the portrait            |
 | The render times out                        | Raise `text_to_video.timeout` - renders routinely take minutes                                                            |
-| `avatar ... not found`                      | Check `infer avatars list`; the folder name is the avatar name and it must contain at least one supported image           |
+| `avatar ... not found`                      | Check `infer avatars list`. The folder name is the avatar name and it must contain at least one supported image           |
 | The wrong face angle is used for a lip-sync | Lip-sync uses the first image in sort order - rename the preferred portrait so it sorts first                             |
 | `400` naming a reference-image limit        | The avatar folder holds more images than the model takes (Veo 3.1: 3, Seedance v2: 9, v2.5: 30) - trim it or switch model |
 | Reference images are ignored or rejected    | `reference_images` needs gateway v0.55.0+; lip-sync models ignore it by design                                            |
 | The model never calls `CreateAvatar`        | Set both `text_to_video.enabled` and `text_to_video.create_avatar` to `true`                                              |
-| The model never calls `DubVideo`            | Set both `video_to_sfx.enabled` and `video_to_sfx.dub` to `true`; dubbing also needs gateway v0.66.0+                     |
+| The model never calls `DubVideo`            | Set both `video_to_sfx.enabled` and `video_to_sfx.dub` to `true`. Dubbing also needs gateway v0.66.0+                     |
 
 ## Related
 

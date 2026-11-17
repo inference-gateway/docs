@@ -17,7 +17,7 @@ The pipeline order matches the binary: `cmd/gateway/main.go` registers the auth,
 
 ## Kubernetes Setup
 
-The Inference Gateway is built to run on Kubernetes. Traffic enters through the Kubernetes Gateway API - an [Envoy Gateway](https://gateway.envoyproxy.io/) data plane fronting a `Service` - and reaches a pool of stateless gateway pods, each fronting the same provider proxy. The operator provisions these Gateway API resources from a `Gateway` CR's `gatewayAPI` spec (the successor to Ingress); see the [Kubernetes Operator](/operator/#routing-gateway-api) guide. Telemetry is scraped on a dedicated metrics port via a `ServiceMonitor`, and providers stay external.
+The Inference Gateway is built to run on Kubernetes. Traffic enters through the Kubernetes Gateway API - an [Envoy Gateway](https://gateway.envoyproxy.io/) data plane fronting a `Service` - and reaches a pool of stateless gateway pods, each fronting the same provider proxy. The operator provisions these Gateway API resources from a `Gateway` CR's `gatewayAPI` spec (the successor to Ingress). See the [Kubernetes Operator](/operator/#routing-gateway-api) guide. Telemetry is scraped on a dedicated metrics port via a `ServiceMonitor`, and providers stay external.
 
 <FlowDiagram flow="kubernetes" />
 

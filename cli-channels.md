@@ -7,7 +7,7 @@ description: Turn the Inference Gateway CLI agent into a remote-controllable bot
 
 Channels turn the [Inference Gateway CLI](/cli/) agent into a remote-controllable bot accessible from messaging platforms like Telegram. Send a message to your bot and the agent runs as if you launched it locally - with persistent per-sender conversation memory, allowlist-based access control, and optional approval prompts for sensitive tools.
 
-> **Note:** Channels are one subsystem of [`infer daemon`](/cli/#daemon), the hub that also serves the desktop app and the browser extension - the same event stream and the same approval contract reach every client. Telegram is fully supported today; WhatsApp is planned and Discord/Slack are open for contributions.
+> **Note:** Channels are one subsystem of [`infer daemon`](/cli/#daemon), the hub that also serves the desktop app and the browser extension - the same event stream and the same approval contract reach every client. Telegram is fully supported today. WhatsApp is planned and Discord/Slack are open for contributions.
 
 ## Key Features
 
@@ -49,7 +49,7 @@ Session worker emits the shared AG-UI event stream
 
 The daemon holds one thread per chat. The first message on a chat sends a `resume_conversation` frame for the sender's deterministic session id in the daemon's working directory, and every message - the first one included - sends a `user_message` frame carrying the text, with any images riding along as attachments. The worker runs with the same remote-control system prompt that `infer headless --remote` selects.
 
-Because each sender gets a dedicated session ID, conversation history, model state, and any in-flight context are preserved across messages - even after restarting the daemon. A chat that sits idle is detached from its thread and the registry reaps the worker; the next message reattaches to the same session.
+Because each sender gets a dedicated session ID, conversation history, model state, and any in-flight context are preserved across messages - even after restarting the daemon. A chat that sits idle is detached from its thread and the registry reaps the worker. The next message reattaches to the same session.
 
 The daemon must be running for a channel to work: channels have no agent of their own, they drive the daemon's threads.
 
@@ -116,7 +116,7 @@ The allowlist is mandatory. If `allowed_users` is empty, **every** incoming mess
 Best practices:
 
 - Always set `allowed_users` before exposing the bot to anyone
-- Use environment variables for `bot_token`; never commit it to git
+- Use environment variables for `bot_token`. Never commit it to git
 - Each channel has its own independent allowlist - adding a Telegram chat ID does not authorize the same person on WhatsApp
 - Watch the daemon logs for repeated unauthorized attempts
 
@@ -177,7 +177,7 @@ Jobs are persisted as YAML in `~/.infer/schedules/<id>.yaml` and hot-reloaded by
 
 When [speech-to-text](/cli-speech-to-text/) is enabled, voice notes sent to the bot are downloaded via the Telegram API, decoded with `ffmpeg` (OGG/Opus to WAV), transcribed locally with Whisper, and forwarded to the agent as text - so you can talk to the agent from your phone.
 
-Voice transcription is gated behind the `speech_to_text.enabled` flag (off by default). When it is disabled, inbound voice messages are **ignored**; text and image messages are unaffected. Enable it in `.infer/config.yaml`:
+Voice transcription is gated behind the `speech_to_text.enabled` flag (off by default). When it is disabled, inbound voice messages are **ignored**. Text and image messages are unaffected. Enable it in `.infer/config.yaml`:
 
 ```yaml
 speech_to_text:

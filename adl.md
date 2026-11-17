@@ -9,7 +9,7 @@ description: Agent Definition Language (ADL) is a declarative YAML format for de
 
 ADL is the declarative layer that sits above the [Agent Development Kit (ADK)](/adk/). You describe the agent once in ADL, and the [ADL CLI](/adl-cli/) generates a complete, enterprise-ready project - in Go, Rust, or TypeScript - that builds on the ADK runtime. Regenerating after an edit preserves your custom code through `.adl-ignore`, so the manifest stays the single source of truth as the agent evolves.
 
-> **Canonical reference.** The full ADL schema, field reference, and authoring guide live at **[adl.inference-gateway.com](https://adl.inference-gateway.com)**. This page is a conceptual overview; the [ADL CLI](/adl-cli/) reference documents the tooling that consumes ADL files.
+> **Canonical reference.** The full ADL schema, field reference, and authoring guide live at **[adl.inference-gateway.com](https://adl.inference-gateway.com)**. This page is a conceptual overview. The [ADL CLI](/adl-cli/) reference documents the tooling that consumes ADL files.
 
 ## What an ADL file looks like
 

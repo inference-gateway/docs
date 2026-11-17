@@ -15,7 +15,7 @@ Hooks live in a dedicated [`hooks.yaml`](#schema) file, are **feature-flagged of
 
 | Scope       | Path                  | Notes                                                       |
 | ----------- | --------------------- | ----------------------------------------------------------- |
-| Project     | `.infer/hooks.yaml`   | Checked into the repo; shared with everyone on the project. |
+| Project     | `.infer/hooks.yaml`   | Checked into the repo. Shared with everyone on the project. |
 | User-global | `~/.infer/hooks.yaml` | Personal defaults applied across every project.             |
 
 `infer init` generates a project `.infer/hooks.yaml` pre-populated with the defaults and the hook points commented in, so the file is a ready-to-edit starting point.
@@ -86,7 +86,7 @@ hooks:
 A hook command is **not** a free pass. Each `command` is matched against the active [agent mode](/cli/#agent-modes)'s **per-mode bash allow-list** (`tools.bash.mode.<mode>.allow`) - the exact same gate the [Bash](/cli/#bash) tool uses. Matching is **default-deny** and full-command:
 
 - **On-list** - the command matches an entry (or the `.*` sentinel of [Auto-Accept](/cli/#auto-accept-mode) mode) and runs.
-- **Off-list** - the command does not match. It is **skipped and reported**, never run. The run does not abort; the hook is simply not executed, and a `hook_command_skipped` event with a skip reason is emitted.
+- **Off-list** - the command does not match. It is **skipped and reported**, never run. The run does not abort. The hook is simply not executed, and a `hook_command_skipped` event with a skip reason is emitted.
 - **Clean-command guard** - the same [clean-command guard](/cli/#clean-command-guard) applies: no command substitution, no top-level pipes/chains, no file-write redirects, no dangerous `find` actions, no env-var leaks from printing commands. The only thing that lifts the guard is the `.*` sentinel.
 
 This keeps the secure-by-default model intact: hooks cannot do anything the agent itself could not do with the Bash tool in the same mode. There is no hooks-specific bypass.
@@ -208,7 +208,7 @@ hooks:
 
 When the agent finishes, the three `post_session` hooks fire in listed order - format, test, notify - each gated by the appended allow-list entries. A command that fails the allow-list (or the clean-command guard) is skipped and reported in a `hook_command_skipped` event, so the run completes but the CI log shows which post-processing steps did not execute.
 
-> Because hook output is **not** fed back into the conversation, a failing `go test` hook does not make the agent retry it. Use the hook for reporting/observability; if you want the agent to react to a failure, let it run the test itself via the Bash tool during the session.
+> Because hook output is **not** fed back into the conversation, a failing `go test` hook does not make the agent retry it. Use the hook for reporting/observability. If you want the agent to react to a failure, let it run the test itself via the Bash tool during the session.
 
 ## Runnable example
 

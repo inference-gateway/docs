@@ -49,7 +49,7 @@ Use Bun (>= 1.4, pinned in `.bun-version`). Every `bun run <name>` has a `task <
 
 Sections between `GENERATED:*` markers in `supported-providers.md`, `configuration.md`, `rust-adk.md`, `typescript-adk.md`, and `sdks.md` are generated from the canonical `inference-gateway/schemas` OpenAPI schema. Edit `scripts/generate-provider-docs.mjs` or `scripts/provider-overrides.json` instead, then run `task generate`.
 
-`task generate` / `generate:check` fetch the schema over the network. To regen offline:
+`task generate` / `generate:check` fetch the schema over the network. The generator reads `SCHEMA_REPO` (default `inference-gateway/schemas`), `SCHEMA_REF` (default `main`, pin a tag or SHA for reproducible builds), `SCHEMA_URL` (overrides both), and `--schema-file=` / `SCHEMA_FILE` (local file, skips the fetch). To regen offline:
 
 1. `gh api "repos/inference-gateway/schemas/contents/openapi.yaml?ref=main" -H "Accept: application/vnd.github.raw" > .schema.yaml`
 2. `bun scripts/generate-provider-docs.mjs --schema-file=.schema.yaml` (use the `--schema-file=` form - the `SCHEMA_FILE=` env form can be blocked)

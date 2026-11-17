@@ -75,11 +75,11 @@ The agent exposes eight purpose-built Playwright tools plus four file/fetch buil
 | `handle_authentication` | playwright | Handle basic, form, or OAuth authentication.                                            | `type` (required: `basic`/`form`/`oauth`), `username`, `password`, `login_url`, plus field selectors |
 | `wait_for_condition`    | playwright | Wait for a selector, navigation, function, timeout, or network-idle condition.          | `condition` (required), `selector`, `state`, `timeout`, `custom_function`                            |
 | `fetch`                 | built-in   | Fetch a URL over HTTP(S) without a browser - faster for static content and downloads.   | `url` (required), `method`, `save_path`, `headers`                                                   |
-| `read`                  | built-in   | Read a file from disk; used to load a skill's `SKILL.md` body on demand.                | `file_path`, `offset`, `limit`                                                                       |
+| `read`                  | built-in   | Read a file from disk. Used to load a skill's `SKILL.md` body on demand.                | `file_path`, `offset`, `limit`                                                                       |
 | `write`                 | built-in   | Write content to a file - used to persist scraped data and research reports.            | `file_path`, `content`                                                                               |
 | `edit`                  | built-in   | Replace a unique string in a file with a new value.                                     | `file_path`, `old_string`, `new_string`                                                              |
 
-The eight Playwright tools are backed by the agent's internal [Playwright service](#services-and-runtime); `read`, `write`, `edit`, and `fetch` are provided by the ADK runtime.
+The eight Playwright tools are backed by the agent's internal [Playwright service](#services-and-runtime). `read`, `write`, `edit`, and `fetch` are provided by the ADK runtime.
 
 ### fetch vs. browser
 
@@ -143,11 +143,11 @@ services:
       A2A_AGENT_CLIENT_BASE_URL: http://inference-gateway:8080/v1
 ```
 
-With auth enabled, `POST /a2a` requires a valid `Authorization: Bearer <token>`; `GET /health` and `GET /.well-known/agent-card.json` stay public for probes and discovery. See [Authentication](/authentication/) for setting up the identity provider.
+With auth enabled, `POST /a2a` requires a valid `Authorization: Bearer <token>`. `GET /health` and `GET /.well-known/agent-card.json` stay public for probes and discovery. See [Authentication](/authentication/) for setting up the identity provider.
 
 ## Services and runtime
 
-- **Server**: a single Go binary (`browser-agent`). `browser-agent start` boots the A2A server on port `8080`; `--help` and `--version` behave as expected. A multi-stage `Dockerfile` and the `ghcr.io/inference-gateway/browser-agent` image are provided. It exposes the standard A2A endpoints: `GET /.well-known/agent-card.json`, `GET /health`, and `POST /a2a`.
+- **Server**: a single Go binary (`browser-agent`). `browser-agent start` boots the A2A server on port `8080`. `--help` and `--version` behave as expected. A multi-stage `Dockerfile` and the `ghcr.io/inference-gateway/browser-agent` image are provided. It exposes the standard A2A endpoints: `GET /.well-known/agent-card.json`, `GET /health`, and `POST /a2a`.
 - **Playwright service** (`NewPlaywrightService`): an internal `BrowserAutomation` service that drives a real Chromium browser and backs all eight Playwright tools. This is the agent's defining runtime dependency - the image ships the browser-automation stack so the tools work out of the box.
 - **LLM access**: the agent calls an OpenAI-compatible chat-completions endpoint. Point it at the [Inference Gateway](/) (recommended) or any compatible provider via the `A2A_AGENT_CLIENT_*` variables.
 - **Artifacts**: artifact support is enabled, so screenshots and extracted-data files are attached to the task and returned as download links.
@@ -229,7 +229,7 @@ docker run --rm -it --network host \
 
 ## Configuration
 
-The agent reads the standard ADK environment variables plus a set of custom `BROWSER_*` and `TOOLS_*` ones. The most relevant are below; the defaults come from `spec.config` in `agent.yaml` and the env vars override them at runtime.
+The agent reads the standard ADK environment variables plus a set of custom `BROWSER_*` and `TOOLS_*` ones. The most relevant are below. The defaults come from `spec.config` in `agent.yaml` and the env vars override them at runtime.
 
 | Category   | Variable                      | Description                                                             | Default                                       |
 | ---------- | ----------------------------- | ----------------------------------------------------------------------- | --------------------------------------------- |
@@ -252,8 +252,8 @@ The agent reads the standard ADK environment variables plus a set of custom `BRO
 | Sandbox    | `BROWSER_ALLOW_INTERNAL_URLS` | Allow `navigate_to_url` to reach loopback/private/link-local addresses  | `false`                                       |
 | Auth       | `A2A_AUTH_ENABLED`            | Require an OIDC bearer token on `POST /a2a`                             | `false`                                       |
 | Auth       | `A2A_AUTH_ISSUER_URL`         | OIDC issuer used for discovery and JWKS lookup                          | -                                             |
-| Auth       | `A2A_AUTH_CLIENT_ID`          | OIDC client ID; the fallback `aud` when `A2A_AUTH_AUDIENCE` is empty    | `inference-gateway-client`                    |
-| Auth       | `A2A_AUTH_AUDIENCE`           | Comma-separated accepted `aud` values; empty means `A2A_AUTH_CLIENT_ID` | -                                             |
+| Auth       | `A2A_AUTH_CLIENT_ID`          | OIDC client ID. The fallback `aud` when `A2A_AUTH_AUDIENCE` is empty    | `inference-gateway-client`                    |
+| Auth       | `A2A_AUTH_AUDIENCE`           | Comma-separated accepted `aud` values. Empty means `A2A_AUTH_CLIENT_ID` | -                                             |
 
 ### Browser configuration
 

@@ -5,7 +5,7 @@ description: Secure Inference Gateway with OpenID Connect (OIDC). Step-by-step K
 
 # Authentication
 
-Inference Gateway supports authentication through OpenID Connect (OIDC), allowing you to secure your API with various identity providers. Keycloak is used as the worked example below; any provider that serves an OIDC discovery document works - see [Identity providers](#identity-providers).
+Inference Gateway supports authentication through OpenID Connect (OIDC), allowing you to secure your API with various identity providers. Keycloak is used as the worked example below. Any provider that serves an OIDC discovery document works - see [Identity providers](#identity-providers).
 
 ## Overview
 
@@ -17,7 +17,7 @@ When authentication is enabled, all requests to the Inference Gateway API must i
 2. The identity provider issues a JWT token
 3. Client applications include this token in requests to Inference Gateway
 4. Inference Gateway validates the token with the identity provider
-5. If valid, the request is processed; otherwise, a 401 Unauthorized response is returned
+5. If valid, the request is processed. Otherwise, a 401 Unauthorized response is returned
 
 ## Configuration
 
@@ -65,9 +65,9 @@ Nothing in the gateway is Keycloak-specific: any provider that serves an OpenID 
 | ------------------ | ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
 | Keycloak           | `https://<host>/realms/<realm>`                             | the client id, added to access tokens by an audience mapper                                           |
 | Microsoft Entra ID | `https://login.microsoftonline.com/<tenant-id>/v2.0`        | the API registration's client id (v2 tokens) or `api://<app-id>` (v1 tokens)                          |
-| Google             | `https://accounts.google.com`                               | any URL you choose; the issuer is shared by every Google account, so pair it with a guardrails policy |
-| Amazon Cognito     | `https://cognito-idp.<region>.amazonaws.com/<user-pool-id>` | the app client id; machine tokens carry no `aud`, so the gateway checks `client_id` instead           |
-| Auth0              | `https://<tenant>.auth0.com/` (trailing slash)              | the API identifier; a token requested without an `audience` is opaque and cannot be verified          |
+| Google             | `https://accounts.google.com`                               | any URL you choose. The issuer is shared by every Google account, so pair it with a guardrails policy |
+| Amazon Cognito     | `https://cognito-idp.<region>.amazonaws.com/<user-pool-id>` | the app client id. Machine tokens carry no `aud`, so the gateway checks `client_id` instead           |
+| Auth0              | `https://<tenant>.auth0.com/` (trailing slash)              | the API identifier. A token requested without an `audience` is opaque and cannot be verified          |
 | Okta               | `https://<org>.okta.com/oauth2/<authorization-server-id>`   | the custom authorization server's audience (the org server issues opaque tokens)                      |
 
 Opaque (non-JWT) tokens are not supported - the gateway does not perform RFC 7662 introspection.
@@ -105,7 +105,7 @@ WWW-Authenticate: Bearer realm="inference-gateway", error="invalid_token"
 
 `error="invalid_token"` means a token was presented but failed verification: expired, malformed, signed by another issuer, or carrying the wrong audience.
 
-The `Bearer` scheme is matched case-insensitively (`bearer <token>` works), but the scheme is required - a bare JWT with no scheme is rejected. `/health` stays public; so does the MCP metadata document below. Every other endpoint requires a token when `AUTH_ENABLED=true`.
+The `Bearer` scheme is matched case-insensitively (`bearer <token>` works), but the scheme is required - a bare JWT with no scheme is rejected. `/health` stays public. So does the MCP metadata document below. Every other endpoint requires a token when `AUTH_ENABLED=true`.
 
 ## MCP resource discovery (RFC 9728)
 
@@ -116,7 +116,7 @@ MCP `2026-07-28` requires a protected MCP server to let a client discover the au
 3. It discovers the issuer's endpoints from `{issuer}/.well-known/openid-configuration` and requests a token, passing the `resource` value as the [RFC 8707](https://datatracker.ietf.org/doc/html/rfc8707) `resource` parameter so the token is bound to this gateway rather than usable anywhere the client has credentials.
 4. It retries `POST /mcp` with `Authorization: Bearer <token>` (`bearer_methods_supported` is `["header"]` - the gateway reads no other location).
 
-`resource` is `MCP_RESOURCE_URL` when set, and otherwise the request scheme (honouring `X-Forwarded-Proto`) and `Host` with `/mcp` appended. Behind an ingress that rewrites either, set `MCP_RESOURCE_URL` to the canonical public URL clients use, or they discover a URL they cannot reach. On Kubernetes that knob is the `Gateway` CRD's [`spec.mcp.resourceUrl`](/operator/#protected-resource-url-mcp-resourceurl), defaulted from the first `gatewayAPI.httpRoute` hostname; the operator-managed `HTTPRoute` matches on `/`, so the `/.well-known/oauth-protected-resource/mcp` path needs no route of its own.
+`resource` is `MCP_RESOURCE_URL` when set, and otherwise the request scheme (honouring `X-Forwarded-Proto`) and `Host` with `/mcp` appended. Behind an ingress that rewrites either, set `MCP_RESOURCE_URL` to the canonical public URL clients use, or they discover a URL they cannot reach. On Kubernetes that knob is the `Gateway` CRD's [`spec.mcp.resourceUrl`](/operator/#protected-resource-url-mcp-resourceurl), defaulted from the first `gatewayAPI.httpRoute` hostname. The operator-managed `HTTPRoute` matches on `/`, so the `/.well-known/oauth-protected-resource/mcp` path needs no route of its own.
 
 Step 3 is where `AUTH_OIDC_AUDIENCE` comes in: many IdPs stamp the resource indicator into the token's `aud`, and the gateway rejects a token whose `aud` is not in its accepted list. When your IdP does that, add the resource URL to `AUTH_OIDC_AUDIENCE` - it is a comma-separated list, so it can hold both the client id and the resource indicator while other routes keep using client-id-audienced tokens. Providers that ignore the `resource` parameter and keep issuing client-id-audienced tokens need no change.
 
@@ -209,7 +209,7 @@ If you're setting up Keycloak manually, follow these steps:
 
 5. **Get Client Credentials**:
    - Go to the "Credentials" tab of your client
-   - Copy the "Client Secret" - the caller needs it to request tokens; the gateway does not
+   - Copy the "Client Secret" - the caller needs it to request tokens. The gateway does not
 
 ### Configure Inference Gateway
 
@@ -284,7 +284,7 @@ Then reference it from the [Kubernetes Operator](/operator/#authentication-oidc)
 2. **Token Validation**: Inference Gateway validates tokens with the OIDC issuer, ensuring they are legitimate.
 3. **Scope the Audience**: Give the gateway its own audience value and set `AUTH_OIDC_AUDIENCE` to it, so a token minted for a different API in the same issuer is not accepted.
 4. **Secret Management**: The gateway needs no client secret, but the callers requesting tokens do - store theirs using secure methods (e.g., Kubernetes Secrets, HashiCorp Vault).
-5. **Client Roles**: Configure client roles in Keycloak to implement fine-grained access control. Authentication proves a token came from your issuer for your audience, not _which_ caller sent it; use guardrails policies on `input.identity` for per-caller authorization.
+5. **Client Roles**: Configure client roles in Keycloak to implement fine-grained access control. Authentication proves a token came from your issuer for your audience, not _which_ caller sent it. Use guardrails policies on `input.identity` for per-caller authorization.
 6. **Token Expiry**: Configure appropriate token lifetimes in Keycloak based on your security requirements.
 
 ## Troubleshooting
@@ -295,10 +295,10 @@ Then reference it from the [Kubernetes Operator](/operator/#authentication-oidc)
    - Read the `WWW-Authenticate` header first: no `error` parameter means no bearer token reached the gateway, `error="invalid_token"` means one did and failed verification (see [Rejected requests](#rejected-requests))
    - Check that the token hasn't expired
    - Verify that `AUTH_OIDC_ISSUER` exactly matches the token's `iss` claim, trailing slash included
-   - Decode the token and check its `aud` against `AUTH_OIDC_AUDIENCE` (or `AUTH_OIDC_CLIENT_ID` when the audience is unset). With Keycloak, a missing [audience mapper](#option-2-manual-setup) is the usual cause; with Entra ID, a v1 token carries a `sts.windows.net` issuer instead of the `/v2.0` one
+   - Decode the token and check its `aud` against `AUTH_OIDC_AUDIENCE` (or `AUTH_OIDC_CLIENT_ID` when the audience is unset). With Keycloak, a missing [audience mapper](#option-2-manual-setup) is the usual cause. With Entra ID, a v1 token carries a `sts.windows.net` issuer instead of the `/v2.0` one
 
 2. **Gateway Exits at Startup**:
-   - `AUTH_ENABLED=true` requires both `AUTH_OIDC_ISSUER` and `AUTH_OIDC_CLIENT_ID`; neither has a default
+   - `AUTH_ENABLED=true` requires both `AUTH_OIDC_ISSUER` and `AUTH_OIDC_CLIENT_ID`. Neither has a default
    - OIDC discovery runs once at boot, so the issuer must be reachable before the gateway starts
 
 3. **Certificate Issues**:

@@ -28,7 +28,7 @@ The Inference Gateway CLI (`infer`) is a powerful Go-based command-line tool pro
 
 ## Installation
 
-> The CLI repository's [Installation guide](https://github.com/inference-gateway/cli/blob/main/docs/installation.md) is the canonical reference for every install channel; this section mirrors it.
+> The CLI repository's [Installation guide](https://github.com/inference-gateway/cli/blob/main/docs/installation.md) is the canonical reference for every install channel. This section mirrors it.
 
 ### npm / npx (Recommended)
 
@@ -197,7 +197,7 @@ This documentation helps other AI agents (and developers) quickly understand how
 
 ### How AGENTS.md reaches the model
 
-The project-root `AGENTS.md` is injected whole into the system prompt as a `PROJECT INSTRUCTIONS (AGENTS.md)` section, after any custom instructions. It is capped by `agent.agents_md.max_lines` (default `399`) and `agent.agents_md.max_chars` (default `8000`); when the file exceeds either limit it is truncated with a marker. Both limits apply to the root file only. Turn the whole section off with `agent.agents_md.enabled: false`.
+The project-root `AGENTS.md` is injected whole into the system prompt as a `PROJECT INSTRUCTIONS (AGENTS.md)` section, after any custom instructions. It is capped by `agent.agents_md.max_lines` (default `399`) and `agent.agents_md.max_chars` (default `8000`). When the file exceeds either limit it is truncated with a marker. Both limits apply to the root file only. Turn the whole section off with `agent.agents_md.enabled: false`.
 
 ```yaml
 agent:
@@ -224,11 +224,11 @@ Nested files are never subject to `max_lines` / `max_chars`, since their content
 
 ## Help and Version Output
 
-The CLI's help, error, and version output are rendered with [fang](https://github.com/charmbracelet/fang), so every command produces styled, colorized output. The samples below are shown as plain text; in a real terminal the headings, flags, and errors are colorized.
+The CLI's help, error, and version output are rendered with [fang](https://github.com/charmbracelet/fang), so every command produces styled, colorized output. The samples below are shown as plain text. In a real terminal the headings, flags, and errors are colorized.
 
 ### Help
 
-`infer --help` (and `--help` on any subcommand) prints a styled usage page grouped into usage, commands, and flags. Note that `-v` is `--verbose`; version is the long-form `--version` flag.
+`infer --help` (and `--help` on any subcommand) prints a styled usage page grouped into usage, commands, and flags. Note that `-v` is `--verbose`. Version is the long-form `--version` flag.
 
 ```text
 infer
@@ -507,7 +507,7 @@ Only the files directly under the session's artifacts dir are listed, and a sess
 
 While background jobs are tracked - [local subagents](#local-subagents-agent-tool), [A2A tasks](#a2a-integration), background shells, [screen recordings](#screen-recording) - they appear as a stacked list below the status indicators, one row per job with its label, kind and a live elapsed counter.
 
-A subagent's row carries a child line with its run stats: tool calls that succeeded and failed, the tokens of its whole session and the slice the provider served from its prompt cache (`C.`). For a headless subagent the line counts up while it works. Each count's icon takes its status color - `✓` in the success color, `✗` in the error color - only while that count is above `0`; at `0` the icon is dimmed, so a run with no failures never shows a red `✗`. A finished row lingers with a green `✓` or a red `✗` for `chat.status_bar.subagent_linger_seconds` (default `5`), then drops.
+A subagent's row carries a child line with its run stats: tool calls that succeeded and failed, the tokens of its whole session and the slice the provider served from its prompt cache (`C.`). For a headless subagent the line counts up while it works. Each count's icon takes its status color - `✓` in the success color, `✗` in the error color - only while that count is above `0`. At `0` the icon is dimmed, so a run with no failures never shows a red `✗`. A finished row lingers with a green `✓` or a red `✗` for `chat.status_bar.subagent_linger_seconds` (default `5`), then drops.
 
 ```text
 ┌ npm run build shell       2.0s
@@ -555,7 +555,7 @@ When you open the model picker (`/model` with no argument), each model may show 
 | `image-gen` | The model generates images (e.g. DALL-E, GPT-Image) rather than text.                                            |
 | `view-only` | The model cannot serve `/chat/completions` and therefore cannot be selected - see below.                         |
 
-Labels are derived from the **gateway-reported modalities** (`/v1/models?include=modalities`), not from name patterns. A model gets the `vision` label when its input modalities include both `text` and `image`; it gets the `image-gen` label when its output modalities include `image` without `text`. Labels are appended to the metadata suffix after the context window and price:
+Labels are derived from the **gateway-reported modalities** (`/v1/models?include=modalities`), not from name patterns. A model gets the `vision` label when its input modalities include both `text` and `image`. It gets the `image-gen` label when its output modalities include `image` without `text`. Labels are appended to the metadata suffix after the context window and price:
 
 ```
 ollama_cloud/glm-5.3-flash (1M, vision, video)
@@ -591,7 +591,7 @@ Digits typed while the search input is active (`/`) go into the query, not the t
 
 #### Diff viewer and git staging
 
-When the agent proposes file changes (or you open a diff), the diff viewer supports **patch-level** staging - select individual lines, split hunks, and stage or unstage everything at once. All keys are configurable in `.infer/keybindings.yaml` (category `diff_viewer`); the defaults:
+When the agent proposes file changes (or you open a diff), the diff viewer supports **patch-level** staging - select individual lines, split hunks, and stage or unstage everything at once. All keys are configurable in `.infer/keybindings.yaml` (category `diff_viewer`). The defaults:
 
 | Key                 | Action                                                                        |
 | ------------------- | ----------------------------------------------------------------------------- |
@@ -677,21 +677,21 @@ Plan-mode instructions are **not** a system prompt. The system prompt at `messag
 | 2           | `prompts.agent.mode_adjustment_<mode>` in `prompts.yaml` |
 | 3 (Lowest)  | Built-in default guidance                                |
 
-> **Deprecated names.** `prompts.agent.system_prompt_plan` / `system_prompt_auto` (env `INFER_PROMPTS_AGENT_SYSTEM_PROMPT_PLAN` / `_AUTO`) still load into the new fields with a deprecation warning; when both are set the new names win.
+> **Deprecated names.** `prompts.agent.system_prompt_plan` / `system_prompt_auto` (env `INFER_PROMPTS_AGENT_SYSTEM_PROMPT_PLAN` / `_AUTO`) still load into the new fields with a deprecation warning. When both are set the new names win.
 >
 > **Trade-off:** since the mode-change reminder is the sole carrier of mode-specific instructions, setting `enabled: false` in `reminders.yaml` (or `INFER_REMINDERS_ENABLED=false`) means those instructions are never delivered. Tool restrictions still apply - only the guidance text is lost.
 
 #### Approving a plan
 
-When the plan is ready, the agent calls [`RequestPlanApproval`](#requestplanapproval); the chat TUI renders the saved plan in a dedicated panel and shows a status line - use the arrow keys to select an option and **Enter** to confirm. Three options are offered:
+When the plan is ready, the agent calls [`RequestPlanApproval`](#requestplanapproval). The chat TUI renders the saved plan in a dedicated panel and shows a status line - use the arrow keys to select an option and **Enter** to confirm. Three options are offered:
 
 | Option                | Key           | Resulting mode  | Effect                                                                            |
 | --------------------- | ------------- | --------------- | --------------------------------------------------------------------------------- |
 | **Accept** (default)  | `Enter` / `y` | **Auto-Accept** | Executes the plan with no per-action approval prompts.                            |
 | **Approve Each Step** | `s`           | **Standard**    | Executes the plan but prompts for approval on each Write/Edit/Delete/Bash action. |
-| **Reject**            | `n`           | -               | Ends the session; reply with feedback and the agent re-iterates the plan.         |
+| **Reject**            | `n`           | -               | Ends the session. Reply with feedback and the agent re-iterates the plan.         |
 
-> **The default Accept enables [Auto-Accept mode](#auto-accept-mode)** - unrestricted execution with no per-action approval. Pick **Approve Each Step** to accept the plan but keep the [Standard-mode](#standard-mode) approval gate on every action. The plan file stays on disk whichever you choose; rejecting a plan does not delete it. The [scratchpad](#the-scratchpad) is left in place too, so the session that executes the plan can read whatever was verified there.
+> **The default Accept enables [Auto-Accept mode](#auto-accept-mode)** - unrestricted execution with no per-action approval. Pick **Approve Each Step** to accept the plan but keep the [Standard-mode](#standard-mode) approval gate on every action. The plan file stays on disk whichever you choose. Rejecting a plan does not delete it. The [scratchpad](#the-scratchpad) is left in place too, so the session that executes the plan can read whatever was verified there.
 
 ### Auto-Accept Mode
 
@@ -706,7 +706,7 @@ infer chat
 
 **Important for Auto-Accept:** Ensure clean git working tree and backups.
 
-Because the per-action approval gate is off in this mode, the agent runs under a dedicated **destructive-action policy** delivered by the mode-change reminder (see [How mode instructions are delivered](#how-mode-instructions-are-delivered); override with `prompts.agent.mode_adjustment_auto`). It is told to stop and confirm before irreversible operations - deletes, `git push --force`, `git reset --hard`, dropping databases, `rm -rf`, publishing or releasing - to prefer the reversible path when no user is reachable, and never to print or publish a secret value. With reminders disabled this policy text is not delivered.
+Because the per-action approval gate is off in this mode, the agent runs under a dedicated **destructive-action policy** delivered by the mode-change reminder (see [How mode instructions are delivered](#how-mode-instructions-are-delivered) - override with `prompts.agent.mode_adjustment_auto`). It is told to stop and confirm before irreversible operations - deletes, `git push --force`, `git reset --hard`, dropping databases, `rm -rf`, publishing or releasing - to prefer the reversible path when no user is reachable, and never to print or publish a secret value. With reminders disabled this policy text is not delivered.
 
 ### Auto+Judge Mode
 
@@ -745,7 +745,7 @@ infer headless "Refactor the authentication module"
 infer headless "Analyze the codebase" --format json-pretty
 ```
 
-> Machine consumers should keep using `json` for performance; `json-pretty` is for debugging and human inspection.
+> Machine consumers should keep using `json` for performance. `json-pretty` is for debugging and human inspection.
 
 #### Stream event types
 
@@ -758,8 +758,8 @@ Every line in the `json` (or `json-pretty`) stream is a JSON object with a `type
 | `tool`                 | Per tool call                 | Tool execution result. `content` holds the bare marshaled result (no legacy `Result of tool call:` / `Tool execution failed:` envelope). Structured `tool_execution` metadata (`tool_name`, `success`, `error`, `rejected`, `duration`) and the `failed` flag ride alongside. |
 | `approval_request`     | When approval is needed       | Approval request metadata                                                                                                                                                                                                                                                     |
 | `judge_verdict`        | Per judge decision            | Emitted under [judge mode](/cli-judge-mode/) or `approval_behaviour: judge` - tool, `decision`, `reason`, `model`, turn. Mirrored as a custom event in `ag-ui`.                                                                                                               |
-| `computer_use_paused`  | On a `pause` control message  | Computer use was paused; carries the session `request_id` - see [pause and resume control](#pause-and-resume-control-ipc)                                                                                                                                                     |
-| `computer_use_resumed` | On a `resume` control message | Computer use was resumed; carries the session `request_id`                                                                                                                                                                                                                    |
+| `computer_use_paused`  | On a `pause` control message  | Computer use was paused. Carries the session `request_id` - see [pause and resume control](#pause-and-resume-control-ipc)                                                                                                                                                     |
+| `computer_use_resumed` | On a `resume` control message | Computer use was resumed. Carries the session `request_id`                                                                                                                                                                                                                    |
 | `session_stats`        | Once at end                   | Token usage and cost summary (detailed below)                                                                                                                                                                                                                                 |
 | `agent_error`          | Before stream starts          | Machine-readable error when the run fails before any turn (gateway unavailable, unknown model). For `ag-ui` format this is emitted as `RUN_ERROR`.                                                                                                                            |
 
@@ -1168,7 +1168,7 @@ This is the shape the [daemon](#daemon) spawns its [session workers](#what-the-d
 
 | Frame                    | Behaviour                                                                                                                                                                                                                                                                                             |
 | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `run_agent_input`        | Runs one turn from `input.messages` (the new messages only - the worker owns the history). Sent mid-turn it is **queued** and drained into the running turn; anything still queued when a turn ends starts the next turn. An `input.resume` answers a pending interrupt, and an empty `input` resumes |
+| `run_agent_input`        | Runs one turn from `input.messages` (the new messages only - the worker owns the history). Sent mid-turn it is **queued** and drained into the running turn. Anything still queued when a turn ends starts the next turn. An `input.resume` answers a pending interrupt, and an empty `input` resumes |
 | `interrupt`              | Cancels the running turn, which ends with `RUN_FINISHED` outcome [`cancelled`](#ag-ui-cancelled-runs)                                                                                                                                                                                                 |
 | `browser_result`         | Answers a `browser_command` the worker wrote on stdout - see [browser tools without a port](#browser-tools-without-a-port)                                                                                                                                                                            |
 | `approval_response`      | Unchanged: `tool_call_id`, `approved`, `scope` for a pending tool call                                                                                                                                                                                                                                |
@@ -1176,7 +1176,7 @@ This is the shape the [daemon](#daemon) spawns its [session workers](#what-the-d
 | `computer_use_control`   | Unchanged: `action` is `pause` or `resume` - see [pause and resume control](#pause-and-resume-control-ipc)                                                                                                                                                                                            |
 | `rewind_conversation`    | Drops the prompt its `content` and `occurrence` name, and everything after it, then answers `conversation_rewound` - see [conversation rewind](/opentask/#conversation-rewind). Refused while a turn runs or is queued                                                                                |
 
-Only the **first** run of a resumed session opens with a [`MESSAGES_SNAPSHOT`](#ag-ui-resume-snapshot); later runs on the same worker start with `RUN_STARTED` alone, because the host already has the history.
+Only the **first** run of a resumed session opens with a [`MESSAGES_SNAPSHOT`](#ag-ui-resume-snapshot). Later runs on the same worker start with `RUN_STARTED` alone, because the host already has the history.
 
 ##### Browser tools without a port
 
@@ -1202,7 +1202,7 @@ scheduler / heartbeat ----------------------------+
                                                   +--> one log: ~/.infer/logs/daemon-<date>.log
 ```
 
-> **Note:** The binding, the session workers and the client handshake described here are the daemon hub. Older CLI builds connect the extension directly to `infer chat` and spawn one `infer headless` per desktop prompt; see [Connecting the extension](/opentask/#connecting-to-the-daemon) for what changes on the client side.
+> **Note:** The binding, the session workers and the client handshake described here are the daemon hub. Older CLI builds connect the extension directly to `infer chat` and spawn one `infer headless` per desktop prompt. See [Connecting the extension](/opentask/#connecting-to-the-daemon) for what changes on the client side.
 
 ### What the daemon runs
 
@@ -1305,7 +1305,7 @@ A **thread** is a project directory plus a conversation id, and it runs in exact
 - A client opens a thread with `new_session` or `resume_conversation`, passing `project_dir` and the thread options (model, agent mode, system prompt and custom instruction overrides, sandbox directories, max turns, and a [named Markdown agent](#opening-a-thread-as-a-named-agent)). The daemon answers with a `MESSAGES_SNAPSHOT` of the restored history.
 - `threadId` on the thread's runs is its conversation id, so a client can list and resume the same conversations the CLI resumes.
 - Every agent turn is **one run**: `RUN_STARTED`, then exactly one `RUN_FINISHED` or `RUN_ERROR`. A stopped turn ends as `RUN_FINISHED` with outcome `cancelled`.
-- Several clients may subscribe to one thread; each of them sees the same frames.
+- Several clients may subscribe to one thread. Each of them sees the same frames.
 - Idle workers exit after a timeout, and a worker that crashes mid-turn has its open run closed with `RUN_ERROR`.
 
 #### Opening a thread as a named agent
@@ -1630,7 +1630,7 @@ The client dials in and sends the first frame within 5 seconds:
 { "type": "browser_hello_ack" }
 ```
 
-- `client` is `extension`, `desktop`, or `browser` for a CLI process that connects only to drive the browser; an absent or unknown value counts as `extension`. There is **one** extension connection - a new one replaces the previous, because MV3 service workers restart at will - and any number of `desktop` and `browser` connections.
+- `client` is `extension`, `desktop`, or `browser` for a CLI process that connects only to drive the browser. An absent or unknown value counts as `extension`. There is **one** extension connection - a new one replaces the previous, because MV3 service workers restart at will - and any number of `desktop` and `browser` connections.
 - Any valid-token hello is accepted.
 - Only `chrome-extension://`, `moz-extension://`, `safari-web-extension://` or absent `Origin` headers are accepted.
 
@@ -1642,14 +1642,14 @@ Every transport carries the same vocabulary, with no envelope around it: AG-UI e
 
 | Event                                                              | When                                                                                                                                                                                            |
 | ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `RUN_STARTED`                                                      | A turn starts; `threadId` is the conversation id                                                                                                                                                |
-| `MESSAGES_SNAPSHOT`                                                | Answer to `new_session` / `resume_conversation`; also emitted [right after `RUN_STARTED` on a resumed run](#ag-ui-resume-snapshot)                                                              |
+| `RUN_STARTED`                                                      | A turn starts. `threadId` is the conversation id                                                                                                                                                |
+| `MESSAGES_SNAPSHOT`                                                | Answer to `new_session` / `resume_conversation`. Also emitted [right after `RUN_STARTED` on a resumed run](#ag-ui-resume-snapshot)                                                              |
 | `TEXT_MESSAGE_START` / `TEXT_MESSAGE_CONTENT` / `TEXT_MESSAGE_END` | Assistant or user message, role on START                                                                                                                                                        |
 | `TOOL_CALL_START` / `TOOL_CALL_ARGS` / `TOOL_CALL_END`             | A tool call the assistant issued                                                                                                                                                                |
 | `TOOL_CALL_RESULT`                                                 | The raw JSON execution result of a tool call                                                                                                                                                    |
 | `STATE_SNAPSHOT` / `STATE_DELTA`                                   | The run state object - `todos`, `usage`, `backgroundTasks`, [`nextStepSuggestion`](#ag-ui-next-step-suggestion-state) and [`screenRecording`](#ag-ui-computer-use-activity-and-recording-state) |
 | `ACTIVITY_SNAPSHOT`                                                | Progress a client keeps as one entry per `messageId`: `agent_status`, `judge_verdict`, [`computer_use`](#ag-ui-computer-use-activity-and-recording-state)                                       |
-| `RUN_FINISHED`                                                     | The turn ended; outcome [`cancelled`](#ag-ui-cancelled-runs) when it was stopped, `result` carries the [session totals](#ag-ui-run-finished-result)                                             |
+| `RUN_FINISHED`                                                     | The turn ended. Outcome [`cancelled`](#ag-ui-cancelled-runs) when it was stopped, `result` carries the [session totals](#ag-ui-run-finished-result)                                             |
 | `RUN_ERROR`                                                        | The turn failed, or its worker died                                                                                                                                                             |
 
 **CUSTOM events out**, each with a `name` and a `value`:
@@ -1673,7 +1673,7 @@ Every transport carries the same vocabulary, with no envelope around it: AG-UI e
 | Frame                                                       | Purpose                                                                                                                       |
 | ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
 | `new_session` / `resume_conversation`                       | Open a thread in a project directory, optionally [as a named agent](#opening-a-thread-as-a-named-agent)                       |
-| `user_message`                                              | Send a message into the thread; queued when the agent is busy                                                                 |
+| `user_message`                                              | Send a message into the thread. Queued when the agent is busy                                                                 |
 | `interrupt`                                                 | Stop the streaming turn, which ends `cancelled`                                                                               |
 | `approval_response`                                         | `tool_call_id`, `approved`, `scope` - the decision for a pending tool call                                                    |
 | `user_question_response`                                    | The collected answers, or a dismissal                                                                                         |
@@ -1696,7 +1696,7 @@ Approvals have one contract on every transport. The daemon sends CUSTOM `approva
 
 ### Browser use through the daemon
 
-There is one real browser, so only the daemon binds the extension port. `browser_command` lines from the session workers are routed to the extension connection and each `browser_result` goes back to its worker by `id`. Commands from every source - session workers, the desktop app and `browser` clients - are serialized rather than interleaved on the same tab, and a command a client posts on the socket is answered only on that connection. Every non-extension client is told the state of that connection by the [`browser_extension_status`](/opentask/#browser-extension-status) frame - on connect, and on each attach or detach. With no extension connected, browser tools fail with `no browser extension connected on port <port>`; a command the extension does not finish in time fails with `timed out waiting for the browser extension to <action>`. The command and result shapes are documented in the [OpenTask bridge protocol](/opentask/#browser-commands-daemon-extension).
+There is one real browser, so only the daemon binds the extension port. `browser_command` lines from the session workers are routed to the extension connection and each `browser_result` goes back to its worker by `id`. Commands from every source - session workers, the desktop app and `browser` clients - are serialized rather than interleaved on the same tab, and a command a client posts on the socket is answered only on that connection. Every non-extension client is told the state of that connection by the [`browser_extension_status`](/opentask/#browser-extension-status) frame - on connect, and on each attach or detach. With no extension connected, browser tools fail with `no browser extension connected on port <port>`. A command the extension does not finish in time fails with `timed out waiting for the browser extension to <action>`. The command and result shapes are documented in the [OpenTask bridge protocol](/opentask/#browser-commands-daemon-extension).
 
 ### Hosting an A2A server
 
@@ -2092,11 +2092,11 @@ Computer use exposes two tools: **`Computer`**, an action-based desktop tool, an
 
 **Pressing beats clicking.** `press` is the reliable way to activate dock items, buttons, and menu titles: it drives the element's own accessibility action instead of aiming the pointer at a coordinate, and it takes no screenshot.
 
-**macOS Accessibility permission.** The AX tools return elements only after `infer` is granted permission in **System Settings > Privacy & Security > Accessibility**. Without it - or on a helper crash, timeout, or unavailable tree - the tool returns screenshot fallback guidance to the agent rather than failing the run. The macOS bridge is pure Go (PureGo calling CoreFoundation, CoreGraphics, and AXUIElement) running in a short-lived helper process; there is no cgo, Swift, or Objective-C.
+**macOS Accessibility permission.** The AX tools return elements only after `infer` is granted permission in **System Settings > Privacy & Security > Accessibility**. Without it - or on a helper crash, timeout, or unavailable tree - the tool returns screenshot fallback guidance to the agent rather than failing the run. The macOS bridge is pure Go (PureGo calling CoreFoundation, CoreGraphics, and AXUIElement) running in a short-lived helper process. There is no cgo, Swift, or Objective-C.
 
 **Linux and Windows.** AT-SPI and UIA providers are not implemented yet: `accessibility` and `press` report `unsupported; use screenshot` there, while every other `Computer` action works normally.
 
-**Clipboard.** Clipboard support is text-only; image clipboard was removed with the cgo-free rewrite.
+**Clipboard.** Clipboard support is text-only. Image clipboard was removed with the cgo-free rewrite.
 
 ### Screen Recording
 
@@ -2125,8 +2125,8 @@ Every key has an `INFER_COMPUTER_USE_RECORDING_`-prefixed environment variable t
 | Config key                            | Environment variable                        | Type   | Default                                                  | Notes                                                                  |
 | ------------------------------------- | ------------------------------------------- | ------ | -------------------------------------------------------- | ---------------------------------------------------------------------- |
 | `computer_use.recording.enabled`      | `INFER_COMPUTER_USE_RECORDING_ENABLED`      | bool   | `false`                                                  | Feature flag - both tools are absent from the LLM payload when `false` |
-| `computer_use.recording.max_duration` | `INFER_COMPUTER_USE_RECORDING_MAX_DURATION` | int    | `120`                                                    | Seconds; the recording finalizes itself at the cap. Must be positive   |
-| `computer_use.recording.output_dir`   | `INFER_COMPUTER_USE_RECORDING_OUTPUT_DIR`   | string | `recordings/` under the [media root](#media-directories) | Where MP4s are written, as `<timestamp>.mp4`; created on first use     |
+| `computer_use.recording.max_duration` | `INFER_COMPUTER_USE_RECORDING_MAX_DURATION` | int    | `120`                                                    | Seconds. The recording finalizes itself at the cap. Must be positive   |
+| `computer_use.recording.output_dir`   | `INFER_COMPUTER_USE_RECORDING_OUTPUT_DIR`   | string | `recordings/` under the [media root](#media-directories) | Where MP4s are written, as `<timestamp>.mp4`. Created on first use     |
 | `computer_use.recording.framerate`    | `INFER_COMPUTER_USE_RECORDING_FRAMERATE`    | int    | `24`                                                     | Capture frame rate. Must be positive                                   |
 
 **Requirements.** The recorder shells out to **ffmpeg with libx264 and the platform's screen grabber**, found on `PATH` - for example `brew install ffmpeg` (macOS) or `apt install ffmpeg` (Debian/Ubuntu). A minimal ffmpeg build without the encoder or the grabber cannot record.
@@ -2154,8 +2154,8 @@ Every key has an `INFER_COMPUTER_USE_RECORDING_`-prefixed environment variable t
 **Behaviour.** `RecordStart` returns the file path and the captured rectangle and leaves ffmpeg running in the background. `RecordStop` takes no arguments and returns the path, duration and size.
 
 - **One recording at a time, machine wide.** While ffmpeg runs, the recording holds `~/.infer/run/screen-recording.lock`. A `RecordStart` from any other `infer` process - another chat, a Desktop app session, a channel run - fails with an error naming the owning pid, and the active recording is left alone. `RecordStop` with nothing recording is an error too.
-- **Self-finalizing.** A recording stops and finalizes itself at `max_duration` (120s by default); `RecordStop` still returns that file. One that stops on its own - the cap, an ffmpeg exit, or a stop from `/tasks` - queues a note asking the agent to collect it with `RecordStop`.
-- **Clean exit.** On normal exit, Ctrl+C or SIGTERM the CLI finalizes an active recording and leaves no ffmpeg process behind. Call `RecordStop` in the same session; channel and scheduled runs each start a fresh process.
+- **Self-finalizing.** A recording stops and finalizes itself at `max_duration` (120s by default). `RecordStop` still returns that file. One that stops on its own - the cap, an ffmpeg exit, or a stop from `/tasks` - queues a note asking the agent to collect it with `RecordStop`.
+- **Clean exit.** On normal exit, Ctrl+C or SIGTERM the CLI finalizes an active recording and leaves no ffmpeg process behind. Call `RecordStop` in the same session. Channel and scheduled runs each start a fresh process.
 - **Visibility.** The chat status bar shows a `REC` badge while a recording runs, and the recording is listed in [`/tasks`](#tasks-view) under Screen Recordings as a background job of kind `recording`.
 - `infer tools execute` refuses both tools.
 
@@ -2177,7 +2177,7 @@ With `--format ag-ui` (the format the [desktop app](/desktop/) consumes):
 | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
 | `STATE_DELTA` on `screenRecording` - on `RecordStart`, `RecordStop`, or `max_duration` | `active`, plus `path`, `region` and `frameWidth`/`frameHeight` while it runs - see [state](#ag-ui-computer-use-activity-and-recording-state) |
 | `STATE_DELTA` on `backgroundTasks`                                                     | The recording appears among `jobs` with kind `recording`                                                                                     |
-| `approval_request`                                                                     | `RecordStart` when the run has `--require-approval`; without an approver it is blocked                                                       |
+| `approval_request`                                                                     | `RecordStart` when the run has `--require-approval`. Without an approver it is blocked                                                       |
 
 A recording still running when the run ends is finalized **after** the terminal event, so no `screenRecording` patch with `active: false` follows it - clear the indicator on `RUN_FINISHED` or `RUN_ERROR`.
 
@@ -2215,7 +2215,7 @@ The CLI's own macOS floating window was removed. The `computer_use.floating_wind
 
 ### Computer Use Configuration
 
-Computer use has its own file, `.infer/computer_use.yaml`, seeded by `infer init`. It is off by default; missing keys fall back to the in-code defaults shown here.
+Computer use has its own file, `.infer/computer_use.yaml`, seeded by `infer init`. It is off by default. Missing keys fall back to the in-code defaults shown here.
 
 ```yaml
 # .infer/computer_use.yaml
@@ -2247,7 +2247,7 @@ rate_limit:
 | Value         | Behavior                                                                                                                |
 | ------------- | ----------------------------------------------------------------------------------------------------------------------- |
 | `never`       | Default. Computer-use actions bypass the approval gate and run immediately.                                             |
-| `destructive` | The observations `accessibility`, `screenshot`, and `cursor` bypass approval; `press` and the input actions require it. |
+| `destructive` | The observations `accessibility`, `screenshot`, and `cursor` bypass approval. `press` and the input actions require it. |
 | `always`      | Every computer-use action requires approval.                                                                            |
 
 ```yaml
@@ -2343,9 +2343,9 @@ When tools are enabled, LLMs have access to a comprehensive suite across multipl
 | **Workflow**          | TodoWrite, Schedule, RequestPlanApproval, AskUserQuestion, RequestApproval, Memory | Task tracking, cron jobs, plan-mode approval, clarifying questions, judge-rejection escalation, and persistent cross-session memory                                                                                                                                                                 |
 | **A2A Integration**   | A2A_QueryAgent, A2A_SubmitTask, A2A_QueryTask                                      | Delegate to external specialized agents - see [A2A](/a2a/)                                                                                                                                                                                                                                          |
 | **Local Subagents**   | Agent                                                                              | Fan out short-lived local subagents in parallel - see [Local Subagents](#local-subagents-agent-tool)                                                                                                                                                                                                |
-| **Computer Use**      | Computer, GetLatestFrame, RecordStart, RecordStop                                  | Accessibility-tree reads, presses, screenshots, and pointer/keyboard control - see the Computer Use section above; screen recording is opt-in via `computer_use.recording.enabled`, see [Screen Recording](#screen-recording)                                                                       |
+| **Computer Use**      | Computer, GetLatestFrame, RecordStart, RecordStop                                  | Accessibility-tree reads, presses, screenshots, and pointer/keyboard control - see the Computer Use section above. Screen recording is opt-in via `computer_use.recording.enabled`, see [Screen Recording](#screen-recording)                                                                       |
 | **Image**             | ImageGeneration, ImageEdit, ImageVariation                                         | Generate, edit, and vary images using the configured image model - independent of the chat session model                                                                                                                                                                                            |
-| **Audio**             | TextToSpeech, TextToMusic, TextToSFX, VideoToSFX                                   | Local speech synthesis and voice cloning - opt-in via `text_to_speech.enabled`, see [Text-to-Speech](/cli-text-to-speech/); music composition, sound-effect generation and video scoring through the gateway - opt-in via `text_to_music.enabled`, `text_to_sfx.enabled` and `video_to_sfx.enabled` |
+| **Audio**             | TextToSpeech, TextToMusic, TextToSFX, VideoToSFX                                   | Local speech synthesis and voice cloning - opt-in via `text_to_speech.enabled`, see [Text-to-Speech](/cli-text-to-speech/). Music composition, sound-effect generation and video scoring through the gateway - opt-in via `text_to_music.enabled`, `text_to_sfx.enabled` and `video_to_sfx.enabled` |
 | **Video**             | TextToVideo, CreateAvatar, DubVideo                                                | Prompt and lip-synced avatar renders through the gateway, plus avatar-library creation and dubbing an existing clip with a generated soundtrack - opt-in via `text_to_video.enabled`, `text_to_video.create_avatar` and `video_to_sfx.dub`, see [Text-to-Video and Avatars](/cli-text-to-video/)    |
 | **MCP**               | `MCP_<server>_<tool>`                                                              | Dynamically registered tools from MCP servers - see [MCP](/mcp/)                                                                                                                                                                                                                                    |
 | **Custom**            | Any name you give them                                                             | Tools you add yourself with one YAML manifest per tool, run as a program with the arguments as JSON on stdin - see [Custom Tools](#custom-tools)                                                                                                                                                    |
@@ -2391,7 +2391,7 @@ Write content to a file on disk. Overwrites the existing file at the given path.
 
 - **Parameters**: `file_path` (required, absolute), `content` (required)
 - **Approval**: required by default
-- **Notes**: if the file exists, the Read tool must have been used first; respects configured path exclusions (`.git/`, `*.env`, `.infer/`)
+- **Notes**: if the file exists, the Read tool must have been used first. Respects configured path exclusions (`.git/`, `*.env`, `.infer/`)
 
 #### Edit
 
@@ -2399,13 +2399,13 @@ Perform an exact string replacement in a single file.
 
 - **Parameters**: `file_path` (required), `old_string` (required - must match exactly and be unique unless `replace_all` is set), `new_string` (required - must differ from `old_string`), `replace_all` (default `false`)
 - **Approval**: required by default
-- **Notes**: the file must have been Read at least once in the conversation; indentation must be preserved exactly
+- **Notes**: the file must have been Read at least once in the conversation. Indentation must be preserved exactly
 
 #### MultiEdit
 
 Apply a sequence of edits to a single file atomically - either all succeed or none are applied.
 
-- **Parameters**: `file_path` (required), `edits` (required array; each item has `old_string`, `new_string`, optional `replace_all`)
+- **Parameters**: `file_path` (required), `edits` (required array - each item has `old_string`, `new_string`, optional `replace_all`)
 - **Approval**: required by default
 - **Notes**: edits are applied in order, each operating on the result of the previous one - plan them so earlier edits don't invalidate later matches
 
@@ -2432,7 +2432,7 @@ Powerful regex search across files. Uses `ripgrep` when available, otherwise a b
 - **Parameters**: `pattern` (required regex), `path` (default cwd), `glob` (e.g. `*.ts`, `**/*.tsx`), `type` (e.g. `go`, `py`, `rust`), `output_mode` (`content` | `files_with_matches` | `count`, default `files_with_matches`), `-i`, `-n`, `-A`, `-B`, `-C`, `multiline`, `head_limit`
 - **Approval**: not required
 - **Backend**: configurable via `tools.grep.backend` (`auto` | `ripgrep` | `go`)
-- **Notes**: respects `.gitignore`; auto-excludes `.git`, `node_modules`, `.infer`, `vendor`, `dist`, `build`, `target`
+- **Notes**: respects `.gitignore`. Auto-excludes `.git`, `node_modules`, `.infer`, `vendor`, `dist`, `build`, `target`
 
 ### Command Execution
 
@@ -2470,8 +2470,8 @@ tools:
           - .* # unrestricted sentinel
 ```
 
-- **Default-deny.** Out of the box only `mode.auto` ships the `.*` sentinel; `mode.plan` and `mode.standard` add nothing on top of `mode.all`, so they reduce to the baseline. In plan mode those baseline commands run with their working directory pinned to the [scratchpad](#the-scratchpad), not the project - see the opt-in below. GitHub _writes_ (`gh issue/pr create|edit|comment`), `git push`, and `git commit` are **not** in the defaults - they fall through to approval until you add them.
-- **Full-command matching.** Each entry matches the **whole** command, so a bare token like `gh` allows only `gh` - never `gh issue list`. Opt into arguments explicitly with a pattern (`gh issue.*`, `npm (install|test|run).*`); the default entries use a `( .*)?` suffix to allow trailing arguments.
+- **Default-deny.** Out of the box only `mode.auto` ships the `.*` sentinel. `mode.plan` and `mode.standard` add nothing on top of `mode.all`, so they reduce to the baseline. In plan mode those baseline commands run with their working directory pinned to the [scratchpad](#the-scratchpad), not the project - see the opt-in below. GitHub _writes_ (`gh issue/pr create|edit|comment`), `git push`, and `git commit` are **not** in the defaults - they fall through to approval until you add them.
+- **Full-command matching.** Each entry matches the **whole** command, so a bare token like `gh` allows only `gh` - never `gh issue list`. Opt into arguments explicitly with a pattern (`gh issue.*`, `npm (install|test|run).*`). The default entries use a `( .*)?` suffix to allow trailing arguments.
 - **The `.*` sentinel** means _unrestricted_: any single command runs and the clean-command guard below is skipped. It is the default for `mode.auto` (chat's [Auto-Accept mode](#auto-accept-mode), toggled with Shift+Tab) and is an explicit opt-in - **never** a headless default.
 
 Since plan-mode commands run in the scratchpad on scratch copies, verification builds and tests are reasonable to let run unattended there:
@@ -2499,7 +2499,7 @@ For every mode except the `.*` sentinel, each command passes a **clean-command g
 - **Dangerous `find` actions** - `-exec`, `-delete`, and the like. A bare `find` for read-only discovery is fine.
 - **Environment-variable leaks** - a printing or publishing command (`echo`, `printf`, `gh issue|pr create|comment|edit`) may not expand `$VAR`. So `echo $AWS_SECRET_ACCESS_KEY` is blocked, while `ls $DIR` stays allowed. A single-quoted or escaped `$` is treated literally.
 
-A rejected command returns an actionable hint naming what tripped the guard; the model is told to stop and ask, or use an allowed alternative, rather than retry the same call.
+A rejected command returns an actionable hint naming what tripped the guard. The model is told to stop and ask, or use an allowed alternative, rather than retry the same call.
 
 ##### Paths stay inside the sandbox
 
@@ -2665,7 +2665,7 @@ tools:
 Fetch content from an allowed URL. Optionally save the response to disk.
 
 - **Parameters**: `url` (required), `format` (`text` or `json`), `download` (default `false` - when `true`, saves under [`.infer/artifacts/<session-id>/`](#artifacts-directory), except in [plan mode](#plan-mode) where downloads and binary responses save into the [scratchpad](#the-scratchpad) instead)
-- **Notes**: only allowed domains can be fetched; responses are cached (default 15-minute TTL)
+- **Notes**: only allowed domains can be fetched. Responses are cached (default 15-minute TTL)
 
 ```yaml
 # ~/.infer/tools.yaml
@@ -2690,13 +2690,13 @@ ImageGeneration, ImageEdit, and ImageVariation all write their PNG to the sessio
 
 #### ImageEdit Tool
 
-Edit an existing image and save the result as a PNG under `.infer/artifacts/<session-id>/`. The chat model calls the tool when the user asks to edit an image; the tool reads the input image from a local file path and sends a plain one-off request to `/v1/images/edits` using the configured image model - no system prompt, no tools, independent of the model selected for the chat session.
+Edit an existing image and save the result as a PNG under `.infer/artifacts/<session-id>/`. The chat model calls the tool when the user asks to edit an image. The tool reads the input image from a local file path and sends a plain one-off request to `/v1/images/edits` using the configured image model - no system prompt, no tools, independent of the model selected for the chat session.
 
 **Parameters:**
 
 - `image` (required): Local file path of the image to edit
 - `prompt` (required): Text description of the desired edit
-- `mask` (optional): Local file path to a PNG whose fully transparent areas (alpha = 0) mark the editable region; all other pixels are preserved exactly. Must be a PNG with the same dimensions as the input image. Non-PNG paths are rejected by tool validation. Omit to let the model localize the change from the prompt alone - useful for models that repaint areas the user did not ask to change, and required for dall-e-2 edits without transparency.
+- `mask` (optional): Local file path to a PNG whose fully transparent areas (alpha = 0) mark the editable region. All other pixels are preserved exactly. Must be a PNG with the same dimensions as the input image. Non-PNG paths are rejected by tool validation. Omit to let the model localize the change from the prompt alone - useful for models that repaint areas the user did not ask to change, and required for dall-e-2 edits without transparency.
 - `quality` (optional): `auto` (default), `low`, `medium`, `high`, or `standard`
 - `size` (optional): `1024x1024` (default), `1536x1024`, or `1024x1536`
 
@@ -2723,7 +2723,7 @@ tools:
 
 #### ImageVariation Tool
 
-Create a variation of an existing image and save the result as a PNG under `.infer/artifacts/<session-id>/`. The chat model calls the tool when the user asks for a variation; the tool reads the input image from a local file path and sends a plain one-off request to `/v1/images/edits` using the configured image model - no system prompt, no tools, independent of the model selected for the chat session.
+Create a variation of an existing image and save the result as a PNG under `.infer/artifacts/<session-id>/`. The chat model calls the tool when the user asks for a variation. The tool reads the input image from a local file path and sends a plain one-off request to `/v1/images/edits` using the configured image model - no system prompt, no tools, independent of the model selected for the chat session.
 
 **Parameters:**
 
@@ -2758,8 +2758,8 @@ Synthesize speech from text and save it as a WAV file. The chat model calls the 
 **Parameters:**
 
 - `text` (required): The text to speak
-- `voice_sample` (optional): Bare file name of a WAV of the target speaker (~10-30s of clean speech) to clone, resolved against the working directory first and then the [voice samples library](/cli-text-to-speech/#the-voice-samples-library) at `~/.infer/voice/samples/`; a name found in neither fails with an error listing both paths tried
-- `output_path` (optional): Destination WAV; defaults to a timestamped file under `text_to_speech.output_dir` (`tts/` in the [media root](#media-directories))
+- `voice_sample` (optional): Bare file name of a WAV of the target speaker (~10-30s of clean speech) to clone, resolved against the working directory first and then the [voice samples library](/cli-text-to-speech/#the-voice-samples-library) at `~/.infer/voice/samples/`. A name found in neither fails with an error listing both paths tried
+- `output_path` (optional): Destination WAV. Defaults to a timestamped file under `text_to_speech.output_dir` (`tts/` in the [media root](#media-directories))
 
 **Configuration:**
 
@@ -2777,9 +2777,9 @@ Compose a music clip from a text prompt and save it as an MP3 file. The chat mod
 **Parameters:**
 
 - `prompt` (required): Description of the music - genre, mood, instruments, tempo
-- `seconds` (optional): Clip length in seconds; omitted lets the provider pick a length that fits the prompt
+- `seconds` (optional): Clip length in seconds. Omitted lets the provider pick a length that fits the prompt
 - `instrumental` (optional): `true` to guarantee the clip has no vocals
-- `output_path` (optional): Bare file name (no directories, no absolute paths) for the generated MP3, written inside `text_to_music.output_dir`; defaults to a timestamped `music-*.mp3`
+- `output_path` (optional): Bare file name (no directories, no absolute paths) for the generated MP3, written inside `text_to_music.output_dir`. Defaults to a timestamped `music-*.mp3`
 
 The clip is always MP3 - the format the gateway's music providers serve (ElevenLabs offers mp3, opus, and pcm, not wav). To place it elsewhere, compose first and copy the returned file.
 
@@ -2798,7 +2798,7 @@ Every key also has an `INFER_TEXT_TO_MUSIC_`-prefixed environment variable that 
 | Config key                       | Environment variable                   | Type   | Default                                             | Notes                                                                                       |
 | -------------------------------- | -------------------------------------- | ------ | --------------------------------------------------- | ------------------------------------------------------------------------------------------- |
 | `text_to_music.enabled`          | `INFER_TEXT_TO_MUSIC_ENABLED`          | bool   | `false`                                             | Feature flag - must be `true` for the `TextToMusic` tool to reach the LLM                   |
-| `text_to_music.model`            | `INFER_TEXT_TO_MUSIC_MODEL`            | string | `elevenlabs/music_v2_5`                             | Gateway `provider/model` id; a bare model name fails validation once the feature is enabled |
+| `text_to_music.model`            | `INFER_TEXT_TO_MUSIC_MODEL`            | string | `elevenlabs/music_v2_5`                             | Gateway `provider/model` id. A bare model name fails validation once the feature is enabled |
 | `text_to_music.output_dir`       | `INFER_TEXT_TO_MUSIC_OUTPUT_DIR`       | string | `music/` under the [media root](#media-directories) | Where generated MP3s are written                                                            |
 | `text_to_music.require_approval` | `INFER_TEXT_TO_MUSIC_REQUIRE_APPROVAL` | bool   | unset (no approval)                                 | Tri-state: unset keeps the tool's own default, an explicit value pins the policy either way |
 
@@ -2815,9 +2815,9 @@ Generate a short sound effect or ambience clip from a text prompt and save it as
 **Parameters:**
 
 - `prompt` (required): Description of the sound - the event or atmosphere and its character (a whoosh, a click, a riser, room tone, distant thunder)
-- `seconds` (optional): Clip length in seconds, `0.5`-`30`; omitted lets the provider pick a length that fits the prompt
+- `seconds` (optional): Clip length in seconds, `0.5`-`30`. Omitted lets the provider pick a length that fits the prompt
 - `loop` (optional): `true` for a clip that loops seamlessly - useful for ambience beds
-- `output_path` (optional): Bare file name (no directories, no absolute paths) for the generated WAV, written inside `text_to_sfx.output_dir`; defaults to a timestamped file
+- `output_path` (optional): Bare file name (no directories, no absolute paths) for the generated WAV, written inside `text_to_sfx.output_dir`. Defaults to a timestamped file
 
 The same `output_path` rule as [TextToMusic](#texttomusic-tool) applies: the clip always lands in the configured output directory. To place it elsewhere, generate first and copy the returned file.
 
@@ -2836,7 +2836,7 @@ Every key also has an `INFER_TEXT_TO_SFX_`-prefixed environment variable that ta
 | Config key                     | Environment variable                 | Type   | Default                                           | Notes                                                                                       |
 | ------------------------------ | ------------------------------------ | ------ | ------------------------------------------------- | ------------------------------------------------------------------------------------------- |
 | `text_to_sfx.enabled`          | `INFER_TEXT_TO_SFX_ENABLED`          | bool   | `false`                                           | Feature flag - must be `true` for the `TextToSFX` tool to reach the LLM                     |
-| `text_to_sfx.model`            | `INFER_TEXT_TO_SFX_MODEL`            | string | `elevenlabs/eleven_text_to_sound_v2`              | Gateway `provider/model` id; a bare model name fails validation once the feature is enabled |
+| `text_to_sfx.model`            | `INFER_TEXT_TO_SFX_MODEL`            | string | `elevenlabs/eleven_text_to_sound_v2`              | Gateway `provider/model` id. A bare model name fails validation once the feature is enabled |
 | `text_to_sfx.output_dir`       | `INFER_TEXT_TO_SFX_OUTPUT_DIR`       | string | `sfx/` under the [media root](#media-directories) | Where generated WAVs are written                                                            |
 | `text_to_sfx.require_approval` | `INFER_TEXT_TO_SFX_REQUIRE_APPROVAL` | bool   | unset (no approval)                               | Tri-state: unset keeps the tool's own default, an explicit value pins the policy either way |
 
@@ -2852,11 +2852,11 @@ Score a video clip - generate the sound that fits the picture - and save the wan
 
 - `video` (required): Bare file name of a `.mov`, `.mp4`, `.m4v` or `.webm` clip, looked up in the working directory first and then in the [`TextToVideo` output directory](#texttovideo-tool), so a clip the agent just rendered can be scored by name
 - `prompt` (optional): Guidance on the sound to generate - the clip itself drives the result
-- `seconds` (optional): Length of the scored window in seconds (at least `1`), counted from `start_seconds`; both omitted score the whole clip
-- `start_seconds` (optional): Offset in seconds where the scored window starts; omitted scores from the beginning
+- `seconds` (optional): Length of the scored window in seconds (at least `1`), counted from `start_seconds`. Both omitted score the whole clip
+- `start_seconds` (optional): Offset in seconds where the scored window starts. Omitted scores from the beginning
 - `track` (optional): Which track comes back - `mix` (default, the generated sound with any kept speech), `sfx` (the generated sound alone) or `speech` (the clip's own dialogue). A clip without dialogue has no `speech` track, so asking for it fails with the provider's message
 - `preserve_speech` (optional): `true` to keep the clip's dialogue under the generated sound
-- `output_path` (optional): Bare file name (no directories, no absolute paths) for the saved audio, written inside `video_to_sfx.output_dir` and carrying the returned audio's extension; defaults to a timestamped file
+- `output_path` (optional): Bare file name (no directories, no absolute paths) for the saved audio, written inside `video_to_sfx.output_dir` and carrying the returned audio's extension. Defaults to a timestamped file
 
 **Configuration:**
 
@@ -2874,7 +2874,7 @@ Every key also has an `INFER_VIDEO_TO_SFX_`-prefixed environment variable that t
 | Config key                      | Environment variable                  | Type   | Default                                           | Notes                                                                                                              |
 | ------------------------------- | ------------------------------------- | ------ | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
 | `video_to_sfx.enabled`          | `INFER_VIDEO_TO_SFX_ENABLED`          | bool   | `false`                                           | Feature flag - must be `true` for the `VideoToSFX` tool to reach the LLM                                           |
-| `video_to_sfx.dub`              | `INFER_VIDEO_TO_SFX_DUB`              | bool   | `false`                                           | Also register the [`DubVideo`](#dubvideo-tool) tool; needs `enabled` too                                           |
+| `video_to_sfx.dub`              | `INFER_VIDEO_TO_SFX_DUB`              | bool   | `false`                                           | Also register the [`DubVideo`](#dubvideo-tool) tool. Needs `enabled` too                                           |
 | `video_to_sfx.model`            | `INFER_VIDEO_TO_SFX_MODEL`            | string | `mirelo/sfx-2.0`                                  | Gateway `provider/model` id used for scoring and dubbing                                                           |
 | `video_to_sfx.output_dir`       | `INFER_VIDEO_TO_SFX_OUTPUT_DIR`       | string | `sfx/` under the [media root](#media-directories) | Where the scored track is written                                                                                  |
 | `video_to_sfx.require_approval` | `INFER_VIDEO_TO_SFX_REQUIRE_APPROVAL` | bool   | unset (no approval)                               | Tri-state shared with `DubVideo`: unset keeps the tool's own default, an explicit value pins the policy either way |
@@ -2899,9 +2899,9 @@ Two modes:
 **Parameters:**
 
 - `prompt` (required for a prompt render): Description of the clip - subject, action, camera, mood
-- `avatar` (optional): Name of an avatar folder in the [avatar library](/cli-text-to-video/#the-avatar-library) at `~/.infer/avatars/`, or a local image file, used as the portrait. With `audio` it is the portrait to lip-sync (first image in sort order); without `audio` a library avatar is sent as [reference images](/cli-text-to-video/#reference-images-in-prompt-renders) instead, while a bare image file stays the first frame
-- `audio` (optional): Local path to a `.wav` or `.mp3` clip to lip-sync; providing it selects the avatar render mode and requires a portrait
-- `output_path` (optional): Bare file name (no directories, no absolute paths) for the generated MP4, written inside `text_to_video.output_dir`; defaults to a timestamped file
+- `avatar` (optional): Name of an avatar folder in the [avatar library](/cli-text-to-video/#the-avatar-library) at `~/.infer/avatars/`, or a local image file, used as the portrait. With `audio` it is the portrait to lip-sync (first image in sort order). Without `audio` a library avatar is sent as [reference images](/cli-text-to-video/#reference-images-in-prompt-renders) instead, while a bare image file stays the first frame
+- `audio` (optional): Local path to a `.wav` or `.mp3` clip to lip-sync. Providing it selects the avatar render mode and requires a portrait
+- `output_path` (optional): Bare file name (no directories, no absolute paths) for the generated MP4, written inside `text_to_video.output_dir`. Defaults to a timestamped file
 
 **Configuration:**
 
@@ -2918,7 +2918,7 @@ text_to_video:
   require_approval: false # optional; unset = no approval, like the image tools
 ```
 
-**Gateway requirements:** the gateway must run with `VIDEOS_ENABLED=true` (gateway v0.54.0 or newer) and hold credentials for the provider behind the configured models. The CLI-managed local gateway is started with `VIDEOS_ENABLED=true` automatically while `text_to_video.enabled` is on; an externally managed gateway is your responsibility.
+**Gateway requirements:** the gateway must run with `VIDEOS_ENABLED=true` (gateway v0.54.0 or newer) and hold credentials for the provider behind the configured models. The CLI-managed local gateway is started with `VIDEOS_ENABLED=true` automatically while `text_to_video.enabled` is on. An externally managed gateway is your responsibility.
 
 The portrait and the audio clip travel in one request, so together they must fit the gateway's 10 MiB request body limit, and `creatify-aurora` renders 480p or 720p keeping the portrait's aspect ratio.
 
@@ -2928,15 +2928,15 @@ See [Text-to-Video and Avatars](/cli-text-to-video/) for the full configuration 
 
 Build an avatar folder at `~/.infer/avatars/<name>/` from a photo - the agent-side twin of [`infer avatars create`](/cli-text-to-video/#managing-avatars). It stores the photo as the primary image and generates extra views of the same face through the gateway's image edit API using `tools.image_edit.model`, so a portrait the agent just generated, a selfie sent over a channel, or a photo in the project can become an avatar without leaving the chat.
 
-**Opt-in twice.** The tool is registered only when both `text_to_video.enabled` and `text_to_video.create_avatar` (`INFER_TEXT_TO_VIDEO_CREATE_AVATAR`) are `true`; `create_avatar` defaults to `false`. It **requires approval by default** - unlike the other media tools - and an explicit `text_to_video.require_approval` overrides that either way.
+**Opt-in twice.** The tool is registered only when both `text_to_video.enabled` and `text_to_video.create_avatar` (`INFER_TEXT_TO_VIDEO_CREATE_AVATAR`) are `true`. `create_avatar` defaults to `false`. It **requires approval by default** - unlike the other media tools - and an explicit `text_to_video.require_approval` overrides that either way.
 
 **Parameters:**
 
 - `name` (required): Avatar name, which becomes the folder name under `~/.infer/avatars/`
-- `photo` (required): Bare file name of the source photo, looked up in the working directory and then in the [session artifacts directory](#artifacts-directory); absolute paths and `..` are rejected
+- `photo` (required): Bare file name of the source photo, looked up in the working directory and then in the [session artifacts directory](#artifacts-directory). Absolute paths and `..` are rejected
 - `angles` (optional): Which extra views to generate - defaults to both three-quarter angles, left/right profiles are available, and `[]` stores the photo only, with no image-edit call
-- `quality` (optional): Image quality passed to the image edit API; defaults to `high`
-- `size` (optional): Size of the generated views; defaults to `1024x1536`
+- `quality` (optional): Image quality passed to the image edit API. Defaults to `high`
+- `size` (optional): Size of the generated views. Defaults to `1024x1536`
 
 It **never overwrites** an existing avatar - a name already in the library fails the call - and there is no delete counterpart, so the agent cannot remove an avatar. A failed view generation removes the half-built folder.
 
@@ -2946,14 +2946,14 @@ It **never overwrites** an existing avatar - a name already in the library fails
 
 Dub a clip the user already has: the provider generates the sound that fits the picture and re-renders the clip with that sound as its new soundtrack, and the finished MP4 is saved. It is the sound half of the Content workflow - [`TextToVideo`](#texttovideo-tool) renders the face, [`TextToSpeech`](/cli-text-to-speech/) gives it a voice, `DubVideo` scores the result. The dub runs through the gateway's Videos API (`POST /v1/videos`, polled and downloaded like a render) with `video_to_sfx.model` (`mirelo/sfx-2.0` by default) - the CLI holds no provider key, the gateway does.
 
-**Opt-in twice.** The tool is registered only when both `video_to_sfx.enabled` and `video_to_sfx.dub` (`INFER_VIDEO_TO_SFX_DUB`) are `true`; `dub` defaults to `false`, because the clip is uploaded to a third-party provider. Job polling reuses `text_to_video.timeout` and `text_to_video.poll_interval`, and approval follows the shared `video_to_sfx.require_approval` policy.
+**Opt-in twice.** The tool is registered only when both `video_to_sfx.enabled` and `video_to_sfx.dub` (`INFER_VIDEO_TO_SFX_DUB`) are `true`. `dub` defaults to `false`, because the clip is uploaded to a third-party provider. Job polling reuses `text_to_video.timeout` and `text_to_video.poll_interval`, and approval follows the shared `video_to_sfx.require_approval` policy.
 
 **Parameters:**
 
 - `video` (required): Bare file name (no directories, no absolute paths) of a `.mov`, `.mp4`, `.m4v` or `.webm` clip, looked up in the working directory first and then in the [`TextToVideo` output directory](#texttovideo-tool), so a clip the agent just rendered can be dubbed by name
 - `prompt` (optional): Description of the sound (a busy cafe hubbub, a tense orchestral underscore) - the clip itself drives the result, the prompt is only guidance
 - `preserve_speech` (optional): `true` to keep the clip's own dialogue under the generated sound
-- `output_path` (optional): Bare file name (no directories, no absolute paths) for the dubbed MP4, written inside `text_to_video.output_dir` next to the rendered clips; defaults to a timestamped `dub-*.mp4`
+- `output_path` (optional): Bare file name (no directories, no absolute paths) for the dubbed MP4, written inside `text_to_video.output_dir` next to the rendered clips. Defaults to a timestamped `dub-*.mp4`
 
 **Configuration:**
 
@@ -3004,7 +3004,7 @@ GitHub operations run through Bash, so they obey the [Bash allowed-list](#comman
 - **Issue / PR writes** - `gh issue create|edit|comment`, `gh pr create`.
 - **Project writes** - `gh project item-add|item-edit`.
 - **Destructive** - `gh pr merge`, `gh pr close`, `gh issue delete`, `gh repo delete`, `gh release create`, `gh run cancel`, `gh auth login`.
-- **Raw `gh api`** - any call. The previous GET-wildcard auto-approval was dropped; a raw-API need is now opt-in per repo.
+- **Raw `gh api`** - any call. The previous GET-wildcard auto-approval was dropped. A raw-API need is now opt-in per repo.
 
 > **Behavior change.** Earlier defaults auto-approved `gh issue/pr` writes and read-only `gh api`. They now require approval - add the specific commands you trust to an allowed-list, or use the [append override](#append-only-override-ci).
 
@@ -3033,17 +3033,17 @@ tools:
 
 Create and update a structured task list for the current session. Use for complex multi-step work to track progress and surface intent to the user.
 
-- **Parameters**: `todos` (required array; each item has `content`, `status` ∈ `pending` | `in_progress` | `completed`, and optional `id`)
+- **Parameters**: `todos` (required array - each item has `content`, `status` ∈ `pending` | `in_progress` | `completed`, and optional `id`)
 - **Approval**: not required
-- **Best practice**: keep at most one task in `in_progress` at a time; mark items `completed` immediately on finishing
+- **Best practice**: keep at most one task in `in_progress` at a time. Mark items `completed` immediately on finishing
 
 #### Schedule
 
-Create, list, get, update, or delete cron jobs that fire on a schedule. Jobs are persisted as YAML under `~/.infer/schedules/` and executed by the `infer daemon` (which reconciles its cron entries against storage every 2 seconds, so new or hand-edited jobs are picked up without a restart). When created from a channel session (e.g. Telegram), output is delivered back to that channel; otherwise the job is record-only - run history is persisted and viewable through the configured storage backend.
+Create, list, get, update, or delete cron jobs that fire on a schedule. Jobs are persisted as YAML under `~/.infer/schedules/` and executed by the `infer daemon` (which reconciles its cron entries against storage every 2 seconds, so new or hand-edited jobs are picked up without a restart). When created from a channel session (e.g. Telegram), output is delivered back to that channel. Otherwise the job is record-only - run history is persisted and viewable through the configured storage backend.
 
 - **Parameters**: `operation` (required: `create` | `list` | `get` | `update` | `delete`), `job_id` (required for get/update/delete), `cron_expression` (5-field crontab or `@every <duration>`), `prompt`, `run_once` (default `false` - when `true`, the job is deleted after firing once), `name`, `description`, `model` (optional model override)
 - **Approval**: required by default
-- **Notes**: each fire creates a brand-new agent session - no context is carried between runs. Every fire persists a `RunRecord` (`session_id`, `job_id`, `status`, `error`, `started_at`, `finished_at`) through the configured storage backend; the newest 200 records are retained. `channel` and `recipient_id` on a job are optional delivery targets derived from the session, never passed by the LLM.
+- **Notes**: each fire creates a brand-new agent session - no context is carried between runs. Every fire persists a `RunRecord` (`session_id`, `job_id`, `status`, `error`, `started_at`, `finished_at`) through the configured storage backend. The newest 200 records are retained. `channel` and `recipient_id` on a job are optional delivery targets derived from the session, never passed by the LLM.
 
 ```text
 "0 8 * * *"      every day at 08:00
@@ -3056,7 +3056,7 @@ Create, list, get, update, or delete cron jobs that fire on a schedule. Jobs are
 
 #### AskUserQuestion
 
-Pause and ask the user 1-4 multiple-choice clarifying questions as an interactive, keyboard-driven form. The agent reaches for this whenever a task is ambiguous - in Plan Mode it resolves the ambiguity **before** it calls [`RequestPlanApproval`](#requestplanapproval), so your answers feed straight back into the plan it then proposes; in the other interactive modes the answers come back mid-task. It is read-only with **no approval gate**.
+Pause and ask the user 1-4 multiple-choice clarifying questions as an interactive, keyboard-driven form. The agent reaches for this whenever a task is ambiguous - in Plan Mode it resolves the ambiguity **before** it calls [`RequestPlanApproval`](#requestplanapproval), so your answers feed straight back into the plan it then proposes. In the other interactive modes the answers come back mid-task. It is read-only with **no approval gate**.
 
 - **Parameters**: `questions` (required array, **1-4** items). Each question has:
   - `header` (required) - short chip label shown above the question, **<= 12 characters**
@@ -3110,7 +3110,7 @@ Submit a completed plan for user approval. Available only in Plan Mode.
 
 Ask the user to override an [LLM judge](/cli-judge-mode/) rejection so the rejected tool call can run once. The agent reaches for it after a judge rejection (in `auto-with-judge` mode or under `tools.safety.approval_behaviour: judge`) - the rejection result itself hints that the path exists.
 
-- **Parameters**: `tool` (required - name of the rejected tool), `arguments` (required object - the exact arguments of the rejected call; `{}` for a call without arguments), `what` (required - what permission is needed, one sentence), `why` (required - why the action serves the user's request)
+- **Parameters**: `tool` (required - name of the rejected tool), `arguments` (required object - the exact arguments of the rejected call - `{}` for a call without arguments), `what` (required - what permission is needed, one sentence), `why` (required - why the action serves the user's request)
 - **Behavior**: shows the rejected call in the regular approval box with the judge's reason and the agent's justification. **Approve** runs that exact call once with the judge bypassed; **Reject** or dismissal denies and the turn continues with the decision in context.
 - **Eligibility**: only calls the judge actually rejected can be escalated, and each one only **once** - anything else returns `not_rejected` or `already_escalated`. The tool is advertised in every mode (a mode switch never invalidates the prompt cache), but outside judge mode nothing is ever rejected, so it has nothing to escalate.
 - **Headless graceful-degrade**: with no interactive approver (CI, headless, channels without an approval form) it returns a distinguishable "no approver reachable" result instead of blocking.
@@ -3166,7 +3166,7 @@ The Markdown body is the subagent's system prompt. Frontmatter keys:
 
 | Key               | Required | Meaning                                                                                             |
 | ----------------- | -------- | --------------------------------------------------------------------------------------------------- |
-| `name`            | yes      | Identifier passed as the `agent` argument. Lowercase letters, digits, `-`, `_`; up to 64 characters |
+| `name`            | yes      | Identifier passed as the `agent` argument. Lowercase letters, digits, `-`, `_`. Up to 64 characters |
 | `description`     | yes      | Shown to the main agent so it knows when to delegate                                                |
 | `model`           | no       | `provider/model`, or `inherit` to use the parent turn's model                                       |
 | `tools`           | no       | Tools the subagent may use - a YAML list or a comma-separated string. Omitted means inherit all     |
@@ -3215,14 +3215,14 @@ Files are scanned **once per session**. A file with broken frontmatter, a missin
 
 #### Result modes: async and wait-all
 
-- **Async (`wait: false`)** - the **shipped default**. The call returns immediately with the subagent ids, so later tool calls in the same turn run right away; when each subagent finishes a turn, its result is injected back into the main conversation (mirroring `A2A_SubmitTask` notify behavior) and a headless subagent then [stays alive](#headless-keep-alive-lifecycle) for follow-ups. In chat, running/completed status is surfaced in the sticky progress area.
+- **Async (`wait: false`)** - the **shipped default**. The call returns immediately with the subagent ids, so later tool calls in the same turn run right away. When each subagent finishes a turn, its result is injected back into the main conversation (mirroring `A2A_SubmitTask` notify behavior) and a headless subagent then [stays alive](#headless-keep-alive-lifecycle) for follow-ups. In chat, running/completed status is surfaced in the sticky progress area.
 - **Wait-all (`wait: true`)** - the call blocks until every spawned subagent reaches a terminal state, then returns the aggregated results in one tool result. A blocking subagent returns its **first turn** and is **not** kept alive.
 
 #### Execution surfaces: headless and interactive (tmux)
 
 The `mode` controls where subagents run. Either way the result aggregates back into the main context exactly the same - interactive is "headless plus a tmux pane attached to the live process":
 
-- `headless` (the **shipped default**) - each subagent runs in the background as an [`infer headless --keep-alive`](#keeping-the-session-alive---keep-alive) subprocess whose stdin the parent holds open; results aggregate back into the main context.
+- `headless` (the **shipped default**) - each subagent runs in the background as an [`infer headless --keep-alive`](#keeping-the-session-alive---keep-alive) subprocess whose stdin the parent holds open. Results aggregate back into the main context.
 - `interactive` - each subagent runs in a live **tmux** pane/window you can watch while it works.
 
 tmux is an **optional runtime dependency**, required only for interactive mode (headless needs nothing extra). Interactive mode must be run from **inside tmux** (`$TMUX` set). Panes always open as a **vertical split**, and when you are not inside tmux (or tmux is not installed) the call **warns and runs headless** - there is nothing to configure either way.
@@ -3233,7 +3233,7 @@ In chat, a headless subagent is listed in the [background job list](#background-
 
 A headless subagent is a conversation, not a one-shot: the delegated task is its first turn, and it stays alive afterwards so the main agent can talk to it without respawning and losing its context.
 
-- **One completion note per finished turn.** Each turn that ends delivers a `[Subagent Completed: <label>]` note carrying that turn's final message and the run stats; a turn that ended in an error arrives as `[Subagent Failed: <label>]` with the error. The stats cover the **whole subagent session** - every turn it ran, not just the one that produced the note.
+- **One completion note per finished turn.** Each turn that ends delivers a `[Subagent Completed: <label>]` note carrying that turn's final message and the run stats. A turn that ended in an error arrives as `[Subagent Failed: <label>]` with the error. The stats cover the **whole subagent session** - every turn it ran, not just the one that produced the note.
 - **Follow-ups with `SendSubagentInput`.** Passing `text` sends the subagent a message - new information, a correction, a question about its result - which it runs as its **next turn in the same session**, with a new completion note when that turn ends. A message sent while the subagent is mid-turn is **queued** and runs next, so nothing is lost and no note is duplicated.
 - **Idle auto-close.** A subagent that sits idle for `tools.agent.idle_timeout` seconds after a completed turn is closed with one `[Subagent Closed: <label>]` note carrying its last message. `0` disables the auto-close. There is **no `[Subagent Idle]` warning** for a headless subagent: every turn reports done, so the completion note itself is the cue that it awaits a follow-up.
 - **`CloseSubagent`** stops a headless subagent at once, whether it is idle or running.
@@ -3271,7 +3271,7 @@ tools:
     completed_retention: 5 # finished subagent results kept for later retrieval
 ```
 
-**Idle timeout (`idle_timeout`, default `300`).** Seconds a subagent may sit idle before the parent closes it with one `[Subagent Closed: <label>]` note; `0` disables the auto-close. A **headless** subagent is idle from a completed turn until the next `SendSubagentInput` (see [headless keep-alive lifecycle](#headless-keep-alive-lifecycle)); an **interactive** pane is idle when it shows no harvested result turn, no pane change and no pending approval, which only catches a pane that never reported done. Approval prompts pause the clock and `SendSubagentInput` resets it. See [Done signal and idle auto-close](#done-signal-and-idle-auto-close-interactive-panes).
+**Idle timeout (`idle_timeout`, default `300`).** Seconds a subagent may sit idle before the parent closes it with one `[Subagent Closed: <label>]` note. `0` disables the auto-close. A **headless** subagent is idle from a completed turn until the next `SendSubagentInput` (see [headless keep-alive lifecycle](#headless-keep-alive-lifecycle)). An **interactive** pane is idle when it shows no harvested result turn, no pane change and no pending approval, which only catches a pane that never reported done. Approval prompts pause the clock and `SendSubagentInput` resets it. See [Done signal and idle auto-close](#done-signal-and-idle-auto-close-interactive-panes).
 
 Every key has an `INFER_TOOLS_AGENT_*` environment-variable override, consistent with the rest of the config:
 
@@ -3317,7 +3317,7 @@ session (standard, success)            152ms
 |       `-- chat openai/gpt-4o          13ms
 ```
 
-Interactive (tmux-pane) subagents are **not** stitched into the caller's trace; use `mode: headless` when you need the subagent's spans in the same trace. See [Trace context propagation to subprocesses](#trace-context-propagation-to-subprocesses) for the full contract.
+Interactive (tmux-pane) subagents are **not** stitched into the caller's trace. Use `mode: headless` when you need the subagent's spans in the same trace. See [Trace context propagation to subprocesses](#trace-context-propagation-to-subprocesses) for the full contract.
 
 > **v1 scope.** Subagents do not nest (depth capped at 1), a subagent's tool-approval prompt is not routed back to the main chat TUI, only tmux is supported (no screen/zellij), and there is no CLI command to list or create Markdown presets (the [`/agents` view](#agents-view) lists them read-only).
 
@@ -3615,7 +3615,7 @@ A custom tool runs with **your** permissions and can do anything you can. The [f
 
 - **Project tools always ask.** A cloned repository can offer tools, but none of them runs without your approval outside `auto` mode.
 - **The CLI never edits the tool directories.** The Write, Edit, MultiEdit and Delete tools refuse any path inside `~/.infer/tools/`, `tools.custom_dir`, `.infer/tools/` or `.agents/tools/`, also through a symlink or another spelling of the path, so the model cannot write itself a tool that skips approval. This cannot be switched off. The Bash tool is not covered: in `auto` mode it runs any command.
-- **A project cannot change the approval policy.** `custom_dir`, the Bash allow-list and the approval settings come from your own [`~/.infer/tools.yaml`](#tool-configuration); a project `.infer/config.yaml` or `.infer/tools.yaml` cannot touch them.
+- **A project cannot change the approval policy.** `custom_dir`, the Bash allow-list and the approval settings come from your own [`~/.infer/tools.yaml`](#tool-configuration). A project `.infer/config.yaml` or `.infer/tools.yaml` cannot touch them.
 
 ### Loading Custom Tools From Another Directory
 
@@ -3683,7 +3683,7 @@ Two-layer configuration system with precedence from highest to lowest:
 | `tmp/`             | User         | Scratch space, including the `tmp/media` root for generated speech, music, video, recordings, screenshots and retained attachments. Wiped by `/reset`.                                | [Media directories](#media-directories)                     |
 
 > **No migration.** `logs/` and `bin/` are userspace-only: they live under `~/.infer/` and are
-> shared by every project. Older versions wrote them into the project's `.infer/` directory; those
+> shared by every project. Older versions wrote them into the project's `.infer/` directory. Those
 > directories are orphaned by design and safe to delete. The `.infer/.gitignore` seeded by
 > `infer init` no longer lists `bin/` or `logs/*.log`.
 
@@ -3717,7 +3717,7 @@ chmod 600 ~/.infer/auth.yaml
 
 - **Permissions**: `0600` is recommended. Broader permissions still work but log a warning.
 - **Sandboxed**: `auth.yaml` is on the `filesystem.denied` list of the [file sandbox](#file-sandbox) - agent tools cannot read or edit it, and on macOS an unattended [Bash](#kernel-confined-writes) command cannot read it either, since the kernel refuses it.
-- **Graceful degradation**: a missing or unreadable file changes nothing; a malformed file is ignored with a logged warning. Key resolution never fails because of `auth.yaml`.
+- **Graceful degradation**: a missing or unreadable file changes nothing. A malformed file is ignored with a logged warning. Key resolution never fails because of `auth.yaml`.
 - **Legacy `auth.json`**: the old JSON file is still read as a fallback when `auth.yaml` is absent, so existing credentials keep working. Move your keys into `auth.yaml` - JSON is valid YAML, so the contents can be pasted as-is.
 
 ### Artifacts directory
@@ -3757,7 +3757,7 @@ Every generated and retained media file lives under one **media root**, with a s
 | `voice/`       | Retained inbound voice recordings                    | `speech_to_text.recordings_dir`                     |
 | `attachments/` | Retained inbound Telegram photos and videos          | `channels.telegram.media.dir`                       |
 
-The media root is agent-readable and writable by design - retained recordings and attachments are assets the agent consumes, and generated speech is output it can reference. The rest of `~/.infer/` is covered by the `.infer/` denial in the [file sandbox](#file-sandbox), which asks before every read and write. [`/reset`](#reset-shortcut) empties both tmp trees through their `tmp` parents; the owning subsystems recreate the subdirectories on next use. Directories you explicitly point outside `~/.infer` are left alone.
+The media root is agent-readable and writable by design - retained recordings and attachments are assets the agent consumes, and generated speech is output it can reference. The rest of `~/.infer/` is covered by the `.infer/` denial in the [file sandbox](#file-sandbox), which asks before every read and write. [`/reset`](#reset-shortcut) empties both tmp trees through their `tmp` parents. The owning subsystems recreate the subdirectories on next use. Directories you explicitly point outside `~/.infer` are left alone.
 
 > **Existing installs.** Older releases placed these directories directly under `~/.infer/` or `~/.infer/tmp/` (`tts/`, `voice/`, `media/`, ...). Nothing migrates automatically - they hold only disposable output, so delete them, or `mv` their contents into the media root to keep the retained files. Explicit `output_dir` / `recordings_dir` / `temp_dir` / `media.dir` overrides are unaffected.
 
@@ -3795,7 +3795,7 @@ The server side of mTLS is configured on the gateway, not the CLI: `SERVER_TLS_C
 - Private CA and client certificate for the gateway connection: `gateway.tls` (see [Gateway TLS](#gateway-tls))
 - Timeout and retry configuration (see [Client retry and stream reconnection](#client-retry-and-stream-reconnection) below)
 - OCI image for auto-running gateway
-- Model filtering: `gateway.include_models` (allowlist) and `gateway.exclude_models` (blocklist). Both default to `[]`. `gateway.exclude_models` is opt-in - the [model picker](#model-picker-labels) already hides non-chat-capable models via the gateway-reported modalities, so use it only to hide specific models the gateway reports (large or costly chat models, for example); there is no shipped default blocklist. Set exclusions are passed to the gateway as the `DISALLOWED_MODELS` environment variable.
+- Model filtering: `gateway.include_models` (allowlist) and `gateway.exclude_models` (blocklist). Both default to `[]`. `gateway.exclude_models` is opt-in - the [model picker](#model-picker-labels) already hides non-chat-capable models via the gateway-reported modalities, so use it only to hide specific models the gateway reports (large or costly chat models, for example). There is no shipped default blocklist. Set exclusions are passed to the gateway as the `DISALLOWED_MODELS` environment variable.
 
 The downloaded gateway binary lands at `~/.infer/bin/inference-gateway` - one shared copy per machine, reused by every project (the staleness check still re-downloads when the pinned version changes).
 
@@ -3908,7 +3908,7 @@ client:
 - **client.stall_threshold_sec**: Seconds without progress - no response while connecting, no SSE chunk while streaming - before the CLI drops the connection and reconnects (default: `30`, `0` disables). Reconnects reuse `client.retry.*` for attempts and exponential backoff. Keep this above your provider's worst first-token latency, since a stall retry restarts the response from scratch. Set via `INFER_CLIENT_STALL_THRESHOLD_SEC`.
 - **client.retry.enabled**: Enable automatic retries for failed requests (default: `true`).
 - **client.retry.max_attempts**: Maximum number of retry attempts (default: `5`). Set via `INFER_CLIENT_RETRY_MAX_ATTEMPTS`.
-- **client.retry.retryable_status_codes**: HTTP status codes that trigger retries (default: `[408, 429, 500, 502, 503, 504]`); non-transient errors such as 401 fail fast with their real message. Set via `INFER_CLIENT_RETRY_RETRYABLE_STATUS_CODES`.
+- **client.retry.retryable_status_codes**: HTTP status codes that trigger retries (default: `[408, 429, 500, 502, 503, 504]`). Non-transient errors such as 401 fail fast with their real message. Set via `INFER_CLIENT_RETRY_RETRYABLE_STATUS_CODES`.
 - **client.retry.initial_backoff_sec**: Initial delay between retries in seconds (default: `5`).
 - **client.retry.max_backoff_sec**: Maximum delay between retries in seconds (default: `60`).
 - **client.retry.backoff_multiplier**: Backoff multiplier for exponential delay (default: `2`).
@@ -3951,7 +3951,7 @@ reminders:
 | Trigger               | Hook requirement | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | --------------------- | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `always`              | Any              | Fire on every hook invocation.                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| `on_failure`          | `post_tool`      | Fire only when the tool call that just ran failed (returned an error). Requires `hook: post_tool`; validation rejects other hooks.                                                                                                                                                                                                                                                                                                                                    |
+| `on_failure`          | `post_tool`      | Fire only when the tool call that just ran failed (returned an error). Requires `hook: post_tool`. Validation rejects other hooks.                                                                                                                                                                                                                                                                                                                                    |
 | `elapsed_minutes`     | Any              | Fire once, when the run has been going `threshold` wall-clock minutes. Requires `threshold` > 0. The clock-based twin of `turns_before_max` - set it below [`agent.max_duration_minutes`](#configuration) so the agent is told to wrap up while it still has budget left.                                                                                                                                                                                             |
 | `on_mode_change`      | Any              | Fire when the [agent mode](#agent-modes) changes (Shift+Tab). Used by the built-in `mode-change-reminder`, which is the **sole carrier** of mode-specific instructions - see [How mode instructions are delivered](#how-mode-instructions-are-delivered).                                                                                                                                                                                                             |
 | `on_repeated_failure` | `post_tool`      | Fire when the same tool call has failed `threshold` times in a row (built-in default `3`). Matching is on **normalized** arguments, not the raw string: `offset`, `limit`, key order and whitespace are ignored, so retries that only change pagination or re-serialize the same arguments still count toward the threshold. `Read` matches on the `file_path` alone. A success with the same key resets the counter. Requires `hook: post_tool` and `threshold` > 0. |
@@ -3964,7 +3964,7 @@ The built-in `repeated-failure` reminder uses this trigger and is appended to th
 </system-reminder>
 ```
 
-`{tool_name}` and `{count}` are substituted from the tracked failure; both placeholders work in your own `on_repeated_failure` reminder text.
+`{tool_name}` and `{count}` are substituted from the tracked failure. Both placeholders work in your own `on_repeated_failure` reminder text.
 
 #### Configuration sources and precedence
 
@@ -4088,7 +4088,7 @@ export INFER_PROMPTS_CHAT_SUGGESTIONS_SYSTEM_PROMPT="Suggest one short next step
 
 ### Configuration Commands
 
-Configuration uses a generic key/value interface. `infer config get` reads the effective value of any key; `infer config set` writes one to the userspace baseline (`~/.infer/config.yaml`) by default, or to the project config (`./.infer/config.yaml`) when you pass `--project`. Keys are dotted paths into the config (for example `agent.model`, `gateway.url`). `tools.*` keys are **read-only** here - they live in [`~/.infer/tools.yaml`](#tool-configuration), so `config get tools.bash` works but `config set tools.*` is rejected.
+Configuration uses a generic key/value interface. `infer config get` reads the effective value of any key. `infer config set` writes one to the userspace baseline (`~/.infer/config.yaml`) by default, or to the project config (`./.infer/config.yaml`) when you pass `--project`. Keys are dotted paths into the config (for example `agent.model`, `gateway.url`). `tools.*` keys are **read-only** here - they live in [`~/.infer/tools.yaml`](#tool-configuration), so `config get tools.bash` works but `config set tools.*` is rejected.
 
 ```bash
 # Initialize configuration
@@ -4126,7 +4126,7 @@ infer config set agent.model deepseek/deepseek-v4-flash --project
 infer config init --overwrite
 ```
 
-`config set` **validates before it keeps the write.** After writing, it loads the config back; if the loader rejects the result - say `agent.reasoning_effort=bogus` - the previous file is restored and the command fails, so a bad value can never leave you with a config that stops `infer` from starting:
+`config set` **validates before it keeps the write.** After writing, it loads the config back. If the loader rejects the result - say `agent.reasoning_effort=bogus` - the previous file is restored and the command fails, so a bad value can never leave you with a config that stops `infer` from starting:
 
 ```bash
 $ infer config set agent.reasoning_effort bogus
@@ -4378,7 +4378,7 @@ Outbound [A2A](/a2a/) requests carry `traceparent`, `tracestate`, and `baggage` 
 
 The [`examples/a2a-traces`](https://github.com/inference-gateway/cli/tree/main/examples/a2a-traces) directory in the CLI repository demonstrates end-to-end distributed telemetry between the CLI and a remote A2A agent (mock-agent), with an OpenTelemetry Collector in the middle. It exercises both telemetry models:
 
-- **Push (OTLP)**: the CLI exports its traces and metrics to the collector; the mock-agent exports its traces to the collector.
+- **Push (OTLP)**: the CLI exports its traces and metrics to the collector. The mock-agent exports its traces to the collector.
 - **Pull (Prometheus)**: the collector scrapes the mock-agent's `:9090/metrics` endpoint.
 
 The CLI injects W3C trace context into every outgoing A2A request, so the mock-agent's spans share the CLI's trace ID and parent under the CLI's `execute_tool` span. The collector fans all traces back to the CLI's local OTLP receiver (via `INFER_TELEMETRY_RECEIVER_ADDRESS: 0.0.0.0:4318`), so `infer traces` shows the **full distributed trace**, including the mock-agent's spans:
@@ -4920,7 +4920,7 @@ The `/conversations` picker footer reads `Press / to search` whenever no query i
 **Subcommands:**
 
 - `list`: List saved conversations with metadata (id, title, message/request counts, tokens,
-  cost). Scoped to the current project; `--all-projects` lists every project's conversations.
+  cost). Scoped to the current project. `--all-projects` lists every project's conversations.
 - `show <session-id>`: Print a single conversation's entries in chronological order (role,
   timestamp, content, and `tool_call_id` for tool results). By default only the first 10
   entries are printed so a careless `show` does not flood its reader (a shorter session is
@@ -5067,7 +5067,7 @@ External producers enqueue by writing one JSON record to the configured backend:
 | ------------ | ----------------- | ------------------------------------------------------------------------------------------------------ |
 | `role`       | string            | SDK role of the message, `"user"` for user work                                                        |
 | `content`    | JSON              | the SDK message content - a plain text message is a JSON string                                        |
-| `source`     | string            | one of `composer`, `stdin`, `a2a`, `shell`, `subagent`, `job`; use `a2a` for work another agent pushes |
+| `source`     | string            | one of `composer`, `stdin`, `a2a`, `shell`, `subagent`, `job`. Use `a2a` for work another agent pushes |
 | `request_id` | string            | free-form producer-supplied id for tracing and ordering, empty allowed                                 |
 | `queued_at`  | RFC3339 timestamp | when the producer created the entry                                                                    |
 
@@ -5101,7 +5101,7 @@ VALUES (
 
 ### Persistent Memory
 
-The **Memory** tool gives the agent durable, **cross-session** memory: facts it learns in one session survive into the next. Each fact is a single Markdown **fact-file** (with YAML frontmatter) stored under a configurable directory - `~/.infer/memory` by default - and catalogued by a `MEMORY.md` index. That index is injected into context at the **start of every session**, so the agent always knows what it has recorded; it then reads or writes individual facts on demand. A default [system reminder](#system-reminders) (`memory-consult`) nudges it to consult and keep memory current. Memory is **enabled by default**.
+The **Memory** tool gives the agent durable, **cross-session** memory: facts it learns in one session survive into the next. Each fact is a single Markdown **fact-file** (with YAML frontmatter) stored under a configurable directory - `~/.infer/memory` by default - and catalogued by a `MEMORY.md` index. That index is injected into context at the **start of every session**, so the agent always knows what it has recorded. It then reads or writes individual facts on demand. A default [system reminder](#system-reminders) (`memory-consult`) nudges it to consult and keep memory current. Memory is **enabled by default**.
 
 #### Per-project fact organization
 
@@ -5157,7 +5157,7 @@ A single summary line at the bottom names other projects that have facts but are
 
 | Operation | Parameters                                                                    | Effect                                                                        |
 | --------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| `read`    | `name` (optional)                                                             | With no `name`, returns the `MEMORY.md` index; with a `name`, that fact-file. |
+| `read`    | `name` (optional)                                                             | With no `name`, returns the `MEMORY.md` index. With a `name`, that fact-file. |
 | `write`   | `name`, `description`, `type`, `content` (all required), `project` (optional) | Creates or updates a fact-file and its index entry.                           |
 | `delete`  | `name` (required)                                                             | Removes a fact-file and its index entry.                                      |
 
@@ -5167,13 +5167,13 @@ The optional `project` argument on `write` controls where the fact is filed:
 
 | `project` value | Behavior                                                                                                   |
 | --------------- | ---------------------------------------------------------------------------------------------------------- |
-| _(omitted)_     | Defaults by type: `user` facts are global; `feedback`/`project`/`reference` go under the detected project. |
+| _(omitted)_     | Defaults by type: `user` facts are global. `feedback`/`project`/`reference` go under the detected project. |
 | `global`        | Forces the fact to be stored at the memory directory root (a global fact).                                 |
 | `org/repo`      | Files the fact under another project's subdirectory (e.g. `inference-gateway/cli`).                        |
 
 #### Configuration (`memory.yaml`)
 
-Runtime knobs live in `memory.yaml` (seeded by `infer init`; the in-code defaults apply when the file is absent):
+Runtime knobs live in `memory.yaml` (seeded by `infer init` - the in-code defaults apply when the file is absent):
 
 ```yaml
 # .infer/memory.yaml (or ~/.infer/memory.yaml)
@@ -5225,7 +5225,7 @@ backend:
 | `backend.git.sync.on_start`  | `pull`                | `INFER_MEMORY_BACKEND_GIT_SYNC_ON_START`  | `pull` or `off`.                                |
 | `backend.git.sync.on_finish` | `push`                | `INFER_MEMORY_BACKEND_GIT_SYNC_ON_FINISH` | `push` or `off`.                                |
 
-**Validation:** when memory is enabled and `type: git`, `repo` is required; `on_start` must be `pull` or `off`, and `on_finish` must be `push` or `off`.
+**Validation:** when memory is enabled and `type: git`, `repo` is required. `on_start` must be `pull` or `off`, and `on_finish` must be `push` or `off`.
 
 ##### How it syncs
 
@@ -5357,7 +5357,7 @@ See [MCP documentation](/mcp/) for detailed integration guide and server develop
 
 ### Agent Skills
 
-Reusable, model-readable instruction folders that the agent loads on demand. The CLI uses the same on-disk format as Gemini CLI and OpenAI Codex CLI, so a skill authored for any of those tools drops into `.infer/skills/` unchanged. Skills are discovered from four locations, in precedence order: project `.infer/skills/`, the `.agents/skills/` open standard (a shared cross-tool convention), user-global `~/.infer/skills/`, then skills contributed by installed [plugins](#plugins). Skills are **enabled by default** - discovered skills are injected into the system prompt out of the box. Only the lightweight metadata (name + description) is added; each `SKILL.md` body is read on demand. Turn them off with `agent.skills.enabled: false`, or skip individual skills with `disabled_skills`.
+Reusable, model-readable instruction folders that the agent loads on demand. The CLI uses the same on-disk format as Gemini CLI and OpenAI Codex CLI, so a skill authored for any of those tools drops into `.infer/skills/` unchanged. Skills are discovered from four locations, in precedence order: project `.infer/skills/`, the `.agents/skills/` open standard (a shared cross-tool convention), user-global `~/.infer/skills/`, then skills contributed by installed [plugins](#plugins). Skills are **enabled by default** - discovered skills are injected into the system prompt out of the box. Only the lightweight metadata (name + description) is added. Each `SKILL.md` body is read on demand. Turn them off with `agent.skills.enabled: false`, or skip individual skills with `disabled_skills`.
 
 ```yaml
 # .infer/config.yaml
@@ -5375,7 +5375,7 @@ infer skills install acme/internal-comms --user   # or a bare name, or a github 
 infer skills uninstall internal-comms
 ```
 
-Once enabled, invoke a skill explicitly with `/<name>` (for example `/pdf-helper`) or by asking the agent to "use the `<name>` skill"; the CLI deterministically activates it by injecting the skill's metadata and pointing the agent at its `SKILL.md`. Installed skills under `~/.infer/skills` and `./.infer/skills` stay readable by the Read tool through a sandbox carve-out, so they load even when the agent runs outside the project directory (for example in CI).
+Once enabled, invoke a skill explicitly with `/<name>` (for example `/pdf-helper`) or by asking the agent to "use the `<name>` skill". The CLI deterministically activates it by injecting the skill's metadata and pointing the agent at its `SKILL.md`. Installed skills under `~/.infer/skills` and `./.infer/skills` stay readable by the Read tool through a sandbox carve-out, so they load even when the agent runs outside the project directory (for example in CI).
 
 See the full **[Agent Skills guide](/cli-skills/)** for the on-disk layout, the `SKILL.md` frontmatter contract, install flags, activation triggers, and the sandbox carve-out. To publish a skill in the shared index, see the [Skills Catalog](/skills/).
 
@@ -5434,7 +5434,7 @@ The CLI repository ships a runnable [`examples/plugins`](https://github.com/infe
 
 The `/tools` shortcut opens a **read-only, filterable list** of the tools available to the agent in the current [agent mode](#agent-modes). Each row shows the tool name plus a word-wrapped description (up to two lines, with an ellipsis on overflow).
 
-- **Filtering:** type `/` to start filtering; matching terms are underlined in the results.
+- **Filtering:** type `/` to start filtering. Matching terms are underlined in the results.
 - **Status line:** shows `N tools` at the bottom.
 - **Live refresh:** the list refreshes on every entry, so agent-mode changes and asynchronously registered MCP tools are reflected immediately.
 - **Mode-aware:** [Plan mode](#plan-mode) hides mutating tools (Write, Edit, Delete, Bash), showing only read-only tools.
@@ -5479,7 +5479,7 @@ infer chat
 > /tasks
 ```
 
-Selecting a row opens a **detail panel** with that task's metadata - `ID`, `Detail` (the command for a shell, or the task description for a subagent), `Status`, `Started`, and `Elapsed`. A2A rows additionally show their task history and the agent's **Final Result**; background-shell and subagent rows render an **Output** section instead.
+Selecting a row opens a **detail panel** with that task's metadata - `ID`, `Detail` (the command for a shell, or the task description for a subagent), `Status`, `Started`, and `Elapsed`. A2A rows additionally show their task history and the agent's **Final Result**. Background-shell and subagent rows render an **Output** section instead.
 
 #### Output detail section
 
@@ -5552,7 +5552,7 @@ infer agents add my-agent http://localhost:8081 --environment API_KEY=secret --e
 
 `--environment` accepts `KEY=VALUE,KEY=VALUE` on one flag, and the repeated-flag form still works - the two can be mixed. An empty `--environment ""` is rejected.
 
-Bare names resolve any agent published in the [A2A Registry](/registry/) catalog. The five agents with built-in defaults (`browser-agent`, `mock-agent`, `google-calendar-agent`, `documentation-agent`, `n8n-agent`) take precedence and work offline; every other name is looked up in the catalog, with the URL and OCI image derived from its published metadata. A name in neither place needs an explicit URL - see [built-in agents vs other catalog agents](/a2a/#built-in-agents-vs-other-catalog-agents).
+Bare names resolve any agent published in the [A2A Registry](/registry/) catalog. The five agents with built-in defaults (`browser-agent`, `mock-agent`, `google-calendar-agent`, `documentation-agent`, `n8n-agent`) take precedence and work offline. Every other name is looked up in the catalog, with the URL and OCI image derived from its published metadata. A name in neither place needs an explicit URL - see [built-in agents vs other catalog agents](/a2a/#built-in-agents-vs-other-catalog-agents).
 
 **Usage:**
 
@@ -5824,7 +5824,7 @@ Limits worth knowing:
 
 #### Decision order
 
-1. **`denied` first.** A blocking entry fails whatever its position; otherwise the first matching approval entry asks the user.
+1. **`denied` first.** A blocking entry fails whatever its position. Otherwise the first matching approval entry asks the user.
 2. **Built-in carve-outs**, which skip the default `.infer/` denial.
 3. **The first matching `allowed` entry** - a write into a `read` entry asks.
 4. **Otherwise the user is asked.** An empty `allowed` list is no boundary.
@@ -5857,8 +5857,8 @@ Tool approval has **two independent layers** - _whether_ an action needs approva
 
 | `approval_behaviour` | How a needed approval is delivered                                                            |
 | -------------------- | --------------------------------------------------------------------------------------------- |
-| `prompt` (default)   | Prompt in the chat TUI; under a channel manager, deliver over IPC; otherwise block.           |
-| `ipc`                | Deliver over IPC when a broker is attached (e.g. the channel manager); otherwise block.       |
+| `prompt` (default)   | Prompt in the chat TUI. Under a channel manager, deliver over IPC. Otherwise block.           |
+| `ipc`                | Deliver over IPC when a broker is attached (e.g. the channel manager). Otherwise block.       |
 | `judge`              | One [LLM judge](/cli-judge-mode/) call decides. Always reachable - never downgraded to block. |
 | `block`              | Always reject an approval-requiring action with a reason - never prompt.                      |
 
@@ -5885,7 +5885,7 @@ A single gated call, [auto-accept mode](#auto-accept-mode) and fully ungated bat
 
 #### Headless secure-by-default
 
-`infer headless` runs in **standard** mode, so an off-list or mutating action is **not** auto-run. With no approver reachable (CI, heartbeat) it is **blocked** with a reason; under a channel manager (`--require-approval`) it is sent for **IPC** approval (for example a Telegram confirmation). There is no `.*` default - full autonomy is an explicit opt-in (a curated allowed-list, the [append override](#append-only-override-ci), or `mode.auto` / `.*`). To keep a gate without a human, run `--mode auto-with-judge` (or set `approval_behaviour: judge`) and let an [LLM judge](/cli-judge-mode/) answer instead of blocking.
+`infer headless` runs in **standard** mode, so an off-list or mutating action is **not** auto-run. With no approver reachable (CI, heartbeat) it is **blocked** with a reason. Under a channel manager (`--require-approval`) it is sent for **IPC** approval (for example a Telegram confirmation). There is no `.*` default - full autonomy is an explicit opt-in (a curated allowed-list, the [append override](#append-only-override-ci), or `mode.auto` / `.*`). To keep a gate without a human, run `--mode auto-with-judge` (or set `approval_behaviour: judge`) and let an [LLM judge](/cli-judge-mode/) answer instead of blocking.
 
 For a CI agent that should edit files and run a curated command set with **no** interactive approver, use the **controlled-autonomy** profile - `block` everything that would need approval, but let the agent write files and run a vetted allowed-list:
 
@@ -6021,8 +6021,8 @@ Available on every command:
 | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
 | `-v, --verbose`                    | Enable verbose output                                                                                                         |
 | `--no-colors`                      | Disable ANSI colors (also auto-disabled when stdout is not a terminal or `NO_COLOR` is set)                                   |
-| `--tools-bash-allow-append <cmds>` | Comma/newline-separated commands added to the bash allow-list in every mode; `INFER_TOOLS_BASH_ALLOW_APPEND` takes precedence |
-| `--reminders-file <path>`          | Reminders YAML path, overriding project `.infer/` and `~/.infer/` reminders; `INFER_REMINDERS_CONFIG` takes precedence        |
+| `--tools-bash-allow-append <cmds>` | Comma/newline-separated commands added to the bash allow-list in every mode. `INFER_TOOLS_BASH_ALLOW_APPEND` takes precedence |
+| `--reminders-file <path>`          | Reminders YAML path, overriding project `.infer/` and `~/.infer/` reminders. `INFER_REMINDERS_CONFIG` takes precedence        |
 
 For per-command flags and examples, see the CLI repository's [Commands Reference](https://github.com/inference-gateway/cli/blob/main/docs/commands-reference.md).
 
@@ -6033,7 +6033,7 @@ For per-command flags and examples, see the CLI repository's [Commands Reference
 
 ### Canonical CLI references
 
-This page mirrors the CLI repository's documentation; these pages are the source of truth for each topic:
+This page mirrors the CLI repository's documentation. These pages are the source of truth for each topic:
 
 | Topic                       | Reference                                                                                                        |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------- |

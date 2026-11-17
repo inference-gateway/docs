@@ -1,33 +1,4 @@
 #!/usr/bin/env bun
-// Regenerate the provider-derived sections of the docs from the canonical
-// inference-gateway/schemas openapi.yaml.
-//
-// The schema is the source of truth for the hard facts that the docs otherwise
-// restate by hand (and drift on): the provider id list, each provider's default
-// API base URL, its auth type, and whether it supports vision. This script reads
-// those from components.schemas.Provider (enum + the x-provider-configs
-// extension), merges in the human-authored display data from
-// scripts/provider-overrides.json (casing, descriptor labels, vision-model
-// prose - things the schema does not model), and injects the result into marked
-// regions of the docs pages. Hand-authored prose outside those markers is never
-// touched.
-//
-// Usage:
-//   bun scripts/generate-provider-docs.mjs
-//   bun scripts/generate-provider-docs.mjs --check
-//   SCHEMA_FILE=scripts/__fixtures__/openapi.sample.yaml bun scripts/generate-provider-docs.mjs
-//
-// Environment:
-//   SCHEMA_FILE  Local path to an openapi.yaml. Bypasses the network fetch
-//                (used for offline runs and the fixture test).
-//   SCHEMA_URL   Full URL to fetch the schema from. Overrides SCHEMA_REPO/REF.
-//   SCHEMA_REPO  owner/repo of the schema (default inference-gateway/schemas).
-//   SCHEMA_REF   git ref (tag or commit) to pin (default main). Pin to a tag or
-//                commit SHA for reproducible builds.
-//
-// Requires Bun (for Bun.YAML.parse); no packages to install. Entrypoint runs
-// also format their output via `bunx prettier`.
-
 import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -42,13 +13,17 @@ const SCHEMA_URL =
   process.env.SCHEMA_URL ||
   `https://raw.githubusercontent.com/${SCHEMA_REPO}/${SCHEMA_REF}/openapi.yaml`;
 
-// ---------------------------------------------------------------------------
-// Schema loading
-// ---------------------------------------------------------------------------
+const AUTH_TYPE_NONE = 'none';
+const MIN_SEPARATOR_DASHES = 3;
+
+export const startMarker = (key) => `GENERATED:${key} START`;
+export const endMarker = (key) => `GENERATED:${key} END`;
+export const REGION_PADDING = [''];
 
 function argValue(name) {
-  const eq = process.argv.find((a) => a.startsWith(`--${name}=`));
-  if (eq) return eq.slice(name.length + 3);
+  const prefix = `--${name}=`;
+  const eq = process.argv.find((a) => a.startsWith(prefix));
+  if (eq) return eq.slice(prefix.length);
   const idx = process.argv.indexOf(`--${name}`);
   if (idx !== -1 && process.argv[idx + 1]) return process.argv[idx + 1];
   return undefined;
@@ -86,10 +61,6 @@ export function extractProviderModel(schemaText) {
   const enumIds = provider.enum ?? [];
   return { enumIds: enumIds.length ? enumIds : Object.keys(configs), configs };
 }
-
-// ---------------------------------------------------------------------------
-// Merge schema facts with the human-authored overrides
-// ---------------------------------------------------------------------------
 
 function camelCase(id) {
   const [head, ...rest] = id.split('_');
@@ -145,9 +116,9 @@ export function buildProviders(model, overrides) {
           `"Switching providers and models" table). Add one and re-run.`
       );
     }
-    if (authType === 'none' && !ov.adkKeyNote) {
+    if (authType === AUTH_TYPE_NONE && !ov.adkKeyNote) {
       throw new Error(
-        `Provider "${id}" has auth_type "none" but no "adkKeyNote" in overrides ` +
+        `Provider "${id}" has auth_type "${AUTH_TYPE_NONE}" but no "adkKeyNote" in overrides ` +
           `(the ADK provider table's API-key cell for a keyless provider).`
       );
     }
@@ -170,15 +141,13 @@ export function buildProviders(model, overrides) {
   });
 }
 
-// ---------------------------------------------------------------------------
-// Renderers - each returns an array of lines for one marked region
-// ---------------------------------------------------------------------------
-
 // GitHub-flavored markdown table with left-aligned, space-padded columns.
 // The padding matches how `prettier --write` reflows markdown tables, so the
 // generated regions stay byte-stable across the prettier pass in `task generate`.
 function formatTable(headers, rows) {
-  const widths = headers.map((h, i) => Math.max(h.length, 3, ...rows.map((r) => r[i].length)));
+  const widths = headers.map((h, i) =>
+    Math.max(h.length, MIN_SEPARATOR_DASHES, ...rows.map((r) => r[i].length))
+  );
   const fmt = (cells) => '| ' + cells.map((c, i) => c.padEnd(widths[i])).join(' | ') + ' |';
   const sep = '| ' + widths.map((w) => '-'.repeat(w)).join(' | ') + ' |';
   return [fmt(headers), sep, ...rows.map(fmt)];
@@ -196,11 +165,9 @@ export function renderProvidersTable(providers) {
 }
 
 // The "Switching providers and models" table shared by rust-adk.md and
-// typescript-adk.md. Every chat-capable provider in the canonical schema order
-// gets a row (speech-only providers are skipped); the example-model column is
-// display-only (adkExampleModel in the overrides).
-// Providers with auth_type "none" (local Ollama) take no API key, so that cell
-// carries the adkKeyNote override instead of an API-key env var.
+// typescript-adk.md. One row per chat-capable provider in schema order, so
+// speech-only providers are skipped. Example models come from adkExampleModel.
+// Keyless providers (auth_type "none") show their adkKeyNote in the API-key cell.
 export function renderAdkProviderTable(providers) {
   const headers = [
     'Provider',
@@ -214,7 +181,7 @@ export function renderAdkProviderTable(providers) {
       p.displayName,
       '`' + p.id + '`',
       '`' + p.adkExampleModel + '`',
-      p.authType === 'none' ? p.adkKeyNote : '`' + p.envUpper + '_API_KEY`',
+      p.authType === AUTH_TYPE_NONE ? p.adkKeyNote : '`' + p.envUpper + '_API_KEY`',
     ]);
   return formatTable(headers, rows);
 }
@@ -244,7 +211,7 @@ export function renderSettingsConsts(providers) {
     const entries = [
       `  { variable: '${p.envUpper}_API_URL', description: '${p.urlLabel} API URL', defaultValue: '${p.url}' },`,
     ];
-    if (p.authType !== 'none') {
+    if (p.authType !== AUTH_TYPE_NONE) {
       entries.push(
         `  { variable: '${p.envUpper}_API_KEY', description: '${p.keyLabel} API Key', defaultValue: '""' },`
       );
@@ -263,32 +230,37 @@ export function renderConfigSections(providers) {
   return blocks.flatMap((b, i) => (i === 0 ? b : ['', ...b]));
 }
 
-// ---------------------------------------------------------------------------
-// Marked-region injection
-// ---------------------------------------------------------------------------
-
-export function injectRegion(content, key, innerLines) {
-  const lines = content.split('\n');
-  const starts = lines.flatMap((l, i) => (l.includes(`GENERATED:${key} START`) ? [i] : []));
-  const ends = lines.flatMap((l, i) => (l.includes(`GENERATED:${key} END`) ? [i] : []));
-  if (starts.length === 0 || ends.length === 0) {
-    throw new Error(`Could not find the GENERATED:${key} START/END markers.`);
-  }
-  // Exactly one region per key. A duplicate pair usually means a merge dropped
-  // two copies of a generated block into one file; injecting only the first
-  // would leave the second silently stale, so fail loudly instead.
+// A duplicate marker pair usually means a merge dropped two copies of a generated
+// block into one file. Injecting only the first would leave the second stale.
+function assertSingleRegion(key, starts, ends) {
   if (starts.length > 1 || ends.length > 1) {
     throw new Error(
       `Expected exactly one GENERATED:${key} region but found ${starts.length} START / ` +
         `${ends.length} END markers - remove the duplicate.`
     );
   }
+}
+
+export function injectRegion(content, key, innerLines) {
+  const lines = content.split('\n');
+  const starts = lines.flatMap((l, i) => (l.includes(startMarker(key)) ? [i] : []));
+  const ends = lines.flatMap((l, i) => (l.includes(endMarker(key)) ? [i] : []));
+  if (starts.length === 0 || ends.length === 0) {
+    throw new Error(`Could not find the GENERATED:${key} START/END markers.`);
+  }
+  assertSingleRegion(key, starts, ends);
   const startIdx = starts[0];
   const endIdx = ends[0];
   if (endIdx < startIdx) {
     throw new Error(`GENERATED:${key} END appears before START.`);
   }
-  const region = [lines[startIdx], '', ...innerLines, '', lines[endIdx]];
+  const region = [
+    lines[startIdx],
+    ...REGION_PADDING,
+    ...innerLines,
+    ...REGION_PADDING,
+    lines[endIdx],
+  ];
   return [...lines.slice(0, startIdx), ...region, ...lines.slice(endIdx + 1)].join('\n');
 }
 
@@ -301,10 +273,6 @@ function updateFile(relPath, regions) {
   writeFileSync(path, content);
   return relPath;
 }
-
-// ---------------------------------------------------------------------------
-// Main
-// ---------------------------------------------------------------------------
 
 const GENERATED_FILES = [
   'supported-providers.md',
@@ -356,7 +324,6 @@ function formatWithPrettier(paths) {
   });
 }
 
-// Only run when invoked directly, not when imported by the fixture test.
 if (import.meta.main) {
   runEntrypoint().catch((err) => {
     console.error(`generate-provider-docs: ${err.message}`);

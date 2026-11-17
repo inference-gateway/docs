@@ -1,13 +1,13 @@
 ---
 title: A2A Debugger
-description: A2A Debugger CLI for inspecting, streaming, and replaying tasks on any Agent-to-Agent server. Install via script or Go install; works with the Inference Gateway ecosystem.
+description: A2A Debugger CLI for inspecting, streaming, and replaying tasks on any Agent-to-Agent server. Install via script or Go install. Works with the Inference Gateway ecosystem.
 ---
 
 # A2A Debugger
 
 The **A2A Debugger** is the ultimate troubleshooting and inspection tool for [Agent-to-Agent (A2A)](/a2a/) servers. It's a small Go CLI (`a2a`) that connects to any A2A-compatible agent, lists and streams tasks, replays conversation histories, and inspects agent cards - so you can debug agent behaviour without writing throwaway client code.
 
-> **Note:** A2A Debugger is in early development. Breaking changes are expected; pin to a specific version in scripts and watch the [CHANGELOG](https://github.com/inference-gateway/a2a-debugger/blob/main/CHANGELOG.md) for releases.
+> **Note:** A2A Debugger is in early development. Breaking changes are expected. Pin to a specific version in scripts and watch the [CHANGELOG](https://github.com/inference-gateway/a2a-debugger/blob/main/CHANGELOG.md) for releases.
 
 ## Agent requirements
 

@@ -12,7 +12,7 @@ The operator publishes five CRDs under `core.inference-gateway.com/v1alpha1`:
 - `Gateway` - the gateway proxy itself, with providers, auth, MCP, model routing, Gateway API routing, and HPA.
 - `Agent` - an A2A worker that an `Orchestrator` (or any A2A client) can dispatch tasks to.
 - `MCP` - a Model Context Protocol server.
-- `Orchestrator` - runs a chat bot backed by the gateway. It listens on a messaging channel (Telegram today; more channels planned), drives the conversation with an LLM, and can delegate work to `Agent`s and MCP tools.
+- `Orchestrator` - runs a chat bot backed by the gateway. It listens on a messaging channel (Telegram today - more channels planned), drives the conversation with an LLM, and can delegate work to `Agent`s and MCP tools.
 - `GPU` - leases an externally hosted, GPU-backed inference runtime from a cloud provider.
 
 The API is `v1alpha1` and breaking changes can land between releases.
@@ -21,7 +21,7 @@ The API is `v1alpha1` and breaking changes can land between releases.
 
 The operator is distributed as pre-rendered manifests on each GitHub release. The `install.yaml` artifact bundles the namespace, CRDs, RBAC, and controller deployment.
 
-The operator also requires the Kubernetes Gateway API standard-channel CRDs - even when Gateway API routing is never used. It watches `gateway.networking.k8s.io/v1` `Gateway` and `HTTPRoute` resources, so without those CRDs the manager fails its cache sync and the pod CrashLoopBackOffs. `install.yaml` does not bundle them; install separately:
+The operator also requires the Kubernetes Gateway API standard-channel CRDs - even when Gateway API routing is never used. It watches `gateway.networking.k8s.io/v1` `Gateway` and `HTTPRoute` resources, so without those CRDs the manager fails its cache sync and the pod CrashLoopBackOffs. `install.yaml` does not bundle them. Install separately:
 
 ```bash
 kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.5.1/standard-install.yaml
@@ -348,7 +348,7 @@ Callers now need a certificate signed by `internal-ca`, which another cert-manag
 
 ### Gateway Service (`spec.service`)
 
-The operator creates a Service for each Gateway. `type` defaults to `ClusterIP`; use `LoadBalancer` (or `NodePort`) to expose the gateway outside the cluster, passing cloud load balancer options via `annotations`:
+The operator creates a Service for each Gateway. `type` defaults to `ClusterIP`. Use `LoadBalancer` (or `NodePort`) to expose the gateway outside the cluster, passing cloud load balancer options via `annotations`:
 
 ```yaml
 apiVersion: core.inference-gateway.com/v1alpha1
@@ -667,7 +667,7 @@ Leases an externally hosted, GPU-backed inference runtime through a pluggable pr
 | `image` / `command`             | Required runtime container image and optional command override.                                                                                                             |
 | `gpuTypes[]`                    | Required GPU type identifiers, e.g. `NVIDIA GeForce RTX 4090`.                                                                                                              |
 | `endpoint.{port,readinessPath}` | Defaults `8080` and `/health`. The `Ready` condition stays `False` until the readiness path responds.                                                                       |
-| `maxRuntime`                    | Required hard runtime cap, e.g. `2h`. After `startedAt + maxRuntime` the resource transitions to `Expired` - no automatic reprovision; create a new `GPU` resource instead. |
+| `maxRuntime`                    | Required hard runtime cap, e.g. `2h`. After `startedAt + maxRuntime` the resource transitions to `Expired` - no automatic reprovision. Create a new `GPU` resource instead. |
 
 The phase progresses `Pending` → `Provisioning` → `Starting` → `Ready` → `Terminating` (with `Expired` and `Failed` as terminal detours). When `Ready`, the operator generates a Secret named `<gpu-name>-connection` containing `url` and `apiKey` - the `apiKey` is a per-allocation token injected into the runtime as `API_KEY`, not the provider management key. Deleting the `GPU` releases the provider allocation via finalizer, and the connection Secret is garbage-collected by owner reference.
 
@@ -837,7 +837,7 @@ Names must not collide with the ones the operator owns - the workload container 
 | ----------------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `issuerUrl`       | `AUTH_OIDC_ISSUER`        | OIDC issuer URL (default `http://keycloak:8080/realms/inference-gateway-realm`).                                                                                                                                                                                                                                            |
 | `clientId`        | `AUTH_OIDC_CLIENT_ID`     | OAuth2 client id, used as the expected `aud` (default `inference-gateway-client`).                                                                                                                                                                                                                                          |
-| `audiences`       | `AUTH_OIDC_AUDIENCE`      | `[]string` of token `aud` values the gateway accepts, for example a separate API identifier. Emitted comma-separated when non-empty; when empty, the gateway expects `clientId`. See [Audience validation](/authentication/#audience-validation).                                                                           |
+| `audiences`       | `AUTH_OIDC_AUDIENCE`      | `[]string` of token `aud` values the gateway accepts, for example a separate API identifier. Emitted comma-separated when non-empty. When empty, the gateway expects `clientId`. See [Audience validation](/authentication/#audience-validation).                                                                           |
 | `clientSecretRef` | `AUTH_OIDC_CLIENT_SECRET` | `SecretKeySelector` (`name` + `key`) for the client secret. The operator wires it through as a `valueFrom.secretKeyRef`, so the secret value never lands in the CR.                                                                                                                                                         |
 | `caCertRef`       | `SSL_CERT_FILE`           | `ConfigMapKeySelector` (`name` + `key`) holding a PEM-encoded CA certificate. The operator mounts it into the gateway pod at `/usr/local/share/ca-certificates/oidc-ca.crt` and points `SSL_CERT_FILE` at it, so the Go runtime trusts a self-signed issuer (for example a Keycloak with its own CA) during OIDC discovery. |
 
@@ -971,7 +971,7 @@ spec:
           value: http://llama-server:8080/v1
 ```
 
-`name` is matched case-insensitively against the schema `Provider` enum, so `Llamacpp` resolves to the `llamacpp` provider. `LLAMACPP_API_URL` defaults to `http://llamacpp:8080/v1`; override it (as above) to reach your own `llama-server` Service. Address models with the `llamacpp/` prefix, for example `llamacpp/llama-3.2-3b-instruct`. Ollama follows the same keyless shape with `OLLAMA_API_URL`.
+`name` is matched case-insensitively against the schema `Provider` enum, so `Llamacpp` resolves to the `llamacpp` provider. `LLAMACPP_API_URL` defaults to `http://llamacpp:8080/v1`. Override it (as above) to reach your own `llama-server` Service. Address models with the `llamacpp/` prefix, for example `llamacpp/llama-3.2-3b-instruct`. Ollama follows the same keyless shape with `OLLAMA_API_URL`.
 
 The `llamacpp` provider requires operator `>= v0.19.0` - earlier releases do not recognize it, so pin at least that version when installing (see [Installation](#installation)). The gateway's hybrid example ([`examples/hybrid/kubernetes`](https://github.com/inference-gateway/inference-gateway/tree/main/examples/hybrid/kubernetes)) pins `v0.25.1` and ships the `Llamacpp` block already enabled, so `task deploy-llamacpp` brings up the local llama.cpp path with no manual edit to `gateway.yaml`.
 
@@ -988,10 +988,10 @@ The `llamacpp` provider requires operator `>= v0.19.0` - earlier releases do not
 | `healthCheck.{enabled,interval,timeout}`                                    | Gateway-wide MCP health polling: `MCP_POLLING_ENABLED` (default `true`), `MCP_POLLING_INTERVAL` (`30s`), `MCP_POLLING_TIMEOUT` (`5s`). |
 | `servers[].name`                                                            | Required. Becomes the server's alias, and therefore its tool namespace.                                                                |
 | `servers[].url`                                                             | Required server URL. `name` and `url` are the only per-server fields.                                                                  |
-| `serviceDiscovery.{enabled,namespace,selector}`                             | Discover `MCP` CRs by label selector. `namespace` defaults to the `Gateway`'s own namespace; an empty selector matches all.            |
+| `serviceDiscovery.{enabled,namespace,selector}`                             | Discover `MCP` CRs by label selector. `namespace` defaults to the `Gateway`'s own namespace. An empty selector matches all.            |
 | `timeouts.{client,dial,tlsHandshake,responseHeader,expectContinue,request}` | MCP client timeouts, emitted as the matching `MCP_*_TIMEOUT` variables. See [MCP timeouts](#mcp-timeouts-mcp-timeouts).                |
 
-With `expose: true`, route `POST /mcp` at the root of the gateway Service - it deliberately does not sit under `/v1`. The endpoint is stateless, so it needs no session affinity and load-balances freely across replicas, but the `HTTPRoute` (and any proxy in front of it) must pass the `MCP-Protocol-Version`, `Mcp-Method` and `Mcp-Name` headers through unchanged; stripping or rewriting one answers `400` with `-32020`. Do not aim a probe or gateway health check at `/mcp` - it is POST only and answers `405` to `GET`; use `/health`. See [Deploying Behind a Proxy](/mcp/#deploying-behind-a-proxy).
+With `expose: true`, route `POST /mcp` at the root of the gateway Service - it deliberately does not sit under `/v1`. The endpoint is stateless, so it needs no session affinity and load-balances freely across replicas, but the `HTTPRoute` (and any proxy in front of it) must pass the `MCP-Protocol-Version`, `Mcp-Method` and `Mcp-Name` headers through unchanged. Stripping or rewriting one answers `400` with `-32020`. Do not aim a probe or gateway health check at `/mcp` - it is POST only and answers `405` to `GET`. Use `/health`. See [Deploying Behind a Proxy](/mcp/#deploying-behind-a-proxy).
 
 ### Health polling (`mcp.healthCheck`)
 
@@ -1103,7 +1103,7 @@ This block requires gateway v0.58.0 or newer - `spec.a2a` is ignored by older ga
 | `enabled`                                       | Toggle the gateway's A2A server (`A2A_ENABLED`, default `false`). Nothing below is emitted while this is `false`.             |
 | `agents[].name`                                 | Required. Becomes the agent's alias, and therefore its skill-id and task-id prefix.                                           |
 | `agents[].url`                                  | Required agent base URL.                                                                                                      |
-| `serviceDiscovery.{enabled,namespace,selector}` | Discover `Agent` CRs by label selector. `namespace` defaults to the `Gateway`'s own namespace; an empty selector matches all. |
+| `serviceDiscovery.{enabled,namespace,selector}` | Discover `Agent` CRs by label selector. `namespace` defaults to the `Gateway`'s own namespace. An empty selector matches all. |
 | `resourceUrl`                                   | Canonical public URL of `POST /a2a` (`A2A_RESOURCE_URL`). Defaults to the first `gatewayAPI.httpRoute` hostname.              |
 | `timeouts.client`                               | Timeout for one non-streaming call to an agent, including the card fetch (`A2A_CLIENT_TIMEOUT`, default `30s`).               |
 | `timeouts.streamIdle`                           | Idle cutoff for a relayed stream (`A2A_STREAM_IDLE_TIMEOUT`, default `5m`). `0` disables it.                                  |
@@ -1113,11 +1113,11 @@ Background card refresh is what retries an agent that was unreachable at startup
 
 ### Discovering `Agent` CRs
 
-With `serviceDiscovery.enabled: true` the operator lists `Agent` CRs in `serviceDiscovery.namespace` (the `Gateway`'s own namespace when unset), filtered by `serviceDiscovery.selector` (`matchLabels` and `matchExpressions` both work; a nil or empty selector matches every `Agent` in the namespace). The operator watches `Agent` resources, so creating, deleting or relabeling one re-renders `A2A_AGENTS` without a `Gateway` edit.
+With `serviceDiscovery.enabled: true` the operator lists `Agent` CRs in `serviceDiscovery.namespace` (the `Gateway`'s own namespace when unset), filtered by `serviceDiscovery.selector` (`matchLabels` and `matchExpressions` both work - a nil or empty selector matches every `Agent` in the namespace). The operator watches `Agent` resources, so creating, deleting or relabeling one re-renders `A2A_AGENTS` without a `Gateway` edit.
 
 Each discovered `Agent` contributes `<metadata.name>=<url>`, where the URL is:
 
-1. `status.card.url` - the card URL the `Agent` controller reports, preferred once it is populated; otherwise
+1. `status.card.url` - the card URL the `Agent` controller reports, preferred once it is populated. Otherwise
 2. the in-cluster Service URL <code v-pre>http://&lt;name&gt;.&lt;namespace&gt;.svc.cluster.local:&lt;spec.port&gt;</code> (or `spec.card.url` when set), used while the card URL has not been reported yet.
 
 Static `agents[]` entries and discovered `Agent` CRs are unioned, deduplicated on URL, and sorted for determinism. A discovery error is logged and ignored, so a transient API failure leaves the static list in place rather than blanking it.
@@ -1179,7 +1179,7 @@ A2A_RESOURCE_URL=https://api.inference-gateway.local/a2a
 
 `spec.routing` turns on the gateway's opt-in [round-robin model routing](/model-routing/): a client requests a stable logical alias (e.g. `{"model": "fast-chat"}`) and the gateway rotates round-robin through that alias's pool of upstream provider/model deployments, forwarding to the one it resolves. Operators can swap the upstreams behind an alias without touching client code.
 
-This is **distinct from [`spec.gatewayAPI`](#routing-gateway-api)**, which exposes the gateway to north-south [Kubernetes Gateway API](https://gateway-api.sigs.k8s.io/) traffic. `spec.routing` configures the gateway's internal model-alias -> provider/model selection; the two are unrelated and can be used together or independently.
+This is **distinct from [`spec.gatewayAPI`](#routing-gateway-api)**, which exposes the gateway to north-south [Kubernetes Gateway API](https://gateway-api.sigs.k8s.io/) traffic. `spec.routing` configures the gateway's internal model-alias -> provider/model selection. The two are unrelated and can be used together or independently.
 
 The operator maps this block onto the gateway's two routing environment variables:
 
@@ -1364,7 +1364,7 @@ The gateway's [`examples/basic/kubernetes`](https://github.com/inference-gateway
 | `enabled`                                 | Toggle Gateway API routing (default `false`). When `true`, the operator creates the Gateway API resources for the gateway Service.                    |
 | `gateway.gatewayClassName`                | GatewayClass that implements the listener (default `envoy`). Ignored when `gateway.parentRefs` is set.                                                |
 | `gateway.parentRefs[]`                    | Advanced mode: attach the `HTTPRoute` to an existing, platform-managed `Gateway` instead of creating one.                                             |
-| `gateway.tls.{enabled,issuer,secretName}` | Terminate TLS at the Gateway listener. `issuer` names a cert-manager `ClusterIssuer`; `secretName` defaults to the gateway name suffixed with `-tls`. |
+| `gateway.tls.{enabled,issuer,secretName}` | Terminate TLS at the Gateway listener. `issuer` names a cert-manager `ClusterIssuer`. `secretName` defaults to the gateway name suffixed with `-tls`. |
 | `httpRoute.hostnames[]`                   | Hostnames the `HTTPRoute` matches. In default mode they also become the managed Gateway listener's hostnames.                                         |
 
 In **default mode** the operator owns both the `Gateway` and the `HTTPRoute`. Setting `gateway.parentRefs` switches to **advanced mode**, where a platform team owns a shared `Gateway` and the operator only creates the `HTTPRoute` attached to it.
@@ -1470,7 +1470,7 @@ INFER_TELEMETRY_ENABLED=true
 INFER_TELEMETRY_OTLP_ENDPOINT=http://otel-collector:4318
 ```
 
-Traces and daemon-specific operational metrics are pushed to the collector over OTLP/HTTP. The `metrics.exporter.prometheus` block is schema-valid but does not translate to any orchestrator env var today (no scrape endpoint is exposed); it is shown here to illustrate the full shared `TelemetrySpec` shape. Because Prometheus metrics do not claim an OTLP endpoint, pairing them with OTLP traces also keeps the single shared endpoint unambiguous.
+Traces and daemon-specific operational metrics are pushed to the collector over OTLP/HTTP. The `metrics.exporter.prometheus` block is schema-valid but does not translate to any orchestrator env var today (no scrape endpoint is exposed). It is shown here to illustrate the full shared `TelemetrySpec` shape. Because Prometheus metrics do not claim an OTLP endpoint, pairing them with OTLP traces also keeps the single shared endpoint unambiguous.
 
 The daemon emits the following metrics when telemetry is enabled:
 

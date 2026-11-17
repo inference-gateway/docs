@@ -43,7 +43,7 @@ A default-pref file is not honoured for this, so the policy is the only way. Sig
 - **Manage skills**: the **Skills** tab shows a searchable, multi-select list of the [skills registry](https://github.com/inference-gateway/skills). Check skills to install and uncheck to remove, then click **Apply** to open a PR.
 - **Select agents**: the **Agents** tab lists available A2A agents from the [agents registry](https://github.com/inference-gateway/agents). Check the ones to include in the workflow, then re-install to bake them in.
 - **Init a project**: the **Init** tab dispatches the workflow to scaffold an `AGENTS.md` for the repo and open a PR.
-- **Record a workflow to turn into a skill**: click **Record tab** in the popup or side panel (Chrome and Edge only), perform the flow in the tab, then stop - or let it hard-stop at the cap. The file lands in Downloads as `opentask-recording-*.mp4`; attach it to a task or issue and the agent inspects the frames and proposes the skill via PR. See [Tab recording](#tab-recording).
+- **Record a workflow to turn into a skill**: click **Record tab** in the popup or side panel (Chrome and Edge only), perform the flow in the tab, then stop - or let it hard-stop at the cap. The file lands in Downloads as `opentask-recording-*.mp4`. Attach it to a task or issue and the agent inspects the frames and proposes the skill via PR. See [Tab recording](#tab-recording).
 
 ## Tab recording
 
@@ -59,9 +59,9 @@ Settings live under **Options -> Orchestrator -> Tab recording**:
 
 - **Recording cap (seconds)** - the hard stop for a recording (default 60, bounded to 5-300).
 
-**Frame extraction is CLI-managed.** When a recording is sent through the [CLI bridge](#cli-bridge-protocol) rather than attached to GitHub, the agent extracts its frames with the prebuilt `ffmpeg` the CLI owns under `~/.infer/bin/tools/`. The extension never installs that extractor itself: it checks the copy on disk with the approval-free, sha256-based `infer binaries status ffmpeg` and, only when that reports `missing` or `stale`, installs it through the connected CLI with `infer binaries install ffmpeg` - an approval card headed `# opentask: download the latest ffmpeg ...`. A send carrying a recording waits for that install and reports in the composer if it failed; a denied upgrade keeps the existing copy. Needs CLI v0.221.1 or newer, which is where `infer binaries` took ownership of the prebuilt tools - see the [command reference](/cli/#command-reference).
+**Frame extraction is CLI-managed.** When a recording is sent through the [CLI bridge](#cli-bridge-protocol) rather than attached to GitHub, the agent extracts its frames with the prebuilt `ffmpeg` the CLI owns under `~/.infer/bin/tools/`. The extension never installs that extractor itself: it checks the copy on disk with the approval-free, sha256-based `infer binaries status ffmpeg` and, only when that reports `missing` or `stale`, installs it through the connected CLI with `infer binaries install ffmpeg` - an approval card headed `# opentask: download the latest ffmpeg ...`. A send carrying a recording waits for that install and reports in the composer if it failed. A denied upgrade keeps the existing copy. Needs CLI v0.221.1 or newer, which is where `infer binaries` took ownership of the prebuilt tools - see the [command reference](/cli/#command-reference).
 
-Audio capture and automatic upload of the recording are deliberately out of scope. Recording needs the `tabCapture`, `offscreen`, and `downloads` permissions, which only the Chrome and Edge builds request; on Firefox and Safari the control hides itself. Nothing on the gateway or SDK side is involved - the capture never leaves your machine until you attach it yourself or send it through the bridge. Full details are in the extension's [Tab recording](https://github.com/inference-gateway/opentask#tab-recording) README section.
+Audio capture and automatic upload of the recording are deliberately out of scope. Recording needs the `tabCapture`, `offscreen`, and `downloads` permissions, which only the Chrome and Edge builds request. On Firefox and Safari the control hides itself. Nothing on the gateway or SDK side is involved - the capture never leaves your machine until you attach it yourself or send it through the bridge. Full details are in the extension's [Tab recording](https://github.com/inference-gateway/opentask#tab-recording) README section.
 
 ## Configuration
 
@@ -78,7 +78,7 @@ Right-click the extension icon and select **Options** (or navigate to the extens
 
 ## CLI bridge protocol
 
-The [Inference Gateway CLI](/cli/) can drive **your real browser** through OpenTask instead of a Playwright-launched one, and mirror the chat conversation into the extension sidepanel. The bridge itself works on every build; the side-panel chat and the [Install workflow](#usage) flow that streams through it are Chrome and Edge only, because Firefox and Safari have no side panel. The rest of this page is the wire contract the extension implements.
+The [Inference Gateway CLI](/cli/) can drive **your real browser** through OpenTask instead of a Playwright-launched one, and mirror the chat conversation into the extension sidepanel. The bridge itself works on every build. The side-panel chat and the [Install workflow](#usage) flow that streams through it are Chrome and Edge only, because Firefox and Safari have no side panel. The rest of this page is the wire contract the extension implements.
 
 > **Note:** Every frame is a single JSON text message with a `type` discriminator. Unknown `type` values are ignored on both sides, so the protocol is forward-compatible by contract.
 
@@ -143,7 +143,7 @@ The port must be one the daemon actually serves the extension on. In a pod the o
 
 - The daemon listens on `ws://127.0.0.1:<port>/ws` (default port `52789`, `daemon.yaml` -> `binding.port`, falling back to `browser_use.yaml` -> `extension.port`). The extension dials in, because MV3 service workers cannot listen.
 - Auth is a shared token (`binding.token` in `daemon.yaml`, falling back to `extension.token` in `browser_use.yaml`, copied into the extension options). Browser WebSocket clients cannot set headers, so the token rides in the first message.
-- One extension connection at a time; a newly authenticated connection replaces the previous one (service workers restart at will). The daemon sends WebSocket pings every ~20s to keep the service worker alive.
+- One extension connection at a time. A newly authenticated connection replaces the previous one (service workers restart at will). The daemon sends WebSocket pings every ~20s to keep the service worker alive.
 - Only `chrome-extension://`, `moz-extension://`, `safari-web-extension://` (or absent) `Origin` headers are accepted.
 - Connects, disconnects and routing errors land in the [daemon log](/cli/#the-daemon-log).
 
@@ -198,7 +198,7 @@ There is deliberately **no** frame and no CUSTOM event for pausing or resuming b
 
 ### Browser commands (daemon -> extension)
 
-One shape, six actions; only the fields relevant to the action are set. `timeout_ms` is the per-action budget the extension must enforce.
+One shape, six actions. Only the fields relevant to the action are set. `timeout_ms` is the per-action budget the extension must enforce.
 
 ```json
 {"type": "browser_command", "id": "<uuid>", "action": "navigate",   "url": "https://example.com", "timeout_ms": 30000}
@@ -209,7 +209,7 @@ One shape, six actions; only the fields relevant to the action are set. `timeout
 {"type": "browser_command", "id": "<uuid>", "action": "tabs",       "timeout_ms": 30000}
 ```
 
-- `navigate` - open the URL in the controlled tab. The extension chooses and owns the controlled tab; the protocol has no tab id.
+- `navigate` - open the URL in the controlled tab. The extension chooses and owns the controlled tab. The protocol has no tab id.
 - `click` - `document.querySelector(selector).click()` semantics.
 - `type` - replace the element's value with `text`, dispatch `input`/`change`, then a keyboard Enter when `press_enter` is true.
 - `read` - `innerText` of the selector (an empty selector means `body`). Secrets must be redacted: the extension never returns the value of password, `current-password`/`new-password`/`one-time-code` autocomplete, or otherwise secret-looking inputs.
@@ -224,7 +224,7 @@ Extension -> daemon, exactly one result per command id:
 {"type": "browser_result", "id": "<uuid>", "tabs": [{"index": 0, "url": "...", "title": "...", "active": true}]}
 ```
 
-- `error != ""` means the command failed; other fields may be empty.
+- `error != ""` means the command failed. Other fields may be empty.
 - `content` is only meaningful for `read`, `image`/`image_mime_type` for `screenshot`, `tabs` for `tabs`. `events` carries optional browser-initiated notices (console lines and similar) and may always be empty.
 - `url`/`title` reflect the controlled tab after the action.
 
@@ -280,7 +280,7 @@ Extension -> daemon, to send a user message into the thread (queued if the agent
 { "type": "user_message", "content": "please also check the docs page" }
 ```
 
-Extension -> daemon, to stop the turn currently streaming (same as `esc` in the TUI; a no-op when nothing is running):
+Extension -> daemon, to stop the turn currently streaming (same as `esc` in the TUI - a no-op when nothing is running):
 
 ```json
 { "type": "interrupt" }
@@ -588,7 +588,7 @@ Extension -> daemon, the user's decision:
 { "type": "approval_response", "tool_call_id": "call-1", "approved": true, "scope": "once" }
 ```
 
-- `approved` is the decision; a missing or unparsable frame is ignored, so a rejection has to say so explicitly.
+- `approved` is the decision. A missing or unparsable frame is ignored, so a rejection has to say so explicitly.
 - `scope` widens the decision beyond this single call when the client offers it.
 
 Daemon -> the thread's other clients, when the request is no longer pending:
@@ -602,7 +602,7 @@ Daemon -> the thread's other clients, when the request is no longer pending:
 
 ### Frame reference
 
-Browser and session frames specific to this transport; the AG-UI and CUSTOM events both directions share are listed under [shared event stream](/cli/#shared-event-stream).
+Browser and session frames specific to this transport. The AG-UI and CUSTOM events both directions share are listed under [shared event stream](/cli/#shared-event-stream).
 
 | Frame                                 | Direction        | Purpose                                                                          |
 | ------------------------------------- | ---------------- | -------------------------------------------------------------------------------- |

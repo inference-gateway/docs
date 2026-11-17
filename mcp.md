@@ -376,7 +376,7 @@ Every result carries `resultType: "complete"` and identifies the gateway in `_me
 | `tools/list`      | `_meta`, optional `cursor`                | `ListToolsResult` - the aggregated, namespaced tools of every healthy server |
 | `tools/call`      | `_meta`, `name` (namespaced), `arguments` | `CallToolResult`                                                             |
 
-Param and result shapes are the [MCP specification](https://modelcontextprotocol.io/specification) types; the gateway only wraps them in JSON-RPC envelopes.
+Param and result shapes are the [MCP specification](https://modelcontextprotocol.io/specification) types. The gateway only wraps them in JSON-RPC envelopes.
 
 Transport is plain JSON request/response: one JSON-RPC message per `POST`, one JSON body back. There is no SSE response stream, no standalone `GET` stream and no session to delete - `GET /mcp` and `DELETE /mcp` answer `405`.
 
@@ -509,7 +509,7 @@ curl -X POST http://localhost:8080/mcp \
 
 A `tools/call` here is the same tool call the chat-completions agent loop makes, so it gets the same enforcement and observability:
 
-- **Guardrails** - the `tool_args` policy phase runs before the upstream call and `tool_output` after it, so one policy covers both `/v1/chat/completions` and `POST /mcp`. Policies see the namespaced `mcp_<alias>_<tool>` name; see [Guardrails](/configuration/#guardrails) for the per-phase `input` shape.
+- **Guardrails** - the `tool_args` policy phase runs before the upstream call and `tool_output` after it, so one policy covers both `/v1/chat/completions` and `POST /mcp`. Policies see the namespaced `mcp_<alias>_<tool>` name. See [Guardrails](/configuration/#guardrails) for the per-phase `input` shape.
 - **Metrics** - every call that resolves to an advertised, allowed tool increments `inference_gateway.tool_calls` with `source=gateway`, `gen_ai.tool.type=mcp` and `gen_ai.tool.name=<namespaced name>`. Provider and model are empty: nothing about this path involves a model. Unresolved names are not counted, so a client cannot inflate label cardinality.
 - **Traces** - the call runs inside an `execute_tool <name>` span carrying the resolved `mcp.server.alias`.
 
@@ -557,11 +557,11 @@ HTTP/1.1 401 Unauthorized
 WWW-Authenticate: Bearer realm="inference-gateway", error="invalid_token", resource_metadata="https://gateway.example.com/.well-known/oauth-protected-resource/mcp"
 ```
 
-Tokens must then be requested **for that resource** ([RFC 8707](https://datatracker.ietf.org/doc/html/rfc8707)) - the client sends the `resource` value as the `resource` parameter at the token endpoint. When the IdP stamps that indicator into the token's `aud`, list the same value in `AUTH_OIDC_AUDIENCE`; see [Audience validation](/authentication/#audience-validation).
+Tokens must then be requested **for that resource** ([RFC 8707](https://datatracker.ietf.org/doc/html/rfc8707)) - the client sends the `resource` value as the `resource` parameter at the token endpoint. When the IdP stamps that indicator into the token's `aud`, list the same value in `AUTH_OIDC_AUDIENCE`. See [Audience validation](/authentication/#audience-validation).
 
 ### Errors
 
-Errors come back as JSON-RPC error envelopes; most use HTTP `200`, the transport-level ones carry a status of their own:
+Errors come back as JSON-RPC error envelopes. Most use HTTP `200`, the transport-level ones carry a status of their own:
 
 | Code     | Meaning                                                                               | HTTP  |
 | -------- | ------------------------------------------------------------------------------------- | ----- |
@@ -598,15 +598,15 @@ An `Origin` header is rejected outright: MCP clients are not browsers, and refus
 
 The endpoint is stateless, which keeps the deployment story short:
 
-- **Forward the MCP headers unchanged.** `MCP-Protocol-Version`, `Mcp-Method` and `Mcp-Name` are part of the contract; an ingress, Gateway API filter, or reverse proxy that strips or rewrites them breaks every request with `400` / `-32020`. NGINX passes unknown headers through by default, but an explicit allowlist must include all three.
-- **No session affinity.** There is no `Mcp-Session-Id`, so consecutive requests from one client can land on different replicas. `/mcp` load-balances freely; no sticky sessions, no `sessionAffinity: ClientIP`.
+- **Forward the MCP headers unchanged.** `MCP-Protocol-Version`, `Mcp-Method` and `Mcp-Name` are part of the contract. An ingress, Gateway API filter, or reverse proxy that strips or rewrites them breaks every request with `400` / `-32020`. NGINX passes unknown headers through by default, but an explicit allowlist must include all three.
+- **No session affinity.** There is no `Mcp-Session-Id`, so consecutive requests from one client can land on different replicas. `/mcp` load-balances freely. No sticky sessions, no `sessionAffinity: ClientIP`.
 - **Never probe `/mcp`.** It answers `405` to `GET` and `403` to an unauthenticated or `Origin`-bearing request, so a liveness, readiness, or ingress health check pointed at it always fails. Use `/health`.
 - **Set `MCP_RESOURCE_URL`** when the proxy rewrites the scheme, host, or path, so the discovery document advertises a URL clients can reach. On Kubernetes this is the `Gateway` CRD's [`spec.mcp.resourceUrl`](/operator/#protected-resource-url-mcp-resourceurl), which the operator defaults to the first `gatewayAPI.httpRoute` hostname.
-- **Route the discovery path too.** `/.well-known/oauth-protected-resource/mcp` must reach the gateway alongside `/mcp`; the operator-managed `HTTPRoute` already covers it with its `/` prefix match.
+- **Route the discovery path too.** `/.well-known/oauth-protected-resource/mcp` must reach the gateway alongside `/mcp`. The operator-managed `HTTPRoute` already covers it with its `/` prefix match.
 
 ### Using It from an Agent Client
 
-Point your client's MCP configuration at the gateway. One entry replaces one entry per backend server, and adding or removing a server in `MCP_SERVERS` needs no client change. The client must speak MCP `2026-07-28`; one that only implements an earlier version fails its handshake with `-32020` or `-32022`.
+Point your client's MCP configuration at the gateway. One entry replaces one entry per backend server, and adding or removing a server in `MCP_SERVERS` needs no client change. The client must speak MCP `2026-07-28`. One that only implements an earlier version fails its handshake with `-32020` or `-32022`.
 
 For [opencode](https://opencode.ai/), in `opencode.json`:
 
