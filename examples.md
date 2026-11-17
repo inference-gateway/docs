@@ -61,6 +61,13 @@ spec:
 
 For complete Kubernetes deployment examples including Services, ConfigMaps, and Secrets, visit the [examples index](https://github.com/inference-gateway/inference-gateway/blob/main/examples/README.md) in the GitHub repository - each domain ships a `kubernetes` variant.
 
+## CLI Examples
+
+The CLI repository ships runnable examples under [`examples/`](https://github.com/inference-gateway/cli/tree/main/examples), each with its own README. These run offline against a mock model with no API key:
+
+- [`examples/subagents`](https://github.com/inference-gateway/cli/tree/main/examples/subagents) - the [Agent tool](/cli/#local-subagents-agent-tool) fanning out local subagents, one through a Markdown agent preset, into one aggregated result
+- [`examples/ag-ui`](https://github.com/inference-gateway/cli/tree/main/examples/ag-ui) - consuming the [AG-UI headless stream](/cli/#output-format-format) and the [`infer headless --serve`](/cli/#serve-worker-serve) worker, including a `--require-approval` run answered over stdin
+
 ## API Usage Examples
 
 ### Create Chat Completions with OpenAI

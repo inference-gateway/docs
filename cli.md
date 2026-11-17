@@ -1143,6 +1143,8 @@ Each entry of the stored conversation maps to one snapshot message:
 infer headless --serve --session-id abc-123-def
 ```
 
+> For a runnable version, see [`examples/ag-ui`](https://github.com/inference-gateway/cli/tree/main/examples/ag-ui) in the CLI repository - a small consumer that reads the `--format ag-ui` stream, drives the `--serve` worker with one run per `run_agent_input` frame, and answers a `--require-approval` interrupt over stdin. It runs offline against a mock model, so it needs no API key.
+
 This is the shape the [daemon](#daemon) spawns its [session workers](#what-the-daemon-runs) in, so a host that owns the subprocess speaks the same vocabulary as a daemon client: app frames in with a lowercase `type`, AG-UI events out with an uppercase `type`, no envelope and no translation.
 
 ```json
@@ -3118,6 +3120,8 @@ See [Escalating a rejection](/cli-judge-mode/#escalating-a-rejection-requestappr
 ### Local Subagents (Agent tool)
 
 The **Agent** tool lets the main agent - in chat or [headless mode](#headless-agent-stream-output) - spawn one or more **local subagents** that run work in parallel and fold their results back into the main conversation. A subagent is just an `infer headless` subprocess with its own isolated session, so it is cheap, isolated, and session-persisted. The tool is **enabled by default** and gated by the [`tools.agent.*` config block](#agent-tool-configuration).
+
+> For a runnable version, see [`examples/subagents`](https://github.com/inference-gateway/cli/tree/main/examples/subagents) in the CLI repository - the Agent tool fans out two subagents, one through a [Markdown preset](#markdown-subagent-presets) with a `tools` allowlist listed by `infer agents list`, and folds both back into one tool result. It runs offline against a mock model, so it needs no API key.
 
 This is the lightweight, **local** complement to the [A2A tools](/a2a/) (`A2A_SubmitTask` / `A2A_QueryTask` / `A2A_QueryAgent`), which target external A2A servers:
 
