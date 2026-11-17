@@ -552,6 +552,70 @@ Content-Type: application/json
 }
 ```
 
+### Messages API
+
+The gateway exposes an Anthropic-compatible `POST /v1/messages` endpoint. The request follows the Anthropic Messages API format with `model`, `max_tokens`, `messages`, and optional `system`, `tools`, and `stream` fields. Providers that do not implement the Messages API return `400 Bad Request` - use `/v1/chat/completions` for those.
+
+```http
+POST /v1/messages?provider={provider}
+```
+
+**Request Body:**
+
+```bash
+curl -X POST http://localhost:8080/v1/messages \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "anthropic/claude-opus-5-5",
+    "max_tokens": 1024,
+    "messages": [{ "role": "user", "content": "Hi, how are you doing today?" }]
+  }'
+```
+
+**Response (`MessagesResponse`):**
+
+```http
+Status: 200 OK
+Content-Type: application/json
+
+{
+  "id": "msg_01XFDUDYJgAACzvnptvVoYEL",
+  "type": "message",
+  "role": "assistant",
+  "model": "claude-opus-5-5",
+  "content": [{ "type": "text", "text": "Hello! I'm doing well, thank you!" }],
+  "stop_reason": "end_turn",
+  "stop_sequence": null,
+  "usage": { "input_tokens": 14, "output_tokens": 10 }
+}
+```
+
+#### Stop reasons
+
+`stop_reason` is always present but nullable. It is non-null in non-streaming responses. When streaming, it is `null` in the `message` object of the first `message_start` event and the final value arrives in the `message_delta` event.
+
+| Value                           | Meaning                                                    |
+| ------------------------------- | ---------------------------------------------------------- |
+| `end_turn`                      | The model reached a natural stopping point                 |
+| `max_tokens`                    | The response hit the requested `max_tokens` limit          |
+| `stop_sequence`                 | A custom stop sequence was generated (see `stop_sequence`) |
+| `tool_use`                      | The model invoked one or more tools                        |
+| `pause_turn`                    | The provider paused a long-running turn                    |
+| `refusal`                       | The model declined to respond                              |
+| `model_context_window_exceeded` | Generation stopped because the context window was full     |
+
+#### Streaming
+
+Set `"stream": true` to receive `MessagesStreamEvent` SSE frames: `message_start`, `content_block_start`, `content_block_delta`, `content_block_stop`, `message_delta`, `message_stop`, `ping`, and `error`. Clients that validate events should accept `"stop_reason": null` in `message_start`:
+
+```text
+event: message_start
+data: {"type":"message_start","message":{"id":"msg_01...","type":"message","role":"assistant","content":[],"model":"claude-opus-5-5","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":14,"output_tokens":1}}}
+
+event: message_delta
+data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":10}}
+```
+
 ### Decisions API
 
 The gateway exposes an OpenAI-compatible `POST /v1/decisions` endpoint that relays the [OpenAI Decisions API](https://developers.openai.com/api/docs/guides/decisions). You send shared evidence once as `input` and a list of `questions` to answer about it, and get back one answer per question. The request body is forwarded to the upstream provider byte-for-byte (only the `model` prefix is stripped), so fields like `questions`, `prompt_cache_key` and `prompt_cache_options` pass through untouched.
