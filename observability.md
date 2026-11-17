@@ -354,7 +354,7 @@ A minimal hand-rolled panel set you can build in Grafana:
 
 Tracing is a separate opt-in from metrics. Set `TELEMETRY_TRACING_ENABLED=true` **in addition to** `TELEMETRY_ENABLED=true` to have the gateway initialize the global OpenTelemetry tracer provider and emit spans. With `TELEMETRY_ENABLED=true` alone you get metrics but no traces.
 
-Traces are exported over OTLP/HTTP to `TELEMETRY_TRACING_OTLP_ENDPOINT` (default `http://localhost:4318`). Resource attributes `service.name`, `service.version`, and `deployment.environment` are populated from the gateway's runtime.
+Traces are exported over OTLP/HTTP to `TELEMETRY_TRACING_OTLP_ENDPOINT` (default `http://localhost:4318`). When the endpoint has no path, the gateway appends `/v1/traces`, so `http://jaeger:4318` exports to `http://jaeger:4318/v1/traces`. Any OTLP/HTTP backend works - Jaeger, Grafana Tempo, or an OpenTelemetry Collector in front of either. Resource attributes `service.name`, `service.version`, and `deployment.environment` are populated from the gateway's runtime.
 
 ```bash
 TELEMETRY_ENABLED=true
@@ -371,16 +371,59 @@ OTEL_RESOURCE_ATTRIBUTES=deployment.environment=production
 
 ### Span coverage
 
-- **Root spans** are created for every inbound request **except** `/health` and `/v1/metrics`, which are excluded to keep health checks and the metrics push endpoint out of your traces.
-- **GenAI attributes** (`gen_ai` provider and model span attributes) are attached on the inference routes `/v1/chat/completions`, `/v1/messages`, and `/v1/responses`, so a span records which provider and model served the request.
-- **MCP tool execution** produces one child span per tool call - `execute_tool <namespaced name>`, carrying the resolved `mcp.server.alias` - nested under the request's root span. A `tools/call` on `POST /mcp` is traced the same way as a tool call made inside the chat-completions agent loop.
+- **Server span.** Every inbound request **except** `/health` and `/v1/metrics` opens an `inference-gateway` server span. Health checks and the metrics push endpoint are excluded to keep them out of your traces. Failed requests carry `error.type` (the HTTP status) and are marked as errors.
+- **GenAI attributes.** On the inference routes `/v1/chat/completions`, `/v1/messages`, and `/v1/responses` the server span records which provider and model served the request as `gen_ai.provider.name` (e.g. `deepseek`) and `gen_ai.request.model` (e.g. `deepseek/deepseek-v4-flash`).
+- **MCP tool execution** produces one child span per tool call - `execute_tool <namespaced name>`, carrying `gen_ai.tool.name` and the resolved `mcp.server.alias` - nested under the server span. A `tools/call` on `POST /mcp` is traced the same way as a tool call made inside the chat-completions agent loop.
 
 ### Context propagation
 
 The gateway propagates [W3C Trace Context](https://www.w3.org/TR/trace-context/) in both directions:
 
 - **Incoming.** A `traceparent` header on an inbound request is honored, so the gateway's spans join the caller's existing trace rather than starting a new one.
-- **Outgoing.** Provider calls, proxied requests, and MCP requests all carry a `traceparent` header, so downstream spans stitch into the same trace end to end.
+- **Outgoing.** Provider calls, proxied requests, MCP requests, and A2A agent calls all carry a `traceparent` header, so downstream spans stitch into the same trace end to end. An MCP server or A2A agent that traces itself (for example one built on the [ADK](/adk/#telemetry)) emits its spans as children of the gateway's.
+
+### Example: curl to Jaeger
+
+The [monitoring example](https://github.com/inference-gateway/inference-gateway/tree/main/examples/monitoring/docker-compose) in the gateway repo runs the gateway with Jaeger (`jaegertracing/all-in-one`) as the OTLP backend and the MCP time server wired in. The relevant gateway settings are:
+
+```yaml
+environment:
+  - TELEMETRY_ENABLED=true
+  - TELEMETRY_TRACING_ENABLED=true
+  - TELEMETRY_TRACING_OTLP_ENDPOINT=http://jaeger:4318
+  - MCP_ENABLED=true
+  - MCP_SERVERS=time=http://mcp-time-server:8081/mcp
+```
+
+Start the stack with `docker compose up -d`, then send a chat completion:
+
+```bash
+curl -X POST http://localhost:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "deepseek/deepseek-v4-flash",
+    "messages": [
+      {"role": "user", "content": "Say hi in five words."}
+    ]
+  }'
+```
+
+Open the Jaeger UI at `http://localhost:16686`, select the `inference-gateway` service and press **Find Traces**. The trace holds one `inference-gateway` server span with `gen_ai.provider.name=deepseek` and `gen_ai.request.model=deepseek/deepseek-v4-flash` in its attributes.
+
+Now ask something that makes the model call the MCP time tool:
+
+```bash
+curl -X POST http://localhost:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "deepseek/deepseek-v4-flash",
+    "messages": [
+      {"role": "user", "content": "What time is it right now?"}
+    ]
+  }'
+```
+
+This trace adds an `execute_tool mcp_time_time` span, carrying `gen_ai.tool.name` and `mcp.server.alias=time`, nested under the server span. The time server receives each JSON-RPC request with the same `traceparent`, which `docker compose logs mcp-time-server` shows.
 
 ### Sampling and exporter tuning
 
@@ -609,12 +652,12 @@ When the CLI runs as an [Orchestrator](/operator/#orchestrator) under the Kubern
 
 ## Reference Monitoring Stack
 
-For a runnable end-to-end setup (Prometheus + Grafana + Loki + dashboards already wired), see the official examples:
+For a runnable end-to-end setup (Prometheus + Grafana + Jaeger + dashboards already wired), see the official examples:
 
 - Docker Compose: [`examples/monitoring/docker-compose`](https://github.com/inference-gateway/inference-gateway/tree/main/examples/monitoring/docker-compose)
 - Kubernetes (kube-prometheus-stack): [`examples/monitoring/kubernetes`](https://github.com/inference-gateway/inference-gateway/tree/main/examples/monitoring/kubernetes)
 
-Both bring up the gateway with `TELEMETRY_ENABLED=true`, scrape `/metrics`, provision the reference Grafana dashboards, and (in the Kubernetes example) install a `ServiceMonitor` for kube-prometheus-stack.
+Both bring up the gateway with `TELEMETRY_ENABLED=true`, scrape `/metrics`, provision the reference Grafana dashboards, export traces to Jaeger with `TELEMETRY_TRACING_ENABLED=true` (see [Example: curl to Jaeger](#example-curl-to-jaeger)), and (in the Kubernetes example) install a `ServiceMonitor` for kube-prometheus-stack.
 
 ## Troubleshooting Observability
 
