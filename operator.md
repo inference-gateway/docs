@@ -656,7 +656,7 @@ Leases an externally hosted, GPU-backed inference runtime through a pluggable pr
 
 The phase progresses `Pending` → `Provisioning` → `Starting` → `Ready` → `Terminating` (with `Expired` and `Failed` as terminal detours). When `Ready`, the operator generates a Secret named `<gpu-name>-connection` containing `url` and `apiKey` - the `apiKey` is a per-allocation token injected into the runtime as `API_KEY`, not the provider management key. Deleting the `GPU` releases the provider allocation via finalizer, and the connection Secret is garbage-collected by owner reference.
 
-A `Gateway` consumes the connection Secret through provider `env`:
+A `Gateway` consumes the connection Secret through provider `env`. The gateway only reads `<PROVIDER_ID>_API_URL` and `<PROVIDER_ID>_API_KEY` for the provider ids it registers, so wire an OpenAI-compatible runtime (vLLM, for example) in as the `openai` provider. That replaces api.openai.com on this `Gateway` - use a separate `Gateway` if you also need hosted OpenAI. The connection Secret holds the bare runtime URL without `/v1`, so declare it first and let Kubernetes expand it into `OPENAI_API_URL` with the OpenAI base path appended:
 
 ```yaml
 apiVersion: core.inference-gateway.com/v1alpha1
@@ -679,15 +679,17 @@ metadata:
   name: my-gateway
 spec:
   providers:
-    - name: Custom
+    - name: openai
       enabled: true
       env:
-        - name: CUSTOM_API_URL
+        - name: GPU_RUNTIME_URL
           valueFrom:
             secretKeyRef:
               name: my-gpu-connection
               key: url
-        - name: CUSTOM_API_KEY
+        - name: OPENAI_API_URL
+          value: '$(GPU_RUNTIME_URL)/v1'
+        - name: OPENAI_API_KEY
           valueFrom:
             secretKeyRef:
               name: my-gpu-connection
