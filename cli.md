@@ -3935,15 +3935,16 @@ reminders:
     text: 'A failed call means the change did not happen. Re-try or ask the user.'
 ```
 
-| Field       | Type    | Description                                                                                                                                                                        |
-| ----------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `enabled`   | boolean | Master switch. Default `true`. Can also be toggled via `INFER_REMINDERS_ENABLED`.                                                                                                  |
-| `name`      | string  | Unique identifier for the reminder. Used for deduplication and logging.                                                                                                            |
-| `hook`      | string  | When the reminder fires. One of `pre_tool` (before each tool call) or `post_tool` (after each tool call completes).                                                                |
-| `trigger`   | string  | Condition under which the reminder fires. See [Trigger catalog](#trigger-catalog) below.                                                                                           |
-| `text`      | string  | The reminder text injected into the conversation. Supports `os.ExpandEnv` environment variable interpolation (`$VAR` or `${VAR}`).                                                 |
-| `threshold` | integer | Required (> 0) for `on_repeated_failure` - consecutive failures of the same call before the reminder fires - and for `elapsed_minutes`, where it is the number of minutes.         |
-| `guidance`  | map     | `on_mode_change` only. Maps a mode key (`standard`, `plan`, `auto`) to the text substituted for the `{guidance}` placeholder in `text`. Omitted keys keep their built-in defaults. |
+| Field       | Type    | Description                                                                                                                                                                          |
+| ----------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `enabled`   | boolean | Master switch. Default `true`. Can also be toggled via `INFER_REMINDERS_ENABLED`.                                                                                                    |
+| `merge`     | boolean | Top level. Default `false` - the supplied list replaces the built-in defaults. With `true` entries merge onto the built-ins by `name` (a matching name overrides, new names append). |
+| `name`      | string  | Unique identifier for the reminder. Used for deduplication and logging.                                                                                                              |
+| `hook`      | string  | When the reminder fires. One of `pre_tool` (before each tool call) or `post_tool` (after each tool call completes).                                                                  |
+| `trigger`   | string  | Condition under which the reminder fires. See [Trigger catalog](#trigger-catalog) below.                                                                                             |
+| `text`      | string  | The reminder text injected into the conversation. Supports `os.ExpandEnv` environment variable interpolation (`$VAR` or `${VAR}`).                                                   |
+| `threshold` | integer | Required (> 0) for `on_repeated_failure` - consecutive failures of the same call before the reminder fires - and for `elapsed_minutes`, where it is the number of minutes.           |
+| `guidance`  | map     | `on_mode_change` only. Maps a mode key (`standard`, `plan`, `auto`) to the text substituted for the `{guidance}` placeholder in `text`. Omitted keys keep their built-in defaults.   |
 
 #### Trigger catalog
 
@@ -4017,6 +4018,12 @@ reminders:
     text: "A failed call means the change did not happen"
 ' INFER_REMINDERS_ENABLED=true infer headless "..."
 ```
+
+#### Runnable example
+
+The CLI repository ships [`examples/hooks`](https://github.com/inference-gateway/cli/tree/main/examples/hooks), which runs offline against a scripted mock model. `task reminder` loads `.infer/reminders.yaml` with `merge: true`, so one custom reminder fires next to the built-ins. `task reminder:swap` passes `--reminders-file swap-reminders.yaml`, a file without `merge`, so the built-ins and the merged reminder disappear and only the swap entry fires.
+
+Both tasks run with `INFER_REMINDERS_CONFIG=` (empty) in front of the command. Because the env var sits at the top of the [precedence](#configuration-sources-and-precedence) - `INFER_REMINDERS_CONFIG`, then `--reminders-file`, then `.infer/reminders.yaml` - an exported value would shadow both files. CI runners such as the [GitHub Action](/github-action/) export one, so clearing it keeps the demos deterministic. The same example covers [command hooks](/cli-hooks/#runnable-example).
 
 ### Essential Environment Variables
 
@@ -5350,7 +5357,7 @@ See [MCP documentation](/mcp/) for detailed integration guide and server develop
 
 ### Agent Skills
 
-Reusable, model-readable instruction folders that the agent loads on demand. The CLI uses the same on-disk format as Gemini CLI and OpenAI Codex CLI, so a skill authored for any of those tools drops into `.infer/skills/` unchanged. Skills are discovered from three locations, in precedence order: project `.infer/skills/`, the `.agents/skills/` open standard (a shared cross-tool convention), then user-global `~/.infer/skills/`. Skills are **enabled by default** - discovered skills are injected into the system prompt out of the box. Only the lightweight metadata (name + description) is added; each `SKILL.md` body is read on demand. Turn them off with `agent.skills.enabled: false`, or skip individual skills with `disabled_skills`.
+Reusable, model-readable instruction folders that the agent loads on demand. The CLI uses the same on-disk format as Gemini CLI and OpenAI Codex CLI, so a skill authored for any of those tools drops into `.infer/skills/` unchanged. Skills are discovered from four locations, in precedence order: project `.infer/skills/`, the `.agents/skills/` open standard (a shared cross-tool convention), user-global `~/.infer/skills/`, then skills contributed by installed [plugins](#plugins). Skills are **enabled by default** - discovered skills are injected into the system prompt out of the box. Only the lightweight metadata (name + description) is added; each `SKILL.md` body is read on demand. Turn them off with `agent.skills.enabled: false`, or skip individual skills with `disabled_skills`.
 
 ```yaml
 # .infer/config.yaml
@@ -5371,6 +5378,57 @@ infer skills uninstall internal-comms
 Once enabled, invoke a skill explicitly with `/<name>` (for example `/pdf-helper`) or by asking the agent to "use the `<name>` skill"; the CLI deterministically activates it by injecting the skill's metadata and pointing the agent at its `SKILL.md`. Installed skills under `~/.infer/skills` and `./.infer/skills` stay readable by the Read tool through a sandbox carve-out, so they load even when the agent runs outside the project directory (for example in CI).
 
 See the full **[Agent Skills guide](/cli-skills/)** for the on-disk layout, the `SKILL.md` frontmatter contract, install flags, activation triggers, and the sandbox carve-out. To publish a skill in the shared index, see the [Skills Catalog](/skills/).
+
+### Plugins
+
+`infer plugins` installs **Claude Code-format plugins** - content packages that bundle [Agent Skills](/cli-skills/) and an always-on instruction ruleset - and maps them onto native CLI features. Plugins published for that ecosystem install unchanged, from `owner/repo` (optionally `@ref`), a `github.com` URL, or a local directory for plugin development. Downloads use the GitHub API, so no `git` binary is needed.
+
+| Plugin component                 | CLI feature                                                                                               |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `skills/<name>/SKILL.md`         | Native skills, discovered with scope `plugin` (lowest precedence - a local skill with the same name wins) |
+| `AGENTS.md` (plugin root)        | Injected as a labeled `PLUGIN INSTRUCTIONS (<name>)` section of every system prompt while enabled         |
+| `hooks.yaml` (plugin root)       | Native [command hooks](/cli-hooks/), installed **disabled** until you opt in                              |
+| `.claude-plugin/plugin.json`     | Name, version and description metadata (optional - falls back to the repo name)                           |
+| `commands/`, `hooks/`, `agents/` | **Detected and reported, never installed or executed** - the CLI does not run plugin code                 |
+
+```bash
+infer plugins install <owner/repo | github-url | local-path> [--ref <ref>] [--yes] [--overwrite]
+infer plugins list [--format text|json]
+infer plugins update [<name>]        # re-fetch from the recorded source
+infer plugins enable <name>
+infer plugins disable <name>         # skills unloaded, instructions removed
+infer plugins enable-hooks <name>    # opt in to the plugin's hooks.yaml
+infer plugins disable-hooks <name>
+infer plugins remove <name>
+```
+
+Because a plugin's `AGENTS.md` becomes always-on prompt content, `install` prints a summary of the skills, instructions and hooks it provides and asks for confirmation. `--yes` skips the prompt and is required when stdin is not interactive.
+
+**Userspace registry.** Plugins are userspace-only: content lives under `~/.infer/plugins/<name>/` and the registry is `~/.infer/plugins.yaml`, created on the first install and never seeded or overwritten by `infer init`.
+
+```yaml
+# ~/.infer/plugins.yaml
+enabled: true # master switch (INFER_PLUGINS_ENABLED)
+plugins:
+  - name: demo-hygiene
+    source: ./my-plugin
+    version: 0.1.0
+    enabled: true
+    hooks_enabled: true # written by `infer plugins enable-hooks`, absent while hooks are off
+```
+
+**Hooks are opt-in.** A plugin-root `hooks.yaml` is installed disabled. `infer plugins enable-hooks <name>` sets `hooks_enabled: true` for that plugin only, and the master `hooks.enabled` switch and the per-mode [bash allow-list](#command-allow-listing) still apply on top - an off-list command is skipped and reported, never run. Plugin hooks merge after your own `hooks.yaml`, so a plugin can never override or remove a user hook.
+
+**Instructions merge, never replace.** The prompt is built as base prompt, then `custom_instructions`, then your project `AGENTS.md`, then each enabled plugin's `AGENTS.md` in registry order. `agent.skills.enabled: false` stops plugin skills from loading but leaves plugin instructions in place - disable the plugin or set `INFER_PLUGINS_ENABLED=false` to remove everything.
+
+Verify what the model sees:
+
+```bash
+infer skills list                                                # plugin skills show scope "plugin"
+infer debug agent system_prompt | grep -A3 "PLUGIN INSTRUCTIONS"
+```
+
+The CLI repository ships a runnable [`examples/plugins`](https://github.com/inference-gateway/cli/tree/main/examples/plugins) that installs a local plugin into a demo `HOME`, so your real `~/.infer` is untouched. `task all` runs the whole lifecycle - install, list, skills, prompt, enable-hooks, disable, enable, update and remove - and `task enable-hooks` shows the `hooks_enabled` flag appear in the registry. The example's `commands/hello.md` is counted under "detected but ignored" in the install summary and never runs.
 
 ### `/tools` view
 

@@ -67,6 +67,9 @@ The CLI repository ships runnable examples under [`examples/`](https://github.co
 
 - [`examples/subagents`](https://github.com/inference-gateway/cli/tree/main/examples/subagents) - the [Agent tool](/cli/#local-subagents-agent-tool) fanning out local subagents, one through a Markdown agent preset, into one aggregated result
 - [`examples/ag-ui`](https://github.com/inference-gateway/cli/tree/main/examples/ag-ui) - consuming the [AG-UI headless stream](/cli/#output-format-format) and the [`infer headless --serve`](/cli/#serve-worker-serve) worker, including a `--require-approval` run answered over stdin
+- [`examples/skills`](https://github.com/inference-gateway/cli/tree/main/examples/skills) - [Agent Skills](/cli-skills/): authoring and discovery with scopes, the Skill tool offline against a scripted mock model, and the catalog commands
+- [`examples/plugins`](https://github.com/inference-gateway/cli/tree/main/examples/plugins) - installing a local Claude Code-format [plugin](/cli/#plugins) under a demo HOME: the registry, plugin skills and prompt injection, the hooks opt-in, then disable and remove
+- [`examples/hooks`](https://github.com/inference-gateway/cli/tree/main/examples/hooks) - a `post_session` [command hook](/cli-hooks/), allow-listed and skipped, plus `reminders.yaml` with `merge: true` and a `--reminders-file` swap, offline against a scripted mock model
 
 ## API Usage Examples
 
