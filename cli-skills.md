@@ -1,6 +1,6 @@
 ---
 title: Agent Skills
-description: Install, enable, and invoke Agent Skills in the Inference Gateway CLI - the on-disk SKILL.md layout, the three discovery scopes (project .infer/skills, the .agents/skills open standard, and user-global ~/.infer/skills), the built-in tmux, bug, demo, and config skills seeded into ~/.infer/skills on infer init (seed-if-absent), infer skills install/list/uninstall, deterministic slash-name activation with metadata-only injection, and the Read-sandbox carve-out for ~/.infer/skills.
+description: Install, enable, and invoke Agent Skills in the Inference Gateway CLI - the on-disk SKILL.md layout, the four discovery scopes (project .infer/skills, the .agents/skills open standard, user-global ~/.infer/skills, and plugin skills), the built-in tmux, bug, demo, and config skills seeded into ~/.infer/skills on infer init (seed-if-absent), infer skills install/list/uninstall, deterministic slash-name activation with metadata-only injection, and the Read-sandbox carve-out for ~/.infer/skills.
 ---
 
 # Agent Skills
@@ -32,13 +32,14 @@ A skill is a directory containing a `SKILL.md` file, optionally alongside suppor
     └── assets/           # optional - templates, fixtures, images
 ```
 
-The same `<name>/SKILL.md` folder layout applies under every root. The CLI scans **three locations**, in precedence order (highest first):
+The same `<name>/SKILL.md` folder layout applies under every root. The CLI scans **four locations**, in precedence order (highest first). The scope name is what `infer skills list` reports:
 
-| Scope         | Path                              | Precedence | Notes                                                                                  |
-| ------------- | --------------------------------- | ---------- | -------------------------------------------------------------------------------------- |
-| Project-local | `.infer/skills/<name>/SKILL.md`   | Highest    | Checked into the project; **overrides** a same-named skill in any other scope          |
-| Open standard | `.agents/skills/<name>/SKILL.md`  | Middle     | The shared `.agents/` convention, so community skill folders work without modification |
-| User-global   | `~/.infer/skills/<name>/SKILL.md` | Lowest     | Personal defaults available across every project                                       |
+| Scope     | Path                                               | Precedence | Notes                                                                                       |
+| --------- | -------------------------------------------------- | ---------- | ------------------------------------------------------------------------------------------- |
+| `project` | `.infer/skills/<name>/SKILL.md`                    | Highest    | Checked into the project - **overrides** a same-named skill in any other scope              |
+| `agents`  | `.agents/skills/<name>/SKILL.md`                   | Second     | The shared `.agents/` open standard, so community skill folders work without modification   |
+| `user`    | `~/.infer/skills/<name>/SKILL.md`                  | Third      | Personal defaults available across every project                                            |
+| `plugin`  | `~/.infer/plugins/<plugin>/skills/<name>/SKILL.md` | Lowest     | Contributed by an enabled [plugin](/cli/#plugins) - any local skill with the same name wins |
 
 `.agents/skills/` is an emerging **open standard** adopted across agent tooling (Claude Code, Gemini CLI, OpenAI Codex CLI, and others). The CLI scans it as a middle-precedence location so a skill folder published by a community author works unchanged, without copying it into `.infer/skills/`.
 
@@ -208,7 +209,7 @@ INFER_AGENT_SKILLS_ENABLED=false infer chat
 | `agent.skills.disabled_skills` | string[] | `[]`                       | Skill names to discover but never inject or activate.                                                                                                                  |
 | `agent.skills.repository`      | string   | `inference-gateway/skills` | GitHub `owner/repo` the [catalog index and skill bodies](#the-skills-catalog-and-agentskillsrepository) resolve against. Point it at a fork to serve your own catalog. |
 
-The matching environment variable `INFER_AGENT_SKILLS_ENABLED` takes precedence over the config file. To keep skills off everywhere, set `agent.skills.enabled: false` in your user config (`~/.infer/config.yaml`).
+The matching environment variable `INFER_AGENT_SKILLS_ENABLED` takes precedence over the config file. To keep skills off everywhere, set `agent.skills.enabled: false` in your user config (`~/.infer/config.yaml`). Turning skills off skips the startup scan entirely - zero token cost - and also stops [plugin](/cli/#plugins) skills from loading. `infer skills list` keeps working with a note that the feature is disabled, while the `Skill` tool is refused.
 
 When `max_chars` is set (default `4000`), skills whose full entry would exceed the budget are listed by **name only** in the `AVAILABLE SKILLS` block - their descriptions and paths are omitted. These skills remain fully invocable via `/<name>` or the "use the `<name>` skill" phrase; the agent reads the full `SKILL.md` on demand through the [sandbox carve-out](#skills-sandbox-carve-out). Set `max_chars: 0` to disable the cap and render every skill's full entry.
 
@@ -369,6 +370,32 @@ A catalog skill (one from [`agent.skills.repository`](#the-skills-catalog-and-ag
 - **Headless downloads immediately.** `infer headless`, piped `infer chat`, [channels](/cli-channels/), and [scheduled/heartbeat](/cli/#schedule) runs download with **no prompt, by design** - there is nobody to ask.
 - **It is not a tool call, so tool approval does not gate it.** The download is not a `domain.Tool`, so [`tools.safety.require_approval`](/cli/#approval-workflow) and `approval_behaviour` do not apply. Notably, `approval_behaviour: block` does **not** prevent it.
 - **Under channels the "user" is remote.** In a [channel](/cli-channels/) the party whose prompt triggers the download is a **remote sender**, not the operator running the profile.
+
+## Runnable example
+
+The CLI repository ships [`examples/skills`](https://github.com/inference-gateway/cli/tree/main/examples/skills), which runs offline against a scripted mock model with no API key or gateway. It holds one project skill at `.agents/skills/commit-style/SKILL.md` and a Taskfile with one task per scenario:
+
+| Task            | What happens                                                                                                    |
+| --------------- | --------------------------------------------------------------------------------------------------------------- |
+| `task list`     | `infer skills list` discovers the skill and reports its `agents` scope                                          |
+| `task load`     | The mock model calls the `Skill` tool with `name: commit-style` and the tool result carries the `SKILL.md` body |
+| `task disabled` | With `INFER_AGENT_SKILLS_ENABLED=false` the list still runs (with a note), but the `Skill` tool is refused      |
+| `task chat`     | Opens `infer chat` with the mock model - type `/commit-style` to load the skill yourself                        |
+
+The list tasks pin `INFER_AGENT_SKILLS_DISCOVERY_ENABLED=false`, so the table shows only the local skill whether the catalog is reachable or not. The catalog commands need network access and are not part of the offline tasks:
+
+```bash
+# Fuzzy-name search over the catalog index (omit the term to browse)
+infer skills search rust
+infer skills search "pull request" --limit 20
+
+# Install by catalog name, org/skill pair, or GitHub tree URL - --user targets ~/.infer/skills/
+infer skills install skill-creator
+infer skills install skill-creator --user
+
+# Remove the downloaded folder (no confirmation prompt)
+infer skills uninstall skill-creator
+```
 
 ## Related
 

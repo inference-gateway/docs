@@ -86,7 +86,7 @@ hooks:
 A hook command is **not** a free pass. Each `command` is matched against the active [agent mode](/cli/#agent-modes)'s **per-mode bash allow-list** (`tools.bash.mode.<mode>.allow`) - the exact same gate the [Bash](/cli/#bash) tool uses. Matching is **default-deny** and full-command:
 
 - **On-list** - the command matches an entry (or the `.*` sentinel of [Auto-Accept](/cli/#auto-accept-mode) mode) and runs.
-- **Off-list** - the command does not match. It is **skipped and reported**, never run. The run does not abort; the hook is simply not executed, and a `hook_command` event with a skip reason is emitted.
+- **Off-list** - the command does not match. It is **skipped and reported**, never run. The run does not abort; the hook is simply not executed, and a `hook_command_skipped` event with a skip reason is emitted.
 - **Clean-command guard** - the same [clean-command guard](/cli/#clean-command-guard) applies: no command substitution, no top-level pipes/chains, no file-write redirects, no dangerous `find` actions, no env-var leaks from printing commands. The only thing that lifts the guard is the `.*` sentinel.
 
 This keeps the secure-by-default model intact: hooks cannot do anything the agent itself could not do with the Bash tool in the same mode. There is no hooks-specific bypass.
@@ -131,29 +131,47 @@ v1 is **fire-and-observe**. Each hook execution emits a single `hook_command` st
   "name": "gofmt",
   "hook": "post_session",
   "command": "gofmt -w .",
+  "turn": 1,
   "exit_code": 0,
   "duration_ms": 412,
   "output": "...truncated stdout/stderr...",
-  "skipped": false
+  "error": ""
 }
 ```
 
-| Field       | Type    | Description                                                                                |
-| ----------- | ------- | ------------------------------------------------------------------------------------------ |
-| `type`      | string  | Always `hook_command` for this event.                                                      |
-| `name`      | string  | The hook's `name`.                                                                         |
-| `hook`      | string  | The hook point it ran at.                                                                  |
-| `command`   | string  | The command that was attempted.                                                            |
-| `exit_code` | number  | Process exit code. `-1` (or absent) when the command was skipped or timed out.             |
-| `duration`  | number  | Wall-clock duration in milliseconds.                                                       |
-| `output`    | string  | Truncated combined stdout/stderr of the command. Empty when skipped.                       |
-| `skipped`   | boolean | `true` when the command did not run (off-list, clean-command guard, disabled, or timeout). |
+| Field         | Type   | Description                                                            |
+| ------------- | ------ | ---------------------------------------------------------------------- |
+| `type`        | string | Always `hook_command` for this event.                                  |
+| `name`        | string | The hook's `name`.                                                     |
+| `hook`        | string | The hook point it ran at.                                              |
+| `command`     | string | The command that ran.                                                  |
+| `turn`        | number | The agent turn the hook fired on.                                      |
+| `exit_code`   | number | Process exit code. `-1` when the command could not start or timed out. |
+| `duration_ms` | number | Wall-clock duration in milliseconds.                                   |
+| `output`      | string | Combined stdout/stderr of the command, truncated at 4096 bytes.        |
+| `error`       | string | The execution error, empty on success.                                 |
+
+The command receives a small JSON context on stdin - `{"hook":"post_session","session_id":"...","turn":1}` - so a hook can tell which session and turn fired it.
+
+An off-list command does not run and emits a `hook_command_skipped` event instead, carrying `name`, `hook`, `command`, `mode`, `reason` (`not_allowlisted`) and the allow-list `hint`:
+
+```json
+{
+  "type": "hook_command_skipped",
+  "name": "gofmt",
+  "hook": "post_session",
+  "command": "gofmt -w .",
+  "mode": "standard",
+  "reason": "not_allowlisted",
+  "hint": "..."
+}
+```
 
 **Behavior notes:**
 
 - The event is **additive** - it does not replace any existing stream output, and consumers should **ignore unknown `type` values** to stay forward-compatible (see [Session stats summary line](/cli/#session-stats-summary-line)).
-- A hook that **times out** is killed at its `timeout`; the event reports it as skipped with the partial output captured so far.
-- A skipped hook (off-list) still emits an event with `skipped: true` and a reason, so CI logs show that a configured hook did **not** run and why.
+- A hook that **times out** is killed at its `timeout`. Its `hook_command` event reports `exit_code: -1`, the error, and the partial output captured so far.
+- A skipped hook (off-list) emits `hook_command_skipped` with a reason, so CI logs show that a configured hook did **not** run and why.
 
 ## Example: `post_session` CI post-processing
 
@@ -188,9 +206,22 @@ hooks:
   run: infer headless "Refactor the handlers package and verify the build"
 ```
 
-When the agent finishes, the three `post_session` hooks fire in listed order - format, test, notify - each gated by the appended allow-list entries. A command that fails the allow-list (or the clean-command guard) is skipped and reported in the `hook_command` events, so the run completes but the CI log shows which post-processing steps did not execute.
+When the agent finishes, the three `post_session` hooks fire in listed order - format, test, notify - each gated by the appended allow-list entries. A command that fails the allow-list (or the clean-command guard) is skipped and reported in a `hook_command_skipped` event, so the run completes but the CI log shows which post-processing steps did not execute.
 
 > Because hook output is **not** fed back into the conversation, a failing `go test` hook does not make the agent retry it. Use the hook for reporting/observability; if you want the agent to react to a failure, let it run the test itself via the Bash tool during the session.
+
+## Runnable example
+
+The CLI repository ships [`examples/hooks`](https://github.com/inference-gateway/cli/tree/main/examples/hooks), which runs offline against a scripted mock model with no API key or gateway. Its `.infer/hooks.yaml` holds one `post_session` hook whose command is `tee hook-runs.log`, so the JSON context the hook receives on stdin lands in the log:
+
+| Task                 | What happens                                                                                                                                             |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `task hook`          | Runs with `INFER_TOOLS_BASH_ALLOW_APPEND='tee hook-runs.log'` - the hook fires, a `hook_command` event is emitted, and `hook-runs.log` gains the payload |
+| `task hook:skipped`  | Runs the same session without the allow-list entry - a `hook_command_skipped` event reports `not_allowlisted` and nothing is written                     |
+| `task reminder`      | `.infer/reminders.yaml` with `merge: true` - one custom reminder fires next to the built-ins                                                             |
+| `task reminder:swap` | `--reminders-file swap-reminders.yaml` replaces the whole reminder set                                                                                   |
+
+The reminder tasks clear `INFER_REMINDERS_CONFIG` inline because that env var outranks both `--reminders-file` and `.infer/reminders.yaml` - see [reminders precedence](/cli/#configuration-sources-and-precedence) and the [reminders runnable example](/cli/#runnable-example).
 
 ## Security notes
 
