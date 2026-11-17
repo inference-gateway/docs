@@ -1601,7 +1601,7 @@ The `CreateSpeechRequest` fields mirror the OpenAI `POST /v1/audio/speech` body:
 | `Input`          | `string`                             | The text to synthesize, 4096 characters maximum (required).                                                                                                            |
 | `Voice`          | `string`                             | Voice to speak with (required). OpenAI built-ins are `alloy`, `ash`, `ballad`, `coral`, `echo`, `fable`, `onyx`, `nova`, `sage`, `shimmer`, `verse`, `marin`, `cedar`. |
 | `Instructions`   | `*string`                            | Extra guidance on how the voice should sound. Ignored by `tts-1` and `tts-1-hd`.                                                                                       |
-| `ResponseFormat` | `*CreateSpeechRequestResponseFormat` | Audio format: `sdk.Mp3` (default), `sdk.Opus`, `sdk.Aac`, `sdk.Flac`, `sdk.Wav`, or `sdk.Pcm`.                                                                         |
+| `ResponseFormat` | `*CreateSpeechRequestResponseFormat` | Audio format: `sdk.CreateSpeechRequestResponseFormatMp3` (default), `...Opus`, `...Aac`, `...Flac`, `...Wav`, or `...Pcm`.                                             |
 | `Speed`          | `*float32`                           | Playback speed between `0.25` and `4.0` (default `1.0`).                                                                                                               |
 | `ReferenceAudio` | `*[]byte`                            | Audio sample for zero-shot voice cloning, base64-encoded on the wire by `encoding/json`. Only `local/qwen3-tts` honors it today; OpenAI does not support cloning.      |
 
@@ -1614,37 +1614,57 @@ audio, err := client.CreateSpeech(ctx, sdk.Provider(""), sdk.CreateSpeechRequest
     Model:          "local/qwen3-tts",
     Input:          "This is my cloned voice speaking.",
     Voice:          "custom",
-    ResponseFormat: ptr(sdk.Wav),
+    ResponseFormat: new(sdk.CreateSpeechRequestResponseFormatWav),
     ReferenceAudio: &sample,
 })
 ```
 
-See the [Audio API reference](/api-reference/#audio-api) for the endpoint-level details.
+See the [Audio API reference](/api-reference/#audio-api) for the endpoint-level details. A runnable example lives at [sdk/examples/speech](https://github.com/inference-gateway/sdk/tree/main/examples/speech).
 
 #### Sound effects and music generation
 
 `CreateSFX(ctx, provider, CreateSFXRequest) ([]byte, error)` and `CreateMusic(ctx, provider, CreateMusicRequest) ([]byte, error)` are the `CreateSpeech` siblings for the gateway's [sound effects](/api-reference/#sound-effects) and [music](/api-reference/#music) extensions (`POST /v1/audio/sfx` and `POST /v1/audio/music`). Both have shipped since SDK `v1.38.0` and return the raw audio bytes in the requested `ResponseFormat` (`mp3` by default), exactly like `CreateSpeech` - there is no response struct. A provider without support answers `400 Bad Request`, which arrives as a Go error carrying the gateway's message and a `nil` slice.
 
+The same `AUDIO_ENABLED=true` gate applies, and the gateway also needs the API key of the provider you call - `openai`, `elevenlabs` and `mirelo` serve the Audio API (for example `ELEVENLABS_API_KEY` for the calls below).
+
+`CreateSFX` has two modes. Without a video it generates a sound from the text prompt:
+
 ```go
 sfx, err := client.CreateSFX(ctx, sdk.Elevenlabs, sdk.CreateSFXRequest{
-    Model:          "elevenlabs/eleven_text_to_sound_v2",
-    Prompt:         "rain on a tin roof, steady",
-    DurationSeconds: ptr(float32(10)),
-    Loop:           ptr(true),
+    Model:           "elevenlabs/eleven_text_to_sound_v2",
+    Prompt:          "rain on a tin roof, steady",
+    DurationSeconds: new(float32(10)),
+    Loop:            new(true),
 })
 if err != nil {
     log.Fatalf("Error: %v", err)
 }
 
 _ = os.WriteFile("rain.mp3", sfx, 0o644)
+```
 
+With a video it scores the clip instead: set `Video` to an https URL or a `data:video/...` base64 URI, and `Output` to the track to return - `mix`, `sfx` or `speech`. `Prompt` becomes optional guidance:
+
+```go
+scored, err := client.CreateSFX(ctx, sdk.Elevenlabs, sdk.CreateSFXRequest{
+    Model:  "elevenlabs/music_v2_5",
+    Video:  new("https://example.com/clip.mp4"),
+    Output: new(sdk.CreateSFXRequestOutputMix),
+})
+```
+
+`CreateMusic` composes a clip from a prompt:
+
+```go
 music, err := client.CreateMusic(ctx, sdk.Elevenlabs, sdk.CreateMusicRequest{
     Model:           "elevenlabs/music_v2_5",
     Prompt:          "upbeat lo-fi hip hop with a warm piano loop",
-    DurationSeconds: ptr(float32(30)),
-    Instrumental:    ptr(true),
+    DurationSeconds: new(float32(30)),
+    Instrumental:    new(true),
 })
 ```
+
+Runnable examples live at [sdk/examples/sfx](https://github.com/inference-gateway/sdk/tree/main/examples/sfx) (set `SFX_VIDEO_URL` to switch it to video scoring) and [sdk/examples/music](https://github.com/inference-gateway/sdk/tree/main/examples/music).
 
 The `CreateSFXRequest` fields:
 
