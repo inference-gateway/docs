@@ -5,7 +5,7 @@ description: Let an LLM or a decision model answer tool-approval gates in the In
 
 # Judge Mode
 
-**Judge mode** (displayed as **Auto+Judge**) is an autonomous [agent mode](/cli/#agent-modes) of the [Inference Gateway CLI](/cli/) (`infer`): there is no human in the loop, but tool calls that would normally prompt you are decided by a **model judge** - a generative model, or a [decision model](#decision-model-judge-backend-decisions) - instead of bypassing approval the way [Auto-Accept](/cli/#auto-accept-mode) does. One judge call answers one pending tool call; everything else about the agent loop is unchanged.
+**Judge mode** (displayed as **Auto+Judge**) is an autonomous [agent mode](/cli/#agent-modes) of the [Inference Gateway CLI](/cli/) (`infer`): there is no human in the loop, but tool calls that would normally prompt you are decided by a **model judge** - a generative model, or a [decision model](#decision-model-judge-backend-decisions) - instead of bypassing approval the way [Auto-Accept](/cli/#auto-accept-mode) does. One judge call answers one pending tool call. Everything else about the agent loop is unchanged.
 
 It exists for unattended runs where a human approval prompt would deadlock (CI, [headless agents](/cli/#headless-agent-stream-output), [heartbeat](/cli-scheduling/) jobs) but you still want a gate on mutating or dangerous actions.
 
@@ -54,7 +54,7 @@ When the judge rejects a call you actually asked for, the agent can escalate tha
 
 - **When it applies**: only for a call the judge already rejected in this session. Escalating anything else fails with "no judge rejection is pending" - the agent must make the call and let the judge decide first.
 - **What you see**: the regular approval box for the rejected call, with a context block above it - the judge's rejection reason, what the agent needs permission for, and why.
-- **Approve** runs that exact call **once** with the judge bypassed; the bypass is consumed by that single invocation, and a later judge rejection of the same call can be escalated again.
+- **Approve** runs that exact call **once** with the judge bypassed. The bypass is consumed by that single invocation, and a later judge rejection of the same call can be escalated again.
 - **Reject**, or dismissing the box, denies. The denial is a normal tool result, so the turn **continues** with the decision in context - and you can explain yourself in your next message.
 - **One attempt per rejected call**: the escalation is consumed as soon as it is asked, including on dismissal, so a stubborn model cannot re-prompt you in a loop. A second attempt returns "already escalated once".
 
@@ -122,11 +122,11 @@ prompt: |- # user-message template; {root_intent}, {intent} and {action} are fil
 | Field            | Default | Purpose                                                                                                                                                                                                                  |
 | ---------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `backend`        | `llm`   | Who answers the gate - `llm` (a generative model returning the JSON verdict above) or [`decisions`](#decision-model-judge-backend-decisions) (a decision model returning a probability).                                 |
-| `model`          | `''`    | `provider/model` reference for judge calls; empty falls back to `agent.model` (same precedent as conversation title generation).                                                                                         |
+| `model`          | `''`    | `provider/model` reference for judge calls. Empty falls back to `agent.model` (same precedent as conversation title generation).                                                                                         |
 | `min_confidence` | `0.7`   | `decisions` backend only: a call is approved when its `p(approve)` reaches this threshold, and rejected below it. Ignored by the `llm` backend.                                                                          |
 | `gateway_url`    | `''`    | Send judge calls to a different gateway than the agent's - for example a real judge while the driver runs against a mock. Empty shares the agent's gateway.                                                              |
 | `timeout`        | `30`    | Per-call timeout in seconds.                                                                                                                                                                                             |
-| `max_tokens`     | `2048`  | Response budget per judge call; reasoning models spend their thinking against it.                                                                                                                                        |
+| `max_tokens`     | `2048`  | Response budget per judge call. Reasoning models spend their thinking against it.                                                                                                                                        |
 | `on_error`       | `deny`  | What a failed judge call means - `deny` (fail closed) or `allow`.                                                                                                                                                        |
 | `system_prompt`  | builtin | The judge's instructions, sent as the system message so the user text and tool arguments stay data rather than instructions.                                                                                             |
 | `prompt`         | builtin | User-message template. `{root_intent}` is the first non-hidden user message of the session, `{intent}` the latest one (a bare "continue" is judged next to the root it continues), and `{action}` the pending tool call. |
@@ -175,7 +175,7 @@ An approved call records `decisions: p_approve=0.93, risk: benign`. `judge_verdi
 
 ### Gateway requirement
 
-- The gateway must run with [`DECISIONS_ENABLED=true`](/configuration/) - while it is disabled `/v1/decisions` returns `404` and the judge fails closed. The CLI-managed local gateway sets it for you whenever `backend: decisions` is configured; an externally managed gateway needs the variable in its own environment.
+- The gateway must run with [`DECISIONS_ENABLED=true`](/configuration/) - while it is disabled `/v1/decisions` returns `404` and the judge fails closed. The CLI-managed local gateway sets it for you whenever `backend: decisions` is configured. An externally managed gateway needs the variable in its own environment.
 - The judge model must list `decisions` among its [output modalities](/api-reference/#list-all-models). The gateway checks the modality before relaying and answers `400` otherwise.
 
 Decision models read criteria literally and are weak at indirection, counting and adversarial content, so keep the evidence small and expect "does `git push` serve a bare `continue`" to be the hard case.

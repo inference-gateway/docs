@@ -37,7 +37,7 @@ flowchart TD
     G -->|deploy disabled| I[Return dashboard JSON only]
 ```
 
-The metric, query, and Prometheus-validation steps target a Prometheus server; the dashboard steps target Grafana. Deployment is gated - see [Deploy gating](#deploy-gating).
+The metric, query, and Prometheus-validation steps target a Prometheus server. The dashboard steps target Grafana. Deployment is gated - see [Deploy gating](#deploy-gating).
 
 ## Capabilities
 
@@ -69,9 +69,9 @@ The agent exposes five purpose-built tools plus the `read` built-in from the [AD
 | `validate_promql_query`   | Prometheus | Validate a PromQL query against a Prometheus server before it lands in a panel. | `prometheus_url` (required), `query` (required)                                                                                                  |
 | `create_dashboard`        | Grafana    | Compose a Grafana dashboard from panels, queries, variables, and a time range.  | `dashboard_title` (required), `panels` (required), `description`, `grafana_url`, `deploy`, `tags`, `time_range`, `refresh_interval`, `variables` |
 | `deploy_dashboard`        | Grafana    | Deploy a complete dashboard JSON to Grafana (Cloud or self-hosted).             | `dashboard_json` (required), `grafana_url`, `folder_uid`, `overwrite`, `message`                                                                 |
-| `read`                    | built-in   | Read a file from disk; used to load a skill's `SKILL.md` body on demand.        | `file_path`, `offset`, `limit`                                                                                                                   |
+| `read`                    | built-in   | Read a file from disk. Used to load a skill's `SKILL.md` body on demand.        | `file_path`, `offset`, `limit`                                                                                                                   |
 
-The five Grafana/PromQL tools are implemented in Go in the agent itself and backed by two internal [services](#services-and-runtime); `read` is provided by the ADK runtime.
+The five Grafana/PromQL tools are implemented in Go in the agent itself and backed by two internal [services](#services-and-runtime). `read` is provided by the ADK runtime.
 
 ## Services and runtime
 
@@ -157,7 +157,7 @@ The agent reads the standard ADK environment variables plus a small set of custo
 | Grafana    | `GRAFANA_DEPLOY_ENABLED`    | Master switch that allows dashboards to actually be deployed to Grafana | `false` |
 | Tools      | `TOOLS_READ_ENABLED`        | Enable the `read` tool (loads skill bodies on demand)                   | `true`  |
 
-The Grafana defaults come from `spec.config.grafana` in `agent.yaml`; the env vars above override them at runtime. Each metric/query tool also accepts a `prometheus_url` argument and each dashboard tool a `grafana_url` argument, which override the configured defaults for a single call. The agent's [README](https://github.com/inference-gateway/grafana-agent#configuration) documents the complete set of server, capability, storage, and authentication variables.
+The Grafana defaults come from `spec.config.grafana` in `agent.yaml`. The env vars above override them at runtime. Each metric/query tool also accepts a `prometheus_url` argument and each dashboard tool a `grafana_url` argument, which override the configured defaults for a single call. The agent's [README](https://github.com/inference-gateway/grafana-agent#configuration) documents the complete set of server, capability, storage, and authentication variables.
 
 ### Deploy gating
 

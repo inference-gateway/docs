@@ -31,17 +31,17 @@ The ADK currently exposes the HTTP server core and the first A2A JSON-RPC method
 | `createMessageSendHandler`                  | Available | Blocking `SendMessage` handler. Waits for a terminal/interrupted task unless `returnImmediately` is set.          |
 | `createMessageStreamHandler`                | Available | Streaming `SendStreamingMessage` handler. SSE response wrapped in CloudEvents v1.0 envelopes.                     |
 | `createTaskGetHandler`                      | Available | Synchronous `GetTask` handler. Looks up a task across active and dead-letter storage.                             |
-| `createTaskListHandler`                     | Available | Synchronous `ListTasks` handler. Filterable, keyset-paginated over `(createdAt, id)`; proto3 defaults mean unset. |
+| `createTaskListHandler`                     | Available | Synchronous `ListTasks` handler. Filterable, keyset-paginated over `(createdAt, id)`. Proto3 defaults mean unset. |
 | `createTaskCancelHandler`                   | Available | Synchronous `CancelTask` handler. Drops `PENDING` from the queue, aborts in-flight.                               |
 | `TaskCancellationRegistry`                  | Available | Shared `taskId -> AbortController` map bridging `CancelTask` and streaming handlers.                              |
 | `DefaultBackgroundTaskHandler`              | Available | LLM-driven agentic loop with tool dispatch, history truncation, and an iteration cap.                             |
-| `AgentBuilder`                              | Available | Fluent builder for an `OpenAICompatibleAgent`; defaults match the Go ADK byte-for-byte.                           |
-| `A2AServerBuilder`                          | Available | Fluent server builder; validates that the agent card's capabilities match the handlers.                           |
-| `createGetAuthenticatedExtendedCardHandler` | Available | Synchronous `GetExtendedAgentCard` handler; returns the configured extended card.                                 |
+| `AgentBuilder`                              | Available | Fluent builder for an `OpenAICompatibleAgent`. Defaults match the Go ADK byte-for-byte.                           |
+| `A2AServerBuilder`                          | Available | Fluent server builder. Validates that the agent card's capabilities match the handlers.                           |
+| `createGetAuthenticatedExtendedCardHandler` | Available | Synchronous `GetExtendedAgentCard` handler. Returns the configured extended card.                                 |
 | `HTTPPushNotificationSender`                | Available | HTTP webhook delivery primitive posting A2A `StreamResponse` payloads, with retry / auth / fan-out helpers.       |
-| `ArtifactService` + storage backends        | Available | Build text/file/data artifacts; persist via filesystem, S3, or in-memory storage.                                 |
-| `registerArtifactsRoute`                    | Available | `GET /artifacts/:artifactId/:filename` download route; auto-mounted by `createA2AServer({ artifactStorage })`.    |
-| `TelemetryProvider`                         | Available | OpenTelemetry tracing; emits `adk.jsonrpc.request` server spans plus `tool.<name>` tool spans over OTLP.          |
+| `ArtifactService` + storage backends        | Available | Build text/file/data artifacts. Persist via filesystem, S3, or in-memory storage.                                 |
+| `registerArtifactsRoute`                    | Available | `GET /artifacts/:artifactId/:filename` download route. Auto-mounted by `createA2AServer({ artifactStorage })`.    |
+| `TelemetryProvider`                         | Available | OpenTelemetry tracing. Emits `adk.jsonrpc.request` server spans plus `tool.<name>` tool spans over OTLP.          |
 | `MetricsRegistry` / `MetricsServer`         | Available | Prometheus `a2a_*` metrics via a standalone `/metrics` server plus a request middleware.                          |
 | TLS server / client                         | Available | HTTPS and mutual TLS for `A2AServer` and the bundled A2A client.                                                  |
 
@@ -206,7 +206,7 @@ await server.listen(8080, '0.0.0.0');
 
 ### Direct replies (`respondToMessage`)
 
-Some turns need no task at all - a greeting, a capability probe, a validation error the agent can answer itself. `respondToMessage` runs before any task is created; returning a `Message` makes `SendMessage` answer with `{ message }` and skip the task flow entirely, while returning `undefined` falls through to the normal task path.
+Some turns need no task at all - a greeting, a capability probe, a validation error the agent can answer itself. `respondToMessage` runs before any task is created. Returning a `Message` makes `SendMessage` answer with `{ message }` and skip the task flow entirely, while returning `undefined` falls through to the normal task path.
 
 ```ts
 import type { MessageResponder } from '@inference-gateway/adk';
@@ -236,7 +236,7 @@ The hook may be sync or async and receives the request's `AbortSignal` so slow w
 | Field                        | Default | Behaviour                                                                                                                                                                |
 | ---------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `returnImmediately`          | `false` | `false` waits until the task is terminal or interrupted before responding. `true` returns the freshly enqueued task without waiting.                                     |
-| `historyLength`              | unset   | Caps `history` on the returned task to the N most recent messages. Unset means no limit; `0` means return no messages.                                                   |
+| `historyLength`              | unset   | Caps `history` on the returned task to the N most recent messages. Unset means no limit. `0` means return no messages.                                                   |
 | `taskPushNotificationConfig` | unset   | Registered against the task, equivalent to a separate `CreateTaskPushNotificationConfig` call. See [push notifications](#push-notifications-httppushnotificationsender). |
 
 Clients that previously relied on the handler returning instantly must now pass `returnImmediately: true`:
@@ -463,7 +463,7 @@ All failures surface as JSON-RPC error code `-32602 Invalid Params`:
 | `historyLength` present but not a non-negative integer | `historyLength must be a non-negative integer`      |
 | No task exists with the supplied `taskId`              | `task not found`                                    |
 
-The "not found" case is intentionally surfaced as `-32602` (not a custom code) to mirror the Go ADK; both ADKs return the same JSON-RPC envelope for a missing task.
+The "not found" case is intentionally surfaced as `-32602` (not a custom code) to mirror the Go ADK. Both ADKs return the same JSON-RPC envelope for a missing task.
 
 ## The `ListTasks` JSON-RPC method
 
@@ -496,7 +496,7 @@ server.registerMethod(TASK_LIST_METHOD, createTaskListHandler({ storage }));
 | `defaultLimit` | No       | `100`   | Page size when the caller omits `pageSize` or sends `0`. Clamped to `[1, maxLimit]` at construction time so a misconfiguration cannot exceed the cap. |
 | `maxLimit`     | No       | `100`   | Hard cap on page size. Requests with `pageSize` above this are clamped down silently (consistent with the Go ADK's pagination caps - not an error).   |
 
-Both `defaultLimit` and `maxLimit` must be positive integers; otherwise the factory throws at registration time.
+Both `defaultLimit` and `maxLimit` must be positive integers. Otherwise the factory throws at registration time.
 
 ### Request shape (`ListTasksRequest`)
 
@@ -524,7 +524,7 @@ Per the proto3 JSON mapping of A2A spec section 1.4, a field carrying its proto3
 
 This matches the Go ADK server, which has always read an empty page token as the first page.
 
-> **Treat `pageToken` as opaque.** The handler encodes the `(createdAt, id)` of the last item on the previous page as a base64url JSON envelope. The encoding is an implementation detail and may change in any release; clients must round-trip `nextPageToken` verbatim and never parse, mutate, or construct one by hand.
+> **Treat `pageToken` as opaque.** The handler encodes the `(createdAt, id)` of the last item on the previous page as a base64url JSON envelope. The encoding is an implementation detail and may change in any release. Clients must round-trip `nextPageToken` verbatim and never parse, mutate, or construct one by hand.
 
 ### Response shape (`ListTasksResponse`)
 
@@ -686,7 +686,7 @@ When the server is constructed via [`A2AServerBuilder`](#wiring-into-a2aserverbu
 | Option     | Required | Default            | Description                                                                                                                                                                              |
 | ---------- | -------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `storage`  | Yes      | -                  | Implementation of `TaskStorage` used to look up, drop from queue, transition, and dead-letter the task.                                                                                  |
-| `registry` | No       | `undefined`        | Shared [`TaskCancellationRegistry`](#taskcancellationregistry). Required when the server runs long-lived handlers; may be omitted for servers that only enqueue work without processing. |
+| `registry` | No       | `undefined`        | Shared [`TaskCancellationRegistry`](#taskcancellationregistry). Required when the server runs long-lived handlers. May be omitted for servers that only enqueue work without processing. |
 | `now`      | No       | `() => new Date()` | Clock injection point for the cancellation timestamp. Useful for deterministic tests.                                                                                                    |
 
 Omitting `registry` is supported because `PENDING` tasks can still be cancelled without it (they are dropped directly from the FIFO queue). For `IN_PROGRESS` / `INPUT_REQUIRED` tasks the handler still flips the stored state and dead-letters the task, but no `AbortController` is signalled, so the running handler will keep running until it finishes naturally. In a production server you almost always want to pass the registry.
@@ -769,7 +769,7 @@ const registry = new TaskCancellationRegistry();
 | `cancel(taskId, reason?)`      | `boolean` | Abort the controller for `taskId` and drop it. Returns `true` if a controller was registered (and aborted), `false` if no controller was registered for that id. |
 | `has(taskId)`                  | `boolean` | True when a controller is registered for `taskId`.                                                                                                               |
 | `size()`                       | `number`  | Number of currently registered controllers. Diagnostics only.                                                                                                    |
-| `clear()`                      | `void`    | Drop every registered controller without aborting them. Intended for tests; production code should rely on per-task `unregister` calls.                          |
+| `clear()`                      | `void`    | Drop every registered controller without aborting them. Intended for tests. Production code should rely on per-task `unregister` calls.                          |
 
 #### Lifecycle contract for handlers
 
@@ -967,13 +967,13 @@ await server.listen(8080, '0.0.0.0');
 | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `{ type: 'delta', message }`                 | Emits an `adk.agent.delta` SSE frame carrying a partial assistant `Message`. Does not change task state.                                                                 |
 | `{ type: 'statusChanged', state, message? }` | Transitions the task to `state`, persists it, and emits `adk.agent.task.status.changed`. Terminal states (`COMPLETED` / `FAILED` / `CANCELLED`) end the stream.          |
-| `{ type: 'inputRequired', message }`         | Transitions to `INPUT_REQUIRED` with `message` attached. Shortcut for the common tool-use pause; equivalent to a `statusChanged` event but kept separate for ergonomics. |
+| `{ type: 'inputRequired', message }`         | Transitions to `INPUT_REQUIRED` with `message` attached. Shortcut for the common tool-use pause. Equivalent to a `statusChanged` event but kept separate for ergonomics. |
 
 Lifecycle guarantees the handler enforces on top of what the executor yields:
 
 - **Natural completion** (iterator exhausts without throwing and without yielding a terminal status) -> task transitions to `COMPLETED` automatically.
-- **Thrown error** -> task transitions to `FAILED`; the error message is embedded in the final status frame's `status.message`.
-- **`signal` aborted** -> task transitions to `CANCELLED`; the executor is expected to stop yielding promptly once it observes the abort.
+- **Thrown error** -> task transitions to `FAILED`. The error message is embedded in the final status frame's `status.message`.
+- **`signal` aborted** -> task transitions to `CANCELLED`. The executor is expected to stop yielding promptly once it observes the abort.
 
 The executor MUST NOT yield `PENDING` or attempt to re-enter terminal states.
 
@@ -984,7 +984,7 @@ The executor MUST NOT yield `PENDING` or attempt to re-enter terminal states.
 | Option                   | Required | Default                                                                | Description                                                                                                                                                                                 |
 | ------------------------ | -------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `storage`                | Yes      | -                                                                      | Implementation of `TaskStorage` used to persist task lifecycle transitions.                                                                                                                 |
-| `executor`               | Yes      | -                                                                      | Producer that drives the task; see [Executor contract](#executor-contract).                                                                                                                 |
+| `executor`               | Yes      | -                                                                      | Producer that drives the task. See [Executor contract](#executor-contract).                                                                                                                 |
 | `idGenerator`            | No       | `crypto.randomUUID`                                                    | UUID generator used for the task id and for the context / message ids when the inbound message omits them.                                                                                  |
 | `now`                    | No       | `() => new Date()`                                                     | Clock injection point for status timestamps. Useful for deterministic tests.                                                                                                                |
 | `statusUpdateIntervalMs` | No       | Parsed from `STREAMING_STATUS_UPDATE_INTERVAL`, falling back to `1000` | Interval (ms) between periodic `task.status.changed` re-emits while the task is `IN_PROGRESS`. Pass `0` to disable the heartbeat-style status updates (state-transition frames still fire). |
@@ -1001,13 +1001,13 @@ Every successful `SendStreamingMessage` invocation emits frames in this order:
 3. **Optional periodic `adk.agent.task.status.changed`** frames with `status.state = 'TASK_STATE_WORKING'`, `final: false` - re-emitted every `statusUpdateIntervalMs` while the task is `IN_PROGRESS`. Acts as an application-level heartbeat distinct from the transport-level SSE comment heartbeat.
 4. **Stream-ending `adk.agent.task.status.changed`** - exactly one of:
    - **Terminal**: `status.state in {'TASK_STATE_COMPLETED', 'TASK_STATE_FAILED', 'TASK_STATE_CANCELLED'}`, `final: true`. The stream then closes.
-   - **Input required**: `status.state = 'TASK_STATE_INPUT_REQUIRED'`, `final: false`. The task is paused (not done); the stream still closes so the client can submit a follow-up `SendMessage` against the same `contextId`.
+   - **Input required**: `status.state = 'TASK_STATE_INPUT_REQUIRED'`, `final: false`. The task is paused (not done). The stream still closes so the client can submit a follow-up `SendMessage` against the same `contextId`.
 
 Clients should treat any `task.status.changed` frame as the stream's final application-level frame and stop reading once they have seen it. After the final frame the server closes the underlying TCP connection.
 
 Interleaved transport-level frames the client should be ready to skip:
 
-- **SSE comment heartbeats** of the form `: heartbeat\n\n` - emitted every `heartbeatMs` (default `30s`) while the stream is open. Carry no payload; safe to ignore.
+- **SSE comment heartbeats** of the form `: heartbeat\n\n` - emitted every `heartbeatMs` (default `30s`) while the stream is open. Carry no payload. Safe to ignore.
 
 ### CloudEvents v1.0 envelope shape
 
@@ -1101,10 +1101,10 @@ When the originating HTTP request is cancelled (browser navigates away, `fetch` 
 
 1. Aborts the `AbortSignal` it passed to the executor via `StreamingExecutorContext.signal`. Executors that propagate the signal to downstream calls (LLM provider, tool invocation, database query) unwind promptly.
 2. Transitions the task to `TASK_STATE_CANCELLED` and persists the transition through `TaskStorage`.
-3. Emits a final `adk.agent.task.status.changed` frame with `status.state = 'TASK_STATE_CANCELLED'` and `final: true` (best-effort; if the underlying socket is already gone, the frame is dropped silently).
+3. Emits a final `adk.agent.task.status.changed` frame with `status.state = 'TASK_STATE_CANCELLED'` and `final: true` (best-effort - if the underlying socket is already gone, the frame is dropped silently).
 4. Closes the SSE stream and moves the task into the dead-letter map for later inspection via `GetTask`.
 
-The executor is expected to observe the abort cooperatively. The handler does not forcibly terminate generator iteration; long-running executor work that ignores the signal will keep running until it naturally yields or returns.
+The executor is expected to observe the abort cooperatively. The handler does not forcibly terminate generator iteration. Long-running executor work that ignores the signal will keep running until it naturally yields or returns.
 
 ### External cancellation via `CancelTask`
 
@@ -1251,7 +1251,7 @@ What the example covers, by file:
 
 For a single user prompt that triggers one tool call before the final answer, the SSE stream emits this exact sequence (UUIDs and timestamps differ per run):
 
-1. `adk.agent.task.status.changed` - `state=TASK_STATE_WORKING`, `final=false`. First frame; marks the transition out of `PENDING`.
+1. `adk.agent.task.status.changed` - `state=TASK_STATE_WORKING`, `final=false`. First frame. Marks the transition out of `PENDING`.
 2. Zero or more periodic `adk.agent.task.status.changed` keep-alive frames at [`STREAMING_STATUS_UPDATE_INTERVAL`](#streaming_status_update_interval-environment-variable) (default `1s`), `final=false`.
 3. `adk.agent.delta` - first assistant token batch, if the model emits text before the tool call. May be absent when the model jumps straight to a tool call.
 4. `adk.agent.tool.started` - the model requested `get_weather`. Payload carries the JSON-stringified `arguments`.
@@ -1260,11 +1260,11 @@ For a single user prompt that triggers one tool call before the final answer, th
 7. `adk.agent.iteration.completed` - closes iteration 1.
 8. `adk.agent.delta` - the model's final natural-language answer, emitted as one or more frames depending on the provider's streaming granularity.
 9. `adk.agent.iteration.completed` - closes the final iteration.
-10. `adk.agent.task.status.changed` - `state=TASK_STATE_COMPLETED`, `final=true`. Last frame; the stream closes immediately after.
+10. `adk.agent.task.status.changed` - `state=TASK_STATE_COMPLETED`, `final=true`. Last frame. The stream closes immediately after.
 
 Other terminal states are possible:
 
-- `state=TASK_STATE_INPUT_REQUIRED` if the LLM invokes the reserved [`input_required`](#reserved-input_required-tool) tool. An `adk.agent.input.required` frame carrying the prompt precedes the terminal status frame; the task stays in storage so a subsequent `SendStreamingMessage` or `SendMessage` against the same `contextId` resumes it.
+- `state=TASK_STATE_INPUT_REQUIRED` if the LLM invokes the reserved [`input_required`](#reserved-input_required-tool) tool. An `adk.agent.input.required` frame carrying the prompt precedes the terminal status frame. The task stays in storage so a subsequent `SendStreamingMessage` or `SendMessage` against the same `contextId` resumes it.
 - `state=TASK_STATE_CANCELLED` if the client disconnects, the server shuts down, or [`CancelTask`](#the-canceltask-json-rpc-method) fires during the run.
 - `state=TASK_STATE_FAILED` if the iteration cap is hit or the executor throws. The terminal frame embeds the error text in `status.message`.
 
@@ -1305,7 +1305,7 @@ Set `A2A_AGENT_CLIENT_API_KEY` to override the per-provider lookup, and `A2A_AGE
 
 Semantics:
 
-- **Validation first.** `params.id` must be a non-empty string (`-32602`) and the task must exist (`-32001 TaskNotFound`). Failures answer with a regular JSON-RPC error envelope; the SSE stream is never opened.
+- **Validation first.** `params.id` must be a non-empty string (`-32602`) and the task must exist (`-32001 TaskNotFound`). Failures answer with a regular JSON-RPC error envelope. The SSE stream is never opened.
 - **Terminal task.** Subscribing to a task that has already finished answers `-32004 UnsupportedOperation` rather than opening a stream that would immediately close.
 - **First frame is the task.** The stream opens with the task's current state (A2A v1.0.1 section 3.1.6), so a reconnecting client resynchronizes without a separate [`GetTask`](#the-gettask-json-rpc-method).
 - **Live stream when one exists.** When the producing `SendStreamingMessage` invocation still has an open event bus for the task, every subsequent event is forwarded until the bus closes. Multiple concurrent subscribers each get their own stream off the same bus.
@@ -1329,16 +1329,16 @@ curl -sS -D - -o /dev/null \
 # HTTP/1.1 304 Not Modified
 ```
 
-`Last-Modified` reflects when the server process built its card, so it changes on restart even if the card content did not; `ETag` is content-derived and is the header to compare against.
+`Last-Modified` reflects when the server process built its card, so it changes on restart even if the card content did not. `ETag` is content-derived and is the header to compare against.
 
 ## The `GetExtendedAgentCard` JSON-RPC method
 
 `GetExtendedAgentCard` is the synchronous lookup an authenticated client uses to fetch the **extended** agent card - a richer descriptor that lives alongside the public `/.well-known/agent-card.json` and carries metadata the agent only exposes once the caller has proven who they are. The handler:
 
-1. Validates the JSON-RPC `params` payload against `GetAuthenticatedExtendedCardParams` (every field optional; `params` itself may be omitted).
+1. Validates the JSON-RPC `params` payload against `GetAuthenticatedExtendedCardParams` (every field optional - `params` itself may be omitted).
 2. Returns the configured extended `AgentCard` verbatim - it does **not** mutate, filter, or re-decorate the card.
 
-Authentication is **not** enforced inside the handler; it relies on the authenticator wired into the JSON-RPC route (`A2AServerConfig.authenticator`) to reject unauthenticated requests with HTTP `401` + JSON-RPC [`-32001`](#unauthenticated-request) before dispatch ever runs.
+Authentication is **not** enforced inside the handler. It relies on the authenticator wired into the JSON-RPC route (`A2AServerConfig.authenticator`) to reject unauthenticated requests with HTTP `401` + JSON-RPC [`-32001`](#unauthenticated-request) before dispatch ever runs.
 
 This mirrors the Go ADK's [`HandleGetAuthenticatedExtendedCard`](https://github.com/inference-gateway/adk/blob/main/server/task_handler.go) in `server/task_handler.go`, including the optional `tenant` parameter and the choice to leak no card data when auth is misconfigured (the method is simply not registered).
 
@@ -1348,7 +1348,7 @@ The public well-known card (`GET /.well-known/agent-card.json`) is served unauth
 
 - **Auth schemes** (`securitySchemes` / `securityRequirements`) - keep credential requirements off the public card so the public card can stay infrastructure-neutral and cacheable.
 - **Private capabilities and skills** - admin-only tools, paid-tier skills, internal endpoints, or anything else the agent only advertises after authentication.
-- **Per-tenant variations** - the optional `tenant` param is forwarded to logs and can be threaded through your own card builder if the extended card needs to vary per caller. The bundled handler returns the configured card verbatim; tenant-aware variation is a layer you build on top.
+- **Per-tenant variations** - the optional `tenant` param is forwarded to logs and can be threaded through your own card builder if the extended card needs to vary per caller. The bundled handler returns the configured card verbatim. Tenant-aware variation is a layer you build on top.
 
 The public card signals that an extended variant exists by setting `capabilities.extendedAgentCard: true`. Clients that respect the agent card discovery convention check this flag and only then attempt the JSON-RPC call against the authenticated endpoint.
 
@@ -1403,7 +1403,7 @@ What the builder does at `build()` time when both `withAuthenticator(...)` and `
 3. Constructs the `A2AServer` with both `card` (public) and `extendedCard`, which causes the server to auto-register `GetExtendedAgentCard` against the extended card.
 4. Wires the authenticator's middleware on the JSON-RPC route, so the handler's "trust upstream auth" contract holds.
 
-> **Behavior change vs. prior versions.** Earlier releases of the TypeScript ADK decorated the **public** card with auth schemes when `withAuthConfig(...)` was supplied. Current releases leave the public card undecorated; auth schemes live only on the extended card. Clients that relied on parsing `securitySchemes` from the well-known card must either switch to fetching the extended card after authentication, or look for the `capabilities.extendedAgentCard: true` flag and then negotiate. The Go ADK has always behaved this way; the TS ADK is now aligned.
+> **Behavior change vs. prior versions.** Earlier releases of the TypeScript ADK decorated the **public** card with auth schemes when `withAuthConfig(...)` was supplied. Current releases leave the public card undecorated. Auth schemes live only on the extended card. Clients that relied on parsing `securitySchemes` from the well-known card must either switch to fetching the extended card after authentication, or look for the `capabilities.extendedAgentCard: true` flag and then negotiate. The Go ADK has always behaved this way. The TS ADK is now aligned.
 
 #### Via `A2AServer` directly
 
@@ -1433,9 +1433,9 @@ const server = createA2AServer({
 });
 ```
 
-When `extendedCard` is **omitted**, the server does not register the method; a JSON-RPC call against it receives the standard `-32601 method not found` envelope.
+When `extendedCard` is **omitted**, the server does not register the method. A JSON-RPC call against it receives the standard `-32601 method not found` envelope.
 
-> **Pair `extendedCard` with an enabled authenticator.** The handler trusts that the upstream middleware has already verified the bearer token - registering the extended card without an authenticator lets anonymous callers fetch the very metadata the extended endpoint is meant to gate. The builder enforces this pairing by design (`withAuthConfig(...)` only produces an extended card when paired with `withAuthenticator(...)`); direct `A2AServer` callers must wire both themselves.
+> **Pair `extendedCard` with an enabled authenticator.** The handler trusts that the upstream middleware has already verified the bearer token - registering the extended card without an authenticator lets anonymous callers fetch the very metadata the extended endpoint is meant to gate. The builder enforces this pairing by design (`withAuthConfig(...)` only produces an extended card when paired with `withAuthenticator(...)`). Direct `A2AServer` callers must wire both themselves.
 
 ### Manual registration
 
@@ -1466,7 +1466,7 @@ server.registerMethod(
 
 | Option | Required | Default | Description                                                                                                                                                                                                        |
 | ------ | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `card` | Yes      | -       | The `AgentCard` returned verbatim to every authenticated caller. The handler does not mutate or filter it; ensure the card itself does not leak data the caller should not see (per-tenant variation is your job). |
+| `card` | Yes      | -       | The `AgentCard` returned verbatim to every authenticated caller. The handler does not mutate or filter it. Ensure the card itself does not leak data the caller should not see (per-tenant variation is your job). |
 
 ### Request shape (`GetAuthenticatedExtendedCardParams`)
 
@@ -1510,7 +1510,7 @@ On success the handler returns the configured `AgentCard` verbatim:
 }
 ```
 
-When `decorateAgentCardWithAuth(...)` produces the card (the `A2AServerBuilder.withAuthConfig(...)` path), the `securitySchemes.oidc` and `securityRequirements` entries above are the only fields it adds; every other field is copied from the public card unchanged. Manual extended cards are returned verbatim, so any private skills / capabilities / metadata you want gated behind auth go directly on the card you pass to `extendedCard`.
+When `decorateAgentCardWithAuth(...)` produces the card (the `A2AServerBuilder.withAuthConfig(...)` path), the `securitySchemes.oidc` and `securityRequirements` entries above are the only fields it adds. Every other field is copied from the public card unchanged. Manual extended cards are returned verbatim, so any private skills / capabilities / metadata you want gated behind auth go directly on the card you pass to `extendedCard`.
 
 ### Validation contract
 
@@ -1559,7 +1559,7 @@ When the JSON-RPC route is protected by an enabled `Authenticator` (e.g., the bu
 }
 ```
 
-`error.data.reason` is one of `missing`, `malformed`, or the `TokenVerificationError.reason` the OIDC verifier emitted (e.g., `expired`, `signature`, `audience`). The envelope shape is the same for every JSON-RPC method on the server; this section just spells it out because the extended-card endpoint is the one clients are most likely to encounter it on.
+`error.data.reason` is one of `missing`, `malformed`, or the `TokenVerificationError.reason` the OIDC verifier emitted (e.g., `expired`, `signature`, `audience`). The envelope shape is the same for every JSON-RPC method on the server. This section just spells it out because the extended-card endpoint is the one clients are most likely to encounter it on.
 
 ### Runnable example
 
@@ -1612,7 +1612,7 @@ Response (the extended card, verbatim):
 
 #### Authenticated request, with `tenant`
 
-The optional `tenant` param is accepted unchanged. The bundled handler returns the same card; downstream observability sees the tenant value on the wire:
+The optional `tenant` param is accepted unchanged. The bundled handler returns the same card. Downstream observability sees the tenant value on the wire:
 
 ```bash
 curl -sS -X POST http://localhost:8080/ \
@@ -1662,7 +1662,7 @@ The integration fixtures backing every assertion above (handler contract, valida
 
 `DefaultBackgroundTaskHandler` is the LLM-driven agentic loop the TypeScript ADK ships out of the box. It owns the conversation history, dispatches tool calls returned by the model, feeds the results back into the next LLM call, and drives the task through to one of the three terminal A2A states (`COMPLETED`, `INPUT_REQUIRED`, `FAILED`) - or `CANCELLED` when the originating request's `AbortSignal` fires.
 
-It mirrors the Go ADK's `DefaultBackgroundTaskHandler` in [`adk/server/task_handler.go`](https://github.com/inference-gateway/adk/blob/main/server/task_handler.go). The TypeScript variant inlines the iteration loop because the early-bootstrap TS surface does not yet ship a stream-based agent abstraction; callers wire it into [`A2AServerBuilder`](#wiring-into-a2aserverbuilder) via the `withBackgroundTaskHandler` hook.
+It mirrors the Go ADK's `DefaultBackgroundTaskHandler` in [`adk/server/task_handler.go`](https://github.com/inference-gateway/adk/blob/main/server/task_handler.go). The TypeScript variant inlines the iteration loop because the early-bootstrap TS surface does not yet ship a stream-based agent abstraction. Callers wire it into [`A2AServerBuilder`](#wiring-into-a2aserverbuilder) via the `withBackgroundTaskHandler` hook.
 
 The handler depends only on the structural `LLMClient` and `ToolBox` interfaces - concrete implementations land separately in follow-up releases. Until those ship, supply your own implementations of the two interfaces below.
 
@@ -1687,8 +1687,8 @@ const handler = new DefaultBackgroundTaskHandler({
 | `llmClient`              | Yes      | -                                                   | OpenAI-compatible chat-completion client. Throws `TypeError` at construction time if omitted.                                                                                                                                              |
 | `toolBox`                | No       | `undefined`                                         | Tool registry consulted on every iteration. Without one the handler runs a tool-free loop and stops after the first assistant message.                                                                                                     |
 | `systemPrompt`           | No       | `undefined`                                         | Prepended verbatim to every LLM call as a `system` message. Not counted against `maxConversationHistory`.                                                                                                                                  |
-| `maxIterations`          | No       | `MAX_CHAT_COMPLETION_ITERATIONS` env var, else `50` | Upper bound on the LLM-call / tool-dispatch loop. Must be a positive integer; non-positive values throw `RangeError`.                                                                                                                      |
-| `maxConversationHistory` | No       | `20`                                                | Upper bound on the number of conversation messages forwarded to the LLM per iteration. Older messages are dropped (oldest first); the system prompt is always preserved.                                                                   |
+| `maxIterations`          | No       | `MAX_CHAT_COMPLETION_ITERATIONS` env var, else `50` | Upper bound on the LLM-call / tool-dispatch loop. Must be a positive integer. Non-positive values throw `RangeError`.                                                                                                                      |
+| `maxConversationHistory` | No       | `20`                                                | Upper bound on the number of conversation messages forwarded to the LLM per iteration. Older messages are dropped (oldest first). The system prompt is always preserved.                                                                   |
 | `logger`                 | No       | `NOOP_LOGGER`                                       | Structural logger (`debug` / `info` / `warn` / `error`). Use `console` or a `pino`-compatible logger to surface iteration diagnostics and tool-execution failures. Also surfaced on `CallbackContext.logger`.                              |
 | `agentName`              | No       | `''`                                                | Name surfaced on `CallbackContext.agentName` for use inside lifecycle callbacks and tool executions. Diagnostic only - the handler itself does not branch on it.                                                                           |
 | `callbacks`              | No       | `undefined`                                         | [Lifecycle callbacks](#lifecycle-callbacks) invoked around the agent run (`beforeAgent` / `afterAgent`), every LLM call (`beforeModel` / `afterModel`), and every tool dispatch (`beforeTool` / `afterTool`). See the section for details. |
@@ -1748,7 +1748,7 @@ interface ToolExecutionContext {
 }
 ```
 
-`ChatMessage` is a discriminated union covering the four OpenAI-style roles - `system`, `user`, `assistant` (with optional `toolCalls`), and `tool` (with the originating `toolCallId`). The handler manages the array internally; callers do not construct these directly.
+`ChatMessage` is a discriminated union covering the four OpenAI-style roles - `system`, `user`, `assistant` (with optional `toolCalls`), and `tool` (with the originating `toolCallId`). The handler manages the array internally. Callers do not construct these directly.
 
 > **Concrete implementations.** A first-party HTTP-backed `LLMClient` and a tool registry built around the same JSON Schema surface land in follow-up releases. Until then, supply your own - the interfaces are deliberately small.
 
@@ -1802,7 +1802,7 @@ Numbered walkthrough of the same loop:
    3. Call `llmClient.createCompletion({ messages, tools, signal })`. Token usage (when returned) accumulates into the internal `UsageTracker`.
    4. Append the assistant message to the conversation.
    5. **No tool calls** → write the assistant text back to `task.messages` and finalize as **`COMPLETED`** (text defaults to `'Done.'` when the assistant returned empty content).
-   6. **Any tool call named `input_required`** → finalize as **`INPUT_REQUIRED`** with the extracted prompt as the agent message; no further tool calls in that iteration are executed.
+   6. **Any tool call named `input_required`** → finalize as **`INPUT_REQUIRED`** with the extracted prompt as the agent message. No further tool calls in that iteration are executed.
    7. Otherwise dispatch every tool call through `toolBox.execute(name, args, { task, signal })`. Append each result as a `tool` message keyed by `toolCallId`, and re-enter the loop.
 4. **If the iteration cap is hit** without reaching a terminal branch, finalize as **`FAILED`** with the message `"Iteration cap reached (<n>) without completion."`.
 5. **If the LLM call or any tool throws**, the loop is unwound: if the signal is aborted the task finalizes as `CANCELLED`, otherwise it finalizes as `FAILED` with the error message. Tool-execution errors are **not** thrown - they are caught, formatted as `Error executing tool "<name>": <message>`, and fed back as a `tool` message so the model can recover.
@@ -1813,7 +1813,7 @@ Numbered walkthrough of the same loop:
 
 | Variable                         | Default | Format                                                                                | Effect                                                                                                                                                          |
 | -------------------------------- | ------- | ------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `MAX_CHAT_COMPLETION_ITERATIONS` | `50`    | Positive integer parsed by `parseInt(_, 10)`. Non-positive or non-numeric falls back. | Upper bound on the LLM-call / tool-dispatch loop. An explicit `maxIterations` constructor option always wins; the env var is consulted only when it is omitted. |
+| `MAX_CHAT_COMPLETION_ITERATIONS` | `50`    | Positive integer parsed by `parseInt(_, 10)`. Non-positive or non-numeric falls back. | Upper bound on the LLM-call / tool-dispatch loop. An explicit `maxIterations` constructor option always wins. The env var is consulted only when it is omitted. |
 
 The variable name and default match the Go ADK's `config.MaxChatCompletionIterations` in [`server/config/config.go`](https://github.com/inference-gateway/adk/blob/main/server/config/config.go), so a deployment that pins `MAX_CHAT_COMPLETION_ITERATIONS=10` produces the same agentic-loop budget regardless of which ADK is serving.
 
@@ -1824,7 +1824,7 @@ The handler reserves the tool name `input_required` (exported as `INPUT_REQUIRED
 1. Skips the configured `ToolBox` entirely - the tool is **never** dispatched through `toolBox.execute`.
 2. Extracts a human-readable prompt from the `arguments` blob (see below).
 3. Appends a `ROLE_AGENT` message carrying the prompt to `task.messages`.
-4. Transitions the task to `TASK_STATE_INPUT_REQUIRED` and returns. The originating `SendMessage` task is now paused; the client resumes by submitting a follow-up `SendMessage` against the same `contextId`.
+4. Transitions the task to `TASK_STATE_INPUT_REQUIRED` and returns. The originating `SendMessage` task is now paused. The client resumes by submitting a follow-up `SendMessage` against the same `contextId`.
 
 Prompt extraction from `arguments`:
 
@@ -1836,7 +1836,7 @@ Prompt extraction from `arguments`:
 | JSON object without any of those keys / empty arguments | `"Additional input required."`                                                  |
 | String that is not valid JSON                           | The raw string verbatim                                                         |
 
-The arg-key fallback order is `message` → `prompt` → `question`. This means a tool definition exposed to the model with parameters `{ "message": "string" }`, `{ "prompt": "string" }`, or `{ "question": "string" }` all work; the model can use whichever key best fits the conversation.
+The arg-key fallback order is `message` → `prompt` → `question`. This means a tool definition exposed to the model with parameters `{ "message": "string" }`, `{ "prompt": "string" }`, or `{ "question": "string" }` all work. The model can use whichever key best fits the conversation.
 
 ```ts
 import { INPUT_REQUIRED_TOOL } from '@inference-gateway/adk';
@@ -1894,12 +1894,12 @@ Field meanings:
 | `execution_stats.failed_tools` | Subset of `tool_calls` whose `toolBox.execute` threw, or that were attempted while no toolbox was configured.                              |
 | `usage.prompt_tokens`          | Sum of `usage.promptTokens` across every completion the LLM client reported. Omitted if the LLM client never returned a `usage` block.     |
 | `usage.completion_tokens`      | Sum of `usage.completionTokens` across every completion the LLM client reported.                                                           |
-| `usage.total_tokens`           | Sum of `usage.totalTokens` when reported; otherwise falls back to `promptTokens + completionTokens` per call.                              |
+| `usage.total_tokens`           | Sum of `usage.totalTokens` when reported. Otherwise falls back to `promptTokens + completionTokens` per call.                              |
 
 Edge-case behaviour:
 
 - The `usage` block is omitted entirely when the LLM client never returned a `usage` field (so the totals stayed at zero). `execution_stats` is always present once any iteration has run.
-- Existing `task.metadata` keys are preserved on merge; the `execution_stats` and `usage` keys overwrite any same-named keys already on the task.
+- Existing `task.metadata` keys are preserved on merge. The `execution_stats` and `usage` keys overwrite any same-named keys already on the task.
 - If `setEnableUsageMetadata(true)` is called but the handler returns before the first iteration (already-terminal task on entry), no metadata is attached because there is nothing to report.
 
 The underlying counters are exposed as the `UsageTracker` class for direct use in tests and downstream tooling that wants to surface a running tally between iterations.
@@ -2049,12 +2049,12 @@ Every method returns `this`, so calls compose. The fluent surface:
 | `.withTemperature(temperature)`     | provider default                                                   | Sampling temperature. Forwarded to the LLM call when set.                                                                                                                                                      |
 | `.withTopP(topP)`                   | provider default                                                   | Top-p sampling threshold.                                                                                                                                                                                      |
 | `.withMaxTokens(maxTokens)`         | provider default                                                   | Upper bound on tokens emitted per LLM response. Forwarded both to the LLM client (as `max_tokens` on every request) and stored on the agent for diagnostic access via `agent.getMaxTokens()`.                  |
-| `.withMaxIterations(maxIterations)` | `50` (`DEFAULT_MAX_CHAT_COMPLETION_ITERATIONS`)                    | Chat-completion iteration cap. Must be a positive integer; non-positive values cause `build()` to throw `AgentBuilderError`.                                                                                   |
+| `.withMaxIterations(maxIterations)` | `50` (`DEFAULT_MAX_CHAT_COMPLETION_ITERATIONS`)                    | Chat-completion iteration cap. Must be a positive integer. Non-positive values cause `build()` to throw `AgentBuilderError`.                                                                                   |
 | `.withSystemPrompt(systemPrompt)`   | `DEFAULT_AGENT_SYSTEM_PROMPT` (see [Defaults](#defaults) below)    | System prompt prepended verbatim to every LLM call as a `system` message. Not counted against `maxConversationHistory`.                                                                                        |
-| `.withMaxConversationHistory(max)`  | `20` (`DEFAULT_MAX_CONVERSATION_HISTORY`)                          | Upper bound on conversation messages forwarded to the LLM per iteration. Older messages are dropped oldest-first; the system prompt is always preserved. Must be a positive integer.                           |
+| `.withMaxConversationHistory(max)`  | `20` (`DEFAULT_MAX_CONVERSATION_HISTORY`)                          | Upper bound on conversation messages forwarded to the LLM per iteration. Older messages are dropped oldest-first. The system prompt is always preserved. Must be a positive integer.                           |
 | `.withCallbacks(callbacks)`         | `undefined`                                                        | Lifecycle callbacks (`beforeAgent` / `afterAgent` / `beforeModel` / `afterModel` / `beforeTool` / `afterTool`). See [Lifecycle callbacks](#lifecycle-callbacks) below.                                         |
 | `.withToolBox(toolBox)`             | `undefined`                                                        | Tool registry consulted on every iteration. Omit for a tool-free agent that stops after the first assistant message.                                                                                           |
-| `.withLLMClient(client)`            | builder constructs `OpenAICompatibleLLMClient` from provider/model | Inject a pre-built `OpenAICompatibleLLMClient`. When set, the builder skips internal LLM-client construction and uses this client verbatim; `.withProvider(...)` and `.withModel(...)` are no longer required. |
+| `.withLLMClient(client)`            | builder constructs `OpenAICompatibleLLMClient` from provider/model | Inject a pre-built `OpenAICompatibleLLMClient`. When set, the builder skips internal LLM-client construction and uses this client verbatim. `.withProvider(...)` and `.withModel(...)` are no longer required. |
 | `.build()`                          | -                                                                  | Validate the configuration and return an `OpenAICompatibleAgentImpl`. Throws `AgentBuilderError` on the failures listed below.                                                                                 |
 
 ### `build()` validation
@@ -2113,19 +2113,19 @@ The agent itself does not run anything. The agentic loop lives in [`DefaultBackg
 
 `Callbacks` is the lifecycle-hook configuration consumed by [`AgentBuilder.withCallbacks(...)`](#builder-methods), and the same `callbacks` option is accepted directly by [`DefaultBackgroundTaskHandler`](#background-task-handler-defaultbackgroundtaskhandler) and `DefaultStreamingTaskHandler`. The hook surface lets you observe, replace, or short-circuit the LLM-driven loop without forking the handler.
 
-The contract mirrors the Go ADK's `CallbackConfig` in [`adk/server/callbacks.go`](https://github.com/inference-gateway/adk/blob/main/server/callbacks.go) byte-for-byte; the only Go-specific affordance not carried over is `context.Context` propagation - the TypeScript variant uses the `AbortSignal` on `CallbackContext` for cancellation instead.
+The contract mirrors the Go ADK's `CallbackConfig` in [`adk/server/callbacks.go`](https://github.com/inference-gateway/adk/blob/main/server/callbacks.go) byte-for-byte. The only Go-specific affordance not carried over is `context.Context` propagation - the TypeScript variant uses the `AbortSignal` on `CallbackContext` for cancellation instead.
 
 #### Hook points
 
-Every field on `Callbacks` is optional and accepts an **array** of callbacks. Multiple callbacks at the same lifecycle point execute in order; `before*` short-circuits on the first non-`undefined` return, `after*` chains so each callback sees the previous replacement.
+Every field on `Callbacks` is optional and accepts an **array** of callbacks. Multiple callbacks at the same lifecycle point execute in order. `before*` short-circuits on the first non-`undefined` return, `after*` chains so each callback sees the previous replacement.
 
 | Hook          | Fires                                                                   | Signature                                                            | Replacement type                                                                         |
 | ------------- | ----------------------------------------------------------------------- | -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `beforeAgent` | Once per `handle()` call, before the iteration loop begins.             | `(ctx) => Message \| undefined`                                      | `Message` - used as the final agent output; iteration loop is skipped.                   |
+| `beforeAgent` | Once per `handle()` call, before the iteration loop begins.             | `(ctx) => Message \| undefined`                                      | `Message` - used as the final agent output. Iteration loop is skipped.                   |
 | `afterAgent`  | Once per `handle()` call, after the loop produces a terminal response.  | `(ctx, output: Message) => Message \| undefined`                     | `Message` - replaces the agent's output. NOT invoked when `beforeAgent` short-circuited. |
 | `beforeModel` | Before every LLM call (so once per iteration).                          | `(ctx, request: LLMRequest) => CompletionResult \| undefined`        | `CompletionResult` - used as the LLM response without contacting the provider.           |
 | `afterModel`  | After every LLM response, including a synthetic one from `beforeModel`. | `(ctx, response: CompletionResult) => CompletionResult \| undefined` | `CompletionResult` - replaces the upstream response.                                     |
-| `beforeTool`  | Before every tool dispatch.                                             | `(ctx, toolCall: ToolCall) => string \| undefined`                   | `string` - used as the tool result; `ToolBox.execute` is not called.                     |
+| `beforeTool`  | Before every tool dispatch.                                             | `(ctx, toolCall: ToolCall) => string \| undefined`                   | `string` - used as the tool result. `ToolBox.execute` is not called.                     |
 | `afterTool`   | After every tool execution, including a short-circuited one.            | `(ctx, toolCall: ToolCall, result: string) => string \| undefined`   | `string` - replaces the tool result.                                                     |
 
 The `LLMRequest` snapshot exposed to `beforeModel` is read-only:
@@ -2154,7 +2154,7 @@ beforeAgent
   afterAgent        <- skipped when beforeAgent short-circuited
 ```
 
-Both `DefaultBackgroundTaskHandler` and `DefaultStreamingTaskHandler` enforce this order identically; the only difference between the two is how they surface the agent's output (single final message vs. SSE deltas). Callback observers see the same sequence in both.
+Both `DefaultBackgroundTaskHandler` and `DefaultStreamingTaskHandler` enforce this order identically. The only difference between the two is how they surface the agent's output (single final message vs. SSE deltas). Callback observers see the same sequence in both.
 
 #### `CallbackContext`
 
@@ -2180,13 +2180,13 @@ interface CallbackContext {
 | `contextId`    | `string`                  | The `task.contextId` - the conversation thread the task belongs to.                                                                                                                                                       |
 | `state`        | `Record<string, unknown>` | Mutable, session-scoped scratch bag. Same reference passed to `ToolBox.execute` via `ToolExecutionContext.state`, so a `beforeModel` callback can stash data a later `beforeTool` callback (or a tool itself) reads back. |
 | `logger`       | `Logger`                  | The same structural logger configured on the handler (`debug` / `info` / `warn` / `error`). Use it instead of `console` to keep callback diagnostics on the handler's log stream.                                         |
-| `signal`       | `AbortSignal`             | The originating request's cancellation signal. Honour it inside long-running callbacks; the handler itself aborts mid-iteration when it fires. Replaces the Go ADK's `context.Context` for the same job.                  |
+| `signal`       | `AbortSignal`             | The originating request's cancellation signal. Honour it inside long-running callbacks. The handler itself aborts mid-iteration when it fires. Replaces the Go ADK's `context.Context` for the same job.                  |
 
 #### Short-circuit and chain semantics
 
 `before*` callbacks **race to short-circuit**: the iterator runs them in order and returns the first non-`undefined` value, skipping the rest of the chain _and_ the default operation that would have followed. `afterTool` is the deliberate exception - it runs even when its paired `beforeTool` short-circuited the dispatch, so audit / post-processing logic stays uniform regardless of how the tool result was produced.
 
-`after*` callbacks **chain replacements**: the iterator runs them in order, threading the (possibly replaced) value through each one. Returning `undefined` keeps the current value; returning a fresh value replaces it for the next callback in the chain. The handler ultimately uses the last replacement (or the original if every callback returned `undefined`).
+`after*` callbacks **chain replacements**: the iterator runs them in order, threading the (possibly replaced) value through each one. Returning `undefined` keeps the current value. Returning a fresh value replaces it for the next callback in the chain. The handler ultimately uses the last replacement (or the original if every callback returned `undefined`).
 
 ```ts
 const callbacks: Callbacks = {
@@ -2213,7 +2213,7 @@ type BeforeModelCallback = (
 ) => CompletionResult | undefined | Promise<CompletionResult | undefined>;
 ```
 
-Sync callbacks return the value directly; async callbacks return a `Promise` and may `await` I/O (a cache hit, a moderation API, a policy lookup). The handler awaits each callback before moving on, so within a single chain ordering is preserved even when individual callbacks are async.
+Sync callbacks return the value directly. Async callbacks return a `Promise` and may `await` I/O (a cache hit, a moderation API, a policy lookup). The handler awaits each callback before moving on, so within a single chain ordering is preserved even when individual callbacks are async.
 
 #### Error propagation
 
@@ -2335,7 +2335,7 @@ Because `state` is the same reference threaded through every callback in the inv
 
 #### Example: audit logging via `afterTool`
 
-Post-process every tool result for compliance / observability without replacing it. Returning `undefined` keeps the original result intact; returning a string replaces it.
+Post-process every tool result for compliance / observability without replacing it. Returning `undefined` keeps the original result intact. Returning a string replaces it.
 
 ```ts
 import type { AfterToolCallback } from '@inference-gateway/adk';
@@ -2484,7 +2484,7 @@ function toWireTool(tool: ToolDefinition): LLMTool {
 }
 ```
 
-The same adapter ships verbatim in the [`examples/ai-powered/server.ts`](https://github.com/inference-gateway/typescript-adk/blob/main/examples/ai-powered/server.ts) reference example, and in the streaming counterpart at [`examples/ai-powered-streaming/server.ts`](https://github.com/inference-gateway/typescript-adk/blob/main/examples/ai-powered-streaming/server.ts) (see [End-to-end runnable example](#end-to-end-runnable-example)). When the bridge is published from the package itself the adapter goes away; the rest of the wiring below does not change.
+The same adapter ships verbatim in the [`examples/ai-powered/server.ts`](https://github.com/inference-gateway/typescript-adk/blob/main/examples/ai-powered/server.ts) reference example, and in the streaming counterpart at [`examples/ai-powered-streaming/server.ts`](https://github.com/inference-gateway/typescript-adk/blob/main/examples/ai-powered-streaming/server.ts) (see [End-to-end runnable example](#end-to-end-runnable-example)). When the bridge is published from the package itself the adapter goes away. The rest of the wiring below does not change.
 
 ### End-to-end example
 
@@ -2587,7 +2587,7 @@ The full, runnable counterpart - including the `adaptLLMClient` helper from [Bri
 
 ### `AgentBuilderError`
 
-`build()` throws `AgentBuilderError` - a distinct subclass of `Error` (with `name === 'AgentBuilderError'`) so callers can pinpoint whether a failure originated in the builder or in downstream LLM-client construction (the latter throws `LLMConfigurationError` from `@inference-gateway/adk/llm/errors.js`). Both errors are exported; production code typically catches both at the wiring boundary and aborts startup:
+`build()` throws `AgentBuilderError` - a distinct subclass of `Error` (with `name === 'AgentBuilderError'`) so callers can pinpoint whether a failure originated in the builder or in downstream LLM-client construction (the latter throws `LLMConfigurationError` from `@inference-gateway/adk/llm/errors.js`). Both errors are exported. Production code typically catches both at the wiring boundary and aborts startup:
 
 ```ts
 import { AgentBuilder, AgentBuilderError } from '@inference-gateway/adk';
@@ -2606,7 +2606,7 @@ try {
 
 ## Push notifications (`HTTPPushNotificationSender`)
 
-`HTTPPushNotificationSender` is the HTTP webhook delivery primitive the TypeScript ADK ships for pushing task updates to URLs a client has registered against a task. A client that cannot keep an SSE connection open (mobile background, batch worker, server-to-server fan-out) registers one or more webhook URLs at `SendMessage` time; on every task state transition, the sender POSTs an A2A `StreamResponse` (`{ task }`, `Content-Type: application/a2a+json`) to each URL with retries, per-attempt timeouts, and exponential backoff.
+`HTTPPushNotificationSender` is the HTTP webhook delivery primitive the TypeScript ADK ships for pushing task updates to URLs a client has registered against a task. A client that cannot keep an SSE connection open (mobile background, batch worker, server-to-server fan-out) registers one or more webhook URLs at `SendMessage` time. On every task state transition, the sender POSTs an A2A `StreamResponse` (`{ task }`, `Content-Type: application/a2a+json`) to each URL with retries, per-attempt timeouts, and exponential backoff.
 
 It mirrors the Go ADK's `HTTPPushNotificationSender` in [`adk/server/push_notification_sender.go`](https://github.com/inference-gateway/adk/blob/main/server/push_notification_sender.go) - same wire payload, same auth-header resolution order, same retry classification - so a webhook receiver written against either ADK accepts deliveries from the other unchanged.
 
@@ -2689,7 +2689,7 @@ const sender = new HTTPPushNotificationSender({
 | Option      | Required | Default                                                                                                 | Description                                                                                                                                                                                                         |
 | ----------- | -------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `fetch`     | No       | `globalThis.fetch` (undici on Node 22+)                                                                 | `fetch`-compatible function used to issue the POST. Inject for tests or to plug in a proxy / undici agent. The aliased export `PushNotificationFetchLike` is the type to satisfy.                                   |
-| `logger`    | No       | No-op logger                                                                                            | Structural logger (`debug` / `info` / `warn` / `error`). Successful deliveries log at `info`; failed deliveries through `deliverTaskUpdate` log at `warn`.                                                          |
+| `logger`    | No       | No-op logger                                                                                            | Structural logger (`debug` / `info` / `warn` / `error`). Successful deliveries log at `info`. Failed deliveries through `deliverTaskUpdate` log at `warn`.                                                          |
 | `userAgent` | No       | `<package-name>/<package-version>`                                                                      | Value for the outbound `User-Agent` header.                                                                                                                                                                         |
 | `timeoutMs` | No       | `DEFAULT_PUSH_NOTIFICATION_TIMEOUT_MS` (30 s)                                                           | Per-attempt timeout, in milliseconds. Each retry gets its own budget - the timeout is **not** shared across attempts. Set to `0` to disable.                                                                        |
 | `retry`     | No       | `DEFAULT_PUSH_NOTIFICATION_RETRY_CONFIG` (`{ maxRetries: 3, initialDelayMs: 500, maxDelayMs: 30_000 }`) | Retry policy (see [Retry policy](#retry-policy) below). Pass a partial override (`{ maxRetries: 5 }`) to tune individual fields, or the literal `false` to disable retries entirely (a single attempt, no backoff). |
@@ -2748,7 +2748,7 @@ for (const result of results) {
 Contract:
 
 - **Never throws on per-config failure.** A slow or broken webhook cannot fail the task that triggered the notification - the failure is logged via the configured `logger` at `warn` and surfaced in the returned [`DeliveryResult`](#deliveryresult) array.
-- **Caps in-flight POSTs.** Defaults to `DEFAULT_PUSH_NOTIFICATION_CONCURRENCY` (8). Pass `concurrency` to override; values are clamped to `>= 1`. Set high enough that small fan-outs run fully in parallel, low enough that a misconfigured task with hundreds of webhooks does not stampede local egress.
+- **Caps in-flight POSTs.** Defaults to `DEFAULT_PUSH_NOTIFICATION_CONCURRENCY` (8). Pass `concurrency` to override. Values are clamped to `>= 1`. Set high enough that small fan-outs run fully in parallel, low enough that a misconfigured task with hundreds of webhooks does not stampede local egress.
 - **Empty input is a no-op.** `configs.length === 0` returns `[]` synchronously without invoking `fetch` or the logger.
 - **Stable ordering.** The returned `DeliveryResult[]` is index-aligned with the input `configs[]`, so callers can correlate failures back to the originating config.
 
@@ -2803,10 +2803,10 @@ The classifier mirrors the Go ADK's policy:
 | Outcome                                                                 | Retryable? | Notes                                                                                                                                                                |
 | ----------------------------------------------------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | HTTP **5xx**                                                            | Yes        | Upstream transient failure.                                                                                                                                          |
-| HTTP **429**                                                            | Yes        | Rate-limited; backoff is the recovery signal.                                                                                                                        |
+| HTTP **429**                                                            | Yes        | Rate-limited. Backoff is the recovery signal.                                                                                                                        |
 | Network error from `fetch` (DNS failure, connection refused, TLS reset) | Yes        | Captured at the `fetch` boundary.                                                                                                                                    |
-| Per-attempt timeout (`AbortSignal.timeout` firing)                      | Yes        | Each attempt gets its own `timeoutMs` budget; a hung response doesn't poison subsequent retries.                                                                     |
-| HTTP **4xx** outside 429                                                | **No**     | The webhook rejected the payload; retrying will not help. Surfaces immediately as `PushNotificationSendError`.                                                       |
+| Per-attempt timeout (`AbortSignal.timeout` firing)                      | Yes        | Each attempt gets its own `timeoutMs` budget. A hung response doesn't poison subsequent retries.                                                                     |
+| HTTP **4xx** outside 429                                                | **No**     | The webhook rejected the payload. Retrying will not help. Surfaces immediately as `PushNotificationSendError`.                                                       |
 | Caller-supplied `signal` aborted                                        | **No**     | Cooperative cancellation - the sender aborts in-flight requests, drops any pending backoff sleep, and rejects with `PushNotificationSendError` (no further retries). |
 
 The per-attempt backoff sleep is itself abort-aware: aborting `options.signal` between attempts cancels the sleep and rejects immediately rather than waiting for the timer to elapse.
@@ -2816,15 +2816,15 @@ The per-attempt backoff sleep is itself abort-aware: aborting `options.signal` b
 The `Authorization` header is derived from the `PushNotificationConfig` the client supplied. Resolution order (the first source that produces a value wins, but a later source **overrides** an earlier one - last-write-wins across sources):
 
 1. **`config.token`** (string) → `Authorization: Bearer <token>` is set.
-2. **`config.authentication.schemes`** - the sender iterates the schemes in order; the first that matches a known kind wins:
+2. **`config.authentication.schemes`** - the sender iterates the schemes in order. The first that matches a known kind wins:
    - `bearer` (case-insensitive) → `Authorization: Bearer <config.authentication.credentials>` (only when `credentials` is a non-empty string).
    - `basic` (case-insensitive) → `Authorization: Basic <config.authentication.credentials>` (the value is taken verbatim - the client is responsible for the `base64(user:pass)` encoding).
    - Any other scheme name → ignored (no header emitted for that scheme).
-3. **Neither source is present (or both produced no value)** → no `Authorization` header is sent; the POST goes out unauthenticated. The webhook is responsible for rejecting unauthenticated requests (e.g., HTTP 401) if it needs them gated.
+3. **Neither source is present (or both produced no value)** → no `Authorization` header is sent. The POST goes out unauthenticated. The webhook is responsible for rejecting unauthenticated requests (e.g., HTTP 401) if it needs them gated.
 
-Because `config.authentication.schemes` is applied **after** `config.token`, supplying both will let the schemes value override the token-derived header. In practice, clients typically use one source or the other; the override exists so a server can rewrite the auth shape at config-set time without losing per-task state.
+Because `config.authentication.schemes` is applied **after** `config.token`, supplying both will let the schemes value override the token-derived header. In practice, clients typically use one source or the other. The override exists so a server can rewrite the auth shape at config-set time without losing per-task state.
 
-This is the same resolution order as the Go ADK; configurations transfer between languages unchanged.
+This is the same resolution order as the Go ADK. Configurations transfer between languages unchanged.
 
 ### `PushNotificationSendError`
 
@@ -2898,7 +2898,7 @@ curl -sS -X POST http://localhost:8080/ \
   }'
 ```
 
-`SendMessage` returns the freshly minted `Task` as usual; the registered config is persisted alongside the task and consulted on every state transition:
+`SendMessage` returns the freshly minted `Task` as usual. The registered config is persisted alongside the task and consulted on every state transition:
 
 ```json
 {
@@ -2925,11 +2925,11 @@ curl -sS -X POST http://localhost:8080/ \
 
 Each subsequent state transition (`SUBMITTED` -> `WORKING` -> `COMPLETED` / `FAILED` / `CANCELLED` / `INPUT_REQUIRED`) produces one POST per registered config carrying the [`StreamResponse`](#wire-payload-streamresponse) payload.
 
-> **Clients can register multiple configs per task** via the `CreateTaskPushNotificationConfig` JSON-RPC method; the sender's [`deliverTaskUpdate`](#delivertaskupdateconfigs-task-options---fan-out) helper handles the fan-out. The config-management handlers (`set` / `get` / `list` / `delete`) ship in `@inference-gateway/adk` alongside the sender and are exported from the server barrel.
+> **Clients can register multiple configs per task** via the `CreateTaskPushNotificationConfig` JSON-RPC method. The sender's [`deliverTaskUpdate`](#delivertaskupdateconfigs-task-options---fan-out) helper handles the fan-out. The config-management handlers (`set` / `get` / `list` / `delete`) ship in `@inference-gateway/adk` alongside the sender and are exported from the server barrel.
 
 ### When the card disables push notifications (`-32003`)
 
-`A2AServerBuilder.build()` reads `capabilities.pushNotifications` from the agent card. When it is anything but `true`, the four config methods (`CreateTaskPushNotificationConfig`, `GetTaskPushNotificationConfig`, `ListTaskPushNotificationConfigs`, `DeleteTaskPushNotificationConfig`) are **still registered**, and every call against them answers `-32003 PushNotificationNotSupportedError` (A2A v1.0.1 section 5.4) instead of `-32601 Method not found`. The method is part of the A2A surface and is known to the server; only the capability is missing, which is exactly the distinction the two codes draw.
+`A2AServerBuilder.build()` reads `capabilities.pushNotifications` from the agent card. When it is anything but `true`, the four config methods (`CreateTaskPushNotificationConfig`, `GetTaskPushNotificationConfig`, `ListTaskPushNotificationConfigs`, `DeleteTaskPushNotificationConfig`) are **still registered**, and every call against them answers `-32003 PushNotificationNotSupportedError` (A2A v1.0.1 section 5.4) instead of `-32601 Method not found`. The method is part of the A2A surface and is known to the server. Only the capability is missing, which is exactly the distinction the two codes draw.
 
 ```json
 {
@@ -3046,9 +3046,9 @@ The service surface:
 
 | Method                                                                              | Description                                                                                                                    |
 | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `createTextArtifact(name, description, text)`                                       | Synchronous. Builds a text `Artifact`; does not touch storage.                                                                 |
+| `createTextArtifact(name, description, text)`                                       | Synchronous. Builds a text `Artifact`. Does not touch storage.                                                                 |
 | `createFileArtifact(name, description, filename, data, options?)`                   | **Async.** Streams `data` (a `Uint8Array`) into storage and returns a file `Artifact` whose `fileWithUri` is the download URL. |
-| `createFileArtifactFromURI(name, description, filename, uri, options?)`             | Synchronous. Wraps an already-hosted file by reference; does not copy bytes.                                                   |
+| `createFileArtifactFromURI(name, description, filename, uri, options?)`             | Synchronous. Wraps an already-hosted file by reference. Does not copy bytes.                                                   |
 | `createDataArtifact(name, description, data)`                                       | Synchronous. Builds a structured-data `Artifact`.                                                                              |
 | `createMultiPartArtifact(name, description, parts)`                                 | Synchronous. Builds an `Artifact` from pre-built `Part`s.                                                                      |
 | `getArtifactByID(task, artifactId)`                                                 | Looks an artifact up on a `Task`. Returns `undefined` when absent.                                                             |
@@ -3058,7 +3058,7 @@ The service surface:
 | `cleanupExpired(maxAgeMs, signal?)` / `cleanupOldest(maxCount, signal?)`            | Retention helpers. Return the number of artifacts removed.                                                                     |
 | `close()`                                                                           | Releases the underlying storage (closes pools / clients).                                                                      |
 
-`createFileArtifact` infers a MIME type from the filename extension (`.txt` -> `text/plain`, `.json` -> `application/json`, `.png` -> `image/png`, and so on), falling back to `application/octet-stream`. Pass `options.mimeType` to override. Validation failures throw `ArtifactValidationError`; storage failures throw `ArtifactStorageError`.
+`createFileArtifact` infers a MIME type from the filename extension (`.txt` -> `text/plain`, `.json` -> `application/json`, `.png` -> `image/png`, and so on), falling back to `application/octet-stream`. Pass `options.mimeType` to override. Validation failures throw `ArtifactValidationError`. Storage failures throw `ArtifactStorageError`.
 
 ### Artifact storage backends
 
@@ -3068,7 +3068,7 @@ All three backends implement the same `ArtifactStorageProvider` interface (`stor
 | --------------------------- | ----------------------------------------------------------------------------------------- |
 | `InMemoryArtifactStorage`   | Tests and ephemeral demos. Bytes live in process memory and are not externally fetchable. |
 | `FilesystemArtifactStorage` | Single-node deployments. Writes `<root>/<artifactId>/<filename>` plus a metadata sidecar. |
-| `S3ArtifactStorage`         | Production / multi-node. Backed by the AWS S3 SDK; works against any S3-compatible store. |
+| `S3ArtifactStorage`         | Production / multi-node. Backed by the AWS S3 SDK. Works against any S3-compatible store. |
 
 **`FilesystemArtifactStorage(options)`** writes each artifact to `<root>/<artifactId>/<filename>` (mode `0600`) alongside a `<filename>.adk-meta.json` sidecar holding the content type and upload timestamp:
 
@@ -3089,7 +3089,7 @@ All three backends implement the same `ArtifactStorageProvider` interface (`stor
 | `credentials`          | No       | SDK default chain             | `{ accessKeyId, secretAccessKey, sessionToken? }`. Omit to use the SDK's default credential chain.                                       |
 | `forcePathStyle`       | No       | `true` when `endpoint` is set | Path-style addressing (required by most self-hosted S3 servers).                                                                         |
 | `prefix`               | No       | none                          | Key prefix for stored objects.                                                                                                           |
-| `mode`                 | No       | `direct`                      | `direct` returns a presigned GET URL from `store()`; `proxy` returns a `baseUrl` URL streamed back through the server's artifacts route. |
+| `mode`                 | No       | `direct`                      | `direct` returns a presigned GET URL from `store()`. `proxy` returns a `baseUrl` URL streamed back through the server's artifacts route. |
 | `baseUrl`              | No       | `s3://<bucket>`               | URL prefix used in `proxy` mode.                                                                                                         |
 | `presignExpirySeconds` | No       | `300`                         | Lifetime of presigned URLs in `direct` mode.                                                                                             |
 
@@ -3276,7 +3276,7 @@ Errors are recorded on the span via `recordSpanError`. Node auto-instrumentation
 | `session.id`          | Copied from the incoming `session.id` baggage member, when present.          |
 | `gen_ai.tool.call.id` | Copied from the incoming `gen_ai.tool.call.id` baggage member, when present. |
 
-The span is emitted automatically for every registered tool - built-in reserved tools and your own alike - with no per-tool instrumentation code. It uses the global tracer from `@opentelemetry/api`, so it needs no provider wiring and is a no-op when telemetry is disabled. The span is active while the tool runs, so nested instrumentation is parented under it, and a throwing tool gets ERROR status plus a recorded exception. Tool lookup and JSON-schema validation failures do not open a tool span (no tool ran); they surface on the surrounding span. This mirrors the Go ADK's `ExecuteTool` spans.
+The span is emitted automatically for every registered tool - built-in reserved tools and your own alike - with no per-tool instrumentation code. It uses the global tracer from `@opentelemetry/api`, so it needs no provider wiring and is a no-op when telemetry is disabled. The span is active while the tool runs, so nested instrumentation is parented under it, and a throwing tool gets ERROR status plus a recorded exception. Tool lookup and JSON-schema validation failures do not open a tool span (no tool ran). They surface on the surrounding span. This mirrors the Go ADK's `ExecuteTool` spans.
 
 The span-name constants `SPAN_NAME_BACKGROUND_TASK`, `SPAN_NAME_STREAMING_TASK`, and `SPAN_NAME_LLM_COMPLETION`, plus the attribute keys `ATTR_TASK_ID` / `ATTR_CONTEXT_ID`, are exported for your own instrumentation but are not auto-emitted by the server today.
 
@@ -3290,7 +3290,7 @@ The span-name constants `SPAN_NAME_BACKGROUND_TASK`, `SPAN_NAME_STREAMING_TASK`,
 
 ## Prometheus metrics
 
-Alongside OTLP tracing, the ADK exposes a [Prometheus](https://prometheus.io/) metrics surface backed by `prom-client`. A `MetricsRegistry` owns the counters and histograms; a standalone `MetricsServer` serves them on a dedicated port; and a Hono middleware records per-request metrics.
+Alongside OTLP tracing, the ADK exposes a [Prometheus](https://prometheus.io/) metrics surface backed by `prom-client`. A `MetricsRegistry` owns the counters and histograms. A standalone `MetricsServer` serves them on a dedicated port. And a Hono middleware records per-request metrics.
 
 ### Exposed metrics
 
@@ -3429,7 +3429,7 @@ Because the cert is self-signed it acts as its own CA - which is why the client 
 
 ### TLS client
 
-The bundled A2A client enables TLS through its `tls` field. `fetch` and `tls` are **mutually exclusive** (supplying both throws `A2AClientError`); to combine them, build your own fetch with `createTLSFetch`.
+The bundled A2A client enables TLS through its `tls` field. `fetch` and `tls` are **mutually exclusive** (supplying both throws `A2AClientError`). To combine them, build your own fetch with `createTLSFetch`.
 
 ```ts
 import { createA2AClient } from '@inference-gateway/adk';
@@ -3451,7 +3451,7 @@ const client = createA2AClient({
 | `insecureSkipVerify` | `false`      | Disables certificate verification (maps to `rejectUnauthorized: false`). **Dev only** - vulnerable to MITM. |
 | `servername`         | request host | SNI override.                                                                                               |
 
-For the lower-level `fetch`-based client samples elsewhere on this page, `createTLSFetch(config)` returns a `fetch`-compatible function that you can pass anywhere a `fetch` is accepted; `createTLSHttpsAgent(config)` returns a reusable `https.Agent`. Both throw `TLSConfigError` if exactly one of `certPath` / `keyPath` is supplied.
+For the lower-level `fetch`-based client samples elsewhere on this page, `createTLSFetch(config)` returns a `fetch`-compatible function that you can pass anywhere a `fetch` is accepted. `createTLSHttpsAgent(config)` returns a reusable `https.Agent`. Both throw `TLSConfigError` if exactly one of `certPath` / `keyPath` is supplied.
 
 `loadClientTLSConfigFromEnv()` reads `CLIENT_TLS_CERT_PATH`, `CLIENT_TLS_KEY_PATH`, `CLIENT_TLS_CA_PATH`, `CLIENT_TLS_PASSPHRASE`, `CLIENT_TLS_INSECURE_SKIP_VERIFY`, and `CLIENT_TLS_SERVERNAME`, returning `undefined` when none are set.
 
@@ -3496,20 +3496,20 @@ The TypeScript ADK is being grown in lockstep with the [Go ADK](https://github.c
 
 - The handler name, params shape, id semantics, validation rules, and blocking return contract (wait for terminal/interrupted unless `returnImmediately`) are **identical** to the Go implementation's `HandleMessageSend` / `CreateTaskFromMessage`.
 - Internal storage state (`PENDING`) and wire state (`TASK_STATE_SUBMITTED`) follow the same mapping as the Go ADK.
-- `CancelTask` mirrors the Go ADK's `CancelTask` in [`adk/server/task_manager.go`](https://github.com/inference-gateway/adk/blob/main/server/task_manager.go) - same per-state branch table (`PENDING` dropped from the queue; `IN_PROGRESS` / `INPUT_REQUIRED` aborted via the shared registry; terminal / unknown surfaced as JSON-RPC `-32602`), and same dead-letter on completion. The TypeScript ADK's [`TaskCancellationRegistry`](#taskcancellationregistry) is the structural equivalent of the Go ADK's `RegisterTaskCancelFunc` / `UnregisterTaskCancelFunc` / `runningTasks` map on `DefaultTaskManager`.
+- `CancelTask` mirrors the Go ADK's `CancelTask` in [`adk/server/task_manager.go`](https://github.com/inference-gateway/adk/blob/main/server/task_manager.go) - same per-state branch table (`PENDING` dropped from the queue - `IN_PROGRESS` / `INPUT_REQUIRED` aborted via the shared registry - terminal / unknown surfaced as JSON-RPC `-32602`), and same dead-letter on completion. The TypeScript ADK's [`TaskCancellationRegistry`](#taskcancellationregistry) is the structural equivalent of the Go ADK's `RegisterTaskCancelFunc` / `UnregisterTaskCancelFunc` / `runningTasks` map on `DefaultTaskManager`.
 - The `SendStreamingMessage` SSE wire format - CloudEvents v1.0 envelopes, `source = 'adk/agent'`, `subject = taskId`, and the `AGENT_EVENT_TYPE.*` constants - is **byte-identical** to the Go ADK's emitter in `server/agent_streamable.go`. Client implementations target one canonical wire contract regardless of which ADK the agent is built with.
 - `STREAMING_STATUS_UPDATE_INTERVAL` shares its name, default (`1s`), and accepted format with the Go ADK's `server/config/config.go`.
 - `DefaultBackgroundTaskHandler` mirrors the Go ADK's [`DefaultBackgroundTaskHandler`](https://github.com/inference-gateway/adk/blob/main/server/task_handler.go) - same iteration cap default (`50`), same `MAX_CHAT_COMPLETION_ITERATIONS` env var name, same reserved `input_required` tool and `message` / `prompt` / `question` arg-key fallback, and the same [usage extension](/a2a/#usage-extension) keys on `task.metadata`.
 - [`AgentBuilder`](#agent-builder-agentbuilder) mirrors the Go ADK's [`AgentBuilder`](https://github.com/inference-gateway/adk/blob/main/server/agent_builder.go) - same fluent surface (`withProvider` / `withModel` / `withTemperature` / `withTopP` / `withMaxTokens` / `withMaxIterations` / `withSystemPrompt` / `withMaxConversationHistory` / `withCallbacks` / `withToolBox` / `withLLMClient` / `build`), same defaults (`maxIterations: 50`, `maxConversationHistory: 20`), and a `systemPrompt` default that is a byte-for-byte copy of `AgentConfig.SystemPrompt` from [`server/config/config.go`](https://github.com/inference-gateway/adk/blob/main/server/config/config.go). The TS variant surfaces each LLM-config field as its own builder method instead of a single `WithConfig` call.
-- [`GetExtendedAgentCard`](#the-getextendedagentcard-json-rpc-method) mirrors the Go ADK's [`HandleGetAuthenticatedExtendedCard`](https://github.com/inference-gateway/adk/blob/main/server/task_handler.go) - same JSON-RPC method name, same optional `tenant` param, same "return the configured extended card verbatim" contract, same fail-closed behaviour when no extended card is configured (`-32601 method not found`). Both ADKs leave the public well-known card undecorated and surface auth schemes only on the extended endpoint; the public card sets `capabilities.extendedAgentCard: true` to signal availability. The TS handler is auto-registered by [`A2AServerBuilder.withAuthConfig(...)`](#via-a2aserverbuilder-withauthconfig) when paired with an authenticator, matching the Go ADK's `A2AServerBuilder.WithAuthConfig` wiring.
-- [`HTTPPushNotificationSender`](#push-notifications-httppushnotificationsender) mirrors the Go ADK's [`HTTPPushNotificationSender`](https://github.com/inference-gateway/adk/blob/main/server/push_notification_sender.go) - same A2A `StreamResponse` JSON payload (`{ task }`, `Content-Type: application/a2a+json`), same auth-header resolution order (`config.token` first, then bearer / basic in `config.authentication.schemes`), and the same retryable-vs-non-retryable classification (5xx / 429 / network / per-attempt timeout retryable; 4xx and caller abort non-retryable). The TypeScript sender ships `deliverTaskUpdate` as a fan-out helper with a default concurrency cap of `8`; both ADKs' senders are delivery primitives only and depend on the lifecycle layer for invocation.
+- [`GetExtendedAgentCard`](#the-getextendedagentcard-json-rpc-method) mirrors the Go ADK's [`HandleGetAuthenticatedExtendedCard`](https://github.com/inference-gateway/adk/blob/main/server/task_handler.go) - same JSON-RPC method name, same optional `tenant` param, same "return the configured extended card verbatim" contract, same fail-closed behaviour when no extended card is configured (`-32601 method not found`). Both ADKs leave the public well-known card undecorated and surface auth schemes only on the extended endpoint. The public card sets `capabilities.extendedAgentCard: true` to signal availability. The TS handler is auto-registered by [`A2AServerBuilder.withAuthConfig(...)`](#via-a2aserverbuilder-withauthconfig) when paired with an authenticator, matching the Go ADK's `A2AServerBuilder.WithAuthConfig` wiring.
+- [`HTTPPushNotificationSender`](#push-notifications-httppushnotificationsender) mirrors the Go ADK's [`HTTPPushNotificationSender`](https://github.com/inference-gateway/adk/blob/main/server/push_notification_sender.go) - same A2A `StreamResponse` JSON payload (`{ task }`, `Content-Type: application/a2a+json`), same auth-header resolution order (`config.token` first, then bearer / basic in `config.authentication.schemes`), and the same retryable-vs-non-retryable classification (5xx / 429 / network / per-attempt timeout retryable; 4xx and caller abort non-retryable). The TypeScript sender ships `deliverTaskUpdate` as a fan-out helper with a default concurrency cap of `8`. Both ADKs' senders are delivery primitives only and depend on the lifecycle layer for invocation.
 - The generated `Message`, `Task`, and `Part` types are produced from the same `inference-gateway/schemas` source of truth, regenerated via `pnpm generate:types` and pinned to a specific schema commit.
 
 Where the TypeScript ADK has not yet shipped a handler that the Go ADK has, cross-referencing the Go source is the safest reference point.
 
 ## Related resources
 
-- [`examples/tck-sut`](https://github.com/inference-gateway/typescript-adk/tree/main/examples/tck-sut) - reference server wiring the handlers on this page; CI runs the A2A v1.0.1 TCK JSON-RPC suite against it.
+- [`examples/tck-sut`](https://github.com/inference-gateway/typescript-adk/tree/main/examples/tck-sut) - reference server wiring the handlers on this page. CI runs the A2A v1.0.1 TCK JSON-RPC suite against it.
 - [A2A Integration](/a2a/) - protocol overview, CLI usage, custom-agent requirements.
 - [A2A Debugger](/a2a-debugger/) - inspect, stream, and replay tasks against any A2A server.
 - [A2A Registry](/registry/) - publish your built agent so others can discover and consume it.

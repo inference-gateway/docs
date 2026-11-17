@@ -111,7 +111,7 @@ Each supported provider gets one masked field. Fill in the providers you use and
 
 **ElevenLabs** is the one entry that is not a chat provider: it is the key the gateway needs to render [talking avatars](#text-to-video), and it offers no models to the picker.
 
-**Save** writes the non-empty values to `~/.infer/auth.yaml` (mode `0600` on macOS and Linux; keys still sitting in a legacy `~/.infer/auth.json` are read as a fallback but never written back), returns you to the chat, and restarts the gateway so the new keys take effect - which is also what refreshes the model list. Keys are passed to the agent as environment variables of the same name; nothing is sent anywhere else.
+**Save** writes the non-empty values to `~/.infer/auth.yaml` (mode `0600` on macOS and Linux - keys still sitting in a legacy `~/.infer/auth.json` are read as a fallback but never written back), returns you to the chat, and restarts the gateway so the new keys take effect - which is also what refreshes the model list. Keys are passed to the agent as environment variables of the same name. Nothing is sent anywhere else.
 
 **Save keeps every other entry of `auth.yaml`.** Only the provider fields the form shows are written over, so an agent's key or a secret saved elsewhere survives a save here, and a field you clear removes just its own key.
 
@@ -241,7 +241,7 @@ workspaces:
 
 The model dropdown lives in the top bar, next to the **Restart CLI** button, rather than in Settings - but it is where the keys you saved show up as models you can pick.
 
-The list comes from the gateway's [`GET /v1/models`](/api-reference/) endpoint (each entry's `id`), read from the gateway URL in `~/.infer/config.yaml`, defaulting to `http://localhost:8080`. Until the gateway answers, the picker shows **Waiting for gateway...**; the app retries roughly every 1.5 seconds. If the list stays empty, the usual cause is a missing or wrong API key for every configured provider.
+The list comes from the gateway's [`GET /v1/models`](/api-reference/) endpoint (each entry's `id`), read from the gateway URL in `~/.infer/config.yaml`, defaulting to `http://localhost:8080`. Until the gateway answers, the picker shows **Waiting for gateway...**. The app retries roughly every 1.5 seconds. If the list stays empty, the usual cause is a missing or wrong API key for every configured provider.
 
 Your selection is stored locally and restored on the next launch. If the saved model is no longer offered, the first model in the list is selected instead. The picker is disabled while the conversation you are viewing is streaming - switch to another chat or wait for the turn to finish.
 
@@ -249,7 +249,7 @@ Your selection is stored locally and restored on the next launch. If the saved m
 
 The **Agents** tab manages the [A2A](/a2a/) agents your local agent can delegate to. Selections are written to `~/.infer/agents.json` and loaded on startup, so they survive restarts.
 
-**Local A2A agents (containers)** are listed from the public [agent registry](/registry/) catalog, each card showing the agent's name, version, description, and up to four skills. Tick the checkbox to enable an agent and untick it to remove it. The desktop registers local agents by name only, so the CLI assigns each one its known port - you still have to run that agent's container yourself for the delegation to reach anything. If the registry cannot be fetched, the tab shows **Couldn't load the agent registry.** instead of the cards; the rest of Settings is unaffected.
+**Local A2A agents (containers)** are listed from the public [agent registry](/registry/) catalog, each card showing the agent's name, version, description, and up to four skills. Tick the checkbox to enable an agent and untick it to remove it. The desktop registers local agents by name only, so the CLI assigns each one its known port - you still have to run that agent's container yourself for the delegation to reach anything. If the registry cannot be fetched, the tab shows **Couldn't load the agent registry.** instead of the cards. The rest of Settings is unaffected.
 
 **Setting a model:** an enabled agent that has a model assigned shows a dropdown on its card, listing the same models as the top-bar picker. Pick one to change which model that agent runs on. If the agent's current model is not in the gateway's list, it is kept at the top of the dropdown rather than silently replaced.
 
@@ -773,13 +773,13 @@ Models that emit reasoning show it in the transcript in a collapsible **Thought 
 
 While the model is working, an animated **thinking indicator** (pulsing dots) sits at the bottom of the transcript. It appears when you send a message and stays visible for the whole turn - through reasoning, streamed answer text, and tool calls - and resumes after you approve or deny a tool. It disappears only when the turn ends: completion, cancellation, an error, or a pending approval prompt.
 
-Tool calls in the same turn render as their own collapsible cards next to the reasoning block, each labelled with the tool name and a preview of its arguments. Expand one to see the full arguments and the tool output; a running call shows an animated ellipsis, and a failed call is highlighted in red.
+Tool calls in the same turn render as their own collapsible cards next to the reasoning block, each labelled with the tool name and a preview of its arguments. Expand one to see the full arguments and the tool output. A running call shows an animated ellipsis, and a failed call is highlighted in red.
 
 Reasoning requires a model that emits it and an `infer` CLI new enough to forward it. Against an older CLI the transcript still works - you just get no **Thought process** block.
 
 ## Images in chat
 
-Images an agent produces are rendered inline in the transcript, not shown as a link or a file path. Markdown images (`![alt](url)`) render as-is, and a bare image URL or `data:image/...` URI on its own is turned into an image too. Images are sized to their natural dimensions up to the width of the chat bubble; one that fails to load is replaced with a short error line instead of a broken-image icon.
+Images an agent produces are rendered inline in the transcript, not shown as a link or a file path. Markdown images (`![alt](url)`) render as-is, and a bare image URL or `data:image/...` URI on its own is turned into an image too. Images are sized to their natural dimensions up to the width of the chat bubble. One that fails to load is replaced with a short error line instead of a broken-image icon.
 
 **An image a tool puts in the transcript is a thumbnail**, at most 240 by 160 px, rather than the full width of the chat column. Clicking it - it is a **View image** button - opens the image full size in a dialog, scaled to fit the window. This covers every image a tool adds, a [`Computer`](#agent-computers) screenshot as much as a chart a script wrote. Images the model writes inline in its own Markdown answer are unchanged, and so is the download button on either kind.
 
@@ -796,7 +796,7 @@ The button is disabled while saving, and the check or cross reverts to the downl
 
 ## Conversations
 
-The left sidebar lists your conversations, newest work at hand: a session that is running but has not been persisted yet is shown at the top, titled by its first prompt (or **New chat** until you send one), followed by the conversations saved on disk. A saved conversation with no title yet shows **(untitled)**; hover any entry to see its title, or its session id if it has none.
+The left sidebar lists your conversations, newest work at hand: a session that is running but has not been persisted yet is shown at the top, titled by its first prompt (or **New chat** until you send one), followed by the conversations saved on disk. A saved conversation with no title yet shows **(untitled)**. Hover any entry to see its title, or its session id if it has none.
 
 Click an entry to open it. The transcript is loaded from storage, so history survives restarts - except for a conversation that is still live in this app session, whose in-memory transcript is kept rather than being replaced by the on-disk copy.
 
@@ -818,13 +818,13 @@ You can select several conversations and delete them in one go:
 
 Selected entries are tinted with an accent background and an accent bar on the left. Starting a **+ New chat** clears the selection too.
 
-With at least one entry selected, a bar pins to the bottom of the sidebar with a **Delete N selected** button. It confirms the same way as the single delete: the first click arms it (**Click again to delete N**), the second deletes; moving the pointer off cancels. The deletions run in parallel and the list refreshes when they finish.
+With at least one entry selected, a bar pins to the bottom of the sidebar with a **Delete N selected** button. It confirms the same way as the single delete: the first click arms it (**Click again to delete N**), the second deletes. Moving the pointer off cancels. The deletions run in parallel and the list refreshes when they finish.
 
 ### Where conversations are stored
 
 The app does not keep its own conversation store - it shells out to the [`infer` CLI's conversation management](/cli/#conversation-management) (`infer conversations list`, `show`, and `delete`), so the desktop app and the CLI see the same history.
 
-With the default JSONL backend that means `~/.infer/projects/<project-slug>/conversations/`, one directory per project; with SQLite it means the shared `~/.infer/conversations.db`. Listings are scoped to the project the CLI runs in, and the desktop app runs it from your home directory. Point [`storage`](/cli/#conversation-management) at another backend in `~/.infer/config.yaml` and the sidebar follows it. Deletes go to the storage backend and are not recoverable from the app.
+With the default JSONL backend that means `~/.infer/projects/<project-slug>/conversations/`, one directory per project. With SQLite it means the shared `~/.infer/conversations.db`. Listings are scoped to the project the CLI runs in, and the desktop app runs it from your home directory. Point [`storage`](/cli/#conversation-management) at another backend in `~/.infer/config.yaml` and the sidebar follows it. Deletes go to the storage backend and are not recoverable from the app.
 
 ### Project groups
 
@@ -980,7 +980,7 @@ All times are seconds.
 | -------------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | `duration`     | Length of the finished video                                                                                                 |
 | `output`       | File name of the export, written to `export/<output>`                                                                        |
-| `resolution`   | Export frame as `"WxH"` - `1920x1080` (default), `1080x1920`, or `1350x1350`; picked with the **Frame** select in the editor |
+| `resolution`   | Export frame as `"WxH"` - `1920x1080` (default), `1080x1920`, or `1350x1350`. Picked with the **Frame** select in the editor |
 | `fps`          | Optional. The rate the export renders at, `30` when absent. There is no control for it - the agent writes it                 |
 | `source_audio` | What to do with the recording's own audio: `transcribe`, `mute`, or `keep`                                                   |
 | `tracks`       | Lanes of the timeline, each with an `id`, a `kind`, and `clips`                                                              |
@@ -1013,7 +1013,7 @@ different files - and the export plays them in `start` order. A gap between two 
 | `status`       | Optional. On an avatar clip: `draft` means it still needs rendering, `done` means the mp4 at `src` is current                        |
 
 So a clip plays its `src` from `offset` for `end - start` seconds. `scale`, `x`, and `y` are what
-the framing controls under the preview write; an untouched recording carries none of them.
+the framing controls under the preview write. An untouched recording carries none of them.
 
 #### Avatar clips
 
@@ -1044,12 +1044,12 @@ A clip on an `audio` track with `text` is spoken: the agent synthesizes it and w
 | Field          | Where | Meaning                                                                                   |
 | -------------- | ----- | ----------------------------------------------------------------------------------------- |
 | `text`         | Clip  | What the voice says                                                                       |
-| `status`       | Clip  | `draft` means it still needs synthesizing; `done` means the wav at `src` is current       |
+| `status`       | Clip  | `draft` means it still needs synthesizing. `done` means the wav at `src` is current       |
 | `voice_sample` | Clip  | Optional. The sample this clip's wav was cloned from. The timeline colours the clip by it |
 | `voice_sample` | Track | The sample used for spoken clips that carry none of their own                             |
 
 Picking a different sample for a clip in the inspector puts it back to `draft`, so **Redo drafts**
-synthesizes it in the new voice; other clips on the lane keep theirs.
+synthesizes it in the new voice. Other clips on the lane keep theirs.
 
 #### Overlay clips
 
@@ -1061,14 +1061,14 @@ A clip on an `overlay` track carries:
 | `start`, `end`    | When the card is on screen, in seconds on the video                                                                       |
 | `html`            | Optional. The composition under `cards/` the card was rendered from, so it can be re-rendered instead of rewritten        |
 | `x`, `y`          | Optional. Position of the card's top-left corner as fractions (0-1) of the export frame, top-left origin                  |
-| `width`, `height` | Optional. Size as fractions (0-1) of the export frame. `width` alone keeps the aspect ratio; neither set means full width |
+| `width`, `height` | Optional. Size as fractions (0-1) of the export frame. `width` alone keeps the aspect ratio. Neither set means full width |
 
 Nothing other than cards belongs on an overlay track, and clips on one track must not overlap in
 time - use a second overlay track when two cards share a range.
 
 #### Caption clips
 
-A `captions` track carries the look of the text; its clips carry the text itself.
+A `captions` track carries the look of the text. Its clips carry the text itself.
 
 | Field      | Where | Meaning                                                                                                          |
 | ---------- | ----- | ---------------------------------------------------------------------------------------------------------------- |
@@ -1132,7 +1132,7 @@ export). ProRes is large, so keep cards under about 10 seconds.
   composition.
 - The composition's duration is the clip's `end - start`.
 
-To change a card, edit the file named by its `html` and render over the same `src`; `start`, `end`,
+To change a card, edit the file named by its `html` and render over the same `src`. `start`, `end`,
 and the placement fractions are edited on the timeline and need no re-render.
 
 ### Captions
@@ -1150,7 +1150,7 @@ height), weight, case, outline, and colour - not one look with different word co
 | ----------- | -------------------------------------------------------------------------- | ------------- |
 | `classic`   | A broadcast subtitle: white semibold text on a translucent rounded box     | No            |
 | `bold`      | A short-form punch line: huge uppercase yellow with a thick black outline  | No            |
-| `highlight` | Each word turns green as it is spoken and stays green; the rest stay white | Yes           |
+| `highlight` | Each word turns green as it is spoken and stays green. The rest stay white | Yes           |
 | `karaoke`   | Words are dim grey until they are spoken, then white                       | Yes           |
 
 `classic` and `bold` ignore `words` entirely. `highlight` and `karaoke` need it: without `words` a
@@ -1191,7 +1191,7 @@ The toolbar's captions button asks the agent for a captions track in the lane's 
 - Writes the JSON and stops. You review the captions on the timeline and press **Export**.
 
 Asking for a change to one caption changes that clip's `text`: a misheard word is not a reason to
-rebuild the track. A caption you add with empty `text` is a range for the agent to fill; one you
+rebuild the track. A caption you add with empty `text` is a range for the agent to fill. One you
 type yourself stays verbatim.
 
 ### Asking the agent for a talking avatar
@@ -1220,7 +1220,7 @@ both enabled, an ElevenLabs key, and at least one avatar in the library.
   whatever falls outside it blurred and dimmed - so you can see what a crop is leaving out. Cards
   and captions play over the video inside their time range, at the position their fractions
   describe: what is sharp is what the export puts there.
-- Drag the video on the stage to move it and scroll to zoom; the slider under the preview does the
+- Drag the video on the stage to move it and scroll to zoom. The slider under the preview does the
   same scaling, and arrow keys step it finely. **Fit** scales the whole clip to sit inside the
   frame, **Fill** puts it back to covering the frame with no offset (it clears `scale`, `x`, and
   `y`). The controls apply to the clip under the playhead, so each video clip is framed on its own.
@@ -1306,7 +1306,7 @@ Every conversation keeps its own transcript and approval prompts. Switching the 
 
 ### The concurrency cap
 
-The number of sessions that can run at the same time is capped. Set it in **Settings -> General -> Max concurrent sessions**; the default is **5** and the minimum is 1. The value is stored locally in the app and persists across restarts.
+The number of sessions that can run at the same time is capped. Set it in **Settings -> General -> Max concurrent sessions**. The default is **5** and the minimum is 1. The value is stored locally in the app and persists across restarts.
 
 The cap is checked when you start a **new** chat. If that many sessions are already running, the send is rejected with:
 
@@ -1346,7 +1346,7 @@ extension:
   token: <generated when none is set>
 ```
 
-Only those keys are touched; anything else you configured for the CLI passes through untouched. The connection is served by [`infer daemon`](/cli/#daemon) on `127.0.0.1:52789` (or on `extension.port` if you changed it), not by the app itself, and it comes up immediately - no restart.
+Only those keys are touched. Anything else you configured for the CLI passes through untouched. The connection is served by [`infer daemon`](/cli/#daemon) on `127.0.0.1:52789` (or on `extension.port` if you changed it), not by the app itself, and it comes up immediately - no restart.
 
 ### Connecting the extension
 
@@ -1395,7 +1395,7 @@ The other direction - spoken audio out - is handled by the [`infer` CLI's `TextT
 
 ### Enabling text to speech
 
-**Settings -> General -> Text to speech -> Enable Text to Speech**. It is off by default; while it is off the `TextToSpeech` tool is not sent to the model at all.
+**Settings -> General -> Text to speech -> Enable Text to Speech**. It is off by default. While it is off the `TextToSpeech` tool is not sent to the model at all.
 
 Saving writes `text_to_speech.enabled` to `~/.infer/config.yaml` and, if the toggle changed, restarts the desktop-owned gateway - the same restart path as saving an API key. The restart is what makes the feature work: the gateway reads `AUDIO_ENABLED=true` and `AUDIO_LOCAL_AUTO_DOWNLOAD=true` at spawn, and those are only passed while the toggle is on, so [`POST /v1/audio/speech`](/api-reference/#audio-api) is unreachable until the gateway comes back up.
 
@@ -1426,7 +1426,7 @@ mkdir -p ~/.infer/voice && mv ~/.infer/models/tts/samples ~/.infer/voice/samples
 | **Preview** | Every sample card carries the same audio player as the transcript, download button included                                                   |
 | **Delete**  | The trash icon on the card. Single click, no confirmation - the file is removed from disk                                                     |
 
-A recording is saved as `<name>.wav` (the `.wav` is added for you; the name defaults to `my-voice`) and needs microphone permission - denying it shows **Microphone access denied**. Anything other than a `.wav` is rejected, and names must be bare file names, no directories.
+A recording is saved as `<name>.wav` (the `.wav` is added for you - the name defaults to `my-voice`) and needs microphone permission - denying it shows **Microphone access denied**. Anything other than a `.wav` is rejected, and names must be bare file names, no directories.
 
 To use a sample, name its full file name in chat: _"read this in the voice of my-voice.wav"_. The CLI's `voice_sample` argument takes a bare file name and looks it up in the working directory first, then in this library, so a sample added here is equally usable from the CLI. Sample-name lookup needs `infer` v0.189.1 or newer, which the app pins.
 
@@ -1438,7 +1438,7 @@ Talking avatars come from the [`infer` CLI's `TextToVideo` tool](/cli-text-to-vi
 
 ### Enabling text to video
 
-**Settings -> General -> Text to video -> Enable Text to Video**. It is off by default; while it is off the `TextToVideo` tool is not sent to the model at all.
+**Settings -> General -> Text to video -> Enable Text to Video**. It is off by default. While it is off the `TextToVideo` tool is not sent to the model at all.
 
 Saving writes `text_to_video.enabled` to `~/.infer/config.yaml` and, if the toggle changed, restarts the desktop-owned gateway with `VIDEOS_ENABLED=true` - the same restart path as saving an API key. Renders also need an [**ElevenLabs** API key](#api-keys): the default `avatar_model` is ElevenLabs `creatify-aurora`, and every render sends the avatar's portrait and the voice clip to that provider.
 

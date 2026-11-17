@@ -9,6 +9,9 @@ const SITE_DESCRIPTION =
   'Documentation for Inference Gateway, an open-source, cloud-native gateway unifying multiple LLM providers (OpenAI, Anthropic, Groq, Cohere, Ollama, DeepSeek, Cloudflare and more) behind a single API.';
 const OG_IMAGE = `${HOSTNAME}/og-image.webp`;
 const OG_IMAGE_TYPE = 'image/webp';
+const OG_IMAGE_WIDTH = '1200';
+const OG_IMAGE_HEIGHT = '630';
+const BRAND_COLOR = '#7c3aed';
 const SITEMAP_PAGE_PRIORITY = 0.8;
 const SITEMAP_HOME_PRIORITY = 1.0;
 const SITEMAP_CHANGE_FREQUENCY = 'weekly';
@@ -63,7 +66,7 @@ export default withMermaid(
     base: '/',
     lang: 'en-US',
     title: SITE_NAME,
-    titleTemplate: ':title | Inference Gateway',
+    titleTemplate: `:title | ${SITE_NAME}`,
     description: SITE_DESCRIPTION,
     cleanUrls: true,
     rewrites(id) {
@@ -75,7 +78,7 @@ export default withMermaid(
     },
     lastUpdated: true,
     metaChunk: true,
-    srcExclude: ['README.md', 'CHANGELOG.md', 'CLAUDE.md', 'AGENTS.md'],
+    srcExclude: ['README.md', 'CHANGELOG.md', 'AGENTS.md'],
     sitemap: {
       hostname: HOSTNAME + '/',
       transformItems(items) {
@@ -108,8 +111,8 @@ export default withMermaid(
     head: [
       ['link', { rel: 'icon', type: 'image/png', href: '/logo.png' }],
       ['link', { rel: 'apple-touch-icon', href: '/logo.png' }],
-      ['meta', { name: 'theme-color', content: '#7c3aed' }],
-      ['meta', { name: 'author', content: 'Inference Gateway' }],
+      ['meta', { name: 'theme-color', content: BRAND_COLOR }],
+      ['meta', { name: 'author', content: SITE_NAME }],
       ['meta', { name: 'robots', content: 'index, follow' }],
       [
         'meta',
@@ -127,8 +130,8 @@ export default withMermaid(
       ['meta', { property: 'og:url', content: HOSTNAME + '/' }],
       ['meta', { property: 'og:image', content: OG_IMAGE }],
       ['meta', { property: 'og:image:type', content: OG_IMAGE_TYPE }],
-      ['meta', { property: 'og:image:width', content: '1200' }],
-      ['meta', { property: 'og:image:height', content: '630' }],
+      ['meta', { property: 'og:image:width', content: OG_IMAGE_WIDTH }],
+      ['meta', { property: 'og:image:height', content: OG_IMAGE_HEIGHT }],
       ['meta', { property: 'og:image:alt', content: `${SITE_NAME} logo` }],
       ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
       ['meta', { name: 'twitter:title', content: `${SITE_NAME} Documentation` }],
@@ -370,7 +373,7 @@ export default withMermaid(
         fontSize: '16px',
         primaryColor: '#ede9fe',
         primaryTextColor: '#1f2937',
-        primaryBorderColor: '#7c3aed',
+        primaryBorderColor: BRAND_COLOR,
         lineColor: '#6b7280',
         secondaryColor: '#fef3c7',
         tertiaryColor: '#f8fafc',

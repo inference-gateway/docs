@@ -12,7 +12,7 @@ The [Inference Gateway CLI](/cli/) can turn speech into text in two places:
 
 Both use a local [whisper.cpp](https://github.com/ggml-org/whisper.cpp) binary and run fully offline once the model is downloaded. The feature is **disabled by default** because the model download can take time and the runtime depends on external tools.
 
-> **Note:** Speech-to-text shells out to `whisper.cpp` and `ffmpeg` - no CGO is added to the `infer` binary. When a required tool is missing, the CLI reports an actionable error naming what to install; it never fails silently.
+> **Note:** Speech-to-text shells out to `whisper.cpp` and `ffmpeg` - no CGO is added to the `infer` binary. When a required tool is missing, the CLI reports an actionable error naming what to install. It never fails silently.
 
 ## Prerequisites
 
@@ -56,16 +56,16 @@ All options live under `speech_to_text` in `.infer/config.yaml`:
 | -------------------------------------- | ------ | ------------- | ---------------------------------------------------------------------------------------- |
 | `speech_to_text.enabled`               | bool   | `false`       | Feature flag - must be `true` to enable `/voice` and Telegram voice transcription        |
 | `speech_to_text.engine`                | string | `whisper.cpp` | Transcription engine                                                                     |
-| `speech_to_text.binary_path`           | string | `""`          | Explicit `whisper-cli`/`whisper-cpp` path; empty resolves the binary on `PATH`           |
+| `speech_to_text.binary_path`           | string | `""`          | Explicit `whisper-cli`/`whisper-cpp` path. Empty resolves the binary on `PATH`           |
 | `speech_to_text.model`                 | string | `tiny`        | Model to use: `tiny`, `base`, `small`, `medium`, `large-v3-turbo`, or an `.en` variant   |
-| `speech_to_text.models_dir`            | string | `""`          | Where models are cached; empty defaults to `~/.infer/models/whisper`                     |
-| `speech_to_text.language`              | string | `""`          | ISO language code (e.g. `en`); empty auto-detects                                        |
+| `speech_to_text.models_dir`            | string | `""`          | Where models are cached. Empty defaults to `~/.infer/models/whisper`                     |
+| `speech_to_text.language`              | string | `""`          | ISO language code (e.g. `en`). Empty auto-detects                                        |
 | `speech_to_text.auto_download`         | bool   | `true`        | Download the model on first use if it is missing                                         |
 | `speech_to_text.timeout`               | int    | `120`         | Transcription timeout in seconds                                                         |
 | `speech_to_text.max_recording_seconds` | int    | `30`          | Hard cap on `/voice` recording length in seconds                                         |
 | `speech_to_text.silence_timeout`       | int    | `2`           | Stop `/voice` this many seconds after the speaker goes quiet (`0` = record the full cap) |
-| `speech_to_text.ffmpeg_path`           | string | `""`          | Explicit `ffmpeg` path; empty resolves `ffmpeg` on `PATH`                                |
-| `speech_to_text.input_device`          | string | `""`          | Microphone device; empty uses the system default, an index overrides it                  |
+| `speech_to_text.ffmpeg_path`           | string | `""`          | Explicit `ffmpeg` path. Empty resolves `ffmpeg` on `PATH`                                |
+| `speech_to_text.input_device`          | string | `""`          | Microphone device. Empty uses the system default, an index overrides it                  |
 
 ## Environment variables
 
@@ -115,7 +115,7 @@ The `/voice` shortcut records audio from your microphone, transcribes it locally
 2. Speak. Recording stops automatically about `silence_timeout` seconds after you go quiet, at the `max_recording_seconds` cap, or when you pass a per-call override like `/voice 8`. Set `silence_timeout: 0` to always record the full cap instead.
 3. Review and edit the transcription in the input field, then press Enter to send.
 
-Under the hood, `/voice` shells out to `ffmpeg` (or `arecord`/`sox` on Linux) to capture 16 kHz mono audio, then to the `whisper-cli`/`whisper-cpp` binary to transcribe it. The first run downloads the model; subsequent runs use the cache. See the [Shortcuts](/cli/#shortcuts) section of the CLI docs for the full shortcut list.
+Under the hood, `/voice` shells out to `ffmpeg` (or `arecord`/`sox` on Linux) to capture 16 kHz mono audio, then to the `whisper-cli`/`whisper-cpp` binary to transcribe it. The first run downloads the model. Subsequent runs use the cache. See the [Shortcuts](/cli/#shortcuts) section of the CLI docs for the full shortcut list.
 
 ## Telegram voice messages
 
@@ -125,7 +125,7 @@ When speech-to-text is **disabled**, inbound voice messages are ignored (the pre
 
 ## Platform notes
 
-Microphone capture is platform-specific. The defaults work out of the box on most systems; override `input_device` only when you need a non-default microphone.
+Microphone capture is platform-specific. The defaults work out of the box on most systems. Override `input_device` only when you need a non-default microphone.
 
 ### macOS
 
@@ -149,7 +149,7 @@ Grant microphone permission to your terminal (System Settings - Privacy & Securi
 | `ffmpeg not found`         | Install ffmpeg, or set `speech_to_text.ffmpeg_path`                                                                                                     |
 | No audio captured on macOS | Grant microphone permission to your terminal, list devices with `ffmpeg -f avfoundation -list_devices true -i ""`, then set `input_device` to the index |
 | Wrong language detected    | Set `language` to the ISO code (e.g. `en`) instead of relying on auto-detect                                                                            |
-| First `/voice` is slow     | The model downloads once on first use; subsequent runs use the cache under `~/.infer/models/whisper/`                                                   |
+| First `/voice` is slow     | The model downloads once on first use. Subsequent runs use the cache under `~/.infer/models/whisper/`                                                   |
 | `/voice` does not appear   | Set `speech_to_text.enabled: true` (or `INFER_SPEECH_TO_TEXT_ENABLED=true`) - the shortcut is hidden when disabled                                      |
 
 ## Related

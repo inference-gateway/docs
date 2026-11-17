@@ -53,7 +53,7 @@ Pass these as environment variables when you register or run the agent (e.g. `in
 - `GOOGLE_CALENDAR_MOCK_MODE` (default `false`): serve in-memory mock data instead of calling the Google Calendar API - useful for demos and testing without credentials
 - `GOOGLE_CALENDAR_TIMEZONE` (default `UTC`): default IANA timezone applied when a request does not specify one
 - `GOOGLE_CALENDAR_ID` (default `primary`): the calendar the agent reads from and writes to
-- `GOOGLE_SERVICE_ACCOUNT_JSON` / `GOOGLE_CREDENTIALS_PATH` (default empty): Google service-account credentials as inline JSON or a path to the credentials file, used for live Google Calendar API access; leave unset when `GOOGLE_CALENDAR_MOCK_MODE` is `true`
+- `GOOGLE_SERVICE_ACCOUNT_JSON` / `GOOGLE_CREDENTIALS_PATH` (default empty): Google service-account credentials as inline JSON or a path to the credentials file, used for live Google Calendar API access. Leave unset when `GOOGLE_CALENDAR_MOCK_MODE` is `true`
 
 **Repository:** [github.com/inference-gateway/google-calendar-agent](https://github.com/inference-gateway/google-calendar-agent)
 
@@ -105,7 +105,7 @@ Browsing the registry is also a good way to find reference implementations befor
 
 Open [registry.inference-gateway.com](https://registry.inference-gateway.com) and filter by category or search by keyword. Each agent card lists the OCI image (e.g. `ghcr.io/inference-gateway/google-calendar-agent:0.4.23`) and links to the source repo and docs.
 
-Alongside the **Streaming** and **Push** capability pills, a card shows the agent's **preferred A2A protocol binding** - `JSONRPC`, `GRPC`, `HTTP+JSON`, or whatever the agent declares. The value is `spec.card.supportedInterfaces[0].protocolBinding` from the agent's [ADL manifest](/adl-cli/#card), the first entry being the preferred interface; catalog entries generated before the A2A v1.0.1 alignment fall back to the pre-release `spec.card.preferredTransport` field. Cards for agents that declare neither show no binding pill.
+Alongside the **Streaming** and **Push** capability pills, a card shows the agent's **preferred A2A protocol binding** - `JSONRPC`, `GRPC`, `HTTP+JSON`, or whatever the agent declares. The value is `spec.card.supportedInterfaces[0].protocolBinding` from the agent's [ADL manifest](/adl-cli/#card), the first entry being the preferred interface. Catalog entries generated before the A2A v1.0.1 alignment fall back to the pre-release `spec.card.preferredTransport` field. Cards for agents that declare neither show no binding pill.
 
 ### 2. Add the agent to your gateway
 

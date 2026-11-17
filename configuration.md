@@ -8,13 +8,13 @@ const generalSettings = [
   { variable: 'ENVIRONMENT', description: 'Deployment environment', defaultValue: 'production' },
   { variable: 'ALLOWED_MODELS', description: 'Comma-separated list of models to allow. If empty, all models will be available', defaultValue: '""' },
   { variable: 'DISALLOWED_MODELS', description: 'Comma-separated list of models to disallow. If empty, no models will be blocked. Takes lower precedence than ALLOWED_MODELS', defaultValue: '""' },
-  { variable: 'VISION_ENABLED', description: 'Enable vision/multimodal handling for all providers. When enabled, image content is stripped from requests to models known to accept only non-image input; unknown models are passed through. When disabled, image content is forwarded to the provider untouched', defaultValue: 'false' },
+  { variable: 'VISION_ENABLED', description: 'Enable vision/multimodal handling for all providers. When enabled, image content is stripped from requests to models known to accept only non-image input. Unknown models are passed through. When disabled, image content is forwarded to the provider untouched', defaultValue: 'false' },
   { variable: 'IMAGES_ENABLED', description: 'Enable the Images API (POST /v1/images/generations and /v1/images/edits). When disabled, the endpoints return a 404', defaultValue: 'false' },
-  { variable: 'AUDIO_ENABLED', description: 'Enable the Audio API (POST /v1/audio/speech, /v1/audio/sfx and /v1/audio/music). When disabled, the endpoints return a 404. Speech is served by the openai and elevenlabs providers and by the local llama-tts engine (local/qwen3-tts); sound effects are served by elevenlabs and mirelo, and music by elevenlabs only; llamacpp speech is a work in progress and not supported yet', defaultValue: 'false' },
+  { variable: 'AUDIO_ENABLED', description: 'Enable the Audio API (POST /v1/audio/speech, /v1/audio/sfx and /v1/audio/music). When disabled, the endpoints return a 404. Speech is served by the openai and elevenlabs providers and by the local llama-tts engine (local/qwen3-tts). Sound effects are served by elevenlabs and mirelo, and music by elevenlabs only. Llamacpp speech is a work in progress and not supported yet', defaultValue: 'false' },
   { variable: 'VIDEOS_ENABLED', description: 'Enable the Videos API (POST /v1/videos, GET /v1/videos/{video_id} and GET /v1/videos/{video_id}/content). When disabled, the endpoints return a 404', defaultValue: 'false' },
   { variable: 'DECISIONS_ENABLED', description: 'Enable the Decisions API (POST /v1/decisions). When disabled, the endpoint returns a 404. Served by the openai, ollama and ollama_cloud providers and by llamacpp decision models', defaultValue: 'false' },
   { variable: 'AUDIO_LOCAL_AUTO_DOWNLOAD', description: 'Allow downloading the llama-tts binary and GGUF models, in the background at startup when the Audio API is enabled. The pinned GGUF models are treated as done once present in the cache, whoever wrote them (an earlier run, the CLI, a mounted volume, a pre-baked image layer), while a cached binary whose sha256 differs from the latest release is replaced. A llama-tts found on PATH is left alone - upgrading it is left to the operator. When false, the gateway serves only from the existing cache or PATH and returns an actionable error when assets are missing', defaultValue: 'true' },
-  { variable: 'AUDIO_LOCAL_MAX_CONCURRENCY', description: 'Maximum concurrent local syntheses; requests beyond the limit queue rather than fail', defaultValue: '2' },
+  { variable: 'AUDIO_LOCAL_MAX_CONCURRENCY', description: 'Maximum concurrent local syntheses. Requests beyond the limit queue rather than fail', defaultValue: '2' },
   { variable: 'AUDIO_LOCAL_TIMEOUT', description: 'Timeout in seconds for a single local synthesis, surfaced as a 504', defaultValue: '300' },
   { variable: 'DEBUG_CONTENT_TRUNCATE_WORDS', description: 'Number of words to truncate per content section in debug logs (development mode only)', defaultValue: '10' },
   { variable: 'DEBUG_MAX_MESSAGES', description: 'Maximum number of messages to show in debug logs (development mode only)', defaultValue: '100' },
@@ -44,7 +44,7 @@ const guardrailsSettings = [
 ];
 
 const serverSettings = [
-  { variable: 'SERVER_HOST', description: 'Server bind address. Loopback by default; containers must use 0.0.0.0, which the published images set for you unless an env_file or ConfigMap overrides it', defaultValue: '127.0.0.1' },
+  { variable: 'SERVER_HOST', description: 'Server bind address. Loopback by default. Containers must use 0.0.0.0, which the published images set for you unless an env_file or ConfigMap overrides it', defaultValue: '127.0.0.1' },
   { variable: 'SERVER_PORT', description: 'Server port', defaultValue: '8080' },
   { variable: 'SERVER_MAX_REQUEST_BODY_SIZE', description: 'Maximum request body size in bytes (10 MiB)', defaultValue: '10485760' },
   { variable: 'SERVER_READ_TIMEOUT', description: 'Read timeout', defaultValue: '30s' },
@@ -69,7 +69,7 @@ const clientSettings = [
 ];
 
 const routingSettings = [
-  { variable: 'ROUTING_ENABLED', description: 'Enable gateway-native model routing: logical model aliases backed by a pool of upstream provider deployments, selected round-robin per replica. Opt-in; when disabled, direct provider/model routing is unchanged', defaultValue: 'false' },
+  { variable: 'ROUTING_ENABLED', description: 'Enable gateway-native model routing: logical model aliases backed by a pool of upstream provider deployments, selected round-robin per replica. Opt-in. When disabled, direct provider/model routing is unchanged', defaultValue: 'false' },
   { variable: 'ROUTING_CONFIG_PATH', description: 'Path to a YAML file mapping logical model aliases to their upstream deployment pools. Required when ROUTING_ENABLED is true', defaultValue: '""' },
 ];
 
@@ -176,7 +176,7 @@ const mcpSettings = [
   {
     variable: 'MCP_RESOURCE_URL',
     description:
-      'Canonical public URL of POST /mcp, e.g. https://gateway.example.com/mcp. Published as the resource of the OAuth 2.0 Protected Resource Metadata (RFC 9728) document served at /.well-known/oauth-protected-resource/mcp, and pointed at by the resource_metadata of every 401 challenge on /mcp. Defaults to the request scheme (honouring X-Forwarded-Proto) and Host with /mcp appended; set it behind an ingress that rewrites either',
+      'Canonical public URL of POST /mcp, e.g. https://gateway.example.com/mcp. Published as the resource of the OAuth 2.0 Protected Resource Metadata (RFC 9728) document served at /.well-known/oauth-protected-resource/mcp, and pointed at by the resource_metadata of every 401 challenge on /mcp. Defaults to the request scheme (honouring X-Forwarded-Proto) and Host with /mcp appended. Set it behind an ingress that rewrites either',
     defaultValue: '""',
   },
   {
@@ -187,7 +187,7 @@ const mcpSettings = [
   },
   { variable: 'MCP_INCLUDE_TOOLS', description: 'Comma-separated allowlist of MCP tool names to inject. If empty, all tools are injected. Takes precedence over MCP_EXCLUDE_TOOLS', defaultValue: '""' },
   { variable: 'MCP_EXCLUDE_TOOLS', description: 'Comma-separated denylist of MCP tool names to skip injecting. If empty, no tools are excluded. Takes lower precedence than MCP_INCLUDE_TOOLS', defaultValue: '""' },
-  { variable: 'MCP_TOOL_MODE', description: 'MCP tool exposure mode: selector (default) injects two meta-tools (mcp_tools_get, mcp_tools_execute); direct injects every tool schema into every request', defaultValue: 'selector' },
+  { variable: 'MCP_TOOL_MODE', description: 'MCP tool exposure mode: selector (default) injects two meta-tools (mcp_tools_get, mcp_tools_execute). Direct injects every tool schema into every request', defaultValue: 'selector' },
   { variable: 'MCP_CLIENT_TIMEOUT', description: 'MCP client HTTP timeout', defaultValue: '5s' },
   { variable: 'MCP_DIAL_TIMEOUT', description: 'MCP client dial timeout', defaultValue: '3s' },
   { variable: 'MCP_TLS_HANDSHAKE_TIMEOUT', description: 'MCP client TLS handshake timeout', defaultValue: '3s' },
@@ -215,13 +215,13 @@ const a2aSettings = [
   {
     variable: 'A2A_AGENTS',
     description:
-      'Comma-separated list of A2A agents as alias=url, e.g. research=http://research-agent:8080. Without alias= the alias is derived from the URL host. Aliases must match ^[a-z0-9_-]+$ and be unique; they prefix the skill ids on the gateway card, name the tenant of the per-agent interface, and prefix every task id the gateway hands out as <alias>:<task id>. Per-agent credentials go in the url as basic auth',
+      'Comma-separated list of A2A agents as alias=url, e.g. research=http://research-agent:8080. Without alias= the alias is derived from the URL host. Aliases must match ^[a-z0-9_-]+$ and be unique. They prefix the skill ids on the gateway card, name the tenant of the per-agent interface, and prefix every task id the gateway hands out as <alias>:<task id>. Per-agent credentials go in the url as basic auth',
     defaultValue: '""',
   },
   {
     variable: 'A2A_RESOURCE_URL',
     description:
-      'Canonical public URL of POST /a2a, e.g. https://gateway.example.com/a2a. Published as the url of the gateway agent card interfaces and as the resource of the OAuth 2.0 Protected Resource Metadata (RFC 9728) document served at /.well-known/oauth-protected-resource/a2a. Defaults to the request scheme (honouring X-Forwarded-Proto) and Host with /a2a appended; set it behind an ingress that rewrites either',
+      'Canonical public URL of POST /a2a, e.g. https://gateway.example.com/a2a. Published as the url of the gateway agent card interfaces and as the resource of the OAuth 2.0 Protected Resource Metadata (RFC 9728) document served at /.well-known/oauth-protected-resource/a2a. Defaults to the request scheme (honouring X-Forwarded-Proto) and Host with /a2a appended. Set it behind an ingress that rewrites either',
     defaultValue: '""',
   },
   {
@@ -274,7 +274,7 @@ Environment variables are the primary method for configuring Inference Gateway. 
 
 `VISION_ENABLED` controls whether the gateway inspects image content in chat completion requests. When disabled (the default), the gateway does not look at image content at all - image parts are forwarded to the provider untouched. When set to `true`, the gateway checks each request's model against the community modalities table: image parts are stripped only for models the table lists as accepting non-image input only (the request continues with the text parts only). Models the table does not cover are treated as image-capable and passed through. Either way, the gateway never rejects a request because it contains an image.
 
-`IMAGES_ENABLED`, `AUDIO_ENABLED` and `VIDEOS_ENABLED` are separate opt-ins for the [Images API](/api-reference/#images-api), the [Audio API](/api-reference/#audio-api) and the Videos API. While they are `false`, those endpoints return `404`. Only providers that implement the corresponding API can serve them; other providers return `400`. Audio is served by `openai` (speech), `elevenlabs` (speech, sound effects and music) and `mirelo` (sound effects), plus the built-in `local/qwen3-tts` engine for speech. The `llamacpp` provider has a speech endpoint wired in the gateway registry, but that path is a work in progress and is not supported yet.
+`IMAGES_ENABLED`, `AUDIO_ENABLED` and `VIDEOS_ENABLED` are separate opt-ins for the [Images API](/api-reference/#images-api), the [Audio API](/api-reference/#audio-api) and the Videos API. While they are `false`, those endpoints return `404`. Only providers that implement the corresponding API can serve them. Other providers return `400`. Audio is served by `openai` (speech), `elevenlabs` (speech, sound effects and music) and `mirelo` (sound effects), plus the built-in `local/qwen3-tts` engine for speech. The `llamacpp` provider has a speech endpoint wired in the gateway registry, but that path is a work in progress and is not supported yet.
 
 The `AUDIO_LOCAL_*` variables tune the built-in [local speech engine](/api-reference/#local-speech-engine-local-qwen3-tts) that serves the reserved model id `local/qwen3-tts` without any provider. They are ignored when the request routes to a provider.
 
@@ -294,7 +294,7 @@ If authentication is enabled (`AUTH_ENABLED=true`), configure the following OIDC
 
 <ConfigTable :rows="oidcSettings" />
 
-`AUTH_OIDC_ISSUER` and `AUTH_OIDC_CLIENT_ID` have no defaults - with `AUTH_ENABLED=true` and either one unset, the gateway fails at startup. The gateway only verifies tokens against the issuer's public keys and never requests one, so it needs no client secret; `AUTH_OIDC_CLIENT_SECRET` was removed.
+`AUTH_OIDC_ISSUER` and `AUTH_OIDC_CLIENT_ID` have no defaults - with `AUTH_ENABLED=true` and either one unset, the gateway fails at startup. The gateway only verifies tokens against the issuer's public keys and never requests one, so it needs no client secret. `AUTH_OIDC_CLIENT_SECRET` was removed.
 
 When authentication is enabled, all API requests except `/health` must include a valid JWT token in the Authorization header:
 
@@ -302,7 +302,7 @@ When authentication is enabled, all API requests except `/health` must include a
 Authorization: Bearer YOUR_JWT_TOKEN
 ```
 
-The gateway checks the token's signature, issuer, expiry and audience. `AUTH_OIDC_AUDIENCE` lists the accepted `aud` values (comma-separated for providers that need more than one, such as Microsoft Entra ID); leaving it empty expects `AUTH_OIDC_CLIENT_ID`. A token carrying no `aud` claim at all is accepted when its `client_id` claim matches one of the configured values, which is how Amazon Cognito machine-to-machine tokens work.
+The gateway checks the token's signature, issuer, expiry and audience. `AUTH_OIDC_AUDIENCE` lists the accepted `aud` values (comma-separated for providers that need more than one, such as Microsoft Entra ID). Leaving it empty expects `AUTH_OIDC_CLIENT_ID`. A token carrying no `aud` claim at all is accepted when its `client_id` claim matches one of the configured values, which is how Amazon Cognito machine-to-machine tokens work.
 
 Rejected requests return `401` with an [RFC 6750](https://www.rfc-editor.org/rfc/rfc6750#section-3) `WWW-Authenticate: Bearer realm="inference-gateway"` challenge, gaining `error="invalid_token"` when a token was presented but failed verification. See the [Authentication guide](/authentication/) for per-provider issuer and audience values and runnable examples.
 
@@ -499,7 +499,7 @@ These settings control MCP integration for external tool access:
 
 <ConfigTable :rows="mcpSettings" />
 
-Each entry in `MCP_SERVERS` may be written as `alias=url`. The alias namespaces that server's tools as <code v-pre>mcp_&lt;alias&gt;_&lt;tool name&gt;</code>, both for the tools injected into chat completions and for those listed over the `/mcp` endpoint. When `alias=` is omitted the alias is derived from the URL host; aliases must match `^[a-z0-9_-]+$`, and an invalid, duplicate, or reserved (`tools`) alias fails startup.
+Each entry in `MCP_SERVERS` may be written as `alias=url`. The alias namespaces that server's tools as <code v-pre>mcp_&lt;alias&gt;_&lt;tool name&gt;</code>, both for the tools injected into chat completions and for those listed over the `/mcp` endpoint. When `alias=` is omitted the alias is derived from the URL host. Aliases must match `^[a-z0-9_-]+$`, and an invalid, duplicate, or reserved (`tools`) alias fails startup.
 
 ```bash
 MCP_SERVERS="deepwiki=https://mcp.deepwiki.com/mcp,http://mcp-time-server:8081/mcp"
@@ -509,7 +509,7 @@ On Kubernetes, the `MCP_POLLING_*` variables are set through [`spec.mcp.healthCh
 
 On Kubernetes the [Operator](/operator/#mcp-servers-spec-mcp) renders this variable for you as `name=url` entries - `spec.mcp.servers[].name` for static servers, the discovered `MCP` CR's `metadata.name` for `spec.mcp.serviceDiscovery` - and mirrors the result in `status.mcpServers`.
 
-`MCP_EXPOSE=true` (together with `MCP_ENABLED=true`) serves the gateway's own JSON-RPC MCP endpoint at root-level `POST /mcp`, which aggregates every configured server behind one URL. The endpoint speaks MCP `2026-07-28` only and is stateless - no `initialize` handshake, no session - so every request must carry the `MCP-Protocol-Version` and `Mcp-Method` headers (`Mcp-Name` for `tools/call`); a proxy that strips them breaks the endpoint. It is covered by the gateway's `AUTH_*` settings like any other route, so with `AUTH_ENABLED=true` clients must send a bearer token. Left at the default `false`, `POST /mcp` answers `403`. Because there is no session, `/mcp` needs no session affinity; and since it is POST only (`GET` and `DELETE` answer `405`), never point a probe at it - use `/health`. See the [MCP guide](/mcp/#gateway-as-an-mcp-server).
+`MCP_EXPOSE=true` (together with `MCP_ENABLED=true`) serves the gateway's own JSON-RPC MCP endpoint at root-level `POST /mcp`, which aggregates every configured server behind one URL. The endpoint speaks MCP `2026-07-28` only and is stateless - no `initialize` handshake, no session - so every request must carry the `MCP-Protocol-Version` and `Mcp-Method` headers (`Mcp-Name` for `tools/call`). A proxy that strips them breaks the endpoint. It is covered by the gateway's `AUTH_*` settings like any other route, so with `AUTH_ENABLED=true` clients must send a bearer token. Left at the default `false`, `POST /mcp` answers `403`. Because there is no session, `/mcp` needs no session affinity. And since it is POST only (`GET` and `DELETE` answer `405`), never point a probe at it - use `/health`. See the [MCP guide](/mcp/#gateway-as-an-mcp-server).
 
 `MCP_RESOURCE_URL` is the canonical public URL of `POST /mcp` (`https://gateway.example.com/mcp`). It is published as the `resource` of the [OAuth 2.0 Protected Resource Metadata](/mcp/#protected-resource-metadata-rfc-9728) document at `GET /.well-known/oauth-protected-resource/mcp` and referenced by the `resource_metadata` parameter of every `401` challenge on `/mcp`. Left empty it defaults to the request scheme (honouring `X-Forwarded-Proto`) and `Host` with `/mcp` appended - set it explicitly behind an ingress that rewrites either, otherwise clients discover a URL they cannot reach.
 
@@ -553,7 +553,7 @@ OPENAI_API_KEY=your-openai-key
 ANTHROPIC_API_KEY=your-anthropic-key
 ```
 
-When the gateway is started by the [CLI](/cli/), provider keys missing from both the system environment and the project `.env` fall back to `~/.infer/auth.yaml` (system environment > project `.env` > `~/.infer/auth.yaml`, first hit wins; the legacy `~/.infer/auth.json` is still read when `auth.yaml` is absent). See [Provider API keys](/cli/#provider-api-keys).
+When the gateway is started by the [CLI](/cli/), provider keys missing from both the system environment and the project `.env` fall back to `~/.infer/auth.yaml` (system environment > project `.env` > `~/.infer/auth.yaml`, first hit wins - the legacy `~/.infer/auth.json` is still read when `auth.yaml` is absent). See [Provider API keys](/cli/#provider-api-keys).
 
 ## Kubernetes ConfigMaps and Secrets
 

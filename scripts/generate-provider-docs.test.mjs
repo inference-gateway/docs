@@ -1,14 +1,11 @@
-// Regression net for the provider-docs generator. Runs the pure render pipeline
-// against the bundled fixture schema and asserts every generated region still
-// matches what is committed in the docs. This exercises the Bun.YAML schema
-// reader, the schema/override merge and its validation, and all seven
-// renderers - with no network access and no prettier pass. Run with: bun test.
 import { test, expect } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import {
+  REGION_PADDING,
   buildProviders,
+  endMarker,
   extractProviderModel,
   injectRegion,
   renderAdkProviderTable,
@@ -18,6 +15,7 @@ import {
   renderSettingsConsts,
   renderUppercaseList,
   renderVisionList,
+  startMarker,
 } from './generate-provider-docs.mjs';
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
@@ -31,12 +29,12 @@ const providers = buildProviders(extractProviderModel(schemaText), overrides);
 // dropping the single blank line injectRegion pads around the content.
 function committedRegion(relPath, key) {
   const lines = readFileSync(join(REPO_ROOT, relPath), 'utf8').split('\n');
-  const start = lines.findIndex((l) => l.includes(`GENERATED:${key} START`));
-  const end = lines.findIndex((l) => l.includes(`GENERATED:${key} END`));
+  const start = lines.findIndex((l) => l.includes(startMarker(key)));
+  const end = lines.findIndex((l) => l.includes(endMarker(key)));
   if (start === -1 || end === -1) {
     throw new Error(`missing GENERATED:${key} markers in ${relPath}`);
   }
-  return lines.slice(start + 2, end - 1);
+  return lines.slice(start + 1 + REGION_PADDING.length, end - REGION_PADDING.length);
 }
 
 test('fixture yields the full canonical provider set in schema order', () => {

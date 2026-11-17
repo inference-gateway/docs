@@ -46,7 +46,7 @@ Several providers support vision/multimodal capabilities, allowing you to proces
 VISION_ENABLED=true
 ```
 
-**Note:** Vision handling is disabled by default. When disabled, the gateway does not inspect image content and forwards it to the provider untouched. When enabled, image parts are stripped only from requests to models known to accept non-image input only (the request continues with text only); models the gateway has no modality information for are passed through. Image content never causes the gateway to reject a request.
+**Note:** Vision handling is disabled by default. When disabled, the gateway does not inspect image content and forwards it to the provider untouched. When enabled, image parts are stripped only from requests to models known to accept non-image input only (the request continues with text only). Models the gateway has no modality information for are passed through. Image content never causes the gateway to reject a request.
 
 ### Providers with Vision Support
 
@@ -330,7 +330,7 @@ curl -X POST http://localhost:8080/v1/chat/completions \
   }'
 ```
 
-Ollama Cloud models are subscription-gated rather than metered per token. `GET /v1/models?include=pricing` returns a populated pricing object for every `ollama_cloud/*` model with `subscription: true`, so clients classify them as Subscription instead of Free. Models with a published pay-as-you-go rate keep non-zero `input_per_token` / `output_per_token` values for reference; the flag still decides billing. See [List All Models](/api-reference/#list-all-models) for the full resolution order.
+Ollama Cloud models are subscription-gated rather than metered per token. `GET /v1/models?include=pricing` returns a populated pricing object for every `ollama_cloud/*` model with `subscription: true`, so clients classify them as Subscription instead of Free. Models with a published pay-as-you-go rate keep non-zero `input_per_token` / `output_per_token` values for reference. The flag still decides billing. See [List All Models](/api-reference/#list-all-models) for the full resolution order.
 
 ### Google Provider
 

@@ -28,7 +28,7 @@ TELEMETRY_METRICS_PORT=9464   # default
 
 When enabled, the gateway exposes a Prometheus exposition endpoint at `http://<gateway>:9464/metrics`. Metrics are exported by the OpenTelemetry SDK via the Prometheus exporter, with service attributes (`service.name`, `service.version`, `deployment.environment`) attached from the gateway's runtime.
 
-The metrics port is separate from the main API port. Do not expose `9464` to the public internet; scope it to your cluster network or behind your monitoring ingress.
+The metrics port is separate from the main API port. Do not expose `9464` to the public internet. Scope it to your cluster network or behind your monitoring ingress.
 
 ### Metrics Exporter Selection
 
@@ -71,15 +71,15 @@ Every `gen_ai_*` and `inference_gateway_*` series carries a `source` label: `gat
 
 | Metric                                                | Type      | Description                                                             |
 | ----------------------------------------------------- | --------- | ----------------------------------------------------------------------- |
-| `gen_ai_client_token_usage`                           | Histogram | Token usage; `gen_ai_token_type` is `input` or `output`                 |
-| `gen_ai_server_request_duration_seconds`              | Histogram | End-to-end request duration in seconds; `error_type` set only on errors |
+| `gen_ai_client_token_usage`                           | Histogram | Token usage. `gen_ai_token_type` is `input` or `output`                 |
+| `gen_ai_server_request_duration_seconds`              | Histogram | End-to-end request duration in seconds. `error_type` set only on errors |
 | `gen_ai_execute_tool_duration_seconds`                | Histogram | Tool execution duration in seconds (fed via the push endpoint)          |
 | `gen_ai_client_operation_duration_seconds`            | Histogram | Client-side operation duration (push-only)                              |
 | `gen_ai_client_operation_time_to_first_chunk_seconds` | Histogram | Time to first chunk (push-only)                                         |
 | `gen_ai_server_time_to_first_token_seconds`           | Histogram | Time to first token (push-only)                                         |
 | `inference_gateway_tool_calls_total`                  | Counter   | Total function/tool calls                                               |
-| `a2a_requests_total`                                  | Counter   | A2A calls relayed to agents; `alias`, `method`, `status`                |
-| `a2a_request_duration_seconds`                        | Histogram | Relayed A2A call duration (streaming: time to open); `alias`, `method`  |
+| `a2a_requests_total`                                  | Counter   | A2A calls relayed to agents. `alias`, `method`, `status`                |
+| `a2a_request_duration_seconds`                        | Histogram | Relayed A2A call duration (streaming: time to open). `alias`, `method`  |
 
 `inference_gateway_tool_calls_total` counts tool calls from both surfaces that run MCP tools: the agent loop behind `/v1/chat/completions`, and a `tools/call` on [`POST /mcp`](/mcp/#gateway-as-an-mcp-server). Calls over `/mcp` carry `source=gateway`, `gen_ai_tool_type=mcp` and the namespaced <code v-pre>mcp_&lt;alias&gt;_&lt;tool&gt;</code> name, with an empty provider and model - no model is involved in that path. Only names that resolve to an advertised, allowed tool are counted, so a client cannot inflate label cardinality with arbitrary strings. Each call also opens an `execute_tool <name>` span.
 
@@ -254,7 +254,7 @@ Returns `200 OK` with an OTLP `ExportMetricsServiceResponse`. If any data points
 - Only allowlisted `gen_ai.*` metric names are accepted (see the [metric set](#metric-set) above). Unknown metrics are rejected with `partial_success`.
 - Only **delta** aggregation temporality is accepted. Cumulative or unspecified temporality data points are rejected.
 - Data-point attributes are filtered to an allowlist to bound cardinality. Arbitrary custom attributes are dropped.
-- Histograms are replayed via bucket midpoints (first bucket at its upper bound, overflow bucket at its lower bound). This preserves `_count` exactly and `_sum` approximately; percentile distortion is a documented v1 limitation. Replay is capped at 10,000 observations per data point.
+- Histograms are replayed via bucket midpoints (first bucket at its upper bound, overflow bucket at its lower bound). This preserves `_count` exactly and `_sum` approximately. Percentile distortion is a documented v1 limitation. Replay is capped at 10,000 observations per data point.
 - The `source` label is derived from the pushed payload: an explicit `source` attribute wins (unless it impersonates `gateway`), then the resource's `service.name`, then `"unknown"`.
 
 ### Example
@@ -575,10 +575,10 @@ When telemetry is enabled (the default), the CLI propagates its active trace con
 
 - **Environment variables.** The Bash tool (and skill scripts) and headless subagents receive `TRACEPARENT` / `TRACESTATE` ([W3C Trace Context](https://www.w3.org/TR/trace-context/), parented on the current `execute_tool` span) and `BAGGAGE` ([W3C Baggage](https://www.w3.org/TR/baggage/): `session.id`, `gen_ai.tool.call.id`, renamed with `telemetry.attr_session_id_key` / `telemetry.attr_tool_call_id_key`). Nothing is set when telemetry is disabled.
 - **Sink selection is automatic.** With an OTLP endpoint configured (`telemetry.otlp.endpoint` or `OTEL_EXPORTER_OTLP_ENDPOINT`), the endpoint and headers pass through to children so their spans stitch in the remote backend. With no endpoint (the default), the CLI runs an ephemeral localhost OTLP/HTTP receiver per session and persists received spans into the local per-session trace store, where they appear in `infer traces` / `/traces` nested under the tool span.
-- **Third-party spans just work.** An [`otel-cli`](https://github.com/equinix-labs/otel-cli) call inside a Bash tool step - `otel-cli exec --name "go test" -- go test ./...` - lands as a child of `execute_tool Bash`; OpenTelemetry-SDK-instrumented programs nest the same way.
-- **Subagents and remote A2A.** A headless subagent nests under the caller's `execute_tool Agent` span (one cross-process trace). Outbound A2A requests carry `traceparent` / `tracestate` / `baggage` HTTP headers; remote spans stitch via a **shared collector** both sides export to, not the local store.
+- **Third-party spans just work.** An [`otel-cli`](https://github.com/equinix-labs/otel-cli) call inside a Bash tool step - `otel-cli exec --name "go test" -- go test ./...` - lands as a child of `execute_tool Bash`. OpenTelemetry-SDK-instrumented programs nest the same way.
+- **Subagents and remote A2A.** A headless subagent nests under the caller's `execute_tool Agent` span (one cross-process trace). Outbound A2A requests carry `traceparent` / `tracestate` / `baggage` HTTP headers. Remote spans stitch via a **shared collector** both sides export to, not the local store.
 
-See [Trace context propagation to subprocesses](/cli/#trace-context-propagation-to-subprocesses) on the CLI page for the full contract, the environment-variable table, and the limitations (interactive tmux-pane subagents are not stitched; detached shells that outlive the CLI lose late spans).
+See [Trace context propagation to subprocesses](/cli/#trace-context-propagation-to-subprocesses) on the CLI page for the full contract, the environment-variable table, and the limitations (interactive tmux-pane subagents are not stitched - detached shells that outlive the CLI lose late spans).
 
 ### Example collector setup
 

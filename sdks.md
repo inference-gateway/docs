@@ -7,7 +7,7 @@ description: Official Inference Gateway SDKs for Python, TypeScript, Go, and Rus
 
 Inference Gateway ships official SDKs for Python, TypeScript, Go, and Rust. Each one wraps the gateway's OpenAI-compatible REST API behind typed clients, handles streaming over Server-Sent Events, and exposes the same provider-agnostic surface (chat, tool calls, vision, MCP).
 
-This page is a per-language quick reference. For the canonical REST contract see the [API Reference](/api-reference/); for Model Context Protocol setup see [MCP Integration](/mcp/); for Agent-to-Agent endpoints see [A2A Integration](/a2a/).
+This page is a per-language quick reference. For the canonical REST contract see the [API Reference](/api-reference/). For Model Context Protocol setup see [MCP Integration](/mcp/). For Agent-to-Agent endpoints see [A2A Integration](/a2a/).
 
 ## Picking an SDK
 
@@ -25,7 +25,7 @@ All four SDKs target the same gateway endpoints, so the choice is driven by your
 | Built-in retry/backoff | No     | No         | Yes | No   |
 | A2A JSON-RPC client    | No     | No         | No  | No   |
 
-A2A is a gateway-side capability today and is consumed via raw HTTP / JSON-RPC against the gateway's `/a2a/*` endpoints rather than a typed SDK surface; see the [A2A page](/a2a/) for the wire format.
+A2A is a gateway-side capability today and is consumed via raw HTTP / JSON-RPC against the gateway's `/a2a/*` endpoints rather than a typed SDK surface. See the [A2A page](/a2a/) for the wire format.
 
 MCP tools are managed server-side. The SDKs surface tool-call deltas during streaming, so you do not need to ship per-tool client glue, and they wrap the gateway's own MCP endpoint - discovery is the `tools/list` method of [`POST /mcp`](/api-reference/#mcp-server-json-rpc), not a REST listing. Set `MCP_ENABLED=true` and `MCP_EXPOSE=true` on the gateway to expose that endpoint.
 
@@ -174,7 +174,7 @@ The full set of optional request fields:
 
 | Parameter               | Python value         | Values                                | Notes                                        |
 | ----------------------- | -------------------- | ------------------------------------- | -------------------------------------------- |
-| `temperature`           | `float`              | `0`-`2` (default `1`)                 | Higher is more random; tune this or `top_p`  |
+| `temperature`           | `float`              | `0`-`2` (default `1`)                 | Higher is more random. Tune this or `top_p`  |
 | `top_p`                 | `float`              | `0`-`1` (default `1`)                 | Nucleus sampling mass                        |
 | `n`                     | `int`                | `1`-`128` (default `1`)               | Number of choices to generate                |
 | `stop`                  | `str` or `list[str]` | string or up to 4 strings             | See below                                    |
@@ -274,7 +274,7 @@ client.create_chat_completion(
 )
 ```
 
-`parallel_tool_calls` (default `True`) governs whether the model may emit several tool calls in one turn; pass `parallel_tool_calls=False` to force them one at a time.
+`parallel_tool_calls` (default `True`) governs whether the model may emit several tool calls in one turn. Pass `parallel_tool_calls=False` to force them one at a time.
 
 #### Log probabilities and logit bias
 
@@ -362,7 +362,7 @@ for choice in data.get('choices', []):
 
 ### Provider-specific tool-call metadata
 
-Some providers attach opaque metadata to a tool call that must survive the round-trip. Google Gemini's extended-thinking models return a `thought_signature` on every reasoning-enabled tool call; the gateway surfaces it on `tool_call.extra_content.google.thought_signature` (typed as `ToolCallExtraContent` / `Google`). Gemini rejects the follow-up request unless that signature is echoed back verbatim with the same tool call.
+Some providers attach opaque metadata to a tool call that must survive the round-trip. Google Gemini's extended-thinking models return a `thought_signature` on every reasoning-enabled tool call. The gateway surfaces it on `tool_call.extra_content.google.thought_signature` (typed as `ToolCallExtraContent` / `Google`). Gemini rejects the follow-up request unless that signature is echoed back verbatim with the same tool call.
 
 The SDK preserves it for you: append the returned assistant `Message` to your conversation unchanged and `extra_content` round-trips automatically. Inspect it directly only if you need to log or forward it. (Here `messages` and `tools` come from the Tool calls example above, and `run_tool` is your own executor that runs a tool call and returns its result as a string.)
 
@@ -474,11 +474,11 @@ The keyword arguments mirror the OpenAI `POST /v1/audio/speech` body:
 | `model`           | `str`                     | Model ID to use for speech synthesis, for example `gpt-4o-mini-tts` or `tts-1` (required).                                                                             |
 | `input`           | `str`                     | The text to synthesize, 4096 characters maximum (required). Longer text raises `InferenceGatewayValidationError` before any request is sent.                           |
 | `voice`           | `str`                     | Voice to speak with (required). OpenAI built-ins are `alloy`, `ash`, `ballad`, `coral`, `echo`, `fable`, `onyx`, `nova`, `sage`, `shimmer`, `verse`, `marin`, `cedar`. |
-| `provider`        | `Provider \| str \| None` | Pins the request to one provider; omit it to route from the model prefix.                                                                                              |
+| `provider`        | `Provider \| str \| None` | Pins the request to one provider. Omit it to route from the model prefix.                                                                                              |
 | `instructions`    | `str \| None`             | Extra guidance on how the voice should sound. Ignored by `tts-1` and `tts-1-hd`.                                                                                       |
 | `response_format` | `str \| None`             | Audio format: `mp3` (gateway default), `opus`, `aac`, `flac`, `wav`, or `pcm`.                                                                                         |
 | `speed`           | `float \| None`           | Playback speed between `0.25` and `4.0` (gateway default `1.0`).                                                                                                       |
-| `reference_audio` | `str \| None`             | Base64-encoded audio sample for zero-shot voice cloning. Only `local/qwen3-tts` honors it today; OpenAI does not support cloning.                                      |
+| `reference_audio` | `str \| None`             | Base64-encoded audio sample for zero-shot voice cloning. Only `local/qwen3-tts` honors it today. OpenAI does not support cloning.                                      |
 
 Every optional argument left at `None` is omitted from the request body rather than sent as a null, so `response_format` and `speed` fall back to the gateway defaults unless you set them. The request is validated as a `CreateSpeechRequest` before it goes out, so bad values raise `InferenceGatewayValidationError` locally.
 
@@ -503,7 +503,7 @@ See the [Audio API reference](/api-reference/#audio-api) for the endpoint-level 
 
 ### Sound effects and music
 
-`create_sfx(model, prompt, provider=None, ...)` and `create_music(model, prompt, provider=None, ...)` wrap the sibling [`POST /v1/audio/sfx`](/api-reference/#sound-effects) and [`POST /v1/audio/music`](/api-reference/#music) endpoints. Both are shaped exactly like `create_speech` - JSON in, raw audio `bytes` out in the requested `response_format` (`mp3` by default) - and share the `AUDIO_ENABLED` gate. `elevenlabs` is the only provider serving them today; anything else answers `400`, raised as `InferenceGatewayAPIError`.
+`create_sfx(model, prompt, provider=None, ...)` and `create_music(model, prompt, provider=None, ...)` wrap the sibling [`POST /v1/audio/sfx`](/api-reference/#sound-effects) and [`POST /v1/audio/music`](/api-reference/#music) endpoints. Both are shaped exactly like `create_speech` - JSON in, raw audio `bytes` out in the requested `response_format` (`mp3` by default) - and share the `AUDIO_ENABLED` gate. `elevenlabs` is the only provider serving them today. Anything else answers `400`, raised as `InferenceGatewayAPIError`.
 
 ```python
 from inference_gateway import InferenceGatewayClient
@@ -528,11 +528,11 @@ with open('thunder.mp3', 'wb') as f:
     f.write(sfx)
 ```
 
-`model` and `prompt` are positional and required; everything else is keyword-only and omitted from the body when left at `None`, so the gateway defaults apply. The bodies are validated as `CreateSFXRequest` / `CreateMusicRequest` before the request goes out, so bad values raise `InferenceGatewayValidationError` locally.
+`model` and `prompt` are positional and required. Everything else is keyword-only and omitted from the body when left at `None`, so the gateway defaults apply. The bodies are validated as `CreateSFXRequest` / `CreateMusicRequest` before the request goes out, so bad values raise `InferenceGatewayValidationError` locally.
 
 | Argument           | Applies to     | Python type               | Description                                                                                              |
 | ------------------ | -------------- | ------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `provider`         | both           | `Provider \| str \| None` | Pins the request to one provider; omit it to route from the model prefix.                                |
+| `provider`         | both           | `Provider \| str \| None` | Pins the request to one provider. Omit it to route from the model prefix.                                |
 | `duration_seconds` | both           | `float \| None`           | Clip length - `0.5` to `30` for sound effects, `3` to `600` for music. Omit it to let the provider pick. |
 | `prompt_influence` | `create_sfx`   | `float \| None`           | How closely generation follows the prompt, between `0` and `1`.                                          |
 | `loop`             | `create_sfx`   | `bool \| None`            | Generate a clip that loops seamlessly, for ambience beds.                                                |
@@ -543,7 +543,7 @@ See the [sound effects](/api-reference/#sound-effects) and [music](/api-referenc
 
 ### Models, tools, and health
 
-`list_models` returns every model across configured providers, or a single provider's catalog when you pass `provider=`. `mcp_jsonrpc(method, params=None, request_id=1, client_info=None)` calls the gateway's MCP endpoint (`POST /mcp`) - use `tools/list` to discover tools and `tools/call` to run one; it requires MCP to be exposed (`MCP_ENABLED=true` and `MCP_EXPOSE=true`), otherwise the call raises `InferenceGatewayAPIError`. The endpoint lives at the root, so a `/v1` suffix on the base URL is stripped for you, and the `params._meta` block and MCP headers the protocol requires are filled in automatically. `get_mcp_protected_resource_metadata` fetches the [RFC 9728](https://datatracker.ietf.org/doc/html/rfc9728) document for that endpoint. `health_check` probes the gateway's root `/health` endpoint (a root-level route, so the `/v1` suffix on the base URL is stripped) and returns a `bool` - it swallows transport errors and returns `False` rather than raising.
+`list_models` returns every model across configured providers, or a single provider's catalog when you pass `provider=`. `mcp_jsonrpc(method, params=None, request_id=1, client_info=None)` calls the gateway's MCP endpoint (`POST /mcp`) - use `tools/list` to discover tools and `tools/call` to run one. It requires MCP to be exposed (`MCP_ENABLED=true` and `MCP_EXPOSE=true`), otherwise the call raises `InferenceGatewayAPIError`. The endpoint lives at the root, so a `/v1` suffix on the base URL is stripped for you, and the `params._meta` block and MCP headers the protocol requires are filled in automatically. `get_mcp_protected_resource_metadata` fetches the [RFC 9728](https://datatracker.ietf.org/doc/html/rfc9728) document for that endpoint. `health_check` probes the gateway's root `/health` endpoint (a root-level route, so the `/v1` suffix on the base URL is stripped) and returns a `bool` - it swallows transport errors and returns `False` rather than raising.
 
 ```python
 from inference_gateway import InferenceGatewayClient
@@ -586,7 +586,7 @@ metadata = client.get_mcp_protected_resource_metadata()
 print('authorization servers:', metadata.authorization_servers)
 ```
 
-`list_models` accepts a `Provider` or a plain string; `model.served_by` is a `Provider`, so read its string via `.root`.
+`list_models` accepts a `Provider` or a plain string. `model.served_by` is a `Provider`, so read its string via `.root`.
 
 ### Proxy passthrough
 
@@ -610,7 +610,7 @@ embeddings = client.proxy_request(
 print(embeddings)
 ```
 
-`provider` accepts a `Provider` or a plain string; `method` defaults to `GET`.
+`provider` accepts a `Provider` or a plain string. `method` defaults to `GET`.
 
 ### Client options
 
@@ -774,7 +774,7 @@ The same fields work on `streamChatCompletion`. The full set of optional request
 
 | Parameter               | TypeScript type          | Values                                | Notes                                        |
 | ----------------------- | ------------------------ | ------------------------------------- | -------------------------------------------- |
-| `temperature`           | `number`                 | `0`-`2` (default `1`)                 | Higher is more random; tune this or `top_p`  |
+| `temperature`           | `number`                 | `0`-`2` (default `1`)                 | Higher is more random. Tune this or `top_p`  |
 | `top_p`                 | `number`                 | `0`-`1` (default `1`)                 | Nucleus sampling mass                        |
 | `n`                     | `number`                 | `1`-`128` (default `1`)               | Number of choices to generate                |
 | `stop`                  | `string \| string[]`     | string or up to 4 strings             | See below                                    |
@@ -874,7 +874,7 @@ await client.createChatCompletion({
 });
 ```
 
-`parallel_tool_calls` (default `true`) governs whether the model may emit several tool calls in one turn; pass `parallel_tool_calls: false` to force them one at a time.
+`parallel_tool_calls` (default `true`) governs whether the model may emit several tool calls in one turn. Pass `parallel_tool_calls: false` to force them one at a time.
 
 #### Log probabilities and logit bias
 
@@ -965,7 +965,7 @@ await client.streamChatCompletion(
 );
 ```
 
-`onMCPTool` is distinct from `onTool`. The SDK records every tool name you pass in `request.tools`; a completed tool call whose name matches one of those routes to `onTool`, and any other completed call is treated as a gateway-managed MCP tool and routed to `onMCPTool` once its JSON arguments parse cleanly. MCP tools are discovered and executed server-side, so you never register them on the request - enable them with `MCP_ENABLED=true` and `MCP_EXPOSE=true` on the gateway and they stream in alongside your own tools.
+`onMCPTool` is distinct from `onTool`. The SDK records every tool name you pass in `request.tools`. A completed tool call whose name matches one of those routes to `onTool`, and any other completed call is treated as a gateway-managed MCP tool and routed to `onMCPTool` once its JSON arguments parse cleanly. MCP tools are discovered and executed server-side, so you never register them on the request - enable them with `MCP_ENABLED=true` and `MCP_EXPOSE=true` on the gateway and they stream in alongside your own tools.
 
 ```typescript
 await client.streamChatCompletion(
@@ -986,7 +986,7 @@ await client.streamChatCompletion(
 
 ### Speech synthesis
 
-`createSpeech(request, provider?)` synthesizes speech via the OpenAI-compatible [`POST /v1/audio/speech`](/api-reference/#audio-api) endpoint. Unlike the other methods it parses no JSON - it resolves to a `Blob` holding the raw audio, whose `type` reflects the requested `response_format` (`audio/mpeg` for the default `mp3`). The optional second argument pins the request to one `Provider`; omit it to let the gateway route from the model prefix.
+`createSpeech(request, provider?)` synthesizes speech via the OpenAI-compatible [`POST /v1/audio/speech`](/api-reference/#audio-api) endpoint. Unlike the other methods it parses no JSON - it resolves to a `Blob` holding the raw audio, whose `type` reflects the requested `response_format` (`audio/mpeg` for the default `mp3`). The optional second argument pins the request to one `Provider`. Omit it to let the gateway route from the model prefix.
 
 The endpoint is gated twice: the gateway must run with `AUDIO_ENABLED=true` (otherwise every call fails with `404`), and only the OpenAI provider and the gateway's built-in `local/qwen3-tts` engine serve it (`llamacpp` speech is a work in progress and not supported yet). Anything else rejects the request with `400` and the SDK throws an `Error` carrying `The Audio API is not supported by this provider yet.`
 
@@ -1020,7 +1020,7 @@ The `SchemaCreateSpeechRequest` fields mirror the OpenAI `POST /v1/audio/speech`
 | `instructions`    | `string`                             | Extra guidance on how the voice should sound. Ignored by `tts-1` and `tts-1-hd`.                                                                                       |
 | `response_format` | `CreateSpeechRequestResponse_format` | Audio format: `mp3` (default), `opus`, `aac`, `flac`, `wav`, or `pcm`.                                                                                                 |
 | `speed`           | `number`                             | Playback speed between `0.25` and `4.0` (default `1.0`).                                                                                                               |
-| `reference_audio` | `string`                             | Base64-encoded audio sample for zero-shot voice cloning. Only `local/qwen3-tts` honors it today; OpenAI does not support cloning.                                      |
+| `reference_audio` | `string`                             | Base64-encoded audio sample for zero-shot voice cloning. Only `local/qwen3-tts` honors it today. OpenAI does not support cloning.                                      |
 
 `reference_audio` is already-encoded base64 rather than raw bytes - encode the sample yourself:
 
@@ -1045,7 +1045,7 @@ See the [Audio API reference](/api-reference/#audio-api) for the endpoint-level 
 
 ### Sound effects and music
 
-`createSFX(request, provider?)` and `createMusic(request, provider?)` wrap the sibling [`POST /v1/audio/sfx`](/api-reference/#sound-effects) and [`POST /v1/audio/music`](/api-reference/#music) endpoints. Both are shaped exactly like `createSpeech` - JSON in, a `Blob` of raw audio out, in the requested `response_format` (`mp3` by default) - and share the `AUDIO_ENABLED` gate. `elevenlabs` is the only provider serving them today; anything else throws with `Sound effect generation is not supported by this provider yet.` or its music equivalent.
+`createSFX(request, provider?)` and `createMusic(request, provider?)` wrap the sibling [`POST /v1/audio/sfx`](/api-reference/#sound-effects) and [`POST /v1/audio/music`](/api-reference/#music) endpoints. Both are shaped exactly like `createSpeech` - JSON in, a `Blob` of raw audio out, in the requested `response_format` (`mp3` by default) - and share the `AUDIO_ENABLED` gate. `elevenlabs` is the only provider serving them today. Anything else throws with `Sound effect generation is not supported by this provider yet.` or its music equivalent.
 
 ```typescript
 import { InferenceGatewayClient, Provider } from '@inference-gateway/sdk';
@@ -1076,11 +1076,11 @@ const music = await client.createMusic(
 await writeFile('track.mp3', Buffer.from(await music.arrayBuffer()));
 ```
 
-The request bodies are `SchemaCreateSfxRequest` and `SchemaCreateMusicRequest`; their fields are listed in the [sound effects](/api-reference/#sound-effects) and [music](/api-reference/#music) reference.
+The request bodies are `SchemaCreateSfxRequest` and `SchemaCreateMusicRequest`. Their fields are listed in the [sound effects](/api-reference/#sound-effects) and [music](/api-reference/#music) reference.
 
 ### Models, tools, and health
 
-`listModels(provider?, include?)` returns every model across configured providers, or a single provider's catalog when you pass a `Provider`. The optional `include` array requests additional per-model metadata - pass `'context_window'` to populate `model.context_window`, `'pricing'` for pricing data, or both. `mcpJsonRpc(request)` calls the gateway's MCP endpoint (`POST /mcp`) with a `SchemaMcpjsonrpcRequest` - `tools/list` to discover tools, `tools/call` to run one - and only resolves when MCP is exposed on the gateway; an un-exposed gateway answers `403 Forbidden`. The endpoint lives at the root, so the `/v1` suffix is stripped from the base URL for you, and the `params._meta` entries and MCP headers the protocol requires are derived from the request. JSON-RPC-level failures come back as an `error` envelope rather than throwing. `getMCPProtectedResourceMetadata` fetches the [RFC 9728](https://datatracker.ietf.org/doc/html/rfc9728) document for that endpoint. `healthCheck` probes the gateway's root `/health` endpoint and resolves to a boolean rather than throwing: `true` on a 2xx response, `false` for any non-2xx status - a 502 or 503 from an ingress in front of a stopped gateway, or a 404 from a misconfigured baseURL - or when the request fails at the network level.
+`listModels(provider?, include?)` returns every model across configured providers, or a single provider's catalog when you pass a `Provider`. The optional `include` array requests additional per-model metadata - pass `'context_window'` to populate `model.context_window`, `'pricing'` for pricing data, or both. `mcpJsonRpc(request)` calls the gateway's MCP endpoint (`POST /mcp`) with a `SchemaMcpjsonrpcRequest` - `tools/list` to discover tools, `tools/call` to run one - and only resolves when MCP is exposed on the gateway. An un-exposed gateway answers `403 Forbidden`. The endpoint lives at the root, so the `/v1` suffix is stripped from the base URL for you, and the `params._meta` entries and MCP headers the protocol requires are derived from the request. JSON-RPC-level failures come back as an `error` envelope rather than throwing. `getMCPProtectedResourceMetadata` fetches the [RFC 9728](https://datatracker.ietf.org/doc/html/rfc9728) document for that endpoint. `healthCheck` probes the gateway's root `/health` endpoint and resolves to a boolean rather than throwing: `true` on a 2xx response, `false` for any non-2xx status - a 502 or 503 from an ingress in front of a stopped gateway, or a 404 from a misconfigured baseURL - or when the request fails at the network level.
 
 ```typescript
 import { InferenceGatewayClient, Provider } from '@inference-gateway/sdk';
@@ -1183,7 +1183,7 @@ console.log(embeddings);
 
 ### Client options
 
-The constructor accepts a `ClientOptions` object; every field is optional.
+The constructor accepts a `ClientOptions` object. Every field is optional.
 
 | Option           | Type                     | Default                    | Purpose                                                              |
 | ---------------- | ------------------------ | -------------------------- | -------------------------------------------------------------------- |
@@ -1378,13 +1378,13 @@ Three rules govern how `WithOptions` interacts with the generation calls:
 
 - `Stream` is overwritten on every call - forced to `false` for `GenerateContent` and `true` for `GenerateContentStream` - so you never set it yourself.
 - The `model` and `messages` passed to `GenerateContent` / `GenerateContentStream` win over anything carried in the options.
-- Options persist on the client for all later calls; pass `WithOptions(nil)` to clear them.
+- Options persist on the client for all later calls. Pass `WithOptions(nil)` to clear them.
 
 The full set of optional fields on `CreateChatCompletionRequest`:
 
 | Field                 | Go type                                       | Values                                             | Notes                                      |
 | --------------------- | --------------------------------------------- | -------------------------------------------------- | ------------------------------------------ |
-| `Temperature`         | `*float32`                                    | `0`-`2` (default `1`)                              | Higher is more random; tune this or `TopP` |
+| `Temperature`         | `*float32`                                    | `0`-`2` (default `1`)                              | Higher is more random. Tune this or `TopP` |
 | `TopP`                | `*float32`                                    | `0`-`1` (default `1`)                              | Nucleus sampling mass                      |
 | `N`                   | `*int`                                        | `1`-`128` (default `1`)                            | Number of choices to generate              |
 | `Stop`                | `*CreateChatCompletionRequest_Stop`           | string or up to 4 strings                          | oneOf union - see below                    |
@@ -1475,7 +1475,7 @@ resp, err := client.
     GenerateContent(ctx, sdk.Openai, "openai/gpt-4o", messages)
 ```
 
-`parallel_tool_calls` (default `true`) governs whether the model may emit several tool calls in one turn; set `ParallelToolCalls: ptr(false)` to force them one at a time.
+`parallel_tool_calls` (default `true`) governs whether the model may emit several tool calls in one turn. Set `ParallelToolCalls: ptr(false)` to force them one at a time.
 
 #### Deprecation: `MaxTokens`
 
@@ -1508,7 +1508,7 @@ Base64 data URLs are accepted as the image URL.
 
 `CreateImage` generates images via the OpenAI-compatible `POST /v1/images/generations` endpoint. The method takes a provider, a `CreateImageRequest` with at least a `Prompt`, and returns an `ImagesResponse` with one or more generated images.
 
-Not every provider implements the Images API. Requests routed to a provider that does not support it return a `400` error; use chat completions for those providers.
+Not every provider implements the Images API. Requests routed to a provider that does not support it return a `400` error. Use chat completions for those providers.
 
 ```go
 resp, err := client.CreateImage(ctx, sdk.Openai, sdk.CreateImageRequest{
@@ -1603,7 +1603,7 @@ The `CreateSpeechRequest` fields mirror the OpenAI `POST /v1/audio/speech` body:
 | `Instructions`   | `*string`                            | Extra guidance on how the voice should sound. Ignored by `tts-1` and `tts-1-hd`.                                                                                       |
 | `ResponseFormat` | `*CreateSpeechRequestResponseFormat` | Audio format: `sdk.CreateSpeechRequestResponseFormatMp3` (default), `...Opus`, `...Aac`, `...Flac`, `...Wav`, or `...Pcm`.                                             |
 | `Speed`          | `*float32`                           | Playback speed between `0.25` and `4.0` (default `1.0`).                                                                                                               |
-| `ReferenceAudio` | `*[]byte`                            | Audio sample for zero-shot voice cloning, base64-encoded on the wire by `encoding/json`. Only `local/qwen3-tts` honors it today; OpenAI does not support cloning.      |
+| `ReferenceAudio` | `*[]byte`                            | Audio sample for zero-shot voice cloning, base64-encoded on the wire by `encoding/json`. Only `local/qwen3-tts` honors it today. OpenAI does not support cloning.      |
 
 Pass `ReferenceAudio` the raw sample bytes - Go marshals `[]byte` to base64 automatically, so do not encode it yourself:
 
@@ -1693,7 +1693,7 @@ The `CreateMusicRequest` fields:
 
 ### Models, tools, and health
 
-`ListModels` returns every model across all configured providers, while `ListProviderModels` scopes the listing to a single `Provider`. `MCPJSONRPC` calls the gateway's MCP endpoint (`POST /mcp`) - build the request with `sdk.NewMCPJSONRPCRequest(id, method, params)` using `sdk.ToolsList` to discover tools or `sdk.ToolsCall` to run one - and requires MCP to be exposed (`MCP_ENABLED=true` and `MCP_EXPOSE=true`); otherwise it returns an error. JSON-RPC-level failures arrive in the envelope's `Error` field rather than as a Go error, and the `_meta` block and MCP headers the protocol requires are derived from the request. `GetMCPProtectedResourceMetadata` fetches the [RFC 9728](https://datatracker.ietf.org/doc/html/rfc9728) document for that endpoint. Unlike the other SDKs, Go's `HealthCheck` returns an `error` rather than a `bool` - it probes the gateway's root `/health` endpoint and returns `nil` when the gateway is healthy.
+`ListModels` returns every model across all configured providers, while `ListProviderModels` scopes the listing to a single `Provider`. `MCPJSONRPC` calls the gateway's MCP endpoint (`POST /mcp`) - build the request with `sdk.NewMCPJSONRPCRequest(id, method, params)` using `sdk.ToolsList` to discover tools or `sdk.ToolsCall` to run one - and requires MCP to be exposed (`MCP_ENABLED=true` and `MCP_EXPOSE=true`). Otherwise it returns an error. JSON-RPC-level failures arrive in the envelope's `Error` field rather than as a Go error, and the `_meta` block and MCP headers the protocol requires are derived from the request. `GetMCPProtectedResourceMetadata` fetches the [RFC 9728](https://datatracker.ietf.org/doc/html/rfc9728) document for that endpoint. Unlike the other SDKs, Go's `HealthCheck` returns an `error` rather than a `bool` - it probes the gateway's root `/health` endpoint and returns `nil` when the gateway is healthy.
 
 ```go
 client := sdk.NewClient(&sdk.ClientOptions{
@@ -1853,7 +1853,7 @@ resp, err := client.
     GenerateContent(ctx, sdk.Deepseek, "deepseek/deepseek-v4-flash", messages)
 ```
 
-Both headers require a gateway build that honors them; a gateway that does not recognize the bypass runs the full middleware chain anyway. A runnable walkthrough lives in [sdk/examples/middleware-bypass](https://github.com/inference-gateway/sdk/tree/main/examples/middleware-bypass).
+Both headers require a gateway build that honors them. A gateway that does not recognize the bypass runs the full middleware chain anyway. A runnable walkthrough lives in [sdk/examples/middleware-bypass](https://github.com/inference-gateway/sdk/tree/main/examples/middleware-bypass).
 
 ### Custom headers
 
@@ -1883,12 +1883,12 @@ Retries are on by default: every request method runs through an exponential-back
 
 | Field                  | Type                                                | Default                        | Purpose                                                                                                                        |
 | ---------------------- | --------------------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
-| `Enabled`              | `bool`                                              | `true`                         | Master switch; set `false` to issue each request exactly once.                                                                 |
-| `MaxAttempts`          | `int`                                               | `3`                            | Total attempts, including the initial request; a value below `1` sends the request exactly once, the same as `Enabled: false`. |
+| `Enabled`              | `bool`                                              | `true`                         | Master switch. Set `false` to issue each request exactly once.                                                                 |
+| `MaxAttempts`          | `int`                                               | `3`                            | Total attempts, including the initial request. A value below `1` sends the request exactly once, the same as `Enabled: false`. |
 | `InitialBackoffSec`    | `int`                                               | `2`                            | Delay before the first retry, in seconds.                                                                                      |
 | `MaxBackoffSec`        | `int`                                               | `30`                           | Ceiling for the computed backoff, in seconds.                                                                                  |
 | `BackoffMultiplier`    | `int`                                               | `2`                            | Factor the delay grows by on each attempt.                                                                                     |
-| `RetryableStatusCodes` | `[]int`                                             | `408, 429, 500, 502, 503, 504` | Status codes that trigger a retry; replaces the defaults when set.                                                             |
+| `RetryableStatusCodes` | `[]int`                                             | `408, 429, 500, 502, 503, 504` | Status codes that trigger a retry. Replaces the defaults when set.                                                             |
 | `OnRetry`              | `func(attempt int, err error, delay time.Duration)` | `nil`                          | Callback fired before each retry - handy for logging.                                                                          |
 
 ```go
@@ -1947,13 +1947,13 @@ if err != nil {
 
 ### Client options
 
-`NewClient` takes a `ClientOptions` struct; only `BaseURL` is required.
+`NewClient` takes a `ClientOptions` struct. Only `BaseURL` is required.
 
 | Field         | Type                    | Default      | Purpose                                                        |
 | ------------- | ----------------------- | ------------ | -------------------------------------------------------------- |
 | `BaseURL`     | `string`                | _(required)_ | Gateway base URL, including the `/v1` suffix.                  |
 | `APIKey`      | `string`                | -            | Sent as an `Authorization: Bearer` header on every request.    |
-| `Timeout`     | `time.Duration`         | none         | Per-request timeout; unset means no client-side timeout.       |
+| `Timeout`     | `time.Duration`         | none         | Per-request timeout. Unset means no client-side timeout.       |
 | `Tools`       | `*[]ChatCompletionTool` | `nil`        | Default tools attached to every request (see Tool calls).      |
 | `Headers`     | `map[string]string`     | `nil`        | Custom headers merged into every request (see Custom headers). |
 | `RetryConfig` | `*RetryConfig`          | _(built-in)_ | Retry/backoff tuning (see Retry and backoff).                  |
@@ -1972,7 +1972,7 @@ cargo add inference-gateway-sdk
 
 ### Client setup
 
-`InferenceGatewayClient::new(base_url)` targets an explicit gateway URL. `new_default()` instead reads the `INFERENCE_GATEWAY_URL` environment variable, falling back to `http://localhost:8080/v1` when it is unset. Both return an owned client; the builders below consume and return `self`, so chain them before issuing a request.
+`InferenceGatewayClient::new(base_url)` targets an explicit gateway URL. `new_default()` instead reads the `INFERENCE_GATEWAY_URL` environment variable, falling back to `http://localhost:8080/v1` when it is unset. Both return an owned client. The builders below consume and return `self`, so chain them before issuing a request.
 
 ```rust
 use std::time::Duration;
@@ -1993,12 +1993,12 @@ let client = InferenceGatewayClient::new_default()
 | Builder                         | Argument                          | Purpose                                                                                           |
 | ------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------- |
 | `with_token(token)`             | `impl Into<String>`               | Bearer token sent on every request.                                                               |
-| `with_max_tokens(max_tokens)`   | `Option<i64>`                     | Upper bound on tokens generated per request; `None` clears a previously set cap.                  |
-| `with_temperature(temperature)` | `Option<f64>`                     | Sampling temperature (`0.0` - `2.0`) for chat completions; `None` keeps the API default of `1.0`. |
-| `with_timeout(timeout)`         | `std::time::Duration`             | Total timeout for every request made by this client; unset means no client-side timeout.          |
+| `with_max_tokens(max_tokens)`   | `Option<i64>`                     | Upper bound on tokens generated per request. `None` clears a previously set cap.                  |
+| `with_temperature(temperature)` | `Option<f64>`                     | Sampling temperature (`0.0` - `2.0`) for chat completions. `None` keeps the API default of `1.0`. |
+| `with_timeout(timeout)`         | `std::time::Duration`             | Total timeout for every request made by this client. Unset means no client-side timeout.          |
 | `with_tools(tools)`             | `Option<Vec<ChatCompletionTool>>` | Default tools attached to non-streaming requests (see Tool calls).                                |
 
-`with_temperature` applies to both streaming and non-streaming chat completions. Because `temperature` is not optional in the schema, the value is only sent when you configure it; otherwise the gateway's default stands.
+`with_temperature` applies to both streaming and non-streaming chat completions. Because `temperature` is not optional in the schema, the value is only sent when you configure it. Otherwise the gateway's default stands.
 
 ::: warning `with_timeout` also bounds streaming
 
@@ -2084,7 +2084,7 @@ async fn main() -> Result<(), GatewayError> {
 
 ### Tool calls
 
-Attach tools with `with_tools`. Tool calls show up on `choice.message.tool_calls`; reply to them with `MessageRole::Tool` messages carrying the matching `tool_call_id`.
+Attach tools with `with_tools`. Tool calls show up on `choice.message.tool_calls`. Reply to them with `MessageRole::Tool` messages carrying the matching `tool_call_id`.
 
 ```rust
 use inference_gateway_sdk::{
@@ -2174,25 +2174,25 @@ let request = CreateChatCompletionRequest {
 };
 ```
 
-Seven fields carry a schema `default:` and are generated as non-`Option`, so they serialize on every request even when you leave them untouched: `temperature` (`1.0`), `top_p` (`1.0`), `n` (`1`), `frequency_penalty` (`0.0`), `presence_penalty` (`0.0`), `logprobs` (`false`), and `parallel_tool_calls` (`true`). This is a wire-format change from earlier releases - and from the Python and Go SDKs, which omit unset fields - so a bare Rust request now ships these documented defaults. The remaining optional fields stay off the wire until you set them (`logit_bias` and `tools` are skipped while empty; the rest are `Option<...>`).
+Seven fields carry a schema `default:` and are generated as non-`Option`, so they serialize on every request even when you leave them untouched: `temperature` (`1.0`), `top_p` (`1.0`), `n` (`1`), `frequency_penalty` (`0.0`), `presence_penalty` (`0.0`), `logprobs` (`false`), and `parallel_tool_calls` (`true`). This is a wire-format change from earlier releases - and from the Python and Go SDKs, which omit unset fields - so a bare Rust request now ships these documented defaults. The remaining optional fields stay off the wire until you set them (`logit_bias` and `tools` are skipped while empty - the rest are `Option<...>`).
 
 The full set of request fields on `CreateChatCompletionRequest`:
 
 | Field                   | Rust type                                            | Values                                | Notes                                        |
 | ----------------------- | ---------------------------------------------------- | ------------------------------------- | -------------------------------------------- |
-| `temperature`           | `f64`                                                | `0`-`2` (default `1`)                 | Always sent; tune this or `top_p`            |
-| `top_p`                 | `f64`                                                | `0`-`1` (default `1`)                 | Always sent; nucleus sampling mass           |
-| `n`                     | `NonZeroU64`                                         | `1`-`128` (default `1`)               | Always sent; number of choices to generate   |
+| `temperature`           | `f64`                                                | `0`-`2` (default `1`)                 | Always sent. Tune this or `top_p`            |
+| `top_p`                 | `f64`                                                | `0`-`1` (default `1`)                 | Always sent. Nucleus sampling mass           |
+| `n`                     | `NonZeroU64`                                         | `1`-`128` (default `1`)               | Always sent. Number of choices to generate   |
 | `stop`                  | `Option<CreateChatCompletionRequestStop>`            | string or up to 4 strings             | Untagged union - see below                   |
-| `frequency_penalty`     | `f64`                                                | `-2`-`2` (default `0`)                | Always sent; penalize by existing frequency  |
-| `presence_penalty`      | `f64`                                                | `-2`-`2` (default `0`)                | Always sent; penalize already-present tokens |
+| `frequency_penalty`     | `f64`                                                | `-2`-`2` (default `0`)                | Always sent. Penalize by existing frequency  |
+| `presence_penalty`      | `f64`                                                | `-2`-`2` (default `0`)                | Always sent. Penalize already-present tokens |
 | `seed`                  | `Option<i64>`                                        | any integer                           | Best-effort deterministic sampling           |
-| `logprobs`              | `bool`                                               | default `false`                       | Always sent; return token log probabilities  |
+| `logprobs`              | `bool`                                               | default `false`                       | Always sent. Return token log probabilities  |
 | `top_logprobs`          | `Option<i64>`                                        | `0`-`20`                              | Requires `logprobs = true`                   |
-| `logit_bias`            | `HashMap<String, i64>`                               | bias `-100`-`100`                     | Maps token ID to bias; omitted when empty    |
+| `logit_bias`            | `HashMap<String, i64>`                               | bias `-100`-`100`                     | Maps token ID to bias. Omitted when empty    |
 | `response_format`       | `Option<CreateChatCompletionRequestResponseFormat>`  | text / json_object / json_schema      | Untagged union - see below                   |
 | `tool_choice`           | `Option<ChatCompletionToolChoiceOption>`             | `none` / `auto` / `required` / named  | Untagged union - see below                   |
-| `parallel_tool_calls`   | `bool`                                               | default `true`                        | Always sent; allow parallel tool calls       |
+| `parallel_tool_calls`   | `bool`                                               | default `true`                        | Always sent. Allow parallel tool calls       |
 | `reasoning_effort`      | `Option<CreateChatCompletionRequestReasoningEffort>` | `minimal` / `low` / `medium` / `high` | Reasoning models only                        |
 | `user`                  | `Option<String>`                                     | any string                            | End-user identifier for abuse monitoring     |
 | `max_completion_tokens` | `Option<i64>`                                        | any integer                           | Upper bound incl. reasoning tokens           |
@@ -2232,7 +2232,7 @@ let stop = CreateChatCompletionRequestStop::Array(vec!["END".to_string(), "STOP"
 
 #### Response format (Structured Outputs)
 
-`response_format` is the untagged enum `CreateChatCompletionRequestResponseFormat` over plain text, JSON mode, and a JSON Schema. Each variant disambiguates on its inner `type` field. Setting a schema with `strict: true` enables Structured Outputs, which forces the model to match it; only a subset of JSON Schema is supported when `strict` is `true`.
+`response_format` is the untagged enum `CreateChatCompletionRequestResponseFormat` over plain text, JSON mode, and a JSON Schema. Each variant disambiguates on its inner `type` field. Setting a schema with `strict: true` enables Structured Outputs, which forces the model to match it. Only a subset of JSON Schema is supported when `strict` is `true`.
 
 ```rust
 use inference_gateway_sdk::{
@@ -2293,7 +2293,7 @@ let tool_choice = ChatCompletionToolChoiceOption::ChatCompletionNamedToolChoice(
 );
 ```
 
-`parallel_tool_calls` (default `true`, always sent) governs whether the model may emit several tool calls in one turn; set it to `false` to force them one at a time.
+`parallel_tool_calls` (default `true`, always sent) governs whether the model may emit several tool calls in one turn. Set it to `false` to force them one at a time.
 
 #### Deprecation: `max_tokens`
 
@@ -2380,7 +2380,7 @@ The `CreateSpeechRequest` fields mirror the OpenAI `POST /v1/audio/speech` body:
 | `instructions`    | `Option<CreateSpeechRequestInstructions>` | Extra guidance on how the voice should sound. Ignored by `tts-1` and `tts-1-hd`. Also a 4096-character newtype.                                                        |
 | `response_format` | `CreateSpeechRequestResponseFormat`       | Audio format: `Mp3` (default), `Opus`, `Aac`, `Flac`, `Wav`, or `Pcm`.                                                                                                 |
 | `speed`           | `f64`                                     | Playback speed between `0.25` and `4.0` (default `1.0`).                                                                                                               |
-| `reference_audio` | `Option<String>`                          | Base64-encoded audio sample for zero-shot voice cloning. Only `local/qwen3-tts` honors it today; OpenAI does not support cloning.                                      |
+| `reference_audio` | `Option<String>`                          | Base64-encoded audio sample for zero-shot voice cloning. Only `local/qwen3-tts` honors it today. OpenAI does not support cloning.                                      |
 
 `CreateSpeechRequest` implements `Default`, so `..Default::default()` fills in `response_format: Mp3` and `speed: 1.0` and leaves the optional fields unset. Unlike the Go SDK, `reference_audio` is already-encoded base64 rather than raw bytes - encode the sample yourself before assigning it:
 
@@ -2455,7 +2455,7 @@ async fn main() -> Result<(), GatewayError> {
 }
 ```
 
-`loop_` carries the request's `loop` field, renamed because `loop` is a Rust keyword. The optional fields take `None` for the provider default; see the [sound effects](/api-reference/#sound-effects) and [music](/api-reference/#music) field tables for the accepted ranges and formats.
+`loop_` carries the request's `loop` field, renamed because `loop` is a Rust keyword. The optional fields take `None` for the provider default. See the [sound effects](/api-reference/#sound-effects) and [music](/api-reference/#music) field tables for the accepted ranges and formats.
 
 ### Models, tools, and health
 

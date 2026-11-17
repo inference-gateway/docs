@@ -58,7 +58,7 @@ The skill runs a five-step playbook:
 
 1. **Search for nodes** - call `search_n8n_docs` for each capability the workflow needs (trigger, integrations, transformations, output), narrowing with the `node_type` and `category` filters.
 2. **Draft the workflow YAML** - compose `name`, a `nodes` list (each with `id`, `name`, a `type` matching `n8n-nodes-base.*` or `@n8n/n8n-nodes-langchain.*`, `parameters`, and a `position` as `[x, y]`), and `connections` linking nodes by `id` with `sourceIndex`/`targetIndex`. It biases toward including a trigger node so the workflow can run.
-3. **Validate (mandatory)** - call `validate_n8n_workflow`; on `INVALID`, fix every reported error and re-run until it returns `VALID`.
+3. **Validate (mandatory)** - call `validate_n8n_workflow`. On `INVALID`, fix every reported error and re-run until it returns `VALID`.
 4. **Save the artifact (mandatory)** - call `create_artifact` with a descriptive `.yaml` filename and the validated YAML.
 5. **Respond concisely** - a 2-3 sentence summary, the artifact download link, and a short list of follow-up configuration (credentials, webhook URLs, environment variables).
 
@@ -70,10 +70,10 @@ The agent exposes two purpose-built tools plus two built-ins from the [ADK](/typ
 | ----------------------- | -------- | --------------------------------------------------------------------------- | -------------------------------------------------------------- |
 | `search_n8n_docs`       | custom   | Search the bundled n8n node docs for nodes, parameters, and usage patterns. | `query` (required), `node_type`, `category`                    |
 | `validate_n8n_workflow` | custom   | Validate workflow YAML/JSON against the n8n schema before it is persisted.  | `workflow_content` (required), `format` (`yaml`/`json`/`auto`) |
-| `read`                  | built-in | Read a file from disk; used to load the skill's `SKILL.md` body on demand.  | `file_path`, `offset`, `limit`                                 |
+| `read`                  | built-in | Read a file from disk. Used to load the skill's `SKILL.md` body on demand.  | `file_path`, `offset`, `limit`                                 |
 | `create_artifact`       | built-in | Persist the validated workflow YAML as a downloadable artifact.             | filename, content                                              |
 
-`search_n8n_docs` and `validate_n8n_workflow` are implemented in Go in the agent itself; `read` and `create_artifact` are provided by the ADK runtime (artifacts must be enabled - see [Configuration](#configuration)).
+`search_n8n_docs` and `validate_n8n_workflow` are implemented in Go in the agent itself. `read` and `create_artifact` are provided by the ADK runtime (artifacts must be enabled - see [Configuration](#configuration)).
 
 ## Bundled n8n node documentation
 
@@ -83,7 +83,7 @@ The corpus is generated, not hand-written. A [Deno](https://deno.com/) script, `
 
 ## Runtime and dependencies
 
-- **Server**: a single Go binary (`n8n-agent`). `n8n-agent start` boots the A2A server; `--help` and `--version` behave as expected. A multi-stage `Dockerfile` and the `ghcr.io/inference-gateway/n8n-agent` image are provided.
+- **Server**: a single Go binary (`n8n-agent`). `n8n-agent start` boots the A2A server. `--help` and `--version` behave as expected. A multi-stage `Dockerfile` and the `ghcr.io/inference-gateway/n8n-agent` image are provided.
 - **Deno** (`deno@^2.7.14`): declared under `spec.development.deps` in `agent.yaml` and provisioned in the Flox dev sandbox. Deno is the toolchain for the node-docs generator described above - it is **not** required to run the agent server at runtime.
 - **LLM access**: the agent calls an OpenAI-compatible chat-completions endpoint. Point it at the [Inference Gateway](/) (recommended) or any compatible provider via the `A2A_AGENT_CLIENT_*` variables.
 
@@ -123,7 +123,7 @@ cp .env.example .env   # set A2A_AGENT_CLIENT_PROVIDER / _MODEL and a provider A
 docker compose up --build
 ```
 
-The agent listens on `8080` (A2A) and `8081` (artifact server); generated workflows are written to `./workflows`. Drive it with the interactive CLI or fire one-off requests at it:
+The agent listens on `8080` (A2A) and `8081` (artifact server). Generated workflows are written to `./workflows`. Drive it with the interactive CLI or fire one-off requests at it:
 
 ```bash
 # Interactive chat
@@ -136,7 +136,7 @@ docker compose run --rm a2a-debugger tasks submit-streaming \
 
 ## Configuration
 
-The agent reads the standard ADK environment variables. The ones most relevant to running it are below; artifacts must be enabled for workflow generation to return downloadable files.
+The agent reads the standard ADK environment variables. The ones most relevant to running it are below. Artifacts must be enabled for workflow generation to return downloadable files.
 
 | Category   | Variable                          | Description                                             | Default       |
 | ---------- | --------------------------------- | ------------------------------------------------------- | ------------- |

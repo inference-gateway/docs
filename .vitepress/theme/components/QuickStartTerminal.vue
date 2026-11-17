@@ -16,13 +16,16 @@ const terminals = [
   },
 ];
 
-const copied = ref(-1);
+const NOTHING_COPIED = -1;
+const COPIED_RESET_DELAY_MS = 2000;
+
+const copied = ref(NOTHING_COPIED);
 
 async function copy(index: number) {
   try {
     await navigator.clipboard.writeText(terminals[index].commands.join('\n'));
     copied.value = index;
-    setTimeout(() => (copied.value = -1), 2000);
+    setTimeout(() => (copied.value = NOTHING_COPIED), COPIED_RESET_DELAY_MS);
   } catch {}
 }
 </script>

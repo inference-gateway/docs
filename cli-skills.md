@@ -5,7 +5,7 @@ description: Install, enable, and invoke Agent Skills in the Inference Gateway C
 
 # Agent Skills
 
-**Agent Skills** are reusable, model-readable instruction folders that the [Inference Gateway CLI](/cli/) (`infer`) loads on demand. Each skill is a directory with a `SKILL.md` playbook; the agent reads the body only when the skill is relevant, so a skill costs only its one-line metadata until it is actually used (and nothing at all when disabled).
+**Agent Skills** are reusable, model-readable instruction folders that the [Inference Gateway CLI](/cli/) (`infer`) loads on demand. Each skill is a directory with a `SKILL.md` playbook. The agent reads the body only when the skill is relevant, so a skill costs only its one-line metadata until it is actually used (and nothing at all when disabled).
 
 The CLI uses the **same on-disk format** as Claude Code, Gemini CLI, and OpenAI Codex CLI, so a folder authored for any of those tools drops into `.infer/skills/` - or the cross-tool [`.agents/skills/` open standard](#on-disk-layout) - unchanged. To browse or publish skills in the shared index, see the [Skills Catalog](/skills/).
 
@@ -101,10 +101,10 @@ The skill runs four phases, and **nothing is ever posted without your explicit a
 
 1. **Gather.** It asks up to four follow-up questions in a single `AskUserQuestion` round (the trigger, expected vs actual, frequency, and your OS / terminal / `infer version`). Every question offers a **`Just reproduce it`** option that ends questioning immediately. In a non-interactive run ([headless](/cli/#headless-mode), [channels](/cli-channels/), [scheduled](/cli/#schedule)) there is nobody to ask, so it skips straight to reproducing.
 2. **Reproduce.** It works in a `mktemp -d` scratch directory so your project is never modified, drives terminal and TUI bugs through the `tmux` built-in (using `INFER_GATEWAY_MOCK=true` to exercise the CLI's own chat UI without a real LLM) and GUI bugs through the Computer tools, and reproduces the bug twice before trusting the recipe. The minimal step list it keeps becomes the issue's "Steps to Reproduce". If it genuinely cannot reproduce the bug, it says so rather than inventing steps.
-3. **Record (opt-in).** Only after the bug reproduces, and only with your consent, it records a short clip and converts it to a GIF with `ffmpeg`, kept under GitHub's 10 MB image limit. Recording is **off by default** - it needs `computer_use.recording.enabled` in `~/.infer/computer_use.yaml` (see [Screen recording](/cli/#screen-recording)); the skill never edits that config for you. It records **window** or **region** only, never the whole screen, screenshots the target window first to check for secrets, and prints the GIF's local path for you to review - it never uploads anything itself.
+3. **Record (opt-in).** Only after the bug reproduces, and only with your consent, it records a short clip and converts it to a GIF with `ffmpeg`, kept under GitHub's 10 MB image limit. Recording is **off by default** - it needs `computer_use.recording.enabled` in `~/.infer/computer_use.yaml` (see [Screen recording](/cli/#screen-recording)). The skill never edits that config for you. It records **window** or **region** only, never the whole screen, screenshots the target window first to check for secrets, and prints the GIF's local path for you to review - it never uploads anything itself.
 4. **File.** It searches for duplicates with `gh issue list`, drafts the issue on the org `bug_report.md` template (a `[BUG]`-prefixed title, the `bug` label, and the Summary / Steps to Reproduce / Expected Behavior / Actual Behavior sections) with tokens, emails, hostnames and home-directory paths redacted, then asks for consent. On approval it hands off to `gh issue create --web`, which opens the prefilled form in your browser so you can drag the GIF in and submit it yourself - GitHub has no issue-attachment API, so the browser step doubles as the final review.
 
-The target repository defaults to `inference-gateway/cli`; the skill uses another repo only when you name one or the working directory clearly belongs to it, and it tells you which it picked.
+The target repository defaults to `inference-gateway/cli`. The skill uses another repo only when you name one or the working directory clearly belongs to it, and it tells you which it picked.
 
 **Degradation, not failure.** Recording disabled, a missing `ffmpeg`, a failed capture, an unreproducible bug, or a declined consent all degrade to a **text-only report** - the skill hands you the draft and the exact `gh issue create --web` command instead of aborting.
 
@@ -124,15 +124,15 @@ The flow is always plan, rehearse, record one take, convert:
 
 1. **Plan.** The recording becomes the last todo, and the demo picks one to three steps a user would actually do - run the new flag, open the view that changed, trigger the message that now reads better. Passing tests are not a demo.
 2. **Rehearse unrecorded.** Every `RecordStart` / `RecordStop` pair makes a video, so all trial and error happens through `tmux capture-pane` or screenshots instead: build with the repo's own command, run the steps exactly as the take will run them, and reset to a clean start.
-3. **Record one take.** A single 20-45 second take, start to finish. A capped, off-target or broken take is thrown away - the rehearsal is fixed and a new take recorded; unconverted takes never reach anything user-visible.
-4. **Convert.** `ffmpeg` turns the good take into the fixed `demo.gif` name - converting again replaces the GIF rather than adding a second one. Locally the agent prints the GIF's path for you to review; in CI it is embedded in the [result comment](/github-action/#result-comment).
+3. **Record one take.** A single 20-45 second take, start to finish. A capped, off-target or broken take is thrown away - the rehearsal is fixed and a new take recorded. Unconverted takes never reach anything user-visible.
+4. **Convert.** `ffmpeg` turns the good take into the fixed `demo.gif` name - converting again replaces the GIF rather than adding a second one. Locally the agent prints the GIF's path for you to review. In CI it is embedded in the [result comment](/github-action/#result-comment).
 
 Where it records depends on where it runs:
 
 - **Locally** it records **window** or **region** only, never the whole screen, so nothing else you have open is captured. Terminal programs are driven through the `tmux` built-in and GUI apps with the Computer tools. Recording is **off by default** - it needs `computer_use.recording.enabled` (see [Screen recording](/cli/#screen-recording)), which the skill never edits for you.
 - **In CI** ([`record-demo` on the GitHub Action](/github-action/#demo-recordings)) the action provides a virtual display whose only window is the demo terminal, so screen mode captures exactly what the demo puts on it - and `~/.infer/artifacts` is the delivery channel: everything in it is embedded in the result comment, which is why a recording never needs to enter the repository.
 
-**Recording off? Degradation, not failure.** When recording is unavailable - locally the config knob above, in CI a request that did not ask for a demo - the skill says so once, never edits config, and shows the steps as commands plus captured output or screenshots instead. It is not for reproducing bugs; that is [the `bug` skill](#the-bug-skill).
+**Recording off? Degradation, not failure.** When recording is unavailable - locally the config knob above, in CI a request that did not ask for a demo - the skill says so once, never edits config, and shows the steps as commands plus captured output or screenshots instead. It is not for reproducing bugs. That is [the `bug` skill](#the-bug-skill).
 
 ### The `config` skill
 
@@ -146,7 +146,7 @@ It also answers read-only questions (`/config what is my max_turns`) and stops t
 
 The flow is resolve, confirm, write, reload, and **nothing is written without your explicit approval**:
 
-1. **Resolve the key.** It maps the request to one or more dotted keys (`gateway.timeout`, `agent.model`, `chat.theme`, ...) and reads each with `infer config get <key>`. An unknown key is reported as such rather than guessed; an ambiguous request gets one `AskUserQuestion` round with the candidate keys. It never runs a bare `infer config get` (or a whole `gateway` / `telemetry` section), because that would print the gateway API key and telemetry headers into the conversation.
+1. **Resolve the key.** It maps the request to one or more dotted keys (`gateway.timeout`, `agent.model`, `chat.theme`, ...) and reads each with `infer config get <key>`. An unknown key is reported as such rather than guessed. An ambiguous request gets one `AskUserQuestion` round with the candidate keys. It never runs a bare `infer config get` (or a whole `gateway` / `telemetry` section), because that would print the gateway API key and telemetry headers into the conversation.
 2. **Confirm.** It shows the change as `key: old -> new` plus the file it will be written to - `~/.infer/config.yaml` by default, or the project `.infer/config.yaml` when you asked for a project override - and waits for `Apply`. If you cancel, or there is no interactive user ([headless](/cli/#headless-mode), [channels](/cli-channels/), [scheduled](/cli/#schedule)), it changes nothing and hands you the exact `infer config set` command instead.
 3. **Apply.** It writes the value with [`infer config set`](/cli/#configuration-commands) (adding `--project` only for an override), then reads the key back. If the value still reads as before, a project config or an `INFER_*` variable [takes precedence](/cli/#configuration-precedence) - it names the winning source rather than writing again.
 4. **Hand back `/reload`.** It ends by telling you to type [`/reload`](/cli/#reloading-configuration-in-chat), and never claims the running session already uses the new value - only `/reload` knows which keys apply live.
@@ -171,7 +171,7 @@ A built-in is just a user-scope skill, so you tune it with the same knobs as any
 | Goal                             | How                                                                                                                                          |
 | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Edit in place**                | Change `~/.infer/skills/tmux/SKILL.md`. A later `infer init` never re-seeds over your edit.                                                  |
-| **Override per project**         | Add a `.infer/skills/tmux/` (or `.agents/skills/tmux/`) folder; it shadows the built-in for that repo ([first match wins](#on-disk-layout)). |
+| **Override per project**         | Add a `.infer/skills/tmux/` (or `.agents/skills/tmux/`) folder. It shadows the built-in for that repo ([first match wins](#on-disk-layout)). |
 | **Disable it**                   | Add the name to [`agent.skills.disabled_skills`](#enabling-and-disabling).                                                                   |
 | **Reset to the shipped default** | Run `infer init --overwrite` to re-seed it.                                                                                                  |
 
@@ -211,7 +211,7 @@ INFER_AGENT_SKILLS_ENABLED=false infer chat
 
 The matching environment variable `INFER_AGENT_SKILLS_ENABLED` takes precedence over the config file. To keep skills off everywhere, set `agent.skills.enabled: false` in your user config (`~/.infer/config.yaml`). Turning skills off skips the startup scan entirely - zero token cost - and also stops [plugin](/cli/#plugins) skills from loading. `infer skills list` keeps working with a note that the feature is disabled, while the `Skill` tool is refused.
 
-When `max_chars` is set (default `4000`), skills whose full entry would exceed the budget are listed by **name only** in the `AVAILABLE SKILLS` block - their descriptions and paths are omitted. These skills remain fully invocable via `/<name>` or the "use the `<name>` skill" phrase; the agent reads the full `SKILL.md` on demand through the [sandbox carve-out](#skills-sandbox-carve-out). Set `max_chars: 0` to disable the cap and render every skill's full entry.
+When `max_chars` is set (default `4000`), skills whose full entry would exceed the budget are listed by **name only** in the `AVAILABLE SKILLS` block - their descriptions and paths are omitted. These skills remain fully invocable via `/<name>` or the "use the `<name>` skill" phrase. The agent reads the full `SKILL.md` on demand through the [sandbox carve-out](#skills-sandbox-carve-out). Set `max_chars: 0` to disable the cap and render every skill's full entry.
 
 The matching environment variable `INFER_AGENT_SKILLS_MAX_CHARS` overrides the config value.
 
@@ -243,7 +243,7 @@ infer skills uninstall pdf-helper             # remove from the project scope
 
 `infer skills list` works whether or not the feature is enabled, so you can verify discovery (and see validation errors for skipped skills) before turning skills on.
 
-A bare `<name>` resolves through the public [Skills Catalog](/skills/) index. The `owner/repo` and full-URL forms install straight from GitHub - the URL must point at a **directory** (`https://github.com/<owner>/<repo>/tree/<ref>/<path>`); URLs at `/blob/` (a file) or the repo root are rejected with a clear error.
+A bare `<name>` resolves through the public [Skills Catalog](/skills/) index. The `owner/repo` and full-URL forms install straight from GitHub - the URL must point at a **directory** (`https://github.com/<owner>/<repo>/tree/<ref>/<path>`). URLs at `/blob/` (a file) or the repo root are rejected with a clear error.
 
 **Installer notes:**
 
@@ -284,7 +284,7 @@ Per entry in `skills`:
 
 | Field         | Read by the CLI? | Notes                                                                        |
 | ------------- | ---------------- | ---------------------------------------------------------------------------- |
-| `name`        | Yes              | Kebab-case identity; what `infer skills install <name>` resolves.            |
+| `name`        | Yes              | Kebab-case identity. What `infer skills install <name>` resolves.            |
 | `description` | Yes              | Routing signal listed to the model and in search results.                    |
 | `source`      | No               | Upstream `SKILL.md` location. Ignored - bodies resolve against `repository`. |
 | `vendor`      | No               | Provenance, shown in the registry UI. Ignored by the CLI.                    |
@@ -319,7 +319,7 @@ Activation behavior:
 - **Repeated invocations are de-duplicated** across the conversation, and tokens that don't match a known skill are ignored.
 - **Only your messages are scanned** - a skill name appearing in an assistant reply does not self-activate the skill.
 
-> `/skills <cmd>` and `/<name>` are different things. `/skills list|install|uninstall` **manages** skills; `/<name>` (a bare skill name) **activates** an already-installed skill for the current turn.
+> `/skills <cmd>` and `/<name>` are different things. `/skills list|install|uninstall` **manages** skills. `/<name>` (a bare skill name) **activates** an already-installed skill for the current turn.
 
 ## Skills sandbox carve-out
 

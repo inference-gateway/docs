@@ -70,9 +70,9 @@ The agent exposes six purpose-built mock tools - `echo`, `delay`, `error`, `rand
 | `random_data`        | mock     | Generate random test data.                                                                  | `data_type` (required: `uuid`/`email`/`name`/`number`/`json`), `count` (default `1`)                                                                                                                                                                                          |
 | `validate`           | mock     | Validate input against common patterns.                                                     | `input` (required), `validation_type` (required: `email`/`url`/`json`/`uuid`/`phone`)                                                                                                                                                                                         |
 | `simulate_tool_call` | mock     | Simulate one tool call for load, latency, and failure testing - emits an instrumented span. | `name` (tool name reported as `gen_ai.tool.name` and the span suffix, `tool.<name>`), `duration_ms` (simulated latency in milliseconds, default `100`, capped at `60000`), `fail` (when `true`, marks the emitted span with error status - non-fatal, the workload continues) |
-| `read`               | built-in | Read a file from disk; used to load a skill's `SKILL.md` on demand.                         | `file_path`, `offset`, `limit`                                                                                                                                                                                                                                                |
+| `read`               | built-in | Read a file from disk. Used to load a skill's `SKILL.md` on demand.                         | `file_path`, `offset`, `limit`                                                                                                                                                                                                                                                |
 
-The six mock tools are implemented in Go in the agent itself; `read` is provided by the ADK runtime.
+The six mock tools are implemented in Go in the agent itself. `read` is provided by the ADK runtime.
 
 ### Driving multi-tool-call workloads
 
@@ -80,7 +80,7 @@ The mock LLM routes on deterministic keywords rather than model reasoning, so yo
 
 ## Runtime and dependencies
 
-- **Server**: a single Go binary (`mock-agent`). `mock-agent start` boots the A2A server on port `8080`; `--help` and `--version` behave as expected. A `Dockerfile` and the `ghcr.io/inference-gateway/mock-agent` image are provided. It exposes the standard A2A endpoints: `GET /.well-known/agent-card.json`, `GET /health`, and `POST /a2a`.
+- **Server**: a single Go binary (`mock-agent`). `mock-agent start` boots the A2A server on port `8080`. `--help` and `--version` behave as expected. A `Dockerfile` and the `ghcr.io/inference-gateway/mock-agent` image are provided. It exposes the standard A2A endpoints: `GET /.well-known/agent-card.json`, `GET /health`, and `POST /a2a`.
 - **Mock LLM client**: the agent ships with no configured provider or model and answers from a built-in mock client. **No API keys are required** - this is what makes it safe to run anywhere and cheap to use in CI and demos.
 - **Artifacts**: artifact support is enabled, so tools can attach files to a task for end-to-end artifact testing.
 
@@ -127,7 +127,7 @@ For a ready-made stack that wires the mock agent and the debugger together with 
 
 ## Configuration
 
-The agent reads the standard ADK environment variables. The ones most relevant to running it are below; none are required, since the mock LLM client needs no credentials.
+The agent reads the standard ADK environment variables. The ones most relevant to running it are below. None are required, since the mock LLM client needs no credentials.
 
 | Category     | Variable                     | Description                                           | Default |
 | ------------ | ---------------------------- | ----------------------------------------------------- | ------- |
@@ -137,7 +137,7 @@ The agent reads the standard ADK environment variables. The ones most relevant t
 | Tools        | `TOOLS_READ_ENABLED`         | Enable the `read` tool (loads skill bodies on demand) | `true`  |
 | Tools        | `TOOLS_READ_MAX_LINES`       | Maximum number of lines the `read` tool returns       | `2000`  |
 
-The tool defaults come from `spec.config.tools` in `agent.yaml`; the env vars above override them at runtime. The agent's [README](https://github.com/inference-gateway/mock-agent#configuration) documents the complete set of server, capability, storage, and artifact variables.
+The tool defaults come from `spec.config.tools` in `agent.yaml`. The env vars above override them at runtime. The agent's [README](https://github.com/inference-gateway/mock-agent#configuration) documents the complete set of server, capability, storage, and artifact variables.
 
 ## Related
 

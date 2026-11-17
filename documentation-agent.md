@@ -61,13 +61,13 @@ The agent exposes two purpose-built documentation tools plus the `read` built-in
 | -------------------- | -------- | --------------------------------------------------------------------------------------- | -------------------------------------------- |
 | `resolve_library_id` | custom   | Resolve an official library name into a ranked list of Context7-compatible library IDs. | `libraryName` (required), `query` (required) |
 | `get_library_docs`   | custom   | Fetch up-to-date, topic-scoped documentation for a Context7-compatible library ID.      | `libraryId` (required), `query` (required)   |
-| `read`               | built-in | Read a file from disk; used to load a skill's `SKILL.md` body on demand.                | `file_path`, `offset`, `limit`               |
+| `read`               | built-in | Read a file from disk. Used to load a skill's `SKILL.md` body on demand.                | `file_path`, `offset`, `limit`               |
 
-The two documentation tools are implemented in Go in the agent itself; `read` is provided by the ADK runtime.
+The two documentation tools are implemented in Go in the agent itself. `read` is provided by the ADK runtime.
 
 ## Services and runtime
 
-- **Server**: a single Go binary (`documentation-agent`). `documentation-agent start` boots the A2A server on port `8080`; `--help` and `--version` behave as expected. A multi-stage `Dockerfile` and the `ghcr.io/inference-gateway/documentation-agent` image are provided. It exposes the standard A2A endpoints: `GET /.well-known/agent-card.json`, `GET /health`, and `POST /a2a`.
+- **Server**: a single Go binary (`documentation-agent`). `documentation-agent start` boots the A2A server on port `8080`. `--help` and `--version` behave as expected. A multi-stage `Dockerfile` and the `ghcr.io/inference-gateway/documentation-agent` image are provided. It exposes the standard A2A endpoints: `GET /.well-known/agent-card.json`, `GET /health`, and `POST /a2a`.
 - **Documentation service**: an internal service that implements the Context7-compatible documentation lookup protocol, backing both `resolve_library_id` and `get_library_docs`.
 - **LLM access**: the agent calls an OpenAI-compatible chat-completions endpoint. Point it at the [Inference Gateway](/) (recommended) or any compatible provider via the `A2A_AGENT_CLIENT_*` variables.
 
@@ -125,7 +125,7 @@ The agent reads the standard ADK environment variables plus a small set of custo
 | LLM Client | `A2A_AGENT_CLIENT_MAX_TOKENS` | Maximum tokens for documentation responses              | `4096`  |
 | Tools      | `TOOLS_READ_ENABLED`          | Enable the `read` tool (loads skill bodies on demand)   | `true`  |
 
-The defaults come from `spec.config` in `agent.yaml`; the env vars above override them at runtime. The agent's [README](https://github.com/inference-gateway/documentation-agent#configuration) documents the complete set of server, capability, storage, and authentication variables.
+The defaults come from `spec.config` in `agent.yaml`. The env vars above override them at runtime. The agent's [README](https://github.com/inference-gateway/documentation-agent#configuration) documents the complete set of server, capability, storage, and authentication variables.
 
 ## Related
 

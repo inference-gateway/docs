@@ -171,7 +171,7 @@ infer agents add grafana-agent
 For a catalog agent, the entry is derived from its published metadata the same way the registry site renders its "Add to CLI" command:
 
 - **URL** comes from the entry's `spec.server` - scheme and port, registered as `<scheme>://localhost:<port>` with the next free port at or above the declared one.
-- **OCI image** comes from the entry's `spec.deployment`. When no image is declared there, the CLI falls back to `ghcr.io/inference-gateway/<agent-name>:<version>` - but only for agents sourced from the `github.com/inference-gateway` org; entries from anywhere else without a declared image get none.
+- **OCI image** comes from the entry's `spec.deployment`. When no image is declared there, the CLI falls back to `ghcr.io/inference-gateway/<agent-name>:<version>` - but only for agents sourced from the `github.com/inference-gateway` org. Entries from anywhere else without a declared image get none.
 - **`--run`** is enabled only when an image can be derived. A catalog entry with no derivable image is registered as a remote agent, and you start it yourself.
 
 Anything you pass explicitly still wins over the derived values, so you can point a catalog agent at a different URL, swap in a different image with `--oci`, or add environment variables:
@@ -543,14 +543,14 @@ Card fields worth knowing:
 
 Implement the A2A protocol at the `/a2a` endpoint to handle:
 
-- `SendMessage` - Send a message and receive response. Per [A2A spec section 3.2.2](https://a2a-protocol.org/latest/specification/#322-sendmessage) the call blocks until the task settles in a terminal or interrupted state; the [Go](/adk/#blocking-sendmessage) and [Rust](/rust-adk/#blocking-sendmessage) ADK servers both do this, and a client that wants the old immediate reply passes `configuration.returnImmediately: true`
+- `SendMessage` - Send a message and receive response. Per [A2A spec section 3.2.2](https://a2a-protocol.org/latest/specification/#322-sendmessage) the call blocks until the task settles in a terminal or interrupted state. The [Go](/adk/#blocking-sendmessage) and [Rust](/rust-adk/#blocking-sendmessage) ADK servers both do this, and a client that wants the old immediate reply passes `configuration.returnImmediately: true`
 - `SendStreamingMessage` - Send a streaming message
 - `GetTask` - Get task status (optional)
 - `CancelTask` - Cancel a running task (optional)
 
 The v1.0.1 method names are bare PascalCase identifiers. The v0.x slash names (`message/send`, `tasks/get`, ...) are gone - an agent that still registers them answers `-32601 Method not found` to a v1.0.1 caller.
 
-Inside `params`, field names follow the normative proto3 JSON mapping of A2A spec section 1.4: a server accepts both the lowerCamelCase form (`pageSize`, `contextId`) and the proto3 form (`page_size`, `context_id`), and ignores params it does not recognize rather than rejecting the request with `-32602 Invalid params`. [Rust ADK](/rust-adk/) servers behave this way as of the current release; the other ADKs are converging on it, so do not rely on a non-Rust agent tolerating snake_case or extra fields yet.
+Inside `params`, field names follow the normative proto3 JSON mapping of A2A spec section 1.4: a server accepts both the lowerCamelCase form (`pageSize`, `contextId`) and the proto3 form (`page_size`, `context_id`), and ignores params it does not recognize rather than rejecting the request with `-32602 Invalid params`. [Rust ADK](/rust-adk/) servers behave this way as of the current release. The other ADKs are converging on it, so do not rely on a non-Rust agent tolerating snake_case or extra fields yet.
 
 The same mapping governs values: an optional field carrying its proto3 default is equivalent to omitting it, so a `ListTasks` call with `pageToken: ""` asks for the first page, `pageSize: 0` asks for the server's default page size, and `status: ""` / `contextId: ""` apply no filter. The [Go](/adk/) and [TypeScript](/typescript-adk/#the-listtasks-json-rpc-method) ADK servers both accept these, which is what lets a client serialize every field unconditionally on its first call.
 

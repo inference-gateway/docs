@@ -6,7 +6,7 @@ description: Route a stable logical model alias to a pool of upstream provider d
 # Model Routing
 
 Model routing lets a single logical model name (an **alias**, e.g. `fast-chat`) stand in
-for a pool of upstream provider/model deployments. Clients keep requesting the alias; the
+for a pool of upstream provider/model deployments. Clients keep requesting the alias. The
 gateway picks one deployment per request, round-robin, and forwards there. Operators can
 change what an alias points at without touching a single client.
 
@@ -62,7 +62,7 @@ models:
 | Field                    | Description                                                                                    |
 | ------------------------ | ---------------------------------------------------------------------------------------------- |
 | `models.<alias>`         | The logical name clients send as the `model` field (e.g. `{"model": "fast-chat"}`).            |
-| `strategy`               | Selection strategy. Optional; defaults to `round_robin`, the only strategy in Phase 1.         |
+| `strategy`               | Selection strategy. Optional. Defaults to `round_robin`, the only strategy in Phase 1.         |
 | `deployments[].provider` | An already-configured provider. Its API key/URL are set the usual way (e.g. `OPENAI_API_KEY`). |
 | `deployments[].model`    | The upstream model name to send to that provider.                                              |
 

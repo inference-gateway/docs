@@ -25,7 +25,7 @@ infer daemon
 # Scheduler started jobs=0
 ```
 
-Each fire gets a brand-new session ID (nothing carries between fires) and persists a `RunRecord`. Jobs created from a [channel](/cli-channels/) session deliver their output back to that chat; jobs created anywhere else are record-only and read from storage.
+Each fire gets a brand-new session ID (nothing carries between fires) and persists a `RunRecord`. Jobs created from a [channel](/cli-channels/) session deliver their output back to that chat. Jobs created anywhere else are record-only and read from storage.
 
 Cron is the standard 5-field crontab format, plus the `@every` / `@daily` / `@hourly` descriptors:
 

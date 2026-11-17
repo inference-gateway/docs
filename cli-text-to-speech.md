@@ -74,7 +74,7 @@ All options live under `text_to_speech` in `.infer/config.yaml`. Every key also 
 | `text_to_speech.model`            | `INFER_TEXT_TO_SPEECH_MODEL`            | string | `local/qwen3-tts` | `provider/model` id passed to `/v1/audio/speech` - validated only when `enabled` is `true`                    |
 | `text_to_speech.voice`            | `INFER_TEXT_TO_SPEECH_VOICE`            | string | `""`              | Provider voice id passed to `/v1/audio/speech`. `local/qwen3-tts` ignores it                                  |
 | `text_to_speech.auto_download`    | `INFER_TEXT_TO_SPEECH_AUTO_DOWNLOAD`    | bool   | `true`            | Sets `AUDIO_LOCAL_AUTO_DOWNLOAD` on the gateway the CLI starts, letting it fetch what `local/qwen3-tts` needs |
-| `text_to_speech.output_dir`       | `INFER_TEXT_TO_SPEECH_OUTPUT_DIR`       | string | `""`              | Where generated WAVs are written; empty defaults to `tts/` under the [media root](/cli/#media-directories)    |
+| `text_to_speech.output_dir`       | `INFER_TEXT_TO_SPEECH_OUTPUT_DIR`       | string | `""`              | Where generated WAVs are written. Empty defaults to `tts/` under the [media root](/cli/#media-directories)    |
 | `text_to_speech.require_approval` | `INFER_TEXT_TO_SPEECH_REQUIRE_APPROVAL` | bool   | unset             | Pins the approval policy. Unset keeps the tool's own default, which is no approval                            |
 
 `model` is only validated while `enabled` is `true`. With text-to-speech disabled the CLI never reads those sub-fields, so an unknown value - for example one written by a different `infer` binary sharing the same `~/.infer/config.yaml` - is ignored instead of failing config loading. Flip `enabled: true` and the same value is rejected at load time with a fast, explicit error.
@@ -98,7 +98,7 @@ With `text_to_speech.enabled` set, the agent gains a `TextToSpeech` tool:
 
 - `text` (required) - the text to speak.
 - `voice_sample` (optional) - bare file name (no directories, no absolute paths) of a WAV of the target speaker, resolved against the working directory first and then the voice samples library at `~/.infer/voice/samples/`. The sample is sent as it is, as `reference_audio`, so keep it short: the gateway refuses a request over its body size limit, 10 MiB by default. A name that resolves nowhere fails with an error listing the paths tried.
-- `output_path` (optional) - destination as a bare file name inside `output_dir`; otherwise a timestamped file is written there. `output_dir` defaults to `tts/` under the [media root](/cli/#media-directories) - `~/.infer/projects/<project-slug>/tmp/media/tts/` in a project, `~/.infer/tmp/media/tts/` with no project open. The tool result reports the path and audio duration.
+- `output_path` (optional) - destination as a bare file name inside `output_dir`. Otherwise a timestamped file is written there. `output_dir` defaults to `tts/` under the [media root](/cli/#media-directories) - `~/.infer/projects/<project-slug>/tmp/media/tts/` in a project, `~/.infer/tmp/media/tts/` with no project open. The tool result reports the path and audio duration.
 
 In chat, just ask: _"say this out loud and write it to say.wav"_ for a stock voice, or _"read this in the voice of narrator.wav"_ to clone.
 
