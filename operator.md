@@ -201,6 +201,21 @@ spec:
 
 `spec.server` itself defaults to `{}`, so omitting the block still yields `host: 0.0.0.0` and `port: 8080` - the API server writes them into the stored object, and `kubectl get gateways` prints `8080` in the `PORT` column without any explicit `spec.server.port`.
 
+#### Server timeouts (`spec.server.timeouts`)
+
+`spec.server.timeouts.read`, `write` and `idle` reach the gateway container as `SERVER_READ_TIMEOUT`, `SERVER_WRITE_TIMEOUT` and `SERVER_IDLE_TIMEOUT`:
+
+```yaml
+spec:
+  server:
+    timeouts:
+      read: 60s
+      write: 120s
+      idle: 300s
+```
+
+The defaults depend on whether the `timeouts` block is present. Set it - even as `timeouts: {}` - and the CRD defaults (`60s` / `60s` / `300s`) fill any field left out and replace the gateway's own. Omit it and no variable is emitted, so the gateway keeps its built-in defaults (`30s` / `30s` / `120s`). Older operators accepted the block but never passed it to the gateway.
+
 Operators older than the release that wired these variables up only shaped the Deployment and Service, so a non-default port left the gateway listening on `8080`/`9464` while the probes targeted the new port and the pod never became Ready.
 
 #### TLS (`spec.server.tls`)
@@ -974,7 +989,7 @@ The `llamacpp` provider requires operator `>= v0.19.0` - earlier releases do not
 | `servers[].name`                                                            | Required. Becomes the server's alias, and therefore its tool namespace.                                                                |
 | `servers[].url`                                                             | Required server URL. `name` and `url` are the only per-server fields.                                                                  |
 | `serviceDiscovery.{enabled,namespace,selector}`                             | Discover `MCP` CRs by label selector. `namespace` defaults to the `Gateway`'s own namespace; an empty selector matches all.            |
-| `timeouts.{client,dial,tlsHandshake,responseHeader,expectContinue,request}` | MCP client timeouts, emitted as the matching `MCP_*_TIMEOUT` variables.                                                                |
+| `timeouts.{client,dial,tlsHandshake,responseHeader,expectContinue,request}` | MCP client timeouts, emitted as the matching `MCP_*_TIMEOUT` variables. See [MCP timeouts](#mcp-timeouts-mcp-timeouts).                |
 
 With `expose: true`, route `POST /mcp` at the root of the gateway Service - it deliberately does not sit under `/v1`. The endpoint is stateless, so it needs no session affinity and load-balances freely across replicas, but the `HTTPRoute` (and any proxy in front of it) must pass the `MCP-Protocol-Version`, `Mcp-Method` and `Mcp-Name` headers through unchanged; stripping or rewriting one answers `400` with `-32020`. Do not aim a probe or gateway health check at `/mcp` - it is POST only and answers `405` to `GET`; use `/health`. See [Deploying Behind a Proxy](/mcp/#deploying-behind-a-proxy).
 
@@ -983,6 +998,10 @@ With `expose: true`, route `POST /mcp` at the root of the gateway Service - it d
 The gateway polls every configured MCP server with `tools/list` and reconnects one that stops answering. `mcp.healthCheck` tunes that polling for all servers at once - `enabled`, `interval` and `timeout` reach the pod as `MCP_POLLING_ENABLED`, `MCP_POLLING_INTERVAL` and `MCP_POLLING_TIMEOUT`. An unset `interval` or `timeout` keeps the gateway's default (`30s` and `5s`), and leaving `healthCheck` out entirely keeps all of them.
 
 Health polling is gateway-wide, not per server: `servers[]` entries carry `name` and `url` only. A per-server `healthCheck` block is rejected as an unknown field, so move it up to `spec.mcp.healthCheck` and drop `path`. `mcp.healthCheck` requires operator `>= v0.33.0`.
+
+### MCP timeouts (`mcp.timeouts`)
+
+Each `mcp.timeouts` field reaches the pod as its `MCP_*_TIMEOUT` variable - `request` as `MCP_REQUEST_TIMEOUT`, the per-request timeout for an MCP call. As with `spec.server.timeouts`, setting the `timeouts` block applies the CRD default for `request` (`10s`), while omitting it keeps the gateway's built-in `5s`. Older operators ignored `request`.
 
 ### Protected resource URL (`mcp.resourceUrl`)
 
