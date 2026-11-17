@@ -75,12 +75,11 @@ print(response.choices[0].message.content.root)
 
 ### Streaming
 
-`create_chat_completion_stream` yields `SSEvent` objects; parse `chunk.data` into `CreateChatCompletionStreamResponse` to walk deltas.
+`create_chat_completion_stream` yields `SSEvent` objects. Decode `chunk.data` with `json.loads` and read the deltas from the resulting dict.
 
 ```python
 import json
 from inference_gateway import InferenceGatewayClient, Message
-from inference_gateway.models import CreateChatCompletionStreamResponse
 
 client = InferenceGatewayClient('http://localhost:8080/v1')
 
@@ -91,11 +90,15 @@ for chunk in client.create_chat_completion_stream(
     if not chunk.data:
         continue
     data = json.loads(chunk.data)
-    stream_response = CreateChatCompletionStreamResponse.model_validate(data)
-    for choice in stream_response.choices:
-        if choice.delta.content:
-            print(choice.delta.content, end='', flush=True)
+    for choice in data.get('choices', []):
+        content = choice['delta'].get('content')
+        if content:
+            print(content, end='', flush=True)
 ```
+
+::: tip Read stream chunks as plain JSON
+Avoid validating each chunk with `CreateChatCompletionStreamResponse.model_validate`. That generated model currently rejects standard OpenAI-format chunks - a `null` `finish_reason`, or a delta without `role` or `content` - so the loop would raise or print nothing on a normal stream.
+:::
 
 ### Tool calls
 
@@ -349,11 +352,12 @@ print('Answer:', message.content.root)
 During streaming the same fields ride on each delta. In the Streaming loop above, read them next to the content:
 
 ```python
-for choice in stream_response.choices:
-    if choice.delta.reasoning_content:
-        print(choice.delta.reasoning_content, end='', flush=True)
-    if choice.delta.content:
-        print(choice.delta.content, end='', flush=True)
+for choice in data.get('choices', []):
+    delta = choice['delta']
+    if delta.get('reasoning_content'):
+        print(delta['reasoning_content'], end='', flush=True)
+    if delta.get('content'):
+        print(delta['content'], end='', flush=True)
 ```
 
 ### Provider-specific tool-call metadata
