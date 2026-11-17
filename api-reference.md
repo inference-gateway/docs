@@ -444,9 +444,11 @@ curl -X POST http://localhost:8080/v1/chat/completions\?provider\=ollama -d '{
 Status: 200 OK
 Content-Type: text/event-stream
 
-data: {"id":"chatcmpl-509","object":"chat.completion.chunk","created":1742481679,"model":"deepseek-r1:1.5b","system_fingerprint":"fp_ollama","choices":[{"index":0,"delta":{"role":"assistant","content":"Hello"},"finish_reason":null}]}
+data: {"id":"chatcmpl-509","object":"chat.completion.chunk","created":1742481679,"model":"deepseek-r1:1.5b","system_fingerprint":"fp_ollama","choices":[{"index":0,"delta":{"role":"assistant","content":"Hello"},"logprobs":null,"finish_reason":null}]}
 
-data: {"id":"chatcmpl-509","object":"chat.completion.chunk","created":1742481691,"model":"deepseek-r1:1.5b","system_fingerprint":"fp_ollama","choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":"length"}]}
+data: {"id":"chatcmpl-509","object":"chat.completion.chunk","created":1742481680,"model":"deepseek-r1:1.5b","system_fingerprint":"fp_ollama","choices":[{"index":0,"delta":{"content":"! I'm doing well"},"logprobs":null,"finish_reason":null}]}
+
+data: {"id":"chatcmpl-509","object":"chat.completion.chunk","created":1742481691,"model":"deepseek-r1:1.5b","system_fingerprint":"fp_ollama","choices":[{"index":0,"delta":{},"logprobs":null,"finish_reason":"length"}]}
 
 data: {"id":"chatcmpl-509","object":"chat.completion.chunk","created":1742481691,"model":"deepseek-r1:1.5b","system_fingerprint":"fp_ollama","choices":[],"usage":{"prompt_tokens":17,"completion_tokens":40,"total_tokens":57}}
 
@@ -454,6 +456,15 @@ data: [DONE]
 ```
 
 Each line is an `SSEvent` whose `data` field is a `CreateChatCompletionStreamResponse`. The `choices` array contains `ChatCompletionStreamChoice` objects. Each choice has a `delta` field of type `ChatCompletionStreamResponseDelta`. When a tool call streams in chunks, the delta may include a `tool_calls` array of `ChatCompletionMessageToolCallChunk` objects.
+
+Chunks follow the shape OpenAI-compatible providers send:
+
+- `finish_reason` is `null` on every chunk except the last one for a choice.
+- `logprobs` is `null` unless log probabilities were requested.
+- `delta.role` appears only in the first delta. Later deltas omit it.
+- `delta.content` is optional and can be `null`, for example in tool-call deltas. The final chunk for a choice often carries an empty delta (`{}`).
+
+Parse chunks with nullable and optional fields in mind instead of assuming every delta has `role` and `content`.
 
 Note that the final message contains the `CompletionUsage` metrics of the token completion (when `stream_options.include_usage` is `true`).
 
@@ -2301,21 +2312,22 @@ A Server-Sent Event as defined by the W3C SSE specification. Each event sent ove
 
 One element of the `choices` array in a `CreateChatCompletionStreamResponse`.
 
-| Field           | Type                                | Description                         |
-| --------------- | ----------------------------------- | ----------------------------------- |
-| `index`         | `integer`                           | Choice index                        |
-| `delta`         | `ChatCompletionStreamResponseDelta` | Incremental content for this chunk  |
-| `logprobs`      | `object`                            | Token log-probability groups        |
-| `finish_reason` | `FinishReason` \| `null`            | Set on the final chunk for a choice |
+| Field           | Type                                | Description                                             |
+| --------------- | ----------------------------------- | ------------------------------------------------------- |
+| `index`         | `integer`                           | Choice index                                            |
+| `delta`         | `ChatCompletionStreamResponseDelta` | Incremental content for this chunk                      |
+| `logprobs`      | `object` \| `null`                  | Token log-probability groups, `null` when not requested |
+| `finish_reason` | `FinishReason` \| `null`            | `null` on intermediate chunks, set on the final chunk   |
 
 #### `ChatCompletionStreamResponseDelta`
 
-The incremental content carried by each `ChatCompletionStreamChoice`.
+The incremental content carried by each `ChatCompletionStreamChoice`. Every field is optional - the final chunk for a choice often has an empty delta (`{}`).
 
 | Field               | Type                                   | Description                                         |
 | ------------------- | -------------------------------------- | --------------------------------------------------- |
-| `role`              | `MessageRole`                          | Sent once in the first chunk (`"assistant"`)        |
-| `content`           | `string`                               | Partial text content                                |
+| `role`              | `MessageRole`                          | Sent only in the first delta (`"assistant"`)        |
+| `content`           | `string` \| `null`                     | Partial text content                                |
+| `refusal`           | `string` \| `null`                     | Partial refusal message                             |
 | `reasoning_content` | `string`                               | Partial reasoning content                           |
 | `reasoning`         | `string`                               | Alias for `reasoning_content`                       |
 | `tool_calls`        | `ChatCompletionMessageToolCallChunk[]` | Partial tool-call data (when the model calls tools) |
