@@ -28,9 +28,18 @@ Agents run through [`infer daemon`](/cli/#daemon), the CLI's hub. The app starts
 | `~/.infer/auth.yaml`             | Provider API keys saved from **Settings -> API Keys**, and the values of your [secrets](#secrets)            |
 | `~/.infer/secrets.yaml`          | Your [secrets](#secrets) without their values - each one's label, variable and whether this computer gets it |
 | `~/.infer/mcp.yaml`              | [MCP servers](#mcps) managed from **Settings -> MCPs**                                                       |
+| `~/.infer/projects.yaml`         | Sidebar [project groups](#project-groups) and which chat belongs to which project                            |
 | `~/.infer/avatars/`              | [Avatar portraits](#avatars) managed from **Settings -> Avatars**, one folder per avatar                     |
 
 Everything is scoped to your home directory - no system-wide installs, no vendor lock-in.
+
+These YAML files are yours to edit by hand. **The app never overwrites a file it cannot parse.** When `config.yaml`, `projects.yaml` or another of these files is not valid YAML, or is not a mapping, the app refuses the save and leaves the file untouched. The refusal shows in the status line, names the file and the YAML problem, and asks you to fix or remove the file, for example:
+
+```text
+/home/you/.infer/config.yaml is not valid YAML, so it was left untouched - fix or remove it: <YAML error>
+```
+
+Fix the file and repeat the change - nothing you wrote is lost.
 
 ### One copy at a time
 
@@ -249,7 +258,7 @@ The model dropdown lives in the top bar, next to the **Restart CLI** button, rat
 
 The list comes from the gateway's [`GET /v1/models`](/api-reference/) endpoint (each entry's `id`), read from the gateway URL in `~/.infer/config.yaml`, defaulting to `http://localhost:8080`. Until the gateway answers, the picker shows **Waiting for gateway...**. The app retries roughly every 1.5 seconds. If the list stays empty, the usual cause is a missing or wrong API key for every configured provider.
 
-Your selection is stored locally and restored on the next launch. If the saved model is no longer offered, the first model in the list is selected instead. The picker is disabled while the conversation you are viewing is streaming - switch to another chat or wait for the turn to finish.
+Your selection is saved as `agent.model` in `~/.infer/config.yaml` and restored on the next launch. If the save fails - for example because `config.yaml` does not parse - the status line shows why, the file is [left untouched](#infer-layout) and the choice does not stick. If the saved model is no longer offered, the first model in the list is selected instead. The picker is disabled while the conversation you are viewing is streaming - switch to another chat or wait for the turn to finish.
 
 ### Agents
 
@@ -859,10 +868,12 @@ assigned to that project.
 has a text area for extra instructions that are sent with every message in
 that project, alongside any global extra instructions.
 
-Assignments are stored in `~/.infer/projects.json`, a JSON file with
-`assignments`, `names`, and `contexts` keys. The desktop owns this file
-entirely -- it is never read or written by the gateway or the CLI, and
-project groups do not sync to any backend.
+Every sidebar change - creating, renaming, deleting or moving a group, and
+filing a chat into one - is written to `~/.infer/projects.yaml`. It is never
+read or written by the gateway or the CLI, and project groups do not sync to
+any backend. If `projects.yaml` does not parse, the app does not drop the
+change silently: the status line shows the refusal, naming the file and the
+YAML problem, and the file is [left untouched](#infer-layout).
 
 ## Content projects
 
