@@ -34,7 +34,7 @@ Everything is scoped to your home directory - no system-wide installs, no vendor
 
 ### One copy at a time
 
-The app runs one copy at a time. Launching it again while it is open focuses the running window and exits, so two copies never share the gateway process or race on the `~/.infer` files.
+The app runs one copy at a time. Launching it again while it is open focuses the running window and exits, so two copies never share the gateway process or race on the `~/.infer` files. Closing the main window quits the app.
 
 A development build started with `task dev` uses its own app identifier, `dev.com.inference-gateway.desktop`, so it runs beside the installed app. See "Running beside the installed app" in the desktop repo's [CONTRIBUTING.md](https://github.com/inference-gateway/desktop/blob/main/CONTRIBUTING.md).
 
