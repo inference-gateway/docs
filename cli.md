@@ -2005,14 +2005,28 @@ The same listener takes the take-over over `POST /screen/?id=<conversation id>`,
 { "type": "screen_result", "id": "<request id>", "held": true }
 ```
 
+A refused request carries its `error` and a stable `code` beside it, so a client can match the refusal without parsing the wording:
+
+```json
+{
+  "type": "screen_result",
+  "id": "<request id>",
+  "held": true,
+  "error": "unsupported screen input \"press\"",
+  "code": "unsupported_input"
+}
+```
+
 | Frame            | Meaning                                                                                                                                                                                                                                                                                                                                                                                                              |
 | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `read_frame`     | The latest frame of the screen the session's worker streams. With `project_dir` it runs on the thread of the session `id` names, relaunching that session's worker when it is not running. The optional `have`, the frame id the client shows, answers `unchanged: true` with no `frame` when the latest frame is still that one. `error` replaces `frame` when the worker streams no screen or captured nothing yet |
 | `screen_control` | `action: take_over` claims the screen and resolves an open `Computer` approval as rejected. A second claim while it is held errors. `action: hand_back` releases any button still held, releases the screen and queues the worker's continue message                                                                                                                                                                 |
 | `screen_input`   | One person input in the frame space the `GET` image answers in: `{"kind": "move" \| "click" \| "double_click" \| "mouse_down" \| "mouse_up" \| "scroll" \| "type" \| "key", "x", "y", "text", "combo", "button", "direction", "amount"}`. `mouse_down` and `mouse_up` bracket a drag - see [Dragging](#dragging). It drives the display directly, with no approval, no judge and no conversation entry               |
-| `screen_result`  | One reply per request id, carrying `held`                                                                                                                                                                                                                                                                                                                                                                            |
+| `screen_result`  | One reply per request id, carrying `held`. A refusal adds `error` and its stable `code`                                                                                                                                                                                                                                                                                                                              |
 
 An input for a screen nobody holds errors, and the HTTP `POST` answers it with `409 Conflict`, so a stale tab cannot drive what it handed back.
+
+See the [daemon binding protocol](https://github.com/inference-gateway/cli/blob/main/docs/browser-extension-protocol.md) for the full frame shapes.
 
 ## Computer Use
 
