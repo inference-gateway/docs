@@ -4,7 +4,7 @@ VitePress documentation site for [Inference Gateway](https://github.com/inferenc
 
 ## Commands
 
-Use Bun (>= 1.4, pinned in `.bun-version`). Every `bun run <name>` has a `task <name>` equivalent.
+Use Bun (>= 1.4.4, pinned in `.bun-version`). Every `bun run <name>` has a `task <name>` equivalent.
 
 - `bun install` — install from `bun.lock`
 - `bun run dev` — VitePress dev server (<http://localhost:5173>)
@@ -16,7 +16,9 @@ Use Bun (>= 1.4, pinned in `.bun-version`). Every `bun run <name>` has a `task <
 
 ## Conventions
 
-- Pages are root-level `*.md` files. Each maps to a clean URL. Add `title` and `description` frontmatter, then register the page in `themeConfig.sidebar` in `.vitepress/config.ts`.
+- Pages are root-level `*.md` files. Each maps to a clean URL (`foo.md` is rewritten to `/foo/`). Add `title` and `description` frontmatter, then register the page in both `themeConfig.nav` and `themeConfig.sidebar` in `.vitepress/config.ts`, and add it to `public/llms.txt` (a hand-maintained index for LLM consumption).
+- `README.md`, `CHANGELOG.md`, and `AGENTS.md` are excluded from the build (`srcExclude`), while `index.md` and `404.md` are special-cased by the `rewrites` config - do not model new pages on them.
+- Diagrams: fenced `mermaid` code blocks render via `vitepress-plugin-mermaid`. The mermaid chunk lazy-loading regexes in `.vitepress/config.ts` are tuned to silence build warnings - leave them alone.
 - Markdown: ATX headings, dash bullets, 2-space nested indent. Prettier: 2-space indent, single quotes, semicolons, trailing commas, 100-col width. Lowercase route-oriented filenames (`browser-agent.md`).
 - CLI features are documented inside `cli.md` as a section of that page, not as a new `cli-*.md` page. Link to them with an anchor (`/cli/#custom-tools`). The existing standalone `cli-*.md` pages are the exception, not the pattern - do not add more without being asked.
 - For Vue-sensitive placeholders or GitHub Actions expressions, use `<code v-pre>...</code>` instead of backticks.
@@ -57,6 +59,10 @@ Sections between `GENERATED:*` markers in `supported-providers.md`, `configurati
 4. Delete `.schema.yaml` (untracked, trips `format:check`)
 
 When a provider's hard facts change (auth type, base URL, vision flag), update `scripts/__fixtures__/openapi.sample.yaml` too or `bun test` fails its byte-for-byte comparison. `adkKeyNote` in `provider-overrides.json` only applies to `auth_type: none` providers.
+
+## Deployment
+
+The built site (`.vitepress/dist/`) is served by a Cloudflare Worker configured in `wrangler.jsonc` on the custom domain <https://docs.inference-gateway.com>. CI deploys automatically: `deploy.yml` on pushes to main, and `preview.yml` publishes per-PR previews aliased via the `preview-router/` worker - never deploy manually.
 
 ## Validation & commits
 
