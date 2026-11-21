@@ -638,7 +638,7 @@ infer chat
 
 While planning, the agent can pause to ask you up to four multiple-choice clarifying questions with the [`AskUserQuestion`](#askuserquestion) tool, then fold your answers into the plan it submits for approval. The same tool is available in the other interactive modes, where the answers come back mid-task instead.
 
-When the investigation spans several areas, the agent can fan it out to [local subagents](#local-subagents-agent-tool) that explore in parallel. In plan mode every subagent runs read-only, whatever its preset or tool allowlist says, so a delegated subagent may explore the repository but never change it. Ask for it directly ("Use 5 subagents to search this project for docs gaps and drift, then plan the fixes") and watch them work from the [background job list](#background-job-list) under the composer.
+When the investigation spans several areas, the main agent fans it out to read-only [`explore` agents](#built-in-agents) (the [Agent tool](#local-subagents-agent-tool) with `agent: explore`) that search in parallel instead of reading serially. In plan mode every subagent runs read-only, whatever its preset or tool allowlist says, so a delegated subagent may explore the repository but never change it. Ask for it directly ("Use 5 subagents to search this project for docs gaps and drift, then plan the fixes") and watch them work from the [background job list](#background-job-list) under the composer.
 
 #### The scratchpad
 
@@ -1332,6 +1332,7 @@ The lookup order is the one [skills](/cli-skills/#on-disk-layout) and [custom to
 2. `.agents/agents/<name>.md` in the project directory
 3. `~/.infer/agents/<name>.md`
 4. `~/.agents/agents/<name>.md`
+5. The [built-in agents](#built-in-agents)
 
 An unknown name **fails the open** with a `RUN_ERROR` naming the agents that are available, so a client never gets a silently plain thread instead of the agent it asked for.
 
@@ -3196,7 +3197,37 @@ Any other key (`color`, `temperature`, `max_turns`, `permissionMode`, ...) is ac
 3. **User-global**: `~/.infer/agents/<name>.md` - stays personal
 4. **User-global, open standard**: `~/.agents/agents/<name>.md` - listed as `user` in the [`/agents` view](#agents-view)
 
-A project preset therefore overrides a personal one of the same name, exactly like [skills](/cli-skills/). This is the same layout skills and [custom tools](#custom-tools) use, so a preset is seen both by the Agent tool and by a [daemon thread opened as that agent](#opening-a-thread-as-a-named-agent).
+A project preset therefore overrides a personal one of the same name, exactly like [skills](/cli-skills/). This is the same layout skills and [custom tools](#custom-tools) use, so a preset is seen both by the Agent tool and by a [daemon thread opened as that agent](#opening-a-thread-as-a-named-agent). The [built-in agents](#built-in-agents) come last, after all four directories.
+
+##### Built-in agents
+
+The CLI ships four agents embedded in the binary:
+
+| Agent             | Access     | What it is for                                                                                                                                   |
+| ----------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `main`            | read-write | The default main agent every chat runs as. Its body is the [default system prompt](#the-default-system-prompt)                                   |
+| `explore`         | read-only  | Search (`Read`, `Grep`, `Tree`, `WebFetch`, `WebSearch`). It answers a question by reading and reports what it found with `file:line` references |
+| `plan`            | read-only  | Planning. It studies the code a change touches and returns a step-by-step plan with the files to touch, the risks and how to verify it           |
+| `general-purpose` | read-write | Multi-step tasks that carry a well-scoped change end to end                                                                                      |
+
+Built-ins are looked up **last**, after `.infer/agents`, `.agents/agents`, `~/.infer/agents` and `~/.agents/agents`, so an agent file of the same name in any of those directories shadows a built-in. `infer agents list` and the [`/agents` view](#agents-view) show a built-in with the source `built-in` until it is seeded, and `user` after that.
+
+`infer init` seeds the four files into `~/.infer/agents/` **only if absent**, the same model as the [built-in skills](/cli-skills/#built-in-skills), so you edit them like an agent you wrote yourself and your edits survive every later `infer init`. `infer init --overwrite` resets every built-in agent to the shipped version.
+
+##### The default system prompt
+
+The default system prompt is the body of `main.md`. Edit `~/.infer/agents/main.md` to change it everywhere, or add a project copy to change it for one repository:
+
+```bash
+mkdir -p .infer/agents
+cp ~/.infer/agents/main.md .infer/agents/main.md
+# edit the body, then start a new chat
+infer chat
+```
+
+`prompts.agent.system_prompt` in `prompts.yaml` ships empty. A non-empty value (or `INFER_PROMPTS_AGENT_SYSTEM_PROMPT`) still overrides `main.md`.
+
+> **Upgrading.** A `prompts.yaml` that an older `infer init` seeded still holds the previous default text under `prompts.agent.system_prompt`, so it keeps overriding `main.md`. Delete that key, or run `infer init --overwrite`, to use `main.md`.
 
 **Tool allowlist.** The resolved allowlist is enforced inside the spawned subagent in one place: a disallowed tool is neither offered to the model nor executable by naming it. Unknown tool names (for example Claude's `Glob`) log a warning and are dropped, `disallowedTools` entries are always honored, and a restriction that resolves to no known tool skips the file rather than silently falling back to all tools. The preset's capability follows from the allowlist - **read-only** when every allowed tool is read-only, otherwise **read-write** (mutations still go through approval). Listing `Agent` itself lets a preset spawn subagents, still bounded by `max_depth`.
 
@@ -3670,31 +3701,31 @@ Two-layer configuration system with precedence from highest to lowest:
 
 `infer init` seeds the userspace baseline in `~/.infer/` (`config.yaml`, `tools.yaml`, `sandbox.yaml`, `mcp.yaml`, `prompts.yaml`, `agents.yaml`, `shortcuts/`, `skills/` and so on) and writes nothing into the project. Project-level overrides are created on demand with `infer config set --project <key> <value>`, or with `--project` on `infer mcp` / `infer agents`. Configuration is split across purpose-specific YAML files rather than one giant file:
 
-| File               | Scope        | Purpose                                                                                                                                                                               | Where it is documented                                      |
-| ------------------ | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| `config.yaml`      | Project/user | Main config - agent, gateway, storage, pricing, and everything `config set` touches. A `tools:` block here is ignored.                                                                | [Configuration](#configuration-commands)                    |
-| `prompts.yaml`     | Project/user | System prompts (`prompts.agent.system_prompt`), per-mode adjustments, and tool descriptions (`prompts.tools.<Tool>.description`) - edited, not `set`.                                 | [Configuration Commands](#configuration-commands)           |
-| `mcp.yaml`         | Project/user | MCP server definitions and connection settings.                                                                                                                                       | [MCP Integration](#mcp-integration)                         |
-| `keybindings.yaml` | Project/user | Keybindings for the TUI and diff viewer (category `diff_viewer`).                                                                                                                     | [Diff viewer and git staging](#diff-viewer-and-git-staging) |
-| `hooks.yaml`       | Project/user | User-defined shell commands run at agent-loop hook points (feature-flagged off by default).                                                                                           | [Command Hooks](/cli-hooks/)                                |
-| `reminders.yaml`   | Project/user | System reminders injected into the conversation on a schedule.                                                                                                                        | [System Reminders](#system-reminders)                       |
-| `tools.yaml`       | User only    | Tools policy - enablement, approval, per-mode bash allowed-lists, each tool under `tools:`. A project copy is ignored.                                                                | [Tool Configuration](#tool-configuration)                   |
-| `sandbox.yaml`     | User only    | File sandbox policy - `filesystem.allowed` and `filesystem.denied`. A project copy is ignored.                                                                                        | [File sandbox](#file-sandbox)                               |
-| `judge.yaml`       | Project/user | LLM judge that decides approval-requiring tool calls (model, timeout, prompts, `on_error`).                                                                                           | [Judge Mode](/cli-judge-mode/)                              |
-| `daemon.yaml`      | Project/user | `infer daemon` itself - the AG-UI binding's own switch, port and token (`binding.enabled`, `binding.port`, `binding.token`), plus the workspace registry and the idle and away exits. | [Starting the daemon](#starting-the-daemon)                 |
-| `compute.yaml`     | User only    | What sessions and models run on - the `clusters`, `machines` and `gpus` workspaces and rented GPUs use. A project copy is ignored.                                                    | [Compute](#compute)                                         |
-| `memory.yaml`      | Project/user | Persistent, cross-session agent memory - fact-files plus the `MEMORY.md` index.                                                                                                       | [Persistent Memory](#persistent-memory)                     |
-| `shortcuts/*.yaml` | Project      | Custom slash shortcuts - simple commands, subcommands, and AI-powered snippets.                                                                                                       | [Custom Shortcuts](#custom-shortcuts)                       |
-| `skills/`          | Project/user | Agent Skills folders (`name/SKILL.md`) discovered and injected on demand.                                                                                                             | [Agent Skills](#agent-skills)                               |
-| `tools/`           | Project/user | Custom tool manifests (`Name.yaml`), one per tool, also read from `.agents/tools/`.                                                                                                   | [Custom Tools](#custom-tools)                               |
-| `schedules/`       | User         | Persisted cron jobs created by the Schedule tool, run by the daemon.                                                                                                                  | [Schedule](#schedule)                                       |
-| `artifacts/`       | Project/user | Agent deliverables, grouped per session.                                                                                                                                              | [Artifacts directory](#artifacts-directory)                 |
-| `logs/`            | User         | CLI and gateway log files (`~/.infer/logs`, overridable via `logging.dir`).                                                                                                           | [Key Configuration Areas](#key-configuration-areas)         |
-| `bin/`             | User         | Downloaded binaries - the gateway server, plus optional helpers like `ffmpeg`.                                                                                                        | [Key Configuration Areas](#key-configuration-areas)         |
-| `insights/`        | User         | Saved `infer insights` reports. Written with secrets redacted, and kept by `/reset`.                                                                                                  | [Insights Shortcut](#insights-shortcut)                     |
-| `avatars/`         | User         | Avatar portrait folders (`avatars/<name>/*.png`) used by `TextToVideo` lip-sync renders. Kept by `/reset`.                                                                            | [Text-to-Video](/cli-text-to-video/#the-avatar-library)     |
-| `auth.yaml`        | User         | Fallback provider API keys, used when a key is not in the environment or the project `.env`.                                                                                          | [Provider API keys](#provider-api-keys)                     |
-| `tmp/`             | User         | Scratch space, including the `tmp/media` root for generated speech, music, video, recordings, screenshots and retained attachments. Wiped by `/reset`.                                | [Media directories](#media-directories)                     |
+| File               | Scope        | Purpose                                                                                                                                                                                                       | Where it is documented                                      |
+| ------------------ | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| `config.yaml`      | Project/user | Main config - agent, gateway, storage, pricing, and everything `config set` touches. A `tools:` block here is ignored.                                                                                        | [Configuration](#configuration-commands)                    |
+| `prompts.yaml`     | Project/user | System prompts (`prompts.agent.system_prompt`, an override of [`main.md`](#the-default-system-prompt)), per-mode adjustments, and tool descriptions (`prompts.tools.<Tool>.description`) - edited, not `set`. | [Configuration Commands](#configuration-commands)           |
+| `mcp.yaml`         | Project/user | MCP server definitions and connection settings.                                                                                                                                                               | [MCP Integration](#mcp-integration)                         |
+| `keybindings.yaml` | Project/user | Keybindings for the TUI and diff viewer (category `diff_viewer`).                                                                                                                                             | [Diff viewer and git staging](#diff-viewer-and-git-staging) |
+| `hooks.yaml`       | Project/user | User-defined shell commands run at agent-loop hook points (feature-flagged off by default).                                                                                                                   | [Command Hooks](/cli-hooks/)                                |
+| `reminders.yaml`   | Project/user | System reminders injected into the conversation on a schedule.                                                                                                                                                | [System Reminders](#system-reminders)                       |
+| `tools.yaml`       | User only    | Tools policy - enablement, approval, per-mode bash allowed-lists, each tool under `tools:`. A project copy is ignored.                                                                                        | [Tool Configuration](#tool-configuration)                   |
+| `sandbox.yaml`     | User only    | File sandbox policy - `filesystem.allowed` and `filesystem.denied`. A project copy is ignored.                                                                                                                | [File sandbox](#file-sandbox)                               |
+| `judge.yaml`       | Project/user | LLM judge that decides approval-requiring tool calls (model, timeout, prompts, `on_error`).                                                                                                                   | [Judge Mode](/cli-judge-mode/)                              |
+| `daemon.yaml`      | Project/user | `infer daemon` itself - the AG-UI binding's own switch, port and token (`binding.enabled`, `binding.port`, `binding.token`), plus the workspace registry and the idle and away exits.                         | [Starting the daemon](#starting-the-daemon)                 |
+| `compute.yaml`     | User only    | What sessions and models run on - the `clusters`, `machines` and `gpus` workspaces and rented GPUs use. A project copy is ignored.                                                                            | [Compute](#compute)                                         |
+| `memory.yaml`      | Project/user | Persistent, cross-session agent memory - fact-files plus the `MEMORY.md` index.                                                                                                                               | [Persistent Memory](#persistent-memory)                     |
+| `shortcuts/*.yaml` | Project      | Custom slash shortcuts - simple commands, subcommands, and AI-powered snippets.                                                                                                                               | [Custom Shortcuts](#custom-shortcuts)                       |
+| `skills/`          | Project/user | Agent Skills folders (`name/SKILL.md`) discovered and injected on demand.                                                                                                                                     | [Agent Skills](#agent-skills)                               |
+| `tools/`           | Project/user | Custom tool manifests (`Name.yaml`), one per tool, also read from `.agents/tools/`.                                                                                                                           | [Custom Tools](#custom-tools)                               |
+| `schedules/`       | User         | Persisted cron jobs created by the Schedule tool, run by the daemon.                                                                                                                                          | [Schedule](#schedule)                                       |
+| `artifacts/`       | Project/user | Agent deliverables, grouped per session.                                                                                                                                                                      | [Artifacts directory](#artifacts-directory)                 |
+| `logs/`            | User         | CLI and gateway log files (`~/.infer/logs`, overridable via `logging.dir`).                                                                                                                                   | [Key Configuration Areas](#key-configuration-areas)         |
+| `bin/`             | User         | Downloaded binaries - the gateway server, plus optional helpers like `ffmpeg`.                                                                                                                                | [Key Configuration Areas](#key-configuration-areas)         |
+| `insights/`        | User         | Saved `infer insights` reports. Written with secrets redacted, and kept by `/reset`.                                                                                                                          | [Insights Shortcut](#insights-shortcut)                     |
+| `avatars/`         | User         | Avatar portrait folders (`avatars/<name>/*.png`) used by `TextToVideo` lip-sync renders. Kept by `/reset`.                                                                                                    | [Text-to-Video](/cli-text-to-video/#the-avatar-library)     |
+| `auth.yaml`        | User         | Fallback provider API keys, used when a key is not in the environment or the project `.env`.                                                                                                                  | [Provider API keys](#provider-api-keys)                     |
+| `tmp/`             | User         | Scratch space, including the `tmp/media` root for generated speech, music, video, recordings, screenshots and retained attachments. Wiped by `/reset`.                                                        | [Media directories](#media-directories)                     |
 
 > **No migration.** `logs/` and `bin/` are userspace-only: they live under `~/.infer/` and are
 > shared by every project. Older versions wrote them into the project's `.infer/` directory. Those
@@ -3836,7 +3867,7 @@ logging:
 **Agent Configuration:**
 
 - Default model for operations
-- System prompt (`prompts.agent.system_prompt`) and per-mode adjustments (`mode_adjustment_plan` / `mode_adjustment_auto`, delivered by the [mode-change reminder](#how-mode-instructions-are-delivered))
+- System prompt - the body of the [`main` agent](#the-default-system-prompt), overridden by a non-empty `prompts.agent.system_prompt` - and per-mode adjustments (`mode_adjustment_plan` / `mode_adjustment_auto`, delivered by the [mode-change reminder](#how-mode-instructions-are-delivered))
 - System reminders interval
 - Max turns and tokens
 - `agent.max_duration_minutes` (`INFER_AGENT_MAX_DURATION_MINUTES`): wall-clock budget for one run in minutes, default `0` (no budget). Once spent, the run ends **after the current tool call** rather than mid-call, so the work so far stays on disk and `infer headless` exits `3`. It is the clock-based companion to `agent.max_turns` - a slow run (a flash-tier model, browser use) can burn an hour inside its turn budget, and only a wall-clock limit bounds that. Pair it with the [`elapsed_minutes`](#trigger-catalog) reminder trigger to have the agent start wrapping up before the budget runs out
