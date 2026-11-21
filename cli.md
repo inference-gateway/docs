@@ -3175,6 +3175,10 @@ The model calls the tool with either a batch of `tasks` or a single `description
 - `description` (optional) - shorthand for a **single-task** call (an alternative to `tasks`)
 - `system_prompt` (optional) - system prompt for the single-`description` form
 - `agent` (optional) - preset name for the single-`description` form
+- `to` (optional) - send a message instead of spawning: a subagent's label, a teammate's label, or `lead`. See [Teams](#teams)
+- `message` (optional) - the text sent to `to`
+- `keys` (optional) - raw keys typed into an interactive pane's TUI
+- `submit` (optional) - `false` types `message` into an interactive pane without pressing Enter
 
 Each subagent runs in its own isolated session id of the form `subagent-<parentSession>-<uuid>`. One call dispatches at most `max_parallel` subagents (default `10`). Tasks past the cap are dropped, not queued, and the tool result says how many.
 
@@ -3204,6 +3208,7 @@ The Markdown body is the subagent's system prompt. Frontmatter keys:
 | `tools`           | no       | Tools the subagent may use - a YAML list or a comma-separated string. Omitted means inherit all     |
 | `disallowedTools` | no       | Tools removed from the resolved list. Same format as `tools`                                        |
 | `mcpServers`      | no       | Names of the [MCP servers](#mcp-integration) the agent brings up. See below                         |
+| `workspace`       | no       | The computer the agent runs on. See [Teammates on other computers](#teammates-on-other-computers)   |
 
 Any other key (`color`, `temperature`, `max_turns`, `permissionMode`, ...) is accepted and ignored, so files written for other orchestrators load as-is. These are presets for the Agent tool, entirely separate from `.infer/agents.yaml`, the [A2A](#a2a-integration) agent registry.
 
@@ -3246,7 +3251,7 @@ infer chat
 
 > **Upgrading.** A `prompts.yaml` that an older `infer init` seeded still holds the previous default text under `prompts.agent.system_prompt`, so it keeps overriding `main.md`. Delete that key, or run `infer init --overwrite`, to use `main.md`.
 
-**Tool allowlist.** The resolved allowlist is enforced inside the spawned subagent in one place: a disallowed tool is neither offered to the model nor executable by naming it. Unknown tool names (for example Claude's `Glob`) log a warning and are dropped, `disallowedTools` entries are always honored, and a restriction that resolves to no known tool skips the file rather than silently falling back to all tools. The preset's capability follows from the allowlist - **read-only** when every allowed tool is read-only, otherwise **read-write** (mutations still go through approval). Listing `Agent` itself lets a preset spawn subagents, still bounded by `max_depth`.
+**Tool allowlist.** The resolved allowlist is enforced inside the spawned subagent in one place: a disallowed tool is neither offered to the model nor executable by naming it. Unknown tool names (for example Claude's `Glob`) log a warning and are dropped, `disallowedTools` entries are always honored, and a restriction that resolves to no known tool skips the file rather than silently falling back to all tools. The preset's capability follows from the allowlist - **read-only** when every allowed tool is read-only, otherwise **read-write** (mutations still go through approval). `Agent` is always added to an allowlist so the subagent can message its [team](#teams). It spawns subagents of its own only within `max_depth`, and listing `Agent` in `disallowedTools` takes it away.
 
 **Model resolution.** The file's `model` wins over a per-task `model` argument. A value without a provider prefix - a Claude alias such as `sonnet`, or a bare model ID - logs a warning and falls back to `inherit`. When the file sets no model, the normal order applies: per-task `model`, then `tools.agent.model`, then the parent turn's model.
 
@@ -3325,12 +3330,48 @@ In chat, a headless subagent is listed in the [background job list](#background-
 A headless subagent is a conversation, not a one-shot: the delegated task is its first turn, and it stays alive afterwards so the main agent can talk to it without respawning and losing its context.
 
 - **One completion note per finished turn.** Each turn that ends delivers a `[Subagent Completed: <label>]` note carrying that turn's final message and the run stats. A turn that ended in an error arrives as `[Subagent Failed: <label>]` with the error. The stats cover the **whole subagent session** - every turn it ran, not just the one that produced the note.
-- **Follow-ups with `SendSubagentInput`.** Passing `text` sends the subagent a message - new information, a correction, a question about its result - which it runs as its **next turn in the same session**, with a new completion note when that turn ends. A message sent while the subagent is mid-turn is **queued** and runs next, so nothing is lost and no note is duplicated.
+- **Follow-ups with `Agent` `to`/`message`.** Calling `Agent` with `to` naming the subagent and a `message` sends it new information, a correction or a question about its result, which it runs as its **next turn in the same session**, with a new completion note when that turn ends. A message sent while the subagent is mid-turn reaches it right after its current tool call, so nothing is lost and no note is duplicated.
 - **Idle auto-close.** A subagent that sits idle for `tools.agent.idle_timeout` seconds after a completed turn is closed with one `[Subagent Closed: <label>]` note carrying its last message. `0` disables the auto-close. There is **no `[Subagent Idle]` warning** for a headless subagent: every turn reports done, so the completion note itself is the cue that it awaits a follow-up.
 - **`CloseSubagent`** stops a headless subagent at once, whether it is idle or running.
 - **An idle subagent does not keep a headless parent alive.** A one-shot `infer headless` run that delegated work exits once its own turn is done.
 
-`SendSubagentInput` works for **both** execution surfaces: `text` is the message in either mode, while `keys` and `submit: false` drive an interactive pane's TUI and **fail** for a headless subagent.
+A `to`/`message` call works for **both** execution surfaces, while `keys` and `submit: false` drive an interactive pane's TUI and **fail** for a headless subagent.
+
+#### Teams
+
+The agent that calls `Agent` and the subagents it spawns form a team: the caller is the **lead** and each subagent is a **teammate**. Teammates talk to each other and to the lead while they work, to share what they found, ask a question or split the work:
+
+```json
+{ "to": "reviewer", "message": "The bug is in parseConfig - check its callers." }
+```
+
+- `to` names the recipient: a teammate's label, `lead` for the agent that spawned it, or, for a lead, any subagent it spawned. A call with `to` sends a message and spawns nothing.
+- Each teammate is named after its `label`, else its agent, else `agent`. Names are unique on the team, so a second `explore` becomes `explore-2`, and the Agent result lists them.
+- A headless teammate's task ends with a `[Team]` note naming it, its lead and its teammates. A subagent spawned alone gets no note and reaches its lead with `to: "lead"`.
+- A message arrives as `[Message from <name>]` followed by the text. A running agent reads it right after its current tool call, and an idle one runs it as its next turn. The lead gets it as a note in its own chat, which starts a turn when the lead is idle.
+- Every message travels through the lead, which stamps the sender from the stream it came in on, so a teammate cannot speak for another. A message to an unknown name or to a teammate that already finished bounces back as `[Message to <name> not delivered: <why>. Your team: ...]`.
+- A message never needs approval, since it changes nothing. A teammate's own tool calls are approved as before.
+- A lead relays **at most 100 messages** between its teammates, so two of them cannot keep each other talking forever. Past that every message bounces and the lead is told once.
+
+A blocking subagent (`wait: true`) can still message the lead, but teammates cannot message it, since it is not kept alive. An **interactive** teammate in a tmux pane receives messages, typed into its pane, but **cannot send** them.
+
+##### Teammates on other computers
+
+A [Markdown agent](#markdown-subagent-presets) with a `workspace` in its frontmatter runs on that computer, a workspace registered in `daemon.yaml`:
+
+```markdown
+---
+name: researcher
+description: Researches on the GPU box.
+workspace: gpu-box
+---
+
+You research the question you are given.
+```
+
+`Agent` with `agent: researcher` opens the teammate's thread on the lead's daemon, then teleports it to `gpu-box` before its first turn. The teammate works on a copy of the lead's project there, and its turns and messages come back through the lead's daemon, so it is a teammate like any other. A workspace the daemon cannot reach fails that teammate, not the lead.
+
+Placing a teammate needs the daemon binding (`daemon.binding` in `daemon.yaml`). Without it, or with `mode: interactive`, a spawn of an agent with a `workspace` is refused.
 
 #### Done signal and idle auto-close (interactive panes)
 
@@ -3339,7 +3380,7 @@ An interactive pane is not a REPL you keep open. Each subagent reports completio
 - **Done signal.** On its task turn - and on a failed terminal turn - the subagent writes `done: true` into the result file behind `INFER_SUBAGENT_RESULT_FILE`. The parent monitor sees it, closes the pane, and emits exactly one `[Subagent Completed: <label>]` note (carrying the error text when the turn failed).
 - **Every completed turn with text counts as done**, including one that ends with a question. Write **self-contained task descriptions**: a subagent that stops to ask for more detail is treated as finished, not as waiting.
 - **Idle auto-close.** A subagent that never reports done - a turn that ended without any text, a hung TUI, a pane running an older binary - is closed after `tools.agent.idle_timeout` seconds of inactivity. You get an early `[Subagent Idle: <label>]` warning, then `[Subagent Closed: <label>]` when the pane is closed.
-- **The clock pauses for approvals** and is reset by `SendSubagentInput` typing, so a subagent waiting on your approval is never closed out from under you.
+- **The clock pauses for approvals** and is reset by an `Agent` message to the pane, so a subagent waiting on your approval is never closed out from under you.
 - **`CloseSubagent` is only for stopping a subagent early.** The main agent does not need it in the normal case - completed and idle panes close themselves.
 
 #### Agent tool configuration
@@ -3362,7 +3403,7 @@ tools:
     completed_retention: 5 # finished subagent results kept for later retrieval
 ```
 
-**Idle timeout (`idle_timeout`, default `300`).** Seconds a subagent may sit idle before the parent closes it with one `[Subagent Closed: <label>]` note. `0` disables the auto-close. A **headless** subagent is idle from a completed turn until the next `SendSubagentInput` (see [headless keep-alive lifecycle](#headless-keep-alive-lifecycle)). An **interactive** pane is idle when it shows no harvested result turn, no pane change and no pending approval, which only catches a pane that never reported done. Approval prompts pause the clock and `SendSubagentInput` resets it. See [Done signal and idle auto-close](#done-signal-and-idle-auto-close-interactive-panes).
+**Idle timeout (`idle_timeout`, default `300`).** Seconds a subagent may sit idle before the parent closes it with one `[Subagent Closed: <label>]` note. `0` disables the auto-close. A **headless** subagent is idle from a completed turn until the next `Agent` message (see [headless keep-alive lifecycle](#headless-keep-alive-lifecycle)). An **interactive** pane is idle when it shows no harvested result turn, no pane change and no pending approval, which only catches a pane that never reported done. Approval prompts pause the clock and an `Agent` message resets it. See [Done signal and idle auto-close](#done-signal-and-idle-auto-close-interactive-panes).
 
 Every key has an `INFER_TOOLS_AGENT_*` environment-variable override, consistent with the rest of the config:
 
