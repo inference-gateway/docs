@@ -462,6 +462,7 @@ The selected indicator is highlighted as an **accent-colored pill**.
 
 | Indicator | Label format                             | Description                                                                                                                                                                                                                                                                                                           |
 | --------- | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Agent     | `Agent: main`                            | The first indicator - the main agent the chat runs as. Opens the agent dropdown that [switches it](#switching-the-main-agent). Hidden with `chat.status_bar.indicators.agent: false` (default: `true`).                                                                                                               |
 | Tools     | `Tools: N (mode)`                        | `N` is the number of tools available in the current [agent mode](#agent-modes). `mode` is the active mode name (Standard, Plan, Auto-Accept, or Auto+Judge - the latter shown as `AUTO+JUDGE - <model>`). Opens the [`/tools` view](#tools-view).                                                                     |
 | A2A       | `A2A: X/Y`                               | `X` is the number of connected A2A agents, `Y` is the total number of configured agents. Opens the [`/agents` view](#agents-view). When [liveness probes](#a2a-liveness-probes) are enabled, `X` counts down as agents fail and counts back up when they recover - the indicator stays live for the session lifetime. |
 | Theme     | `Theme`                                  | Opens the theme selector to change the TUI color scheme.                                                                                                                                                                                                                                                              |
@@ -1338,6 +1339,21 @@ An unknown name **fails the open** with a `RUN_ERROR` naming the agents that are
 
 The **resolved** options travel as the thread's options, carrying the tool lists and never the agent name. A [relayed open](#workspace-kinds) or a teleport therefore keeps the agent's restriction on the peer, which does not need a copy of the agent files.
 
+The options a thread opens with stay for its worker's life. To [switch the main agent](#switching-the-main-agent) of a running thread, keeping its conversation, a client sends `select_agent`:
+
+```json
+{ "type": "select_agent", "agent": "explore", "project_dir": "/home/me/code/my-app" }
+```
+
+The daemon resolves the agent in the same lookup order and hands the worker its instructions, model and tool policy, so a worker on another workspace needs no agent file. The worker applies it from the next turn, keeping its system prompt and tool definitions so the prompt cache holds. It answers with the agent the thread runs as afterwards and its model:
+
+```json
+{ "type": "agent", "agent": "explore", "model": "openai/gpt-4o", "error": "" }
+```
+
+- A non-empty `error` means the thread **kept its agent** - an unknown agent, a missing `agent`, or a turn still running. `agent` then names the one it runs as.
+- Selecting the agent the thread already runs as appends nothing, so a client may send it again after it reconnects.
+
 ### Workspace kinds
 
 A **workspace** is where a session's agent runs. The daemon you type into is one, and `daemon.yaml` registers the others, so a session can be **teleported** to a beefier machine or into a Kubernetes cluster between turns. A `kind: kubernetes` workspace runs each session as an [operator](/operator/) `Orchestrator` in `namespace`, with the agent inside a pod.
@@ -1671,23 +1687,24 @@ Every transport carries the same vocabulary, with no envelope around it: AG-UI e
 
 **App frames in:**
 
-| Frame                                                       | Purpose                                                                                                                       |
-| ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `new_session` / `resume_conversation`                       | Open a thread in a project directory, optionally [as a named agent](#opening-a-thread-as-a-named-agent)                       |
-| `user_message`                                              | Send a message into the thread. Queued when the agent is busy                                                                 |
-| `interrupt`                                                 | Stop the streaming turn, which ends `cancelled`                                                                               |
-| `approval_response`                                         | `tool_call_id`, `approved`, `scope` - the decision for a pending tool call                                                    |
-| `user_question_response`                                    | The collected answers, or a dismissal                                                                                         |
-| `computer_use_control`                                      | `action` is `pause` or `resume`, for computer use                                                                             |
-| `list_conversations` / `list_history`                       | Browse the project's stored conversations                                                                                     |
-| `list_skills` / `list_models` / `select_model` / `set_mode` | Inspect and change what the thread runs with                                                                                  |
-| `list_shortcuts`                                            | The project's [shortcut registry](/opentask/#shortcuts), for the `/` menu                                                     |
-| `list_issues`                                               | The project's recent open issues, for the [`#` autocomplete](#github-issue-references)                                        |
-| `list_files`                                                | The project's files, for the [`@` autocomplete](/opentask/#project-file-references)                                           |
-| `list_tasks` / `cancel_task`                                | List and stop a [session's background jobs](/opentask/#background-jobs)                                                       |
-| `tool_request` / `tool_result`                              | Run a tool directly, scoped to a project directory                                                                            |
-| `list_artifacts` / `read_artifact`                          | List a [session's artifacts](/opentask/#session-artifacts) and read one                                                       |
-| `rewind_conversation`                                       | Send an earlier prompt again, dropping it and everything after it - see [conversation rewind](/opentask/#conversation-rewind) |
+| Frame                                                       | Purpose                                                                                                                          |
+| ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `new_session` / `resume_conversation`                       | Open a thread in a project directory, optionally [as a named agent](#opening-a-thread-as-a-named-agent)                          |
+| `user_message`                                              | Send a message into the thread. Queued when the agent is busy                                                                    |
+| `interrupt`                                                 | Stop the streaming turn, which ends `cancelled`                                                                                  |
+| `approval_response`                                         | `tool_call_id`, `approved`, `scope` - the decision for a pending tool call                                                       |
+| `user_question_response`                                    | The collected answers, or a dismissal                                                                                            |
+| `computer_use_control`                                      | `action` is `pause` or `resume`, for computer use                                                                                |
+| `list_conversations` / `list_history`                       | Browse the project's stored conversations                                                                                        |
+| `list_skills` / `list_models` / `select_model` / `set_mode` | Inspect and change what the thread runs with                                                                                     |
+| `select_agent`                                              | [Switch the thread's main agent](#opening-a-thread-as-a-named-agent), answered with an `agent` frame (`agent`, `model`, `error`) |
+| `list_shortcuts`                                            | The project's [shortcut registry](/opentask/#shortcuts), for the `/` menu                                                        |
+| `list_issues`                                               | The project's recent open issues, for the [`#` autocomplete](#github-issue-references)                                           |
+| `list_files`                                                | The project's files, for the [`@` autocomplete](/opentask/#project-file-references)                                              |
+| `list_tasks` / `cancel_task`                                | List and stop a [session's background jobs](/opentask/#background-jobs)                                                          |
+| `tool_request` / `tool_result`                              | Run a tool directly, scoped to a project directory                                                                               |
+| `list_artifacts` / `read_artifact`                          | List a [session's artifacts](/opentask/#session-artifacts) and read one                                                          |
+| `rewind_conversation`                                       | Send an earlier prompt again, dropping it and everything after it - see [conversation rewind](/opentask/#conversation-rewind)    |
 
 Unknown `type` and `name` values are ignored on both sides, so the vocabulary stays additive. The full per-event reference lives with the CLI source, in [`docs/ag-ui-output.md`](https://github.com/inference-gateway/cli/blob/main/docs/ag-ui-output.md).
 
@@ -3257,6 +3274,35 @@ The list applies both to a subagent the Agent tool starts and to [a daemon threa
 Files are scanned **once per session**. A file with broken frontmatter, a missing or invalid `name`/`description`, or an unusable `tools` list is skipped with a warning naming the file and the reason - an invalid preset never fails startup.
 
 > **v1 limits.** `.claude/agents/` and `.gemini/agents/` are not read in place (copy or symlink the files into `.infer/agents/`), there is no hot reload, and per-agent `temperature`, `max_turns`, `permissionMode`, and tool wildcards such as `mcp_*` are not honored. For a subagent the Agent tool starts, MCP tools register after session start, so MCP tool names in a `tools` list are dropped as unknown - a daemon thread opened as the agent keeps them.
+
+#### Switching the main agent
+
+Every chat runs as a main agent - the orchestrator that answers you and delegates to subagents. A chat starts as `main`, and the `Agent:` indicator in the [status indicator row](#status-indicator-row) shows the one it runs as. It works in a local chat and in a daemon chat (`infer chat --daemon`) alike.
+
+Press `Down` to select the indicators and `Enter` on `Agent:` to open the agent dropdown. It lists the [Markdown agents](#markdown-subagent-presets) with `main` first, a check on the current one and a read-only or read-write badge on each.
+
+| Key           | Action                        |
+| ------------- | ----------------------------- |
+| `Up` / `Down` | Pick an agent                 |
+| `Enter`       | Switch the chat to that agent |
+| `Esc`         | Close the dropdown            |
+
+Try it against the mock gateway:
+
+```bash
+INFER_GATEWAY_MOCK=true infer chat
+# press Down, Enter on "Agent: main", pick explore, press Enter
+```
+
+The conversation stays as it is. From your next message on:
+
+- The agent's **instructions** apply. They are added to the conversation once, as a reminder after your message, and the agent follows them instead of the ones it started with.
+- It may call only the **tools** its `tools`, `disallowedTools` and `mcpServers` allow. A call to any other tool is refused with the list of tools it may call, and never asks for an approval first.
+- A frontmatter **`model`** replaces the chat's model. An agent without one keeps it.
+
+A switch never rewrites the system prompt or the tool definitions, so the **prompt cache survives it** - only a switch to an agent with a different model starts a new cache. Picking the agent the chat already runs as adds nothing, and a resumed conversation runs as the agent it last switched to. A switch waits for the running turn to end.
+
+A daemon client switches a running thread the same way with the [`select_agent` frame](#opening-a-thread-as-a-named-agent).
 
 #### Result modes: async and wait-all
 
