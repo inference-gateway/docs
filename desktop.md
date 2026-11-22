@@ -536,6 +536,18 @@ Those are the same four places the CLI resolves an agent from, so the app lists 
 
 Agent chats need `infer` **v0.247.0 or newer**. An older CLI ignores the agent name, and the chat then runs without the agent's instructions.
 
+### Switching a chat's agent
+
+**Any open chat can change its agent and keep its conversation.** **Switch agent** in the bar above the composer lists your agents, with the chat's current one checked. Picking one hands the chat to that agent from the next message: its instructions apply and it may call only the tools its file allows. A turn that is already running finishes as the agent it started with.
+
+**A chat moves to the agent's computer.** When the agent has a [computer](#agent-computers) and the chat runs somewhere else, the chat is [moved](#moving-a-chat) there first, and that move waits for a running turn to end.
+
+**Main agent**, at the top of the same menu, takes the chat's agent away, so the CLI's default [`main` agent](/cli/#switching-the-main-agent) answers from the next message. The chat stays on the computer it runs on.
+
+The switch needs `infer` **v0.266.0 or newer**, the release whose daemon takes the [`select_agent` frame](/cli/#opening-a-thread-as-a-named-agent).
+
+Only one of the menus above the composer is open at a time. A press outside it or Escape closes it.
+
 ### Agent projects
 
 An agent can also default to one of your [project groups](#project-groups). Pick it as the **Project** in the agent's editor - the dropdown lists your projects and defaults to **No project** - and it is saved as `project` in the frontmatter, next to `workspace`:
@@ -552,7 +564,7 @@ project: inference-gateway
 
 Starting a chat with that agent **opens it in that project**, so the chat lands in the project's group and gets its [per-project context](#project-groups). The bar above the composer reads `code-reviewer (inference-gateway)`, or just `code-reviewer` when the chat has no project.
 
-**The folder button in that bar changes it before the first message.** It opens a menu of **No project** plus **Use project `<name>`** for each of your projects, so a single agent still serves whichever project you point it at. Once the chat has started, it keeps the project it ran its first turn in.
+**Choose project in that bar changes it at any time**, in every chat and not only an agent's. It opens a menu of **No project** plus **Use project `<name>`** for each of your projects, so a single agent still serves whichever project you point it at. A chat that has already started moves to the picked project, or out of every project, with its history - the same as dragging it onto a project in the sidebar. A running chat cannot move, so wait for its turn to end, and a chat on [another computer](#moving-a-chat) keeps its project.
 
 A project that has been **renamed or deleted** since the agent was saved is not resolved: the new chat opens with no project, and the editor shows the stale value as `(missing)` until you pick another one.
 
@@ -635,7 +647,7 @@ A window app or a server the agent leaves running on that computer can be inspec
 
 ### Moving a chat
 
-Any chat that already started can change computer. **Move to workspace** in its composer opens a menu of **this computer** plus the workspaces of the `infer` daemon, asked for when the menu opens: the one the chat runs on carries a check and cannot be picked, and one the daemon cannot reach is listed as `(unreachable)`, disabled, with the daemon's error as its hover. A move happens **between turns** - a turn still running is stopped first, a screen you hold is handed back, and the composer shows the current stage in place of the button until the chat lands.
+Any chat that already started can change computer - and, from the same bar, its [project](#agent-projects) or its [agent](#switching-a-chats-agent). **Move to workspace** in its composer opens a menu of **this computer** plus the workspaces of the `infer` daemon, asked for when the menu opens: the one the chat runs on carries a check and cannot be picked, and one the daemon cannot reach is listed as `(unreachable)`, disabled, with the daemon's error as its hover. A move happens **between turns** - a turn still running is stopped first, a screen you hold is handed back, and the composer shows the current stage in place of the button until the chat lands.
 
 **What travels** is the conversation and the project: the project's committed state plus a patch of its uncommitted and untracked changes, so the agent on the workspace continues on what you see here. A project directory that has no commit yet gets a repository and an empty first commit on its first move. Moving the chat back restores the project's files into your local folder again.
 
