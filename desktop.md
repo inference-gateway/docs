@@ -254,7 +254,9 @@ workspaces:
 
 ### Model picker
 
-The model dropdown lives in the top bar, next to the **Restart CLI** button, rather than in Settings - but it is where the keys you saved show up as models you can pick.
+The model dropdown lives in the bar above the composer, next to the chat's project or agent and its menus, rather than in Settings - but it is where the keys you saved show up as models you can pick. It is a native dropdown styled as a compact chip. **Restart CLI** stays in the top bar.
+
+In a chat with [your own agent](#your-own-agents) whose agent sets its own model, the picker shows that model read-only - change it in the agent's editor instead.
 
 The list comes from the gateway's [`GET /v1/models`](/api-reference/) endpoint (each entry's `id`), read from the gateway URL in `~/.infer/config.yaml`, defaulting to `http://localhost:8080`. Until the gateway answers, the picker shows **Waiting for gateway...**. The app retries roughly every 1.5 seconds. If the list stays empty, the usual cause is a missing or wrong API key for every configured provider.
 
@@ -266,7 +268,7 @@ The **Agents** tab manages the [A2A](/a2a/) agents your local agent can delegate
 
 **Local A2A agents (containers)** are listed from the public [agent registry](/registry/) catalog, each card showing the agent's name, version, description, and up to four skills. Tick the checkbox to enable an agent and untick it to remove it. The desktop registers local agents by name only, so the CLI assigns each one its known port - you still have to run that agent's container yourself for the delegation to reach anything. If the registry cannot be fetched, the tab shows **Couldn't load the agent registry.** instead of the cards. The rest of Settings is unaffected.
 
-**Setting a model:** an enabled agent that has a model assigned shows a dropdown on its card, listing the same models as the top-bar picker. Pick one to change which model that agent runs on. If the agent's current model is not in the gateway's list, it is kept at the top of the dropdown rather than silently replaced.
+**Setting a model:** an enabled agent that has a model assigned shows a dropdown on its card, listing the same models as the [model picker](#model-picker). Pick one to change which model that agent runs on. If the agent's current model is not in the gateway's list, it is kept at the top of the dropdown rather than silently replaced.
 
 **Remote agents** are ones you host or run elsewhere. Type the agent's URL (for example `http://localhost:8085`) into the field at the bottom and click **Add** or press Enter. Remote agents appear in their own list above the field, each with a **Remove** button.
 
@@ -519,7 +521,7 @@ A chat with one of your agents **runs as that agent through the CLI**: the app o
 | `allowed_recipients`                               | The addresses or domains that agent may mail                                                          |
 | `mcpServers`                                       | The [MCP servers](#mcps) the agent uses, by name - every one of its computer's when the key is absent |
 
-**The model comes from the agent.** In an agent chat the top-bar [model picker](#model-picker) shows the agent's model read-only - you change it in **Edit agent -> Model**, which writes the front matter. An agent with no model of its own (an empty `model`, or `inherit`) follows the model selected in the top bar instead. `tools` and `disallowedTools` have no field in the editor, so edit the file to set them.
+**The model comes from the agent.** In an agent chat the [model picker](#model-picker) above the composer shows the agent's model read-only - you change it in **Edit agent -> Model**, which writes the front matter. An agent with no model of its own (an empty `model`, or `inherit`) follows the model selected in the picker instead. `tools` and `disallowedTools` have no field in the editor, so edit the file to set them.
 
 **The editor's MCP servers list** is where you pick the agent's servers. It lists the servers of [**Settings -> MCPs**](#mcps) with a checkbox each, and the ones you tick are saved as `mcpServers` in the agent's file, by name. **With none picked the agent uses every server of its computer**, which is what an agent written before this existed does. A picked server that has since been deleted or renamed is still shown, marked `(missing)`, so you can untick it. The CLI honors the pick when it opens the chat: it brings up those servers from the `mcp.yaml` of the agent's computer, including one set to `enabled: false` there, and warns past a name that computer does not have - see [`mcpServers`](/cli/#markdown-subagent-presets). An `infer` older than that gives every agent every server.
 
