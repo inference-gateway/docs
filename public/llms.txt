@@ -66,7 +66,6 @@
 - [Command Hooks](https://docs.inference-gateway.com/cli-hooks/): Run shell commands at agent-loop hook points
 - [Judge Mode](https://docs.inference-gateway.com/cli-judge-mode/): Let an LLM judge answer tool-approval gates
 - [Channels](https://docs.inference-gateway.com/cli-channels/): Control the CLI agent remotely over Telegram
-- [Rooms](https://docs.inference-gateway.com/cli-rooms/): Group agents into rooms with rooms.yaml and inspect room logs
 - [Scheduling](https://docs.inference-gateway.com/cli-scheduling/): Run CLI jobs on a cron schedule locally or in GitHub Actions
 - [Speech-to-Text](https://docs.inference-gateway.com/cli-speech-to-text/): Offline transcription with whisper.cpp
 - [Text-to-Speech](https://docs.inference-gateway.com/cli-text-to-speech/): Synthesize speech via the gateway or a local model

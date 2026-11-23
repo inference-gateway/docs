@@ -173,7 +173,7 @@ rejected by judge: ollama/clef: rejected by the judge (decisions: p_approve=0.31
 
 An approved call records `decisions: p_approve=0.93, risk: benign`. `judge_verdict` events, usage accounting and the `AUTO+JUDGE` indicator are unchanged. `system_prompt` and `max_tokens` do not apply - decision models run no tools and generate no text.
 
-[Rooms](/cli-rooms/#how-routing-works) route posts with the same thresholding. With `rooms.router.model` empty only `@mentions` route. With a decision model set, a post goes to the room's members whose probability reaches `rooms.router.min_confidence`.
+[Rooms](/cli/#how-routing-works) route posts with the same thresholding. With `rooms.router.model` empty only `@mentions` route. With a decision model set, a post goes to the room's members whose probability reaches `rooms.router.min_confidence`.
 
 ### Gateway requirement
 
