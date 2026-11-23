@@ -20,7 +20,7 @@ Use Bun (>= 1.4.4, pinned in `.bun-version`). Every `bun run <name>` has a `task
 - `README.md`, `CHANGELOG.md`, and `AGENTS.md` are excluded from the build (`srcExclude`), while `index.md` and `404.md` are special-cased by the `rewrites` config - do not model new pages on them.
 - Diagrams: fenced `mermaid` code blocks render via `vitepress-plugin-mermaid`. The mermaid chunk lazy-loading regexes in `.vitepress/config.ts` are tuned to silence build warnings - leave them alone.
 - Markdown: ATX headings, dash bullets, 2-space nested indent. Prettier: 2-space indent, single quotes, semicolons, trailing commas, 100-col width. Lowercase route-oriented filenames (`browser-agent.md`).
-- CLI features are documented inside `cli.md` as a section of that page, not as a new `cli-*.md` page. Link to them with an anchor (`/cli/#custom-tools`). The existing standalone `cli-*.md` pages are the exception, not the pattern - do not add more without being asked.
+- CLI features are documented inside `cli.md` as a section of that page, never as a standalone `cli-*.md` page. Link to them with an anchor (`/cli/#custom-tools`).
 - For Vue-sensitive placeholders or GitHub Actions expressions, use `<code v-pre>...</code>` instead of backticks.
 - Do not reference GitHub issues or pull requests in doc content: no tracker numbers or links (the `repo#<number>` shorthand, or URLs to `/issues/` or `/pull/` pages). Describe the behavior or change itself. Provenance belongs in the generated `CHANGELOG.md`.
 

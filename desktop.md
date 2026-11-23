@@ -451,7 +451,7 @@ Four switches in the form decide what the workspace's computers can do. Each one
 | **Recording**      | `INFER_COMPUTER_USE_RECORDING_ENABLED=true`, `INFER_COMPUTER_USE_RECORDING_REQUIRE_APPROVAL=false` and `INFER_COMPUTER_USE_RECORDING_OUTPUT_DIR=/home/infer/.infer/artifacts` in **Environment**            |
 | **Text to speech** | `INFER_TEXT_TO_SPEECH_ENABLED=true`, `INFER_TEXT_TO_SPEECH_MODEL=local/qwen3-tts` and `INFER_TEXT_TO_SPEECH_REQUIRE_APPROVAL=false` in **Environment**, plus `forward_voice_samples: true` on the workspace |
 
-**Text to speech also sends your voice samples along.** `forward_voice_samples` is not an environment variable: it carries this computer's [voice samples library](#voice-samples) with every teleport to the workspace, so an agent there clones from a sample by its bare name the way it does at home - see [Sessions on a workspace](/cli-text-to-speech/#sessions-on-a-workspace). And because the variable turns on a tool that needs the Audio API, the cluster's shared gateway comes up with [`spec.audio.enabled`](/operator/#audio-spec-audio) and a 16Gi memory limit, which needs the operator at **v0.37.0 or newer** - the [provisioned local cluster](#compute) installs it.
+**Text to speech also sends your voice samples along.** `forward_voice_samples` is not an environment variable: it carries this computer's [voice samples library](#voice-samples) with every teleport to the workspace, so an agent there clones from a sample by its bare name the way it does at home - see [Sessions on a workspace](/cli/#text-to-speech-sessions-on-a-workspace). And because the variable turns on a tool that needs the Audio API, the cluster's shared gateway comes up with [`spec.audio.enabled`](/operator/#audio-spec-audio) and a 16Gi memory limit, which needs the operator at **v0.37.0 or newer** - the [provisioned local cluster](#compute) installs it.
 
 **Recording is what gives a computer the recording tools.** [`RecordStart` and `RecordStop`](/cli/#screen-recording) are absent from an agent's payload until the workspace has those variables, and with them the agent records a take of its own screen unattended and writes the MP4 next to its other artifacts.
 
@@ -781,7 +781,7 @@ Typing `/` in the composer opens the slash menu. Every row is labelled with its 
 | -------------- | ------------------------------------------------------------------------------- |
 | `command`      | Runs a built-in shortcut compiled into the CLI (`/model`, `/tools`, `/agents`)  |
 | `shortcut`     | Runs a YAML shortcut from `.infer/shortcuts/*.yaml` (`/git`, `/mcp`, `/skills`) |
-| `skill`        | Activates an installed [Agent Skill](/cli-skills/) for the turn                 |
+| `skill`        | Activates an installed [Agent Skill](/cli/#skills) for the turn                 |
 | `remote skill` | Downloads a catalog skill first, after you confirm, then activates it           |
 
 ### The `@` file menu
@@ -1145,7 +1145,7 @@ The agent reports missing prerequisites and stops - it never installs them. Set 
 
 | Prerequisite                   | How                                                                                                  |
 | ------------------------------ | ---------------------------------------------------------------------------------------------------- |
-| The `hyperframes` skill        | [`infer skills install hyperframes motion-graphics --user`](/cli-skills/), or **Settings -> Skills** |
+| The `hyperframes` skill        | [`infer skills install hyperframes motion-graphics --user`](/cli/#skills), or **Settings -> Skills** |
 | Node.js 22 or newer            | `node --version` must print `v22` or higher                                                          |
 | An `ffmpeg` that encodes H.264 | Bundled - only Intel Macs need their own. See the export troubleshooting below                       |
 | A Chromium for HyperFrames     | Run `npx hyperframes browser ensure` once in a terminal if a render fails                            |
@@ -1424,7 +1424,7 @@ Connects, disconnects and routing errors are logged to [`~/.infer/logs/daemon-<d
 
 ## Voice input
 
-Click the microphone icon in the chat composer and speak - your speech is transcribed locally and inserted into the message box. Unlike the [CLI speech-to-text](/cli-speech-to-text/), the desktop app sets everything up for you: no Homebrew, no manual `whisper-cpp` install.
+Click the microphone icon in the chat composer and speak - your speech is transcribed locally and inserted into the message box. Unlike the [CLI speech-to-text](/cli/#speech-to-text), the desktop app sets everything up for you: no Homebrew, no manual `whisper-cpp` install.
 
 On first use a one-time prompt asks to download voice support (~75 MB). On approval the app downloads a prebuilt `whisper-cli` binary and the `ggml-tiny.bin` model with a progress indicator, then starts recording. Later use skips the download.
 
@@ -1441,7 +1441,7 @@ Voice input works on every supported platform except Windows arm64, where clicki
 
 ## Text to speech
 
-The other direction - spoken audio out - is handled by the [`infer` CLI's `TextToSpeech` tool](/cli-text-to-speech/). The desktop app synthesizes nothing itself: it flips the feature on, plays the resulting WAVs, and manages the reference recordings used for voice cloning.
+The other direction - spoken audio out - is handled by the [`infer` CLI's `TextToSpeech` tool](/cli/#text-to-speech). The desktop app synthesizes nothing itself: it flips the feature on, plays the resulting WAVs, and manages the reference recordings used for voice cloning.
 
 ### Enabling text to speech
 
@@ -1449,7 +1449,7 @@ The other direction - spoken audio out - is handled by the [`infer` CLI's `TextT
 
 Saving writes `text_to_speech.enabled` to `~/.infer/config.yaml` and, if the toggle changed, restarts the desktop-owned gateway - the same restart path as saving an API key. The restart is what makes the feature work: the gateway reads `AUDIO_ENABLED=true` and `AUDIO_LOCAL_AUTO_DOWNLOAD=true` at spawn, and those are only passed while the toggle is on, so [`POST /v1/audio/speech`](/api-reference/#audio-api) is unreachable until the gateway comes back up.
 
-Only `enabled` is written. The other keys in the `text_to_speech` section - `model`, `voice`, `output_dir` and the rest of the [configuration reference](/cli-text-to-speech/#configuration-reference) - are CLI-managed and pass through untouched, so a config you tuned for the CLI survives a save from the desktop.
+Only `enabled` is written. The other keys in the `text_to_speech` section - `model`, `voice`, `output_dir` and the rest of the [configuration reference](/cli/#text-to-speech-configuration-reference) - are CLI-managed and pass through untouched, so a config you tuned for the CLI survives a save from the desktop.
 
 ### Playback in the transcript
 
@@ -1484,7 +1484,7 @@ Cloning quality comes down to the reference: one speaker, no music or background
 
 ## Text to video
 
-Talking avatars come from the [`infer` CLI's `TextToVideo` tool](/cli-text-to-video/). The desktop app renders nothing itself: it flips the feature on, manages the portraits the renders use, and places the finished mp4s on a [Content project](#content-projects) timeline.
+Talking avatars come from the [`infer` CLI's `TextToVideo` tool](/cli/#text-to-video). The desktop app renders nothing itself: it flips the feature on, manages the portraits the renders use, and places the finished mp4s on a [Content project](#content-projects) timeline.
 
 ### Enabling text to video
 
@@ -1492,13 +1492,13 @@ Talking avatars come from the [`infer` CLI's `TextToVideo` tool](/cli-text-to-vi
 
 Saving writes `text_to_video.enabled` to `~/.infer/config.yaml` and, if the toggle changed, restarts the desktop-owned gateway with `VIDEOS_ENABLED=true` - the same restart path as saving an API key. Renders also need an [**ElevenLabs** API key](#api-keys): the default `avatar_model` is ElevenLabs `creatify-aurora`, and every render sends the avatar's portrait and the voice clip to that provider.
 
-Only `enabled` is written. The rest of the `text_to_video` section - `model`, `avatar_model`, `output_dir`, `timeout` and the others in the [configuration reference](/cli-text-to-video/#configuration-reference) - is CLI-managed and passes through untouched.
+Only `enabled` is written. The rest of the `text_to_video` section - `model`, `avatar_model`, `output_dir`, `timeout` and the others in the [configuration reference](/cli/#text-to-video-configuration-reference) - is CLI-managed and passes through untouched.
 
 The composer's **tools** dropdown lists `TextToSpeech` and `TextToVideo` while they are enabled, alongside the rest of the agent's tools.
 
 ### Avatars
 
-**Settings -> Avatars** is a managed library of named portraits of you, stored one folder per avatar under `~/.infer/avatars/<name>/` - the same library the [CLI's `infer avatars`](/cli-text-to-video/#the-avatar-library) reads, so an avatar made here works from the CLI too.
+**Settings -> Avatars** is a managed library of named portraits of you, stored one folder per avatar under `~/.infer/avatars/<name>/` - the same library the [CLI's `infer avatars`](/cli/#text-to-video-the-avatar-library) reads, so an avatar made here works from the CLI too.
 
 | Action           | How                                                                                            |
 | ---------------- | ---------------------------------------------------------------------------------------------- |
@@ -1521,7 +1521,7 @@ Lip-sync takes a single image, so the **first image in sort order** is the one t
 
 > **Only your own likeness, or one you have the rights to use.** Do not create an avatar of someone else without their permission.
 
-**Privacy:** creating an avatar uploads the photo to the provider behind the image edit model - OpenAI by default, or ElevenLabs when `tools.image_edit.model` names an [ElevenLabs image model](/cli-text-to-video/#with-only-an-elevenlabs-key) - and every render uploads the portrait and the voice clip to the video provider. Nothing is stored as an avatar at either provider - the library is yours, on your disk. Drop images into `~/.infer/avatars/<name>/` by hand to skip the image-edit round trip entirely.
+**Privacy:** creating an avatar uploads the photo to the provider behind the image edit model - OpenAI by default, or ElevenLabs when `tools.image_edit.model` names an [ElevenLabs image model](/cli/#text-to-video-with-only-an-elevenlabs-key) - and every render uploads the portrait and the voice clip to the video provider. Nothing is stored as an avatar at either provider - the library is yours, on your disk. Drop images into `~/.infer/avatars/<name>/` by hand to skip the image-edit round trip entirely.
 
 ## Related
 
@@ -1529,9 +1529,9 @@ Lip-sync takes a single image, so the **first image in sort order** is the one t
 - [Skills Catalog](/skills/) - `video-editing`, `hyperframes`, and `motion-graphics` behind [Content projects](#content-projects)
 - [CLI](/cli/) - the `infer` CLI that powers the desktop backend
 - [OpenTask](/opentask/) - the browser extension behind [Browser Use](#browser-use-opentask-extension)
-- [Speech-to-Text](/cli-speech-to-text/) - speech-to-text in the `infer` CLI
-- [Text-to-Speech](/cli-text-to-speech/) - the `TextToSpeech` tool behind the desktop toggle
-- [Text-to-Video and Avatars](/cli-text-to-video/) - the `TextToVideo` tool and `infer avatars` behind [Avatars](#avatars)
+- [Speech-to-Text](/cli/#speech-to-text) - speech-to-text in the `infer` CLI
+- [Text-to-Speech](/cli/#text-to-speech) - the `TextToSpeech` tool behind the desktop toggle
+- [Text-to-Video and Avatars](/cli/#text-to-video) - the `TextToVideo` tool and `infer avatars` behind [Avatars](#avatars)
 - [A2A Integration](/a2a/) - chat with A2A agents from the desktop app
 - [Agent Registry](/registry/) - the catalog behind the Agents tab
 - [Configuration](/configuration/) - gateway configuration reference

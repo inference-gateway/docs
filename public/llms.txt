@@ -51,7 +51,6 @@
 
 ## Skills
 
-- [Using Skills (CLI)](https://docs.inference-gateway.com/cli-skills/): Install, enable, and invoke Agent Skills in the CLI
 - [Skills Catalog](https://docs.inference-gateway.com/skills/): Browse and contribute Agent Skills
 
 ## API Reference
@@ -62,14 +61,7 @@
 ## Tools
 
 - [Desktop App](https://docs.inference-gateway.com/desktop/): Provider-agnostic native AI client
-- [CLI](https://docs.inference-gateway.com/cli/): The infer CLI for chat, autonomous agents, MCP, and A2A
-- [Command Hooks](https://docs.inference-gateway.com/cli-hooks/): Run shell commands at agent-loop hook points
-- [Judge Mode](https://docs.inference-gateway.com/cli-judge-mode/): Let an LLM judge answer tool-approval gates
-- [Channels](https://docs.inference-gateway.com/cli-channels/): Control the CLI agent remotely over Telegram
-- [Scheduling](https://docs.inference-gateway.com/cli-scheduling/): Run CLI jobs on a cron schedule locally or in GitHub Actions
-- [Speech-to-Text](https://docs.inference-gateway.com/cli-speech-to-text/): Offline transcription with whisper.cpp
-- [Text-to-Speech](https://docs.inference-gateway.com/cli-text-to-speech/): Synthesize speech via the gateway or a local model
-- [Text-to-Video](https://docs.inference-gateway.com/cli-text-to-video/): Render video clips and avatar videos
+- [CLI](https://docs.inference-gateway.com/cli/): The infer CLI for chat, autonomous agents, MCP, A2A, skills, hooks, judge mode, channels, scheduling, and speech and video tools
 - [GitHub Action](https://docs.inference-gateway.com/github-action/): Run the agent from GitHub Actions
 - [OpenTask Extension](https://docs.inference-gateway.com/opentask/): Browser extension bridging GitHub and the CLI
 
