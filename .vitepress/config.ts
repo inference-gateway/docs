@@ -183,14 +183,8 @@ export default withMermaid(
             { text: 'REST API', link: pageLink('/api-reference') },
             { text: 'SDKs', link: pageLink('/sdks') },
             { text: 'CLI', link: pageLink('/cli') },
-            { text: 'Command Hooks', link: pageLink('/cli-hooks') },
             { text: 'Agent Definition Language', link: pageLink('/adl') },
             { text: 'ADL CLI', link: pageLink('/adl-cli') },
-            { text: 'Channels', link: pageLink('/cli-channels') },
-            { text: 'Scheduling', link: pageLink('/cli-scheduling') },
-            { text: 'Speech-to-Text', link: pageLink('/cli-speech-to-text') },
-            { text: 'Text-to-Speech', link: pageLink('/cli-text-to-speech') },
-            { text: 'Text-to-Video', link: pageLink('/cli-text-to-video') },
             { text: 'GitHub Action', link: pageLink('/github-action') },
           ],
         },
@@ -215,10 +209,7 @@ export default withMermaid(
         },
         {
           text: 'Skills',
-          items: [
-            { text: 'Agent Skills', link: pageLink('/cli-skills') },
-            { text: 'Skills Catalog', link: pageLink('/skills') },
-          ],
+          items: [{ text: 'Skills Catalog', link: pageLink('/skills') }],
         },
       ],
       sidebar: [
@@ -292,10 +283,7 @@ export default withMermaid(
         {
           text: 'Skills',
           collapsed: false,
-          items: [
-            { text: 'Using Skills (CLI)', link: pageLink('/cli-skills') },
-            { text: 'Skills Catalog', link: pageLink('/skills') },
-          ],
+          items: [{ text: 'Skills Catalog', link: pageLink('/skills') }],
         },
         {
           text: 'API Reference',
@@ -311,13 +299,6 @@ export default withMermaid(
           items: [
             { text: 'Desktop App', link: pageLink('/desktop') },
             { text: 'CLI', link: pageLink('/cli') },
-            { text: 'Command Hooks', link: pageLink('/cli-hooks') },
-            { text: 'Judge Mode', link: pageLink('/cli-judge-mode') },
-            { text: 'Channels', link: pageLink('/cli-channels') },
-            { text: 'Scheduling', link: pageLink('/cli-scheduling') },
-            { text: 'Speech-to-Text', link: pageLink('/cli-speech-to-text') },
-            { text: 'Text-to-Speech', link: pageLink('/cli-text-to-speech') },
-            { text: 'Text-to-Video', link: pageLink('/cli-text-to-video') },
             { text: 'GitHub Action', link: pageLink('/github-action') },
             { text: 'OpenTask Extension', link: pageLink('/opentask') },
           ],

@@ -517,7 +517,7 @@ The CLI's `ImageGeneration`/`ImageEdit`/`ImageVariation` tools are **on by defau
 
 ## Demo recordings
 
-Set `record-demo: "true"` and a run can end with a short GIF of the change working. The recording procedure itself lives in the CLI's built-in [`demo` skill](/cli-skills/#the-demo-skill) (seeded by `infer init` like `bug` and `tmux` - requires CLI >= v0.215.0) - the action only makes recording possible. It ships no procedure of its own.
+Set `record-demo: "true"` and a run can end with a short GIF of the change working. The recording procedure itself lives in the CLI's built-in [`demo` skill](/cli/#skills-the-demo-skill) (seeded by `infer init` like `bug` and `tmux` - requires CLI >= v0.215.0) - the action only makes recording possible. It ships no procedure of its own.
 
 ### Asking for a demo
 

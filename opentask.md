@@ -53,7 +53,7 @@ The loop:
 
 1. **Record** the flow you want to teach.
 2. **Attach** the saved file to a task or issue. The capture bitrate is derived from the cap so the file stays under GitHub's 10 MB attachment limit.
-3. **Review the PR**: the agent inspects the frames and proposes the skill under [`.agents/skills/<name>/`](/cli-skills/#on-disk-layout) via a pull request.
+3. **Review the PR**: the agent inspects the frames and proposes the skill under [`.agents/skills/<name>/`](/cli/#skills-on-disk-layout) via a pull request.
 
 Settings live under **Options -> Orchestrator -> Tab recording**:
 
@@ -290,7 +290,7 @@ A stopped turn - from the panel or from the terminal (`esc`/Ctrl+C) - ends with 
 
 ### Skills
 
-The panel offers a `/` autocomplete of the agent's [skills](/cli-skills/). It asks the daemon for the merged, scope-tagged list the CLI already resolves (project, `.agents`, user, plugin, catalog), so the menu mirrors what the TUI offers.
+The panel offers a `/` autocomplete of the agent's [skills](/cli/#skills). It asks the daemon for the merged, scope-tagged list the CLI already resolves (project, `.agents`, user, plugin, catalog), so the menu mirrors what the TUI offers.
 
 Extension -> daemon, list the available skills for a project:
 
@@ -641,5 +641,5 @@ Browser and session frames specific to this transport. The AG-UI and CUSTOM even
 - [CLI daemon](/cli/#daemon) - the hub on the other end of the socket
 - [Desktop App](/desktop/#browser-use-opentask-extension) - the other daemon client, enabled from Settings
 - [Skills Catalog](/skills/) - the skills registry OpenTask discovers
-- [CLI Skills](/cli-skills/) - using skills from the Inference Gateway CLI
+- [CLI Skills](/cli/#skills) - using skills from the Inference Gateway CLI
 - [Repository](https://github.com/inference-gateway/opentask) - source, issues, and releases

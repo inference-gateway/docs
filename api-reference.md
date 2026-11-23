@@ -953,7 +953,7 @@ curl -X POST http://localhost:8080/v1/audio/speech \
   }'
 ```
 
-ElevenLabs speech accepts `response_format` `mp3`, `opus`, `pcm` and `wav` - `wav` is ElevenLabs' native 48 kHz output, so WAV-only clients such as the CLI's [`TextToSpeech` tool](/cli-text-to-speech/) can use an ElevenLabs model. `aac` and `flac` are rejected with a `400 Bad Request` naming the supported set.
+ElevenLabs speech accepts `response_format` `mp3`, `opus`, `pcm` and `wav` - `wav` is ElevenLabs' native 48 kHz output, so WAV-only clients such as the CLI's [`TextToSpeech` tool](/cli/#text-to-speech) can use an ElevenLabs model. `aac` and `flac` are rejected with a `400 Bad Request` naming the supported set.
 
 ElevenLabs has no chat-completions API, so it is audio-only - speech, [sound effects](#sound-effects) and [music](#music): a `/v1/chat/completions` request routed to it is not supported.
 
@@ -977,7 +977,7 @@ curl -X POST http://localhost:8080/v1/audio/speech \
 }"
 ```
 
-For a fully local alternative that never leaves your machine, the CLI synthesizes with `llama-tts` directly - see [Text-to-Speech](/cli-text-to-speech/).
+For a fully local alternative that never leaves your machine, the CLI synthesizes with `llama-tts` directly - see [Text-to-Speech](/cli/#text-to-speech).
 
 #### Local speech engine (`local/qwen3-tts`)
 
@@ -993,7 +993,7 @@ curl -X POST http://localhost:8080/v1/audio/speech \
   -d '{"model":"local/qwen3-tts","input":"Hallo vom Inference Gateway.","voice":"default","language":"de","response_format":"wav"}'
 ```
 
-**Assets and cache.** The binary and weights are fetched in the background at startup when `AUDIO_ENABLED=true`, and on demand otherwise, then cached in fixed, non-configurable locations shared with the [CLI](/cli-text-to-speech/): GGUF models in `~/.infer/models/tts`, binaries in `~/.infer/bin`. A `llama-tts` already on `PATH` wins. Otherwise the binary comes from the [inference-gateway/binaries](https://github.com/inference-gateway/binaries) release assets and is sha256-verified against the published `checksums.txt`. A cached `llama-tts` is replaced when its sha256 no longer matches the latest release's `checksums.txt`. A binary found on `PATH` and already present GGUF weights are never re-downloaded, whether they came from an earlier run, the CLI, a mounted volume, or a pre-baked image layer. Downloads write to a temp file and atomically rename, so a CLI and a gateway downloading at the same time never corrupt the cache.
+**Assets and cache.** The binary and weights are fetched in the background at startup when `AUDIO_ENABLED=true`, and on demand otherwise, then cached in fixed, non-configurable locations shared with the [CLI](/cli/#text-to-speech): GGUF models in `~/.infer/models/tts`, binaries in `~/.infer/bin`. A `llama-tts` already on `PATH` wins. Otherwise the binary comes from the [inference-gateway/binaries](https://github.com/inference-gateway/binaries) release assets and is sha256-verified against the published `checksums.txt`. A cached `llama-tts` is replaced when its sha256 no longer matches the latest release's `checksums.txt`. A binary found on `PATH` and already present GGUF weights are never re-downloaded, whether they came from an earlier run, the CLI, a mounted volume, or a pre-baked image layer. Downloads write to a temp file and atomically rename, so a CLI and a gateway downloading at the same time never corrupt the cache.
 
 **While assets are downloading**, the endpoint answers `503 Service Unavailable` with a `Retry-After` header and download progress in the body rather than holding the request open. Boot and chat routes are never blocked. A failed download is retried in the background on the next request.
 
@@ -1318,7 +1318,7 @@ Content-Type: application/json
 }
 ```
 
-Because the gateway proxies the request, speech traffic shows up in gateway logs, tracing and pricing like any other endpoint. See [Text-to-Speech](/cli-text-to-speech/) for the CLI-side tooling.
+Because the gateway proxies the request, speech traffic shows up in gateway logs, tracing and pricing like any other endpoint. See [Text-to-Speech](/cli/#text-to-speech) for the CLI-side tooling.
 
 The SDKs wrap this endpoint as a single call that returns the raw audio: [`create_speech`](/sdks/#speech-synthesis) in Python (raw `bytes`), [`createSpeech`](/sdks/#speech-synthesis-1) in TypeScript (a `Blob`), [`CreateSpeech`](/sdks/#speech-synthesis-2) in Go and [`create_speech`](/sdks/#speech-synthesis-3) in Rust (raw bytes).
 
