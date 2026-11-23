@@ -548,6 +548,16 @@ The switch needs `infer` **v0.266.0 or newer**, the release whose daemon takes t
 
 Only one of the menus above the composer is open at a time. A press outside it or Escape closes it.
 
+### Agents messaging each other
+
+**A chat with an agent can message another agent** - ask the researcher to send the tester a message, for example. The CLI's `Agent` tool then [starts the tester in a chat of its own](/cli/#messaging-another-agent) on the tester's computer. That chat is **listed under the tester** in the sidebar's **Agents** filter, not under the researcher, and it opens on the researcher's message as a **Message from researcher** card. The tester's reply comes back to the researcher's chat, and the researcher's next message continues the tester's chat. An approval the tester asks for waits in the tester's chat until you open it.
+
+**A subagent's row shows its label.** A chat a subagent runs in is listed indented under its orchestrator, with the label the orchestrator gave it as a badge before the title.
+
+**Hover a chat to see who started it.** The row's tooltip reads `invoked by orchestrator: <chat> as <label>` for a subagent, `sent by <chat>` for an agent another agent messaged, or `invoked by human`.
+
+The listing, the badge and the tooltip read the [session origin](/cli/#conversation-management) the CLI records, so they need an `infer` newer than v0.266.3. Messaging another agent also needs the CLI daemon, which the desktop runs.
+
 ### Agent projects
 
 An agent can also default to one of your [project groups](#project-groups). Pick it as the **Project** in the agent's editor - the dropdown lists your projects and defaults to **No project** - and it is saved as `project` in the frontmatter, next to `workspace`:

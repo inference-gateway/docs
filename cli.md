@@ -3373,6 +3373,23 @@ You research the question you are given.
 
 Placing a teammate needs the daemon binding (`daemon.binding` in `daemon.yaml`). Without it, or with `mode: interactive`, a spawn of an agent with a `workspace` is refused.
 
+##### Messaging another agent
+
+An agent with no lead, such as a chat opened as `researcher`, can message another [Markdown agent](#markdown-subagent-presets) by its name:
+
+```json
+{ "to": "tester", "message": "Test example.org and tell me whether it renders." }
+```
+
+When no teammate has that name, the daemon starts `tester` in a session of its own, the way a chat [opened as `tester`](#opening-a-thread-as-a-named-agent) runs, on its `workspace` if it has one. Its first turn is `[Message from researcher]` followed by the text. It is not a subagent: it has no parent, keeps its own tools, has no depth limit, and a human can open its chat.
+
+- It answers like a teammate, with `Agent(to: "researcher", ...)`, and its turns come back to the sender too.
+- The sender's next message to `tester` continues the same session instead of starting another.
+- Its approvals wait in its chat for whoever opens it, instead of being cancelled the way a subagent's are.
+- Messaging another agent needs the daemon binding. Without it the message is refused.
+
+Every session records how it started, which [`infer conversations list --format json`](#conversation-management) shows.
+
 #### Done signal and idle auto-close (interactive panes)
 
 An interactive pane is not a REPL you keep open. Each subagent reports completion and the parent closes the pane for you:
@@ -5084,6 +5101,22 @@ The `/conversations` picker footer reads `Press / to search` whenever no query i
 - `--append`, `-a`: Print the entries after the default first-10 window instead of the
   window itself, so a long session can be read in chunks. `--no-trunc` wins when both are
   passed.
+
+**Session origin:**
+
+Every session records how it started. `infer conversations list --format json` emits these fields on each conversation, and `show --format json` emits them in its `metadata`:
+
+- `invoked_by` - `human` for a session a person started, `agent` for one an agent started
+- `parent_session_id` - the orchestrator session that spawned it as a subagent
+- `agent` - the [Markdown agent](#markdown-subagent-presets) it runs as, also set for a chat opened as an agent
+- `label` - the name its orchestrator gave it
+- `sent_by` - the session whose message [started this agent](#messaging-another-agent)
+
+Fields that do not apply are left out. A session another agent's message started has an `agent` and a `sent_by` but no `parent_session_id`:
+
+```bash
+infer conversations list --format json | jq '.conversations[] | {id, invoked_by, agent, label, sent_by}'
+```
 
 **Session id resolution:**
 
