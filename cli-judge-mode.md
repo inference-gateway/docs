@@ -173,6 +173,8 @@ rejected by judge: ollama/clef: rejected by the judge (decisions: p_approve=0.31
 
 An approved call records `decisions: p_approve=0.93, risk: benign`. `judge_verdict` events, usage accounting and the `AUTO+JUDGE` indicator are unchanged. `system_prompt` and `max_tokens` do not apply - decision models run no tools and generate no text.
 
+[Rooms](/cli-rooms/#how-routing-works) route posts with the same thresholding. With `rooms.router.model` empty only `@mentions` route. With a decision model set, a post goes to the room's members whose probability reaches `rooms.router.min_confidence`.
+
 ### Gateway requirement
 
 - The gateway must run with [`DECISIONS_ENABLED=true`](/configuration/) - while it is disabled `/v1/decisions` returns `404` and the judge fails closed. The CLI-managed local gateway sets it for you whenever `backend: decisions` is configured. An externally managed gateway needs the variable in its own environment.
