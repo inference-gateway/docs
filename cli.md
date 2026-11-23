@@ -408,9 +408,15 @@ chat:
 
 Each key has an `INFER_*` override - `INFER_CHAT_SUGGESTIONS_ENABLED`, `INFER_CHAT_SUGGESTIONS_MODEL`, `INFER_CHAT_SUGGESTIONS_CONTEXT_MESSAGES`, `INFER_CHAT_SUGGESTIONS_MAX_TOKENS`, `INFER_CHAT_SUGGESTIONS_TIMEOUT`, `INFER_CHAT_SUGGESTIONS_LOGS_ENABLED`, `INFER_CHAT_SUGGESTIONS_LOGS_MAX_LINES` and `INFER_CHAT_SUGGESTIONS_LOGS_MAX_CHARS`. The system prompt lives in `prompts.yaml` under `chat.suggestions.system_prompt` and is overridden with `INFER_PROMPTS_CHAT_SUGGESTIONS_SYSTEM_PROMPT`.
 
+#### File and Agent References (`@`)
+
+Type `@` in the chat input to open a dropdown of the project's files, followed by every Markdown agent and built-in agent. Selecting a file inserts `@<path>` and selecting an agent inserts `@<agent>`. `@` is the default trigger - the trigger and the section order are set in [`composer.yaml`](/configuration/#cli-composer-settings).
+
 #### GitHub Issue References (`#`)
 
 Type `#` in the chat input to open a dropdown of the current repository's **open issues** - each entry shows the issue number, title, and state. The list is resolved through the [`gh` CLI](#github-operations) from the repo's git remote, newest first. Selecting an issue inserts a highlighted `#N` token into your message.
+
+`#` is the default trigger. Remap it to another special character in [`composer.yaml`](/configuration/#cli-composer-settings) - an issue row still inserts `#N` whatever trigger opened the menu.
 
 On submit, every `#N` token is expanded **inline** into that issue's title, body, and most recent comments (up to the latest 20) before the message is sent to the model - so the agent works from full issue context without a redundant `gh issue view` lookup.
 
@@ -458,17 +464,19 @@ Below the chat input, a row of **status indicators** shows the current agent sta
 
 The selected indicator is highlighted as an **accent-colored pill**.
 
+The row is configured under `status_bar` in [`~/.infer/composer.yaml`](/configuration/#cli-composer-settings), with `INFER_COMPOSER_STATUS_BAR_*` env overrides. A `chat.status_bar` block left in `config.yaml` is ignored - move it into `composer.yaml` by hand.
+
 **Indicator labels:**
 
 | Indicator | Label format                             | Description                                                                                                                                                                                                                                                                                                           |
 | --------- | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Agent     | `Agent: main`                            | The first indicator - the main agent the chat runs as. Opens the agent dropdown that [switches it](#switching-the-main-agent). Hidden with `chat.status_bar.indicators.agent: false` (default: `true`).                                                                                                               |
+| Agent     | `Agent: main`                            | The first indicator - the main agent the chat runs as. Opens the agent dropdown that [switches it](#switching-the-main-agent). Hidden with `composer.status_bar.indicators.agent: false` (default: `true`).                                                                                                           |
 | Tools     | `Tools: N (mode)`                        | `N` is the number of tools available in the current [agent mode](#agent-modes). `mode` is the active mode name (Standard, Plan, Auto-Accept, or Auto+Judge - the latter shown as `AUTO+JUDGE - <model>`). Opens the [`/tools` view](#tools-view).                                                                     |
 | A2A       | `A2A: X/Y`                               | `X` is the number of connected A2A agents, `Y` is the total number of configured agents. Opens the [`/agents` view](#agents-view). When [liveness probes](#a2a-liveness-probes) are enabled, `X` counts down as agents fail and counts back up when they recover - the indicator stays live for the session lifetime. |
 | Theme     | `Theme`                                  | Opens the theme selector to change the TUI color scheme.                                                                                                                                                                                                                                                              |
 | Reconnect | `Reconnecting...` / `Reconnecting (N/M)` | Shown in red when the stream has stalled and the CLI is reconnecting. `N` is the current attempt, `M` is `client.retry.max_attempts`. Input is blocked until the stream recovers or all attempts are exhausted.                                                                                                       |
 | Duration  | `3s` / `1m5s`                            | The time the agent has worked in this session, next to the cost indicator. Whole seconds only. Nothing is rendered before the session's first run.                                                                                                                                                                    |
-| Artifacts | `⬇ artifacts`                            | Opens the [session artifacts view](#browsing-the-sessions-artifacts), the same view `/artifacts` opens. Hidden with `chat.status_bar.indicators.artifacts: false`.                                                                                                                                                    |
+| Artifacts | `⬇ artifacts`                            | Opens the [session artifacts view](#browsing-the-sessions-artifacts), the same view `/artifacts` opens. Hidden with `composer.status_bar.indicators.artifacts: false`.                                                                                                                                                |
 
 ##### Session working time
 
@@ -479,11 +487,10 @@ The total is **saved with the session**, so [resuming a session](#resuming-a-ses
 It is on by default and turned off like any other indicator:
 
 ```yaml
-# .infer/config.yaml
-chat:
-  status_bar:
-    indicators:
-      duration: false # Hide the time the agent has worked in this session (default: true)
+# ~/.infer/composer.yaml
+status_bar:
+  indicators:
+    duration: false # Hide the time the agent has worked in this session (default: true)
 ```
 
 #### Browsing the session's artifacts
@@ -508,7 +515,7 @@ Only the files directly under the session's artifacts dir are listed, and a sess
 
 While background jobs are tracked - [local subagents](#local-subagents-agent-tool), [A2A tasks](#a2a-integration), background shells, [screen recordings](#screen-recording) - they appear as a stacked list below the status indicators, one row per job with its label, kind and a live elapsed counter.
 
-A subagent's row carries a child line with its run stats: tool calls that succeeded and failed, the tokens of its whole session and the slice the provider served from its prompt cache (`C.`). For a headless subagent the line counts up while it works. Each count's icon takes its status color - `✓` in the success color, `✗` in the error color - only while that count is above `0`. At `0` the icon is dimmed, so a run with no failures never shows a red `✗`. A finished row lingers with a green `✓` or a red `✗` for `chat.status_bar.subagent_linger_seconds` (default `5`), then drops.
+A subagent's row carries a child line with its run stats: tool calls that succeeded and failed, the tokens of its whole session and the slice the provider served from its prompt cache (`C.`). For a headless subagent the line counts up while it works. Each count's icon takes its status color - `✓` in the success color, `✗` in the error color - only while that count is above `0`. At `0` the icon is dimmed, so a run with no failures never shows a red `✗`. A finished row lingers with a green `✓` or a red `✗` for `composer.status_bar.subagent_linger_seconds` (default `5`), then drops.
 
 ```text
 ┌ npm run build shell       2.0s
@@ -4312,7 +4319,7 @@ infer config set gateway.timeout 300
 | `agent.max_duration_minutes` | Applies from the next turn                                      |
 | `agent.max_tokens`           | Applies from the next turn                                      |
 | `agent.reasoning_effort`     | Applies from the next turn, and the status bar follows          |
-| `chat.status_bar.*`          | The whole section - indicators hide or show on the next repaint |
+| `composer.status_bar.*`      | The whole section - indicators hide or show on the next repaint |
 
 **Everything else needs a restart.** Any other changed key is named in the status line as "restart to apply" rather than silently ignored - `Reloaded agent.model · restart to apply gateway.url`. `gateway.url` and `gateway.api_key` are restart keys, and [tool policy](#tool-configuration), the [file sandbox](#file-sandbox) and approval policy never change mid-session, by design: a running agent keeps the permissions it started with.
 
@@ -5189,7 +5196,7 @@ queue:
 - A drain takes every message out in one atomic step, so two processes draining at the same time never receive the same message.
 - Delivery is at-most-once, as with the process-local queue: a drained message lost to a crash before it reaches the conversation is gone. Ack and redelivery are out of scope.
 - An unreachable backend fails startup with an error naming the backend - it never silently falls back to `memory`.
-- `chat.status_bar.indicators.queue` gates the [status-bar indicator](#status-indicator-row). The memory queue hides it while empty, a durable backend is always visible and names the backend (`redis`, or `redis 3 queued` while work waits), rendered in the error color while the backend is unreachable.
+- `composer.status_bar.indicators.queue` gates the [status-bar indicator](#status-indicator-row). The memory queue hides it while empty, a durable backend is always visible and names the backend (`redis`, or `redis 3 queued` while work waits), rendered in the error color while the backend is unreachable.
 
 #### Feeding the queue from outside infer
 
