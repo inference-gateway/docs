@@ -709,6 +709,85 @@ ELEVENLABS_API_URL=https://api.elevenlabs.io/v1
 ELEVENLABS_API_KEY=
 ```
 
+## CLI Composer Settings
+
+The [CLI](/cli/) composer - the input box of `infer chat` and of the [desktop app](/desktop/) - reads `~/.infer/composer.yaml`. The file maps trigger characters to the menus they open and holds the status bar settings. The TUI and the desktop read the same file, the desktop through `infer config get composer --format json`, which prints the resolved and validated section. `infer init` seeds the file with the defaults.
+
+A project `.infer/composer.yaml` layers over the home file and the two merge per trigger.
+
+```yaml
+triggers:
+  chat:
+    '@':
+      - files
+      - agents
+    '#':
+      - issues
+  room:
+    '@':
+      - agents
+      - files
+    '#':
+      - issues
+status_bar:
+  enabled: true
+  subagent_linger_seconds: 5
+  indicators:
+    model: true
+    cost: true
+    duration: true
+```
+
+### Triggers
+
+`triggers` holds one table per context: `chat` for a plain chat session and `room` for a room. Each key is a trigger and its value lists the menu sources:
+
+| Source   | What the menu lists                                                              | A row inserts |
+| -------- | -------------------------------------------------------------------------------- | ------------- |
+| `files`  | The project's files                                                              | `@<path>`     |
+| `agents` | Every Markdown agent and built-in agent, or the room's members in a room context | `@<agent>`    |
+| `issues` | The repository's open GitHub issues                                              | `#<number>`   |
+
+The list order is the menu's section order, so the default chat `@` menu lists files and then agents. A row inserts its own token whatever trigger opened the menu - an issue picked from a `^` menu still inserts `#<number>`.
+
+A trigger is any one special character - punctuation or a symbol, ASCII or not - such as `@`, `#`, `^` or `~`. Letters, digits and keys longer than one character fail the load. `/`, `!` and `!!` are reserved, because they always open the slash menu or run bash and tools directly.
+
+### Replacing the defaults
+
+A context set in `composer.yaml` replaces that context's default table. This file moves issues from `#` to `^` in chat and turns `#` off there:
+
+```yaml
+triggers:
+  chat:
+    '@':
+      - files
+      - agents
+    '^':
+      - issues
+```
+
+A context the file leaves out keeps its defaults, so `room` above still opens issues on `#`.
+
+### Validation errors
+
+An invalid file fails the load with the file and the key named. Mapping the letter `a` fails with `invalid composer.yaml triggers.chat."a": a trigger is one special character`, followed by examples. The other errors read:
+
+```text
+invalid composer.yaml triggers.chat."/": / is reserved: /, !, !! always open the slash menu or run bash and tools directly and cannot be mapped
+invalid composer.yaml triggers.chat."^": unknown source "issue": sources are files, agents and issues
+invalid composer.yaml triggers.chats: unknown context: contexts are chat and room
+```
+
+### Status bar
+
+The status bar settings live under `status_bar` in `composer.yaml`. The indicators and their keys are listed under the CLI's [status indicator row](/cli/#status-indicator-row).
+
+> **Breaking change:** the status bar settings moved from `chat.status_bar` in `config.yaml` to `status_bar` in `composer.yaml`, with no fallback. A `chat.status_bar` block left in `config.yaml` is ignored, so move it into `composer.yaml` by hand. The env overrides moved too, from `INFER_CHAT_STATUS_BAR_*` to `INFER_COMPOSER_STATUS_BAR_*`.
+
+```bash
+INFER_COMPOSER_STATUS_BAR_ENABLED=false infer chat
+```
+
 ## Configuration Best Practices
 
 1. **API Key Security**: Never commit API keys to version control. Use environment variables or secrets management.
