@@ -806,6 +806,15 @@ This is the same autocomplete the chat TUI offers, see [GitHub Issue References]
 
 Both menus need `infer` **v0.246.0 or newer**. Against an older CLI they stay empty and the composer behaves as if you had typed an ordinary `@` or `#`.
 
+### The trigger table and status bar
+
+`@` and `#` are only the defaults. The desktop reads the same [`~/.infer/composer.yaml`](/configuration/#cli-composer-settings) as the terminal, through `infer config get composer --format json`, so one file configures both. It reloads the file whenever it changes.
+
+- **Triggers.** Every trigger in the chat's resolved table opens a menu - any one special character, multi-byte ones such as `§` included. The table is used as is, never merged with built-ins, so a trigger the file leaves out of a context opens nothing there. The `@` menu lists the Markdown agents after the files, and a picked agent inserts `@<name>`. A row inserts its own token whichever trigger opened it - `@<path>`, `@<name>` or `#<number>`.
+- **Status bar.** The bar under the composer shows only the indicators the file's `status_bar` section enables and hides entirely when `status_bar.enabled` is `false`. The keys and which of them the desktop honors are listed under [Status bar](/configuration/#status-bar).
+
+A file the CLI rejects leaves the composer on the default table, and the CLI's own error explains why.
+
 ## Reasoning and thinking view
 
 Models that emit reasoning show it in the transcript in a collapsible **Thought process** block, rendered above the answer for that turn. It is collapsed by default - click the summary to expand it and read the reasoning. Reasoning is streamed live, so an expanded block fills in as the model thinks rather than appearing all at once when the turn ends.

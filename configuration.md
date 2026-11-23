@@ -780,7 +780,30 @@ invalid composer.yaml triggers.chats: unknown context: contexts are chat and roo
 
 ### Status bar
 
-The status bar settings live under `status_bar` in `composer.yaml`. The indicators and their keys are listed under the CLI's [status indicator row](/cli/#status-indicator-row).
+The status bar settings live under `status_bar` in `composer.yaml`. `status_bar.enabled` shows or hides the whole bar, and `status_bar.indicators.<key>` toggles one indicator. A key the file leaves out keeps its default. The labels each indicator renders are described under the CLI's [status indicator row](/cli/#status-indicator-row).
+
+| Key              | Default | Desktop |
+| ---------------- | ------- | ------- |
+| `agent`          | `true`  | yes     |
+| `model`          | `true`  | no      |
+| `effort`         | `true`  | no      |
+| `theme`          | `true`  | no      |
+| `max_output`     | `false` | no      |
+| `a2a_agents`     | `true`  | yes     |
+| `tools`          | `true`  | yes     |
+| `queue`          | `true`  | yes     |
+| `mcp`            | `true`  | yes     |
+| `context_usage`  | `true`  | yes     |
+| `session_tokens` | `true`  | yes     |
+| `cost`           | `true`  | yes     |
+| `duration`       | `true`  | yes     |
+| `git_branch`     | `true`  | no      |
+| `git_pr`         | `true`  | no      |
+| `subagents`      | `true`  | no      |
+| `workspace`      | `true`  | no      |
+| `artifacts`      | `true`  | yes     |
+
+The **Desktop** column marks the indicators the [desktop app's status bar](/desktop/#the-trigger-table-and-status-bar) honors as well. It also hides its bar when `status_bar.enabled` is `false`. `subagent_linger_seconds` only applies to the TUI's subagent rows.
 
 > **Breaking change:** the status bar settings moved from `chat.status_bar` in `config.yaml` to `status_bar` in `composer.yaml`, with no fallback. A `chat.status_bar` block left in `config.yaml` is ignored, so move it into `composer.yaml` by hand. The env overrides moved too, from `INFER_CHAT_STATUS_BAR_*` to `INFER_COMPOSER_STATUS_BAR_*`.
 
