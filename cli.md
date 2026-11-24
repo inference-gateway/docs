@@ -1275,9 +1275,17 @@ The daemon needs the binding port to be free: if another process already holds i
 
 The extension port must **differ** from the binding port, including an unset `daemon.binding.port` that falls back to it, and the extension token must be set - either one unmet fails the boot with the reason. Available from `infer` **v0.251.0**.
 
+**Stopping the daemon:**
+
+```bash
+infer daemon stop # stop the running daemon and everything it runs
+```
+
+It sends `SIGTERM` to the pid that the lock on `~/.infer/run/daemon.pid` vouches for and waits for the shutdown. The shutdown is graceful for everything the daemon runs: every session worker ends its turn and cleans up, and every scheduled, heartbeat or A2A run shuts down on `SIGTERM`. A daemon that still runs after a minute is killed. With no daemon running, `infer daemon stop` says so and exits `0`. A pid file no daemon holds is left alone.
+
 ### Workspace lifecycle and cleanup
 
-A **workspace** is where a session's agent runs. This daemon is one, named by `workspace` (default the hostname), and `daemon.yaml` registers the others. `infer daemon teleport <conversation-id> --to <workspace>` sends a session to another one between turns, and teleporting it back to this machine ends with the session home again:
+A **workspace** is where a session's agent runs. This daemon is one, named by `workspace` (default the hostname), and `daemon.yaml` registers the others. `infer sessions teleport <session-id> --to <workspace>` sends a session to another one between turns, printing each stage until it is ready, and teleporting it back to this machine ends with the session home again:
 
 ```yaml
 # ~/.infer/daemon.yaml
@@ -1307,7 +1315,7 @@ A Gateway the Orchestrator links to by name is scaled down and up with it: the o
 The daemon remembers the workspace a session came home from in `~/.infer/daemon/runtimes/`, so stopping the session also cleans up behind it:
 
 ```bash
-infer daemon stop <conversation-id>
+infer sessions stop <session-id>
 ```
 
 It stops the agent and deletes its remote runtime, including one the session already left - useful when the runtime waits on an approval or ended in an error, since a pod in that state keeps its Orchestrator until it is stopped.
@@ -1424,13 +1432,13 @@ workspaces:
       - ANTHROPIC_API_KEY
 ```
 
-`mode`, `gateway_env`, `secrets` and `mcp_servers` apply to Kubernetes workspaces only and are rejected on any other kind. `infer daemon workspaces` prints the compute each workspace runs on in a `COMPUTE` column.
+`mode`, `gateway_env`, `secrets` and `mcp_servers` apply to Kubernetes workspaces only and are rejected on any other kind. `infer workspaces list` prints the compute each workspace runs on in a `COMPUTE` column.
 
 #### How the daemon dials a workspace (`protocol`)
 
 `protocol` is how this daemon talks to the workspace's own daemon, on every kind. `agui` (the default) rides the [AG-UI WebSocket binding](#starting-the-daemon), and `a2a` carries the same teleport vocabulary over A2A JSON-RPC on the same listener - see the [A2A peer endpoint](/opentask/#a2a-peer-endpoint). A workspace whose daemon serves nothing over its chosen protocol **fails a teleport at the provisioning stage**, before anything is created, so a `kind: kubernetes` workspace on `a2a` needs an `image` new enough to serve `/a2a`.
 
-`infer daemon workspaces` prints the choice in a `PROTOCOL` column, and the chat TUI names it next to the workspace: in the `/workspaces` picker, in the status bar indicator (`⇄ k8s-dev (a2a)`) and on the teleport progress line.
+`infer workspaces list` prints the choice in a `PROTOCOL` column, and the chat TUI names it next to the workspace: in the `/workspaces` picker, in the status bar indicator (`⇄ k8s-dev (a2a)`) and on the teleport progress line.
 
 #### Where the gateway runs (`mode`)
 
@@ -8296,7 +8304,9 @@ If completions still do not appear, the shell rc is usually not sourcing the com
 | `infer skills <subcommand>`           | Manage Agent Skills (`list`, `search`, `install`, `uninstall`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | `infer plugins <subcommand>`          | Manage Claude Code-format plugins (`install`, `list`, `enable`, `disable`, `update`, `remove`)                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | `infer daemon`                        | Start the daemon - scheduler, channel listener, and heartbeat ([Channels](#channels))                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| `infer daemon stop <id>`              | Stop a session's agent and delete the remote runtime it ran on, including one it already came home from ([Workspace lifecycle and cleanup](#workspace-lifecycle-and-cleanup))                                                                                                                                                                                                                                                                                                                                                             |
+| `infer daemon stop`                   | Stop the running daemon and everything it runs, gracefully, killing it after a minute ([Starting the daemon](#starting-the-daemon))                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `infer sessions <subcommand>`         | Drive daemon sessions by `<session-id>` - `run <session-id> "<prompt>"` runs one turn through the daemon wherever the session runs, `teleport <session-id> --to <workspace>` teleports it and prints each stage until ready, `stop <session-id>` stops its agent and deletes its remote runtime, including one it already came home from ([Workspace lifecycle and cleanup](#workspace-lifecycle-and-cleanup))                                                                                                                            |
+| `infer workspaces list`               | List every workspace in `daemon.yaml` and whether it is reachable ([Workspace kinds](#workspace-kinds))                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | `infer config <subcommand>`           | Configuration management (`init`, `get`, `set`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | `infer tools <subcommand>`            | Run agent tools directly (`execute`, `validate`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | `infer agents <subcommand>`           | A2A agent management                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
