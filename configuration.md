@@ -802,6 +802,9 @@ The status bar settings live under `status_bar` in `composer.yaml`. `status_bar.
 | `subagents`      | `true`  | no      |
 | `workspace`      | `true`  | no      |
 | `artifacts`      | `true`  | yes     |
+| `room`           | `true`  | no      |
+
+`room` is the TUI's `Room: -` / `Room: #<room>` indicator that enters the [rooms](/cli/#rooms-in-the-chat-tui) a running daemon hosts.
 
 The **Desktop** column marks the indicators the [desktop app's status bar](/desktop/#the-trigger-table-and-status-bar) honors as well. It also hides its bar when `status_bar.enabled` is `false`. `subagent_linger_seconds` only applies to the TUI's subagent rows.
 
