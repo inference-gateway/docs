@@ -462,7 +462,7 @@ Below the chat input, a row of **status indicators** shows the current agent sta
 | `Enter`                | Open the matching view for the selected indicator |
 | `Esc` / `Up` arrow     | Return focus to the chat input                    |
 
-The selected indicator is highlighted as an **accent-colored pill**.
+The selected indicator is highlighted as an **accent-colored pill**. A left click on an actionable indicator opens its view too, the same as `Enter` on the focused one.
 
 The row is configured under `status_bar` in [`~/.infer/composer.yaml`](/configuration/#cli-composer-settings), with `INFER_COMPOSER_STATUS_BAR_*` env overrides. A `chat.status_bar` block left in `config.yaml` is ignored - move it into `composer.yaml` by hand.
 
@@ -477,6 +477,7 @@ The row is configured under `status_bar` in [`~/.infer/composer.yaml`](/configur
 | Reconnect | `Reconnecting...` / `Reconnecting (N/M)` | Shown in red when the stream has stalled and the CLI is reconnecting. `N` is the current attempt, `M` is `client.retry.max_attempts`. Input is blocked until the stream recovers or all attempts are exhausted.                                                                                                       |
 | Duration  | `3s` / `1m5s`                            | The time the agent has worked in this session, next to the cost indicator. Whole seconds only. Nothing is rendered before the session's first run.                                                                                                                                                                    |
 | Artifacts | `⬇ artifacts`                            | Opens the [session artifacts view](#browsing-the-sessions-artifacts), the same view `/artifacts` opens. Hidden with `composer.status_bar.indicators.artifacts: false`.                                                                                                                                                |
+| Room      | `Room: -` / `Room: #<room>`              | The room the chat is in. Opens the room dropdown that [enters a room](#rooms-in-the-chat-tui). Hidden with `composer.status_bar.indicators.room: false` (default: `true`).                                                                                                                                            |
 
 ##### Session working time
 
@@ -910,21 +911,25 @@ In the `ag-ui` format the same totals ride on the terminal `RUN_FINISHED` event 
     "cacheReadTokens": 18400,
     "totalToolCalls": 7,
     "cost": 0.0029,
+    "runTokens": 4200,
+    "runCost": 0.0006,
     "lastInputTokens": 12800,
     "contextWindow": 128000
   }
 }
 ```
 
-| Key               | Type   | Description                                                                 |
-| ----------------- | ------ | --------------------------------------------------------------------------- |
-| `inputTokens`     | number | Total input tokens across the session.                                      |
-| `outputTokens`    | number | Total output tokens across the session.                                     |
-| `cacheReadTokens` | number | Tokens served from the prompt cache.                                        |
-| `totalToolCalls`  | number | Tool calls issued across the session.                                       |
-| `cost`            | number | Total session cost, in the configured currency.                             |
-| `lastInputTokens` | number | Input tokens of the most recent request.                                    |
-| `contextWindow`   | number | Model context window in tokens, omitted when the model's window is unknown. |
+| Key               | Type   | Description                                                                                     |
+| ----------------- | ------ | ----------------------------------------------------------------------------------------------- |
+| `inputTokens`     | number | Total input tokens across the session.                                                          |
+| `outputTokens`    | number | Total output tokens across the session.                                                         |
+| `cacheReadTokens` | number | Tokens served from the prompt cache.                                                            |
+| `totalToolCalls`  | number | Tool calls issued across the session.                                                           |
+| `cost`            | number | Total session cost, in the configured currency.                                                 |
+| `runTokens`       | number | Tokens in and out the session spent during this run, a run that paused on an approval included. |
+| `runCost`         | number | What the session spent during this run, in the configured currency.                             |
+| `lastInputTokens` | number | Input tokens of the most recent request.                                                        |
+| `contextWindow`   | number | Model context window in tokens, omitted when the model's window is unknown.                     |
 
 The event has **no `result`** when the run made no model request, so consumers must treat it as optional.
 
@@ -1695,30 +1700,34 @@ Every transport carries the same vocabulary, with no envelope around it: AG-UI e
 
 **App frames in:**
 
-| Frame                                                       | Purpose                                                                                                                          |
-| ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `new_session` / `resume_conversation`                       | Open a thread in a project directory, optionally [as a named agent](#opening-a-thread-as-a-named-agent)                          |
-| `user_message`                                              | Send a message into the thread. Queued when the agent is busy                                                                    |
-| `interrupt`                                                 | Stop the streaming turn, which ends `cancelled`                                                                                  |
-| `approval_response`                                         | `tool_call_id`, `approved`, `scope` - the decision for a pending tool call                                                       |
-| `user_question_response`                                    | The collected answers, or a dismissal                                                                                            |
-| `computer_use_control`                                      | `action` is `pause` or `resume`, for computer use                                                                                |
-| `list_conversations` / `list_history`                       | Browse the project's stored conversations                                                                                        |
-| `list_skills` / `list_models` / `select_model` / `set_mode` | Inspect and change what the thread runs with                                                                                     |
-| `select_agent`                                              | [Switch the thread's main agent](#opening-a-thread-as-a-named-agent), answered with an `agent` frame (`agent`, `model`, `error`) |
-| `list_shortcuts`                                            | The project's [shortcut registry](/opentask/#shortcuts), for the `/` menu                                                        |
-| `list_issues`                                               | The project's recent open issues, for the [`#` autocomplete](#github-issue-references)                                           |
-| `list_files`                                                | The project's files, for the [`@` autocomplete](/opentask/#project-file-references)                                              |
-| `list_tasks` / `cancel_task`                                | List and stop a [session's background jobs](/opentask/#background-jobs)                                                          |
-| `tool_request` / `tool_result`                              | Run a tool directly, scoped to a project directory                                                                               |
-| `list_artifacts` / `read_artifact`                          | List a [session's artifacts](/opentask/#session-artifacts) and read one                                                          |
-| `rewind_conversation`                                       | Send an earlier prompt again, dropping it and everything after it - see [conversation rewind](/opentask/#conversation-rewind)    |
-| `list_rooms`                                                | The daemon's [rooms](#rooms) with their members, answered with `rooms`                                                           |
-| `follow_room`                                               | Answered with `room_snapshot`, then every `room_post` and `room_activity` (`running`, `waiting`, `idle`) of the room             |
-| `post_room`                                                 | Post to a room as the user, answered with `room_posted` - the logged post and the notices for its author                         |
-| `leave_room`                                                | Stop following a room. Nothing answers it                                                                                        |
+| Frame                                                       | Purpose                                                                                                                              |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `new_session` / `resume_conversation`                       | Open a thread in a project directory, optionally [as a named agent](#opening-a-thread-as-a-named-agent)                              |
+| `user_message`                                              | Send a message into the thread. Queued when the agent is busy                                                                        |
+| `interrupt`                                                 | Stop the streaming turn, which ends `cancelled`                                                                                      |
+| `approval_response`                                         | `tool_call_id`, `approved`, `scope` - the decision for a pending tool call                                                           |
+| `user_question_response`                                    | The collected answers, or a dismissal                                                                                                |
+| `computer_use_control`                                      | `action` is `pause` or `resume`, for computer use                                                                                    |
+| `list_conversations` / `list_history`                       | Browse the project's stored conversations                                                                                            |
+| `list_skills` / `list_models` / `select_model` / `set_mode` | Inspect and change what the thread runs with                                                                                         |
+| `select_agent`                                              | [Switch the thread's main agent](#opening-a-thread-as-a-named-agent), answered with an `agent` frame (`agent`, `model`, `error`)     |
+| `list_shortcuts`                                            | The project's [shortcut registry](/opentask/#shortcuts), for the `/` menu                                                            |
+| `list_issues`                                               | The project's recent open issues, for the [`#` autocomplete](#github-issue-references)                                               |
+| `list_files`                                                | The project's files, for the [`@` autocomplete](/opentask/#project-file-references)                                                  |
+| `list_tasks` / `cancel_task`                                | List and stop a [session's background jobs](/opentask/#background-jobs)                                                              |
+| `tool_request` / `tool_result`                              | Run a tool directly, scoped to a project directory                                                                                   |
+| `list_artifacts` / `read_artifact`                          | List a [session's artifacts](/opentask/#session-artifacts) and read one                                                              |
+| `rewind_conversation`                                       | Send an earlier prompt again, dropping it and everything after it - see [conversation rewind](/opentask/#conversation-rewind)        |
+| `list_rooms`                                                | The daemon's [rooms](#rooms) with their members, answered with `rooms`                                                               |
+| `follow_room`                                               | Answered with `room_snapshot`, then every `room_post` and `room_activity` (`running`, `waiting`, `idle`) of the room. Never welcomes |
+| `join_room`                                                 | Enter a room as the user. Follows it like `follow_room`, and the user's first entry logs a `kind: join` post the members welcome     |
+| `post_room`                                                 | Post to a room as the user, answered with `room_posted` - the logged post and the notices for its author                             |
+| `clear_room`                                                | Empty a room's log. Every follower of the room, the client that cleared it included, gets `room_cleared` and empties its view        |
+| `leave_room`                                                | Stop following a room. Nothing answers it                                                                                            |
 
-Unknown `type` and `name` values are ignored on both sides, so the vocabulary stays additive. The full per-event reference lives with the CLI source, in [`docs/ag-ui-output.md`](https://github.com/inference-gateway/cli/blob/main/docs/ag-ui-output.md). The rooms frames and their payloads are documented in the [binding protocol's Rooms section](https://github.com/inference-gateway/cli/blob/main/docs/browser-extension-protocol.md#rooms).
+Unknown `type` and `name` values are ignored on both sides, so the vocabulary stays additive. The full per-event reference lives with the CLI source, in [`docs/ag-ui-output.md`](https://github.com/inference-gateway/cli/blob/main/docs/ag-ui-output.md). The rooms frames and their payloads, `join_room`, `clear_room` and `room_cleared` included, are documented in the [binding protocol's Rooms section](https://github.com/inference-gateway/cli/blob/main/docs/browser-extension-protocol.md#rooms).
+
+Every room post carries `usage` - `tokens` in and out and their `cost` - for what it spent. For the user's post it is routing it through the decision model, which carries no cost. For a member's answer, or the room's note that the member passed a post on, it is the member's turn, from the `runTokens` and `runCost` of its worker's [`RUN_FINISHED`](#ag-ui-run-finished-result). A failed turn ends on `RUN_ERROR`, which reports no spend, so the room's note that the member failed has no `usage`, and neither has a post that cost nothing, such as a ping. A room's total is the `usage` of every post in its log, so a cleared room starts over, and `cost` stays `0` for a model without a price.
 
 ### Approvals
 
@@ -1787,12 +1796,12 @@ tail -f ~/.infer/logs/daemon-$(date +%Y-%m-%d).log
 
 ## Rooms
 
-A room is a named group of agents you talk to in one project. You post to the room, and the [daemon](#daemon) decides which members answer: the members you ping with `@name`, or, for a post that pings nobody, the members a decision model finds relevant. Every member answers in its own session for that room, and every post and answer is appended to one log per room. Rooms are configured in `rooms.yaml`, hosted by the daemon, and posted to and inspected with [`infer rooms`](#inspecting-rooms-infer-rooms).
+A room is a named group of agents you talk to in one project, like a Slack channel. You post to the room, and the [daemon](#daemon) decides which members answer: the members you ping with `@name`, every member with `@all`, or, for a post that pings nobody, the one member that picks it up. Every member answers in its own session for that room, and every post and answer is appended to one log per room. Members talk like teammates: they answer what a post asks and keep greetings and small talk to one short line. Rooms are configured in `rooms.yaml`, hosted by the daemon, entered from the [chat TUI](#rooms-in-the-chat-tui), and posted to, inspected and cleared with [`infer rooms`](#inspecting-rooms-infer-rooms).
 
 Rooms run in the daemon, so start it with `daemon.binding.enabled` set, then post:
 
 ```bash
-infer rooms post public "@main say hello to the room"
+infer rooms post public "@all say hello to the room"
 infer rooms show public
 ```
 
@@ -1807,24 +1816,26 @@ Rooms have their own file, **`rooms.yaml`** - a split sidecar like [`judge.yaml`
 
 ```yaml
 router:
-  model: '' # "provider/model" decision model - empty routes @mentions only
+  model: ollama_cloud/clef:27b # decision model for a post that pings nobody - empty routes @mentions only
   min_confidence: 0.5 # the router's confidence bar, between 0 and 1
-  max_members: 2 # the most members that answer a post that pings nobody
+  max_members: 2 # the most members a post that pings nobody is offered to
   fallback: top # a post nobody clears the bar for: top (default) or none
 context_posts: 20 # past posts of the room log that ride along as context
 rooms:
   - name: public
+    mode: auto-with-judge
+    pickup: offer
     agents: ['*']
 ```
 
-| Field                   | Default  | Purpose                                                                                                                                       |
-| ----------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `router.model`          | `''`     | `provider/model` decision model that decides who a post goes to. Empty routes `@mentions` only - see [How routing works](#how-routing-works). |
-| `router.min_confidence` | `0.5`    | A member is addressed when the router's probability for it reaches this bar. Must be between `0` and `1`.                                     |
-| `router.max_members`    | `2`      | The most members that answer a post that pings nobody, the most relevant first. Pings are never capped. `0` means the default.                |
-| `router.fallback`       | `top`    | What happens to a post no member clears the bar for - `top` hands it to the room's top match, `none` addresses nobody.                        |
-| `context_posts`         | `20`     | How many past posts of the room log ride along as context. Must be `0` or more.                                                               |
-| `rooms`                 | `public` | The rooms, each with a `name`, an optional `project` and an `agents` list.                                                                    |
+| Field                   | Default                 | Purpose                                                                                                                                                                                                      |
+| ----------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `router.model`          | `ollama_cloud/clef:27b` | `provider/model` decision model that routes a post that pings nobody. Empty keeps `@mentions`-only routing - see [How routing works](#how-routing-works).                                                    |
+| `router.min_confidence` | `0.5`                   | A member is addressed when the router's probability for it reaches this bar. Must be between `0` and `1`.                                                                                                    |
+| `router.max_members`    | `2`                     | The most members a post that pings nobody is offered to, one after another and the most relevant first, and how many members welcome you on your first visit. Pings are never capped. `0` means the default. |
+| `router.fallback`       | `top`                   | What happens to a post no member clears the bar for - `top` offers it to the room's top matches anyway, as `pickup` says, `none` addresses nobody.                                                           |
+| `context_posts`         | `20`                    | How many past posts of the room log ride along as context. Must be `0` or more.                                                                                                                              |
+| `rooms`                 | `public`                | The rooms, each with a `name`, an optional `project` and an `agents` list.                                                                                                                                   |
 
 `rooms.yaml` is validated at startup and a broken file fails the load: an unknown `fallback`, a `min_confidence` outside `0`-`1`, a negative `max_members` or `context_posts`, an invalid room name or a room defined twice are configuration errors.
 
@@ -1836,17 +1847,19 @@ Each entry of `rooms` is one room:
 | --------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
 | `name`    | The room's name. Letters, digits and underscores, starting with a letter or digit - no dashes. It names the log file and lands in session ids. |
 | `project` | The project directory the members run in. A room without `project` runs its members in the daemon's working directory.                         |
-| `agents`  | The member agents. `"*"` stands for every agent that exists, the [built-ins](#markdown-subagent-presets) included.                             |
+| `agents`  | The member agents. `"*"` stands for your own agents. The [built-ins](#markdown-subagent-presets) join only by name.                            |
+| `mode`    | The [agent mode](#agent-modes) the members run in: `standard`, `plan`, `auto` or `auto-with-judge`. Empty means `auto-with-judge`.             |
+| `pickup`  | How a post that pings nobody finds the one member who takes it: `offer` (the default) or `top` - see [How routing works](#how-routing-works).  |
 
 Members resolve each time the rooms are read, not once when the file is written:
 
-- `"*"` becomes every agent a session in the room's project can run as - the [Markdown agents](#markdown-subagent-presets) of its agent dirs and the built-ins - sorted by name, so a newly added agent file joins the room without a `rooms.yaml` edit.
+- `"*"` becomes every agent of yours a session in the room's project can run as - the [Markdown agents](#markdown-subagent-presets) of its agent dirs - sorted by name, so a newly added agent file joins the room without a `rooms.yaml` edit. The built-ins (`main`, `explore`, `general-purpose`, `plan`) stay out of `"*"`, also once `infer init` seeded their files, and join a room only by name.
 - A named agent stands for itself. A name no agent carries takes no seat.
 - Duplicates collapse, keeping their first position.
 
 #### The default public room
 
-Without any configuration there is one room, `public`, with `agents: ["*"]` - every agent, the built-ins included. A `rooms.yaml` that defines a room named `public` replaces the default. One that defines only other rooms keeps the default `public` next to them:
+Without any configuration there is one room, `public`, with `agents: ["*"]` - every agent of yours, without the built-ins. A `rooms.yaml` that defines a room named `public` replaces the default. One that defines only other rooms keeps the default `public` next to them:
 
 ```yaml
 # ~/.infer/rooms.yaml
@@ -1867,23 +1880,37 @@ Every member keeps its own session in the room with the deterministic id `room-<
 The router decides which members a post is addressed to:
 
 1. **A ping routes without a model.** `@name` pings an agent when `name` is an agent the project knows, and a pinged member gets the post with probability `1`. A pinged agent outside the room gets a notice instead: `@<agent> is not in room <room>.` `@README.md` and `@./tester` stay file references, so a member's name wins over a file of the same name, and `@./<name>` reaches the file.
-2. **A post that pings nobody asks the decision model** (`router.model` set to a `provider/model` id). The model gets one yes-or-no question per member - should this member, given its description and the room's last `context_posts` posts, act on the new post - and returns a probability for each. The post goes to at most `router.max_members` members whose probability reaches `router.min_confidence`, the most relevant first.
-3. **When nobody passes**, `router.fallback` decides. `top` sends the post to the most relevant member. `none` routes it to nobody, with a notice naming the members to ping: `No member of room <room> was addressed. Mention one: @main, @explore`.
+2. **`@all` pings every member**, also without a router model. It is the only way to reach every member at once.
+3. **A post that pings nobody, a greeting included, asks the decision model** (`router.model`). The model gets one yes-or-no question per member - should this member, given its description and the room's last `context_posts` posts, act on the new post - and returns a probability for each. The members whose probability reaches `router.min_confidence` are ranked, up to `router.max_members`, and **one** of them picks the post up, as the room's `pickup` says, so no two members work on the same request.
+4. **When nobody passes**, `router.fallback` decides. `top` offers the post to the most relevant members anyway, as `pickup` says. `none` routes it to nobody, with a notice naming the members to ping: `No member of room <room> was addressed. Mention one: @researcher, @tester`.
 
-Without a router model (`router.model: ''`, the default) only pings route, and a post that pings nobody reaches nobody with the same notice - `fallback` does not apply. A decision request that fails still logs the post, routed to nobody, with the reason in a notice. A daemon whose router has a model starts the gateway, or joins the running one, on the first decision only, so mention-only rooms never touch it.
+The room's `pickup` decides how the ranked members take the post:
+
+- **`offer`** (the default) - the best match gets the post first and either answers it or replies exactly `PASS`. A `PASS` logs `<member> passed it on - offered to <next>.` and offers the post to the next best, up to `router.max_members` members. When the last one passes, the room says nobody picked it up.
+- **`top`** - the best match alone gets the post, with no way to pass it on.
+
+An empty `router.model` keeps `@mentions`-only routing: a post that pings nobody reaches nobody with the same notice, and `fallback` does not apply. The default model runs on `ollama_cloud`, so without an `ollama_cloud` key a post that pings nobody reaches nobody, and its author gets a notice to ping a member. A decision request that fails still logs the post, routed to nobody, with the reason in a notice. The router needs the gateway's Decisions API, and the CLI-managed gateway starts with `DECISIONS_ENABLED=true` by default. A daemon whose router has a model starts the gateway, or joins the running one, on the first decision only, so mention-only rooms never touch it.
 
 This is the same thresholding the judge applies with its [decision-model backend](#judge-mode-decision-model-judge-backend-decisions): a decision model returns probabilities, and the confidence bar turns them into a decision. Every routed post records who it went to and the router's probability, which [`infer rooms show`](#infer-rooms-show) prints in its `Routing` column.
 
 ### Members answering
 
-A routed post becomes the member's **next turn** on its session `room-<room>-<agent>`, running as that agent in the room's project. The turn carries the room's posts the member has not seen since its last turn, up to `context_posts`, then the post for it. The last assistant message of the run is logged as the member's post. Agent mentions reach the member as plain names, so its own `@` file expansion never inlines a file named like a member.
+A routed post becomes the member's **next turn** on its session `room-<room>-<agent>`, running as that agent in the room's project. The turn carries the room's posts the member has not seen since its last turn, up to `context_posts`, quoted as context, then the post for it - so neither the member nor its judge takes another member's words for the request. The last assistant message of the run is logged as the member's post. Agent mentions reach the member as plain names, so its own `@` file expansion never inlines a file named like a member.
 
 - **Parallel turns** - members routed the same post run in parallel.
 - **Held turns** - a post for a member that is still running waits and becomes its next turn.
-- **Approvals** - a member run that stops on a tool approval waits in the member's own chat, and the room logs `<agent> waits for approval in its own chat, session room-<room>-<agent>.` Open that session - it is an ordinary thread - to decide the approval. The member's reply lands in the room once you decided there, and its held posts follow.
+- **Approvals** - a member run that stops on a tool approval waits in the member's own chat, and the room logs `<agent> waits for approval in its own chat, session room-<room>-<agent>.` Open that session - it is an ordinary thread - to decide the approval. The member's reply lands in the room once you decided there, and its held posts follow. In the default `auto-with-judge` mode only a call the judge escalates waits for you.
 - **Failures** - a run that fails logs `<agent> failed: <reason>`, and the member moves on to its next held post.
 
 A member that sits idle detaches from its session, so the daemon reaps its worker. A daemon that restarts does not remember a member's last turn and counts from the member's own last post in the log.
+
+#### The room's mode
+
+A room's `mode` sets the [agent mode](#agent-modes) its members run in: `standard`, `plan`, `auto` or `auto-with-judge`. The default is `auto-with-judge`, since nobody watches a member's own chat - an [LLM judge](#judge-mode) decides a member's gated tool calls, and only a call it escalates waits for you. The judge is `judge.model` from [`judge.yaml`](#judge-mode-configuring-the-judge-judge-yaml), else the model the member runs on, so it works after a fresh `infer init`. `mode: standard` keeps you on every approval. A member's worker takes the mode when it starts, so a change reaches a busy member once its idle worker was let go.
+
+#### The first-visit welcome
+
+The first time you enter a room, the room logs a `kind: join` post and its first `router.max_members` members welcome you in one short line. A client sends `join_room` to get the welcome. `follow_room`, such as a reconnect, never welcomes. After [`infer rooms clear`](#infer-rooms-clear) the next visit is welcomed again.
 
 ### The room log
 
@@ -1906,7 +1933,26 @@ The log is append-only - one JSON object per line. `author` is `user` for a post
 }
 ```
 
-`mentions` and `routes` are left out when empty. A line that does not decode, such as one a crash tore mid-write, is skipped on read and costs only itself.
+`mentions` and `routes` are left out when empty. `kind` is `join` for your first entry into the room and absent for a message. `usage` (`tokens`, `cost`) is what the post spent - see the [client frames notes](#shared-event-stream) - and is absent when it cost nothing. A line that does not decode, such as one a crash tore mid-write, is skipped on read and costs only itself.
+
+### Rooms in the chat TUI
+
+The chat TUI enters the rooms the daemon hosts from the `Room: -` [status bar indicator](#status-indicator-row). Open it with `Enter` on the focused indicator or a left click. The dropdown lists **No room** first, then every room with its member count. Picking a room shows it in place of the conversation and the indicator reads `Room: #<room>`.
+
+The room view reads like a Slack channel:
+
+- **The header** shows what the room spent, such as `48.2k tokens - $0.031` - what the posts in its log cost, routing them and the members' turns, so a cleared room starts over - and each member's presence: idle, working or waiting for approval.
+- **Each message** sits under its author and time, and an author's consecutive messages are grouped. Joins and the room's notes are quiet lines.
+- **A `<member> is working...` line** sits under the posts while a member runs a turn.
+
+Inside a room the composer posts to it:
+
+- The placeholder reads `Message #<room>`, and the `room` [trigger table of `composer.yaml`](/configuration/#triggers) drives the menus, so `@` lists the room's members.
+- `!` and `!!` commands and messages with an image stay in the composer, since a room takes text only. `/` commands work as usual.
+- `Ctrl+L`, `/clear` and `/new` clear nothing inside a room, since other people read it too. The status line points to `infer rooms clear <room>` or **No room**.
+- **No room** brings the chat back untouched.
+
+A plain chat reaches rooms only through a daemon that already runs - it never starts one. When none runs, the status bar says so and asks you to start it with `infer daemon`.
 
 ### Inspecting rooms (infer rooms)
 
@@ -1914,7 +1960,7 @@ While the daemon runs, `infer rooms list` and `infer rooms show` take the rooms 
 
 #### `infer rooms list`
 
-Lists every room with its members resolved now - `"*"` expanded to every agent that exists:
+Lists every room with its members resolved now - `"*"` expanded to every agent of yours that exists:
 
 ```bash
 infer rooms list
@@ -1977,6 +2023,13 @@ Posted to release.
 Routed to tester (pinged).
 ```
 
+A post that pings nobody lists the members it is offered to in turn, best first:
+
+```text
+Posted to release.
+Offered to researcher (0.94), then tester (0.81).
+```
+
 A post that reached nobody prints `Routed to nobody.` followed by the notice that says why. `--format json` prints the `room`, the logged `post` and the `notices`:
 
 ```json
@@ -1995,6 +2048,20 @@ A post that reached nobody prints `Routed to nobody.` followed by the notice tha
 ```
 
 The command returns once the post is logged and routed - the members' replies land in the room log afterwards, so follow them with `infer rooms show`.
+
+#### `infer rooms clear`
+
+Empties a room's log, so it starts over:
+
+```bash
+infer rooms clear release
+```
+
+```text
+Cleared #release. Its members keep their own sessions.
+```
+
+Through a running daemon it empties the log and the view of every client following the room. With no daemon listening it clears the log where you run it. A daemon that listens but does not answer keeps its log, and the command fails. Members drop the posts they held - a run already going still posts its answer - and keep their own sessions, so they still remember their earlier turns. The next visit is [welcomed](#the-first-visit-welcome) again.
 
 ## Compute
 
@@ -4825,7 +4892,7 @@ prompt: |- # user-message template; {root_intent}, {intent} and {action} are fil
 | Field            | Default | Purpose                                                                                                                                                                                                                  |
 | ---------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `backend`        | `llm`   | Who answers the gate - `llm` (a generative model returning the JSON verdict above) or [`decisions`](#judge-mode-decision-model-judge-backend-decisions) (a decision model returning a probability).                      |
-| `model`          | `''`    | `provider/model` reference for judge calls. Empty falls back to `agent.model` (same precedent as conversation title generation).                                                                                         |
+| `model`          | `''`    | `provider/model` reference for judge calls. Empty falls back to the model the session runs on, then `agent.model` - see [model resolution](#judge-mode-model-resolution).                                                |
 | `min_confidence` | `0.7`   | `decisions` backend only: a call is approved when its `p(approve)` reaches this threshold, and rejected below it. Ignored by the `llm` backend.                                                                          |
 | `gateway_url`    | `''`    | Send judge calls to a different gateway than the agent's - for example a real judge while the driver runs against a mock. Empty shares the agent's gateway.                                                              |
 | `timeout`        | `30`    | Per-call timeout in seconds.                                                                                                                                                                                             |
@@ -4847,7 +4914,7 @@ A judge call can fail (timeout, gateway error, unparseable output) or return gar
 
 #### Model resolution {#judge-mode-model-resolution}
 
-`judge.model` falls back to `agent.model`. `safety.approval_behaviour: judge` in `tools.yaml` is the only setting that makes **config validation** require a resolvable judge model - selecting it with neither set is a configuration error caught at startup. The `auto-with-judge` mode is validated separately, by the headless runner at start (`--mode` or `INFER_AGENT_MODE`).
+`judge.model` falls back to the model the session runs on, such as a subagent's own `model:` or the one picked in the chat, then to `agent.model`. A fresh `infer init` sets neither, so the session's model judges and the judge's tokens count under it. A session with no model at all fails every gated call closed with `judge unavailable: no judge model configured`. `safety.approval_behaviour: judge` in `tools.yaml` is the only setting that makes **config validation** require a resolvable judge model - selecting it with neither set is a configuration error caught at startup. The `auto-with-judge` mode is validated separately, by the headless runner at start (`--mode` or `INFER_AGENT_MODE`).
 
 ### Decision-model judge (backend: decisions) {#judge-mode-decision-model-judge-backend-decisions}
 
@@ -4876,11 +4943,11 @@ rejected by judge: ollama/clef: rejected by the judge (decisions: p_approve=0.31
 
 An approved call records `decisions: p_approve=0.93, risk: benign`. `judge_verdict` events, usage accounting and the `AUTO+JUDGE` indicator are unchanged. `system_prompt` and `max_tokens` do not apply - decision models run no tools and generate no text.
 
-[Rooms](#how-routing-works) route posts with the same thresholding. With `rooms.router.model` empty only `@mentions` route. With a decision model set, a post goes to the room's members whose probability reaches `rooms.router.min_confidence`.
+[Rooms](#how-routing-works) route posts with the same thresholding. With `rooms.router.model` empty only `@mentions` route. With a decision model set (`ollama_cloud/clef:27b` by default), a post that pings nobody is offered to the room's members whose probability reaches `rooms.router.min_confidence`.
 
 #### Gateway requirement {#judge-mode-gateway-requirement}
 
-- The gateway must run with [`DECISIONS_ENABLED=true`](/configuration/) - while it is disabled `/v1/decisions` returns `404` and the judge fails closed. The CLI-managed local gateway sets it for you whenever `backend: decisions` is configured. An externally managed gateway needs the variable in its own environment.
+- The gateway must run with [`DECISIONS_ENABLED=true`](/configuration/) - while it is disabled `/v1/decisions` returns `404` and the judge fails closed. The CLI-managed local gateway starts with it by default, since the [rooms router](#how-routing-works) needs it too. An externally managed gateway needs the variable in its own environment.
 - The judge model must list `decisions` among its [output modalities](/api-reference/#list-all-models). The gateway checks the modality before relaying and answers `400` otherwise.
 
 Decision models read criteria literally and are weak at indirection, counting and adversarial content, so keep the evidence small and expect "does `git push` serve a bare `continue`" to be the hard case.
@@ -8218,35 +8285,35 @@ If completions still do not appear, the shell rc is usually not sourcing the com
 
 ## Command Reference
 
-| Command                               | Description                                                                                                                                                                                                                                                                                                                                                                                         |
-| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `infer init`                          | Seed the userspace baseline in `~/.infer/`                                                                                                                                                                                                                                                                                                                                                          |
-| `infer env`                           | Write a `.env.example` with every provider API key                                                                                                                                                                                                                                                                                                                                                  |
-| `infer status`                        | Check gateway health and resource usage - `--format json\|yaml` for machine-readable output ([Gateway Status](#gateway-status))                                                                                                                                                                                                                                                                     |
-| `infer chat`                          | Interactive chat session (TUI)                                                                                                                                                                                                                                                                                                                                                                      |
-| `infer chat --web`                    | Web-based terminal interface                                                                                                                                                                                                                                                                                                                                                                        |
-| `infer headless <task>`               | Autonomous task execution                                                                                                                                                                                                                                                                                                                                                                           |
-| `infer skills <subcommand>`           | Manage Agent Skills (`list`, `search`, `install`, `uninstall`)                                                                                                                                                                                                                                                                                                                                      |
-| `infer plugins <subcommand>`          | Manage Claude Code-format plugins (`install`, `list`, `enable`, `disable`, `update`, `remove`)                                                                                                                                                                                                                                                                                                      |
-| `infer daemon`                        | Start the daemon - scheduler, channel listener, and heartbeat ([Channels](#channels))                                                                                                                                                                                                                                                                                                               |
-| `infer daemon stop <id>`              | Stop a session's agent and delete the remote runtime it ran on, including one it already came home from ([Workspace lifecycle and cleanup](#workspace-lifecycle-and-cleanup))                                                                                                                                                                                                                       |
-| `infer config <subcommand>`           | Configuration management (`init`, `get`, `set`)                                                                                                                                                                                                                                                                                                                                                     |
-| `infer tools <subcommand>`            | Run agent tools directly (`execute`, `validate`)                                                                                                                                                                                                                                                                                                                                                    |
-| `infer agents <subcommand>`           | A2A agent management                                                                                                                                                                                                                                                                                                                                                                                |
-| `infer rooms <subcommand>`            | Inspect and post to rooms - `list` prints every room with its resolved members, `show <room>` one room's router settings, members and log, both from the running daemon when there is one. `post <room> "<text>"` posts through the daemon and prints the routing (`Posted to <room>.`, `Routed to ...`, then the notices). All take `--format text\|json` ([Rooms](#inspecting-rooms-infer-rooms)) |
-| `infer binaries <subcommand>`         | Manage the helper binaries under `~/.infer/bin/` (gateway, ffmpeg, whisper-cli, llama-tts) - `status [name...]` reports each one as `missing`, `stale` or `current` by sha256 (approval-free), `install [name...]` installs or upgrades it (`--version <tag>` pins a release)                                                                                                                       |
-| `infer conversations <subcommand>`    | Conversation history management (`list`, `show`, `delete`)                                                                                                                                                                                                                                                                                                                                          |
-| `infer conversation-title`            | Generate AI titles for saved conversations, or run it as a daemon                                                                                                                                                                                                                                                                                                                                   |
-| `infer export <session-id>`           | Export a conversation to Markdown under the project's `exports/` directory                                                                                                                                                                                                                                                                                                                          |
-| `infer stats`                         | Summarize local telemetry - token usage, tool outcomes, and cost                                                                                                                                                                                                                                                                                                                                    |
-| `infer traces`                        | Render a session's trace span tree ([Telemetry](#telemetry))                                                                                                                                                                                                                                                                                                                                        |
-| `infer insights [since]`              | Analyze past sessions for repeatable workflows and recurring failures                                                                                                                                                                                                                                                                                                                               |
-| `infer reset` / `infer reset confirm` | Preview, then wipe local runtime state ([Reset Shortcut](#reset-shortcut))                                                                                                                                                                                                                                                                                                                          |
-| `infer avatars <subcommand>`          | Avatar library management (`list`, `create`, `delete`) for `TextToVideo` renders                                                                                                                                                                                                                                                                                                                    |
-| `infer completion <shell>`            | Generate a shell completion script (bash, zsh, fish, powershell)                                                                                                                                                                                                                                                                                                                                    |
-| `infer version`                       | Show version information (backwards-compatible subcommand)                                                                                                                                                                                                                                                                                                                                          |
-| `infer --version`                     | Show version information (styled by fang)                                                                                                                                                                                                                                                                                                                                                           |
-| `infer --help`                        | Display styled help information                                                                                                                                                                                                                                                                                                                                                                     |
+| Command                               | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `infer init`                          | Seed the userspace baseline in `~/.infer/`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `infer env`                           | Write a `.env.example` with every provider API key                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| `infer status`                        | Check gateway health and resource usage - `--format json\|yaml` for machine-readable output ([Gateway Status](#gateway-status))                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `infer chat`                          | Interactive chat session (TUI)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| `infer chat --web`                    | Web-based terminal interface                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| `infer headless <task>`               | Autonomous task execution                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `infer skills <subcommand>`           | Manage Agent Skills (`list`, `search`, `install`, `uninstall`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| `infer plugins <subcommand>`          | Manage Claude Code-format plugins (`install`, `list`, `enable`, `disable`, `update`, `remove`)                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| `infer daemon`                        | Start the daemon - scheduler, channel listener, and heartbeat ([Channels](#channels))                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| `infer daemon stop <id>`              | Stop a session's agent and delete the remote runtime it ran on, including one it already came home from ([Workspace lifecycle and cleanup](#workspace-lifecycle-and-cleanup))                                                                                                                                                                                                                                                                                                                                                             |
+| `infer config <subcommand>`           | Configuration management (`init`, `get`, `set`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `infer tools <subcommand>`            | Run agent tools directly (`execute`, `validate`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `infer agents <subcommand>`           | A2A agent management                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `infer rooms <subcommand>`            | Inspect, post to and clear rooms - `list` prints every room with its resolved members, `show <room>` one room's router settings, members and log, both from the running daemon when there is one. `post <room> "<text>"` posts through the daemon and prints the routing (`Posted to <room>.`, `Routed to ...` or `Offered to ...`, then the notices). `clear <room>` empties the room's log, through the running daemon when there is one. `list`, `show` and `post` take `--format text\|json` ([Rooms](#inspecting-rooms-infer-rooms)) |
+| `infer binaries <subcommand>`         | Manage the helper binaries under `~/.infer/bin/` (gateway, ffmpeg, whisper-cli, llama-tts) - `status [name...]` reports each one as `missing`, `stale` or `current` by sha256 (approval-free), `install [name...]` installs or upgrades it (`--version <tag>` pins a release)                                                                                                                                                                                                                                                             |
+| `infer conversations <subcommand>`    | Conversation history management (`list`, `show`, `delete`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `infer conversation-title`            | Generate AI titles for saved conversations, or run it as a daemon                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `infer export <session-id>`           | Export a conversation to Markdown under the project's `exports/` directory                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `infer stats`                         | Summarize local telemetry - token usage, tool outcomes, and cost                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `infer traces`                        | Render a session's trace span tree ([Telemetry](#telemetry))                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| `infer insights [since]`              | Analyze past sessions for repeatable workflows and recurring failures                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| `infer reset` / `infer reset confirm` | Preview, then wipe local runtime state ([Reset Shortcut](#reset-shortcut))                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `infer avatars <subcommand>`          | Avatar library management (`list`, `create`, `delete`) for `TextToVideo` renders                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `infer completion <shell>`            | Generate a shell completion script (bash, zsh, fish, powershell)                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `infer version`                       | Show version information (backwards-compatible subcommand)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `infer --version`                     | Show version information (styled by fang)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `infer --help`                        | Display styled help information                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 
 ### Global Flags
 
