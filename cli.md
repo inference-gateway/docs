@@ -1742,7 +1742,7 @@ Every transport carries the same vocabulary, with no envelope around it: AG-UI e
 | `stop_room`                                                 | Stop the members at work in a room, or only `member`. Answered with `room_stopped` and its `members`, empty when nobody was at work. A `member` outside the room answers `RUN_ERROR` |
 | `leave_room`                                                | Stop following a room. Nothing answers it                                                                                                                                            |
 
-Unknown `type` and `name` values are ignored on both sides, so the vocabulary stays additive. The full per-event reference lives with the CLI source, in [`docs/ag-ui-output.md`](https://github.com/inference-gateway/cli/blob/main/docs/ag-ui-output.md). The rooms frames and their payloads, `join_room`, `clear_room` and `room_cleared` included, are documented in the [binding protocol's Rooms section](https://github.com/inference-gateway/cli/blob/main/docs/browser-extension-protocol.md#rooms). A member's post carries `mentions` and `routes` too when it [hands the post over](#how-routing-works) to other members, and `hop`, how many member turns lie between the user's post and it.
+Unknown `type` and `name` values are ignored on both sides, so the vocabulary stays additive. The full per-event reference lives with the CLI source, in [`docs/ag-ui-output.md`](https://github.com/inference-gateway/cli/blob/main/docs/ag-ui-output.md). The rooms frames and their payloads, `join_room`, `clear_room` and `room_cleared` included, are documented in the [binding protocol's Rooms section](https://github.com/inference-gateway/cli/blob/main/docs/browser-extension-protocol.md#rooms). A member's post carries `mentions` and `routes` too when it [hands the post over](#how-routing-works) to other members, and `hop`, how many member turns lie between the user's post and it. Each member in `room_snapshot` and the `rooms` frame carries `role`, the job title its agent file names, absent when it names none. A client shows it after the name, `jeff (tester)`.
 
 Every room post carries `usage` - `tokens` in and out and their `cost` - for what it spent. For the user's post it is routing it through the decision model, which carries no cost. For a member's answer, or the room's note that the member passed a post on, it is the member's turn, from the `runTokens` and `runCost` of its worker's [`RUN_FINISHED`](#ag-ui-run-finished-result). A failed turn ends on `RUN_ERROR`, which reports no spend, so the room's note that the member failed has no `usage`, and neither has a post that cost nothing, such as a ping. A room's total is the `usage` of every post in its log, so a cleared room starts over, and `cost` stays `0` for a model without a price.
 
@@ -1915,7 +1915,7 @@ This is the same thresholding the judge applies with its [decision-model backend
 
 ### Members answering
 
-A routed post becomes the member's **next turn** on its session `room-<room>-<agent>`, running as that agent in the room's project. The turn carries the room's posts the member has not seen since its last turn, up to `context_posts`, quoted as context, then the post for it - so neither the member nor its judge takes another member's words for the request. The last assistant message of the run is logged as the member's post. Agent mentions reach the member as plain names, so its own `@` file expansion never inlines a file named like a member.
+A routed post becomes the member's **next turn** on its session `room-<room>-<agent>`, running as that agent in the room's project. The turn carries the room's posts the member has not seen since its last turn, up to `context_posts`, quoted as context, then the post for it - so neither the member nor its judge takes another member's words for the request. The last assistant message of the run is logged as the member's post. A member whose agent file names a [`role`](#markdown-subagent-presets) is shown as `jeff (tester)`, and its turn tells it "You are jeff, the tester" with the other members' roles, so the team knows who does what. Agent mentions reach the member as plain names, so its own `@` file expansion never inlines a file named like a member.
 
 - **Parallel turns** - members routed the same post run in parallel.
 - **Held turns** - a post for a member that is still running waits and becomes its next turn.
@@ -1962,7 +1962,7 @@ The chat TUI enters the rooms the daemon hosts from the `Room: -` [status bar in
 
 The room view reads like a Slack channel:
 
-- **The header** shows what the room spent, such as `48.2k tokens - $0.031` - what the posts in its log cost, routing them and the members' turns, so a cleared room starts over - and each member's presence: idle, working or waiting for approval.
+- **The header** shows what the room spent, such as `48.2k tokens - $0.031` - what the posts in its log cost, routing them and the members' turns, so a cleared room starts over - and each member with its role and presence, such as `● jeff (tester) working`. Presence is idle, working or waiting for approval.
 - **Each message** sits under its author and time, and an author's consecutive messages are grouped. Joins and the room's notes are quiet lines.
 - **A `<member> is working...` line** sits under the posts while a member runs a turn.
 
@@ -1994,7 +1994,7 @@ infer rooms list
 infer rooms list --format json
 ```
 
-The text output is a table of each room's name, project and members. `--format json` prints each room with its members and the session id each one keeps:
+The text output is a table of each room's name, project and members. `--format json` prints each room with its members, their `role` and the session id each one keeps. `role` is absent when the agent names none:
 
 ```json
 [
@@ -2002,6 +2002,7 @@ The text output is a table of each room's name, project and members. `--format j
     "name": "public",
     "project": "/home/me/src/my-service",
     "members": [
+      { "agent": "jeff", "role": "tester", "session_id": "room-public-jeff" },
       { "agent": "explore", "session_id": "room-public-explore" },
       { "agent": "main", "session_id": "room-public-main" }
     ]
@@ -3521,11 +3522,14 @@ The Markdown body is the subagent's system prompt. Frontmatter keys:
 | ----------------- | -------- | --------------------------------------------------------------------------------------------------- |
 | `name`            | yes      | Identifier passed as the `agent` argument. Lowercase letters, digits, `-`, `_`. Up to 64 characters |
 | `description`     | yes      | Shown to the main agent so it knows when to delegate                                                |
+| `role`            | no       | The agent's job title in a few words, such as `tester` or `code reviewer`. Up to 40 characters      |
 | `model`           | no       | `provider/model`, or `inherit` to use the parent turn's model                                       |
 | `tools`           | no       | Tools the subagent may use - a YAML list or a comma-separated string. Omitted means inherit all     |
 | `disallowedTools` | no       | Tools removed from the resolved list. Same format as `tools`                                        |
 | `mcpServers`      | no       | Names of the [MCP servers](#mcp-integration) the agent brings up. See below                         |
 | `workspace`       | no       | The computer the agent runs on. See [Teammates on other computers](#teammates-on-other-computers)   |
+
+Wherever agents are listed - the [room header](#rooms-in-the-chat-tui), the `@` menu, the [`/agents` view](#agents-view), the [agent picker](#switching-the-main-agent), `infer agents list` and [`infer rooms list`](#infer-rooms-list) - the `role` follows the name as `jeff (tester)`, so a person's name still says what the agent does. Many agents may share a role. [`infer agents create`](#creating-an-agent) writes an agent from its role's template.
 
 Any other key (`color`, `temperature`, `max_turns`, `permissionMode`, ...) is accepted and ignored, so files written for other orchestrators load as-is. These are presets for the Agent tool, entirely separate from `.infer/agents.yaml`, the [A2A](#a2a-integration) agent registry.
 
@@ -3596,6 +3600,29 @@ The list applies both to a subagent the Agent tool starts and to [a daemon threa
 Files are scanned **once per session**. A file with broken frontmatter, a missing or invalid `name`/`description`, or an unusable `tools` list is skipped with a warning naming the file and the reason - an invalid preset never fails startup.
 
 > **v1 limits.** `.claude/agents/` and `.gemini/agents/` are not read in place (copy or symlink the files into `.infer/agents/`), there is no hot reload, and per-agent `temperature`, `max_turns`, `permissionMode`, and tool wildcards such as `mcp_*` are not honored. For a subagent the Agent tool starts, MCP tools register after session start, so MCP tool names in a `tools` list are dropped as unknown - a daemon thread opened as the agent keeps them.
+
+##### Creating an agent
+
+`infer agents create <name> --role <role>` writes `~/.infer/agents/<name>.md`, or `.infer/agents/<name>.md` with `--project`, from the template of its role:
+
+```bash
+infer agents create jeff --role tester --workspace ubuntu-desktop
+infer agents create noah --role "code reviewer" --model anthropic/claude-sonnet-5-5
+```
+
+`tester`, `reviewer`, `writer` and `researcher` have a template of their own, picked by the role or its last word, so `code reviewer` starts from the reviewer's. Every other role starts from the default template. Each template carries a description and a body: who the agent is, its rules, how it works and how it reports. The name is the agent's handle - `@jeff` reaches it in a room and the Agent tool runs it by that name. Edit the file afterwards to make it yours.
+
+| Flag            | Meaning                                                                                     |
+| --------------- | ------------------------------------------------------------------------------------------- |
+| `--role`        | The agent's job title, written to `role`. Required                                          |
+| `--description` | What the agent does and when to hand work to it. Defaults to the template's                 |
+| `--emoji`       | The face the desktop shows for the agent                                                    |
+| `--model`       | The model it runs on, `provider/model`. Defaults to `inherit`                               |
+| `--workspace`   | The computer it runs on, a workspace of `daemon.yaml`                                       |
+| `--tools`       | The tools it may use, comma-separated. Defaults to every tool                               |
+| `--force`       | Overwrite an existing agent file. Without it an existing file is kept and the command fails |
+
+A `--tools` name that is not a built-in tool prints a warning, since the agent drops it unless a browser, A2A or custom tool provides it. The desktop reads the same file, so an agent created here shows up there too.
 
 #### Switching the main agent
 
