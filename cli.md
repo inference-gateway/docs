@@ -1716,30 +1716,31 @@ Every transport carries the same vocabulary, with no envelope around it: AG-UI e
 
 **App frames in:**
 
-| Frame                                                       | Purpose                                                                                                                              |
-| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `new_session` / `resume_conversation`                       | Open a thread in a project directory, optionally [as a named agent](#opening-a-thread-as-a-named-agent)                              |
-| `user_message`                                              | Send a message into the thread. Queued when the agent is busy                                                                        |
-| `interrupt`                                                 | Stop the streaming turn, which ends `cancelled`                                                                                      |
-| `approval_response`                                         | `tool_call_id`, `approved`, `scope` - the decision for a pending tool call                                                           |
-| `user_question_response`                                    | The collected answers, or a dismissal                                                                                                |
-| `computer_use_control`                                      | `action` is `pause` or `resume`, for computer use                                                                                    |
-| `list_conversations` / `list_history`                       | Browse the project's stored conversations                                                                                            |
-| `list_skills` / `list_models` / `select_model` / `set_mode` | Inspect and change what the thread runs with                                                                                         |
-| `select_agent`                                              | [Switch the thread's main agent](#opening-a-thread-as-a-named-agent), answered with an `agent` frame (`agent`, `model`, `error`)     |
-| `list_shortcuts`                                            | The project's [shortcut registry](/opentask/#shortcuts), for the `/` menu                                                            |
-| `list_issues`                                               | The project's recent open issues, for the [`#` autocomplete](#github-issue-references)                                               |
-| `list_files`                                                | The project's files, for the [`@` autocomplete](/opentask/#project-file-references)                                                  |
-| `list_tasks` / `cancel_task`                                | List and stop a [session's background jobs](/opentask/#background-jobs)                                                              |
-| `tool_request` / `tool_result`                              | Run a tool directly, scoped to a project directory                                                                                   |
-| `list_artifacts` / `read_artifact`                          | List a [session's artifacts](/opentask/#session-artifacts) and read one                                                              |
-| `rewind_conversation`                                       | Send an earlier prompt again, dropping it and everything after it - see [conversation rewind](/opentask/#conversation-rewind)        |
-| `list_rooms`                                                | The daemon's [rooms](#rooms) with their members, answered with `rooms`                                                               |
-| `follow_room`                                               | Answered with `room_snapshot`, then every `room_post` and `room_activity` (`running`, `waiting`, `idle`) of the room. Never welcomes |
-| `join_room`                                                 | Enter a room as the user. Follows it like `follow_room`, and the user's first entry logs a `kind: join` post the members welcome     |
-| `post_room`                                                 | Post to a room as the user, answered with `room_posted` - the logged post and the notices for its author                             |
-| `clear_room`                                                | Empty a room's log. Every follower of the room, the client that cleared it included, gets `room_cleared` and empties its view        |
-| `leave_room`                                                | Stop following a room. Nothing answers it                                                                                            |
+| Frame                                                       | Purpose                                                                                                                                                                              |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `new_session` / `resume_conversation`                       | Open a thread in a project directory, optionally [as a named agent](#opening-a-thread-as-a-named-agent)                                                                              |
+| `user_message`                                              | Send a message into the thread. Queued when the agent is busy                                                                                                                        |
+| `interrupt`                                                 | Stop the streaming turn, which ends `cancelled`                                                                                                                                      |
+| `approval_response`                                         | `tool_call_id`, `approved`, `scope` - the decision for a pending tool call                                                                                                           |
+| `user_question_response`                                    | The collected answers, or a dismissal                                                                                                                                                |
+| `computer_use_control`                                      | `action` is `pause` or `resume`, for computer use                                                                                                                                    |
+| `list_conversations` / `list_history`                       | Browse the project's stored conversations                                                                                                                                            |
+| `list_skills` / `list_models` / `select_model` / `set_mode` | Inspect and change what the thread runs with                                                                                                                                         |
+| `select_agent`                                              | [Switch the thread's main agent](#opening-a-thread-as-a-named-agent), answered with an `agent` frame (`agent`, `model`, `error`)                                                     |
+| `list_shortcuts`                                            | The project's [shortcut registry](/opentask/#shortcuts), for the `/` menu                                                                                                            |
+| `list_issues`                                               | The project's recent open issues, for the [`#` autocomplete](#github-issue-references)                                                                                               |
+| `list_files`                                                | The project's files, for the [`@` autocomplete](/opentask/#project-file-references)                                                                                                  |
+| `list_tasks` / `cancel_task`                                | List and stop a [session's background jobs](/opentask/#background-jobs)                                                                                                              |
+| `tool_request` / `tool_result`                              | Run a tool directly, scoped to a project directory                                                                                                                                   |
+| `list_artifacts` / `read_artifact`                          | List a [session's artifacts](/opentask/#session-artifacts) and read one                                                                                                              |
+| `rewind_conversation`                                       | Send an earlier prompt again, dropping it and everything after it - see [conversation rewind](/opentask/#conversation-rewind)                                                        |
+| `list_rooms`                                                | The daemon's [rooms](#rooms) with their members, answered with `rooms`                                                                                                               |
+| `follow_room`                                               | Answered with `room_snapshot`, then every `room_post` and `room_activity` (`running`, `waiting`, `idle`) of the room. Never welcomes                                                 |
+| `join_room`                                                 | Enter a room as the user. Follows it like `follow_room`, and the user's first entry logs a `kind: join` post the members welcome                                                     |
+| `post_room`                                                 | Post to a room as the user, answered with `room_posted` - the logged post and the notices for its author                                                                             |
+| `clear_room`                                                | Empty a room's log. Every follower of the room, the client that cleared it included, gets `room_cleared` and empties its view                                                        |
+| `stop_room`                                                 | Stop the members at work in a room, or only `member`. Answered with `room_stopped` and its `members`, empty when nobody was at work. A `member` outside the room answers `RUN_ERROR` |
+| `leave_room`                                                | Stop following a room. Nothing answers it                                                                                                                                            |
 
 Unknown `type` and `name` values are ignored on both sides, so the vocabulary stays additive. The full per-event reference lives with the CLI source, in [`docs/ag-ui-output.md`](https://github.com/inference-gateway/cli/blob/main/docs/ag-ui-output.md). The rooms frames and their payloads, `join_room`, `clear_room` and `room_cleared` included, are documented in the [binding protocol's Rooms section](https://github.com/inference-gateway/cli/blob/main/docs/browser-extension-protocol.md#rooms). A member's post carries `mentions` and `routes` too when it [hands the post over](#how-routing-works) to other members, and `hop`, how many member turns lie between the user's post and it.
 
@@ -1920,6 +1921,7 @@ A routed post becomes the member's **next turn** on its session `room-<room>-<ag
 - **Held turns** - a post for a member that is still running waits and becomes its next turn.
 - **Approvals** - a member run that stops on a tool approval waits in the member's own chat, and the room logs `<agent> waits for approval in its own chat, session room-<room>-<agent>.` Open that session - it is an ordinary thread - to decide the approval. The member's reply lands in the room once you decided there, and its held posts follow. In the default `auto-with-judge` mode only a call the judge escalates waits for you.
 - **Failures** - a run that fails logs `<agent> failed: <reason>`, and the member moves on to its next held post.
+- **Stops** - a [`/stop`](#rooms-in-the-chat-tui) interrupts the member's run and drops the posts it was holding, so it does no more work in the room until a new post reaches it.
 
 A member that sits idle detaches from its session, so the daemon reaps its worker. A daemon that restarts does not remember a member's last turn and counts from the member's own last post in the log.
 
@@ -1969,7 +1971,13 @@ Inside a room the composer posts to it:
 - The placeholder reads `Message #<room>`, and the `room` [trigger table of `composer.yaml`](/configuration/#triggers) drives the menus, so `@` lists the room's members.
 - `!` and `!!` commands and messages with an image stay in the composer, since a room takes text only. `/` commands work as usual.
 - `Ctrl+L`, `/clear` and `/new` clear nothing inside a room, since other people read it too. The status line points to `infer rooms clear <room>` or **No room**.
+- `/stop` aborts every member working on a post, and `/stop <member>` (or `/stop @member`) one member - a member waiting on an approval in its own chat included. The `/` menu lists `/stop` inside a room only.
 - **No room** brings the chat back untouched.
+
+A stopped member's run is interrupted and it drops the posts it was holding, so it does no more work in the room until a new post reaches it. The room notes `<member> was stopped.` A call the member was waiting on closes with a `decision` post. A stopped offered post is not passed on to the next member, and no answer of the aborted run is logged. The header shows the member idle. The status bar reports the result:
+
+- `Stopped tester, writer in #release` - the members that were stopped.
+- `tester is not working in #release` or `Nobody is working in #release` - nothing changes.
 
 A plain chat reaches rooms only through a daemon that already runs - it never starts one. When none runs, the status bar says so and asks you to start it with `infer daemon`.
 
