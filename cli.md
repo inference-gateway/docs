@@ -1283,6 +1283,14 @@ infer daemon stop # stop the running daemon and everything it runs
 
 It sends `SIGTERM` to the pid that the lock on `~/.infer/run/daemon.pid` vouches for and waits for the shutdown. The shutdown is graceful for everything the daemon runs: every session worker ends its turn and cleans up, and every scheduled, heartbeat or A2A run shuts down on `SIGTERM`. A daemon that still runs after a minute is killed. With no daemon running, `infer daemon stop` says so and exits `0`. A pid file no daemon holds is left alone.
 
+**A daemon of another build.** The daemon declares its build - the SHA-256 of its executable - when a chat connects. When `infer chat --daemon`, or a plain chat's rooms, joins a daemon of another build, the chat warns once and keeps working:
+
+```text
+infer daemon runs another build than this chat, so what this build changed there is missing - stop it (pid 86806) and run again
+```
+
+What the chat's own build changed on the daemon's side is missing until that daemon restarts. The chat warns again only if a reconnect lands on yet another build. A daemon that declares no build predates the check and counts as another build. Released builds compare the same way, so after an upgrade a chat notices the previous version's daemon still running. Run `infer daemon stop` and start the chat again to clear it.
+
 ### Workspace lifecycle and cleanup
 
 A **workspace** is where a session's agent runs. This daemon is one, named by `workspace` (default the hostname), and `daemon.yaml` registers the others. `infer sessions teleport <session-id> --to <workspace>` sends a session to another one between turns, printing each stage until it is ready, and teleporting it back to this machine ends with the session home again:
