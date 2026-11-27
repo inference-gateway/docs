@@ -698,6 +698,37 @@ Requirements and limits:
 - **Skipping unchanged frames needs a newer computer.** A poll answers "unchanged" from the first `infer` release after **v0.252.0**. A computer running an older CLI sends the full frame on every poll, as before, and nothing you see changes either way.
 - **Dragging needs a newer computer.** Press and release reach a computer from the first `infer` release after **v0.252.0** - see [Dragging](/cli/#dragging). On a computer running an older CLI the app falls back to plain clicks for that take-over, so clicking keeps working and only dragging is unavailable.
 
+## Rooms
+
+A room is a named group of agents you talk to like a channel: every member's posts show in one view, and you write to the room instead of to one agent at a time. The CLI's daemon hosts the rooms - it routes each post, runs the members it reaches and logs their answers. See [Rooms](/cli/#rooms) in the CLI docs for `rooms.yaml` and how routing works.
+
+### The Rooms filter
+
+**Filter rooms** in the sidebar lists the rooms of `~/.infer/rooms.yaml`. The default `public` room, with every agent of yours in it, is there from the start. **Select room** opens a room in the main pane, and each member's own chat, `room-<room>-<agent>`, nests under its room. Opening a chat or starting a new one leaves the room.
+
+### The room view
+
+The room's header names its members with their roles, such as `jeff (tester)`. Each post shows its author's face and name, when it was posted, and the members it reached. A member's post has a button to that member's own chat, where its work, its questions and its approvals live. A member waiting on an approval or a question shows in a bar above the posts, with the same way to its chat, so you answer it there.
+
+### Posting and member mentions
+
+With a room open, the composer posts to it. Its menus come from the `room` context of `composer.yaml`, so `@` lists the room's members before the project's files.
+
+- A post that mentions a member, such as `@reviewer check the release notes`, reaches that member, which answers in the room.
+- A post that mentions nobody goes to the members the router picks. If `rooms.yaml` empties the router model, only a mention routes, and the room says the post reached nobody.
+- A notice for you, such as a mention of an agent outside the room, shows in the status bar.
+
+### Creating and editing rooms
+
+**New room**, at the bottom of the Rooms filter, opens the room editor: the room's name, the project its members work in, and its members. **Save room** writes it to `~/.infer/rooms.yaml`.
+
+- **All agents** seats every agent of yours, new ones included, and writes `'*'`. The CLI's built-in agents (`main`, `explore` and the rest) join only when you pick them by name.
+- **Edit room** on a room's row changes its name, project and members. The default `public` room edits like any other, and its first save writes it to `rooms.yaml`, where it replaces the default.
+- **Delete room** asks for a second click, then removes the room from `rooms.yaml`. Its log stays on disk.
+- The editor keeps every other key of `rooms.yaml` as it found it, such as a room's `mode`.
+
+**Settings > Rooms** holds the router: the model that decides whom a post that mentions nobody is for, the confidence a member must reach, and what happens when nobody does. The model list offers the models your gateway serves. Each change saves at once, and switching between a model and **None** restarts the gateway, which serves the router's Decisions API only while a model is set.
+
 ## Chat and tool approval
 
 Start a conversation by typing into the chat input and pressing Enter. The agent processes your request and streams the response back in real time.

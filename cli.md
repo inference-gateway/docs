@@ -19,6 +19,7 @@ The Inference Gateway CLI (`infer`) is a powerful Go-based command-line tool pro
 - **Smart Safety System** - Configurable approval workflow with diff visualization
 - **Beautiful TUI** - Scrollable interface with syntax highlighting and multiple themes
 - **Web Terminal** - Browser-based interface with tabbed sessions
+- **Rooms** - Talk to several agents in one place, routed by mention or a decision model ([Learn more](#rooms))
 - **Remote Messaging Channels** - Control the agent from Telegram and other platforms ([Learn more](/cli-channels/))
 - **Agent Skills** - Reusable, model-readable instruction folders loaded on demand, portable across vendors ([Learn more](/cli-skills/))
 - **Custom Tools** - Add tools written in any language with one YAML manifest per tool ([Learn more](#custom-tools))
@@ -1772,6 +1773,89 @@ Logs are not streamed to clients, so `tail` the file when debugging a client:
 ```bash
 tail -f ~/.infer/logs/daemon-$(date +%Y-%m-%d).log
 ```
+
+## Rooms
+
+A room is a named group of agents you talk to in one place, like a channel. You post to the room, and the [daemon](#daemon) decides which members answer: the members you ping with `@name`, or, for a post that pings nobody, the members a decision model finds it relevant to. Each member answers in a session of its own, and every post and answer lands in one log per room.
+
+Rooms run in the daemon, so start it with its [binding](#starting-the-daemon) enabled. The default `public` room seats every agent of yours, so create one and ping it there:
+
+```bash
+infer agents create jeff --role tester
+infer rooms post public "@jeff say hello to the room"
+infer rooms show public
+```
+
+### rooms.yaml
+
+`~/.infer/rooms.yaml`, and a project's `.infer/rooms.yaml`, hold the router and the rooms. `infer init` seeds the home file. Out of the box there is one room, `public`, with every agent of yours in it:
+
+```yaml
+router:
+  model: ollama_cloud/clef:27b
+  min_confidence: 0.5
+  max_members: 2
+  max_hops: 3
+  fallback: top
+context_posts: 20
+rooms:
+  - name: public
+    mode: auto-with-judge
+    pickup: offer
+    agents:
+      - '*'
+  - name: release
+    project: /Users/me/Repositories/app
+    mode: standard
+    agents:
+      - researcher
+      - tester
+      - writer
+```
+
+| Key                     | What it does                                                                                                                                                                                                         |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `router.model`          | The `provider/model` decision model asked about a post that pings nobody, `ollama_cloud/clef:27b` by default. Empty routes pings only                                                                                |
+| `router.min_confidence` | The probability, 0 to 1, a member needs to get a post that pings nobody                                                                                                                                              |
+| `router.max_members`    | The most members such a post is offered to, one after another and the most relevant first. Pings are never capped                                                                                                    |
+| `router.max_hops`       | How many times members may hand a post on to each other with a ping before it stops                                                                                                                                  |
+| `router.fallback`       | What happens when no member reaches `min_confidence`: `top` offers the post to the most relevant members anyway, `none` asks you to ping one                                                                         |
+| `context_posts`         | How many of the room's earlier posts a member gets with its turn                                                                                                                                                     |
+| `name`                  | Letters, digits and underscores. A file that defines `public` replaces the default room, and one that leaves it out keeps it                                                                                         |
+| `project`               | The directory the members' sessions run in. Empty means the daemon's working directory                                                                                                                               |
+| `mode`                  | The agent mode the members run in: `standard`, `plan`, `auto` or `auto-with-judge`, the default, so a [judge](#auto-judge-mode) decides the gated tool calls nobody watches                                          |
+| `pickup`                | How a post that pings nobody finds the one member who takes it. `offer`, the default, offers it to the best match, who answers or replies `PASS` and so hands it to the next. `top` gives it to the best match alone |
+| `agents`                | The members. `'*'` seats every agent of yours, new ones included, and the built-in agents (`main`, `explore`, `general-purpose`, `plan`) join only by name                                                           |
+
+The daemon reads `rooms.yaml` again each time a room is used, so an edit reaches the next post without a restart. A file that does not load leaves the rooms as they were last read.
+
+### Routing a post
+
+1. `@name` pings an agent the project knows. A pinged member gets the post without any model asked, and a pinged agent outside the room gets you a notice. `@README.md` and `@./tester` stay file references.
+2. `@all` pings every member of the room.
+3. A post that pings nobody asks the decision model one question per member: should this member, given its description and the recent posts, act on it? The members at or above `min_confidence` are ranked, and one of them takes the post, as `pickup` says. When nobody reaches the bar, `fallback` decides.
+4. A member's answer that pings another member hands the post over, and the pinged member gets it as its next turn. A chain of hand-overs stops after `router.max_hops`.
+
+Routing by model goes through the gateway's [Decisions API](/api-reference/#decisions-api), so the CLI starts its gateway with `DECISIONS_ENABLED=true` while `router.model` is set. When routing fails, such as without a key for the router's provider, the post reaches nobody and you get a notice to ping a member. The log records whom each post was routed to and with what probability.
+
+### Members answering
+
+Every member keeps its own session, `room-<room>-<agent>`, running as its agent in the room's project. A member whose agent file names a `role` shows as `jeff (tester)`. A routed post becomes the member's next turn, with the room's posts it has not seen yet quoted as context, and its answer is logged as its post. Members routed the same post run in parallel, and a post for a busy member waits for its next turn.
+
+A member that needs a tool call approved asks in the room. In the default `auto-with-judge` mode that is only a call the judge rejected and the member escalated. The first decision wins, from the room or from the member's own session. In the chat, `/stop` aborts every member at work in the room and `/stop <member>` one of them.
+
+Each room appends its posts to `~/.infer/projects/<slug of the room's project>/rooms/<room>.jsonl`, one JSON object per post.
+
+### Room commands
+
+| Command                            | What it does                                          |
+| ---------------------------------- | ----------------------------------------------------- |
+| `infer rooms list`                 | The rooms with their resolved members and session ids |
+| `infer rooms show <room>`          | One room's members, router settings and log           |
+| `infer rooms post <room> "<text>"` | Post through the daemon and print where the post went |
+| `infer rooms clear <room>`         | Empty the room's log, so the room starts over         |
+
+`list`, `show` and `post` take `--format json`. The chat enters rooms from its status bar, and the [desktop app](/desktop/#rooms) shows them in its Rooms filter. Other clients list, follow and post to rooms over the daemon binding with `list_rooms`, `follow_room` and `post_room`.
 
 ## Compute
 

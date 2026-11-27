@@ -62,7 +62,7 @@
 ## Tools
 
 - [Desktop App](https://docs.inference-gateway.com/desktop/): Provider-agnostic native AI client
-- [CLI](https://docs.inference-gateway.com/cli/): The infer CLI for chat, autonomous agents, MCP, and A2A
+- [CLI](https://docs.inference-gateway.com/cli/): The infer CLI for chat, autonomous agents, rooms, MCP, and A2A
 - [Command Hooks](https://docs.inference-gateway.com/cli-hooks/): Run shell commands at agent-loop hook points
 - [Judge Mode](https://docs.inference-gateway.com/cli-judge-mode/): Let an LLM judge answer tool-approval gates
 - [Channels](https://docs.inference-gateway.com/cli-channels/): Control the CLI agent remotely over Telegram
