@@ -1733,7 +1733,7 @@ Every transport carries the same vocabulary, with no envelope around it: AG-UI e
 | `clear_room`                                                | Empty a room's log. Every follower of the room, the client that cleared it included, gets `room_cleared` and empties its view        |
 | `leave_room`                                                | Stop following a room. Nothing answers it                                                                                            |
 
-Unknown `type` and `name` values are ignored on both sides, so the vocabulary stays additive. The full per-event reference lives with the CLI source, in [`docs/ag-ui-output.md`](https://github.com/inference-gateway/cli/blob/main/docs/ag-ui-output.md). The rooms frames and their payloads, `join_room`, `clear_room` and `room_cleared` included, are documented in the [binding protocol's Rooms section](https://github.com/inference-gateway/cli/blob/main/docs/browser-extension-protocol.md#rooms).
+Unknown `type` and `name` values are ignored on both sides, so the vocabulary stays additive. The full per-event reference lives with the CLI source, in [`docs/ag-ui-output.md`](https://github.com/inference-gateway/cli/blob/main/docs/ag-ui-output.md). The rooms frames and their payloads, `join_room`, `clear_room` and `room_cleared` included, are documented in the [binding protocol's Rooms section](https://github.com/inference-gateway/cli/blob/main/docs/browser-extension-protocol.md#rooms). A member's post carries `mentions` and `routes` too when it [hands the post over](#how-routing-works) to other members, and `hop`, how many member turns lie between the user's post and it.
 
 Every room post carries `usage` - `tokens` in and out and their `cost` - for what it spent. For the user's post it is routing it through the decision model, which carries no cost. For a member's answer, or the room's note that the member passed a post on, it is the member's turn, from the `runTokens` and `runCost` of its worker's [`RUN_FINISHED`](#ag-ui-run-finished-result). A failed turn ends on `RUN_ERROR`, which reports no spend, so the room's note that the member failed has no `usage`, and neither has a post that cost nothing, such as a ping. A room's total is the `usage` of every post in its log, so a cleared room starts over, and `cost` stays `0` for a model without a price.
 
@@ -1827,6 +1827,7 @@ router:
   model: ollama_cloud/clef:27b # decision model for a post that pings nobody - empty routes @mentions only
   min_confidence: 0.5 # the router's confidence bar, between 0 and 1
   max_members: 2 # the most members a post that pings nobody is offered to
+  max_hops: 3 # how many times members may hand a post on to each other with a ping
   fallback: top # a post nobody clears the bar for: top (default) or none
 context_posts: 20 # past posts of the room log that ride along as context
 rooms:
@@ -1841,11 +1842,12 @@ rooms:
 | `router.model`          | `ollama_cloud/clef:27b` | `provider/model` decision model that routes a post that pings nobody. Empty keeps `@mentions`-only routing - see [How routing works](#how-routing-works).                                                    |
 | `router.min_confidence` | `0.5`                   | A member is addressed when the router's probability for it reaches this bar. Must be between `0` and `1`.                                                                                                    |
 | `router.max_members`    | `2`                     | The most members a post that pings nobody is offered to, one after another and the most relevant first, and how many members welcome you on your first visit. Pings are never capped. `0` means the default. |
+| `router.max_hops`       | `3`                     | How many times members may hand a post on to each other with a ping before it stops, so two members cannot ping each other forever. `0` means the default.                                                   |
 | `router.fallback`       | `top`                   | What happens to a post no member clears the bar for - `top` offers it to the room's top matches anyway, as `pickup` says, `none` addresses nobody.                                                           |
 | `context_posts`         | `20`                    | How many past posts of the room log ride along as context. Must be `0` or more.                                                                                                                              |
 | `rooms`                 | `public`                | The rooms, each with a `name`, an optional `project` and an `agents` list.                                                                                                                                   |
 
-`rooms.yaml` is validated at startup and a broken file fails the load: an unknown `fallback`, a `min_confidence` outside `0`-`1`, a negative `max_members` or `context_posts`, an invalid room name or a room defined twice are configuration errors.
+`rooms.yaml` is validated at startup and a broken file fails the load: an unknown `fallback`, a `min_confidence` outside `0`-`1`, a negative `max_members`, `max_hops` or `context_posts`, an invalid room name or a room defined twice are configuration errors.
 
 #### Rooms and members
 
@@ -1881,7 +1883,7 @@ rooms:
 
 #### Member sessions
 
-Every member keeps its own session in the room with the deterministic id `room-<room>-<agent>`, like the per-sender `channel-<name>-<sender_id>` sessions of [channels](#channels). The `main` agent of the `public` room keeps `room-public-main`, and `code-writer` in `release` keeps `room-release-code-writer`. Room names have no dash, so the room part of an id ends at the first one and no two seats in different rooms share a session. A member session records `invoked_by: room`, its agent as `agent` and the room's name as its `label` - see the session origin fields under [conversation management](#conversation-management).
+Every member keeps its own session in the room with the deterministic id `room-<room>-<agent>`, like the per-sender `channel-<name>-<sender_id>` sessions of [channels](#channels). The `main` agent of the `public` room keeps `room-public-main`, and `code-writer` in `release` keeps `room-release-code-writer`. Room names have no dash, so the room part of an id ends at the first one and no two seats in different rooms share a session. A member session records `invoked_by: room`, its agent as `agent` and the room's name as its `label` - see the session origin fields under [conversation management](#conversation-management). The turn tells a member to hand a post on to another member with `@name` when that member should act on it, and never for small talk.
 
 ### How routing works
 
@@ -1891,10 +1893,11 @@ The router decides which members a post is addressed to:
 2. **`@all` pings every member**, also without a router model. It is the only way to reach every member at once.
 3. **A post that pings nobody, a greeting included, asks the decision model** (`router.model`). The model gets one yes-or-no question per member - should this member, given its description and the room's last `context_posts` posts, act on the new post - and returns a probability for each. The members whose probability reaches `router.min_confidence` are ranked, up to `router.max_members`, and **one** of them picks the post up, as the room's `pickup` says, so no two members work on the same request.
 4. **When nobody passes**, `router.fallback` decides. `top` offers the post to the most relevant members anyway, as `pickup` says. `none` routes it to nobody, with a notice naming the members to ping: `No member of room <room> was addressed. Mention one: @researcher, @tester`.
+5. **A member's answer that pings another member hands the post over.** The pinged member gets it as its next turn, as a ping with probability `1`, and its turn says who handed the post over. No model is asked, and mentions resolve like yours, so `@README.md` stays a file reference. A member pinging itself, a pinged agent outside the room and a member's `@all` reach nobody - the room notes the outsider with `@<agent> is not in room <room>.`, and `@all` stays yours. A chain of hand-overs stops after `router.max_hops`, with the room's note: `<member> pinged @<name>, but the post stops here: members handed it on <n> times, the most rooms.router.max_hops allows.`
 
 The room's `pickup` decides how the ranked members take the post:
 
-- **`offer`** (the default) - the best match gets the post first and either answers it or replies exactly `PASS`. A `PASS` logs `<member> passed it on - offered to <next>.` and offers the post to the next best, up to `router.max_members` members. When the last one passes, the room says nobody picked it up.
+- **`offer`** (the default) - the best match gets the post first and either answers it or replies exactly `PASS`. A `PASS` logs `<member> passed it on - offered to <next>.` and offers the post to the next best, up to `router.max_members` members. When the last one passes, the room says nobody picked it up. A member offered a post that answers by pinging another member hands it over instead, and the offer does not move on to the next best match as well.
 - **`top`** - the best match alone gets the post, with no way to pass it on.
 
 An empty `router.model` keeps `@mentions`-only routing: a post that pings nobody reaches nobody with the same notice, and `fallback` does not apply. The default model runs on `ollama_cloud`, so without an `ollama_cloud` key a post that pings nobody reaches nobody, and its author gets a notice to ping a member. A decision request that fails still logs the post, routed to nobody, with the reason in a notice. The router needs the gateway's Decisions API, and the CLI-managed gateway starts with `DECISIONS_ENABLED=true` by default. A daemon whose router has a model starts the gateway, or joins the running one, on the first decision only, so mention-only rooms never touch it.
@@ -1941,7 +1944,7 @@ The log is append-only - one JSON object per line. `author` is `user` for a post
 }
 ```
 
-`mentions` and `routes` are left out when empty. `kind` is `join` for your first entry into the room and absent for a message. `usage` (`tokens`, `cost`) is what the post spent - see the [client frames notes](#shared-event-stream) - and is absent when it cost nothing. A line that does not decode, such as one a crash tore mid-write, is skipped on read and costs only itself.
+`mentions` and `routes` are left out when empty. `hop` is how many member turns lie between your post and a member's - `1` for a direct answer, the count `router.max_hops` caps - and is absent on your own posts. `kind` is `join` for your first entry into the room and absent for a message. `usage` (`tokens`, `cost`) is what the post spent - see the [client frames notes](#shared-event-stream) - and is absent when it cost nothing. A line that does not decode, such as one a crash tore mid-write, is skipped on read and costs only itself.
 
 ### Rooms in the chat TUI
 
